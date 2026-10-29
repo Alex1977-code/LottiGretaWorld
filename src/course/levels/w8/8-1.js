@@ -68,6 +68,18 @@ function build(level) {
         [-26, -202, 2.2, 4], [27, -232, 2.6, 2], [-22, -262, 3, 0], [24, -290, 2.4, 3], [-26, -312, 2.6, 1]].map(([x, z, r, k]) =>
         ({ x, y: -14, z, r, h: 15 + (Math.abs(x) % 4), roof: RF.roofs[k] })),
     ],
+    // rote Läufer mit Goldborte über die Plätze (der Weg ist auch im Regen gut zu sehen)
+    laeufer: [[-1.1, 1.1, 10.2, -5.6], [-1, 1, -20.4, -26.6], [-1, 1, -45.4, -53.6], [-1, 1, -69.4, -76.6], [-1.2, 1.2, -89.4, -97.6],
+      [-1.2, 1.2, -110.4, -118.6], [-1.2, 1.2, -125.4, -131.6], [-1.4, 1.4, -147.4, -164.6], [-1.2, 1.2, -180.4, -191.6],
+      [-1.2, 1.2, -208.4, -219.6], [-1, 1, -228.4, -235.6], [-1.4, 1.4, -288.4, -303.6], [BX - 1.5, BX + 1.5, -144.6, -158.4]],
+    // Frösche an den Pfützen
+    froesche: [[-4.9, 6.2, 0.5], [3.3, -24.2, 2.6], [-4.1, -91.4, -0.4], [6, -155.7, 3], [4.6, -217.2, 2.2], [4.4, -294.3, 2.8], [-1.6, -47.9, 0.9]],
+    // Wappenschilde des Barons an den Brüstungen (Innenseite)
+    wappen: [[-6.4, 6, 1, 0], [-6.4, 1, 1, 0], [6.4, 6, -1, 0], [6.4, 1, -1, 0], [-7.4, -157, 1, 0], [-7.4, -161, 1, 0], [7.4, -151.5, -1, 0],
+      [7.4, -159.5, -1, 0], [-6.4, -186, 1, 0], [-6.4, -211, 1, 0], [6.4, -217, -1, 0], [-5.4, -292, 1, 0], [5.4, -298, -1, 0]]
+      .map(([x, z, nx, nz]) => ({ x, z, nx, nz })),
+    // Burggraben: matt und dunkel, mit Regenringen
+    graben: { y: -11, x0: -90, x1: 150, z0: 70, z1: -370 },
   });
 }
 
@@ -120,29 +132,42 @@ export const LEVEL = {
     { type: 'deco_w8', items: [
       { kind: 'pfuetze', pos: [-3.5, Y + 0.02, 6.5], size: [2.4, 1.6] }, { kind: 'pfuetze', pos: [4, Y + 0.02, -2.5], size: [1.8, 1.2] },
       { kind: 'regentonne', pos: [-5.6, Y, 8.6] }, { kind: 'regentonne', pos: [-5.9, Y, 7.3], height: 1 },
-      { kind: 'wasserspeier', pos: [-4.2, Y - 1.2, 11.05], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [4.2, Y - 1.2, 11.05], yaw: -PI / 2 },
+      // Wasserspeier an den Brüstungen: der Strahl plätschert in eine Pfütze auf dem Platz
+      { kind: 'wasserspeier', pos: [-6.4, Y, 3.5], yaw: 0, height: 1.25 }, { kind: 'pfuetze', pos: [-4.5, Y + 0.02, 3.5], size: [1.6, 1.2] },
       { kind: 'pfuetze', pos: [2.4, Y + 0.02, -24.6], size: [1.6, 1.1] },
-      { kind: 'wasserspeier', pos: [0, Y - 1.2, -44.95], yaw: -PI / 2 }, { kind: 'pfuetze', pos: [-2.6, Y + 0.02, -47.4], size: [1.8, 1.2] },
+      { kind: 'pfuetze', pos: [-2.6, Y + 0.02, -47.4], size: [1.8, 1.2] },
       { kind: 'regentonne', pos: [4, Y, -70.4] }, { kind: 'pfuetze', pos: [-3, Y + 0.02, -91], size: [2, 1.3] },
-      { kind: 'wasserspeier', pos: [-3, Y - 1.2, -88.95], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [3, Y - 1.2, -88.95], yaw: -PI / 2 },
       { kind: 'pfuetze', pos: [2.8, Y + 0.02, -116.4], size: [1.8, 1.2] }, { kind: 'regentonne', pos: [-4, Y, -126.4] },
       { kind: 'pfuetze', pos: [4.6, Y + 0.02, -156], size: [2.6, 1.6] }, { kind: 'pfuetze', pos: [-4, Y + 0.02, -160.8], size: [1.8, 1.2] },
       { kind: 'regentonne', pos: [6.8, Y, -148.2] }, { kind: 'regentonne', pos: [6.6, Y, -149.5], height: 1 },
-      { kind: 'wasserspeier', pos: [-4, Y - 1.2, -146.95], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [4, Y - 1.2, -146.95], yaw: -PI / 2 },
+      { kind: 'wasserspeier', pos: [-7.4, Y, -154.6], yaw: 0, height: 1.25 }, { kind: 'pfuetze', pos: [-5.5, Y + 0.02, -154.6], size: [1.6, 1.2] },
       { kind: 'pfuetze', pos: [-20.4, Y + 0.02, -145.2], size: [1.4, 1] },
       { kind: 'pfuetze', pos: [3.4, Y + 0.02, -184], size: [2.2, 1.4] }, { kind: 'regentonne', pos: [-6, Y, -181.2] },
       { kind: 'pfuetze', pos: [-3.4, Y + 0.02, -213.6], size: [2.2, 1.4] }, { kind: 'pfuetze', pos: [3.2, Y + 0.02, -217.6], size: [1.6, 1.1] },
-      { kind: 'wasserspeier', pos: [-3, Y - 1.2, -179.95], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [3, Y - 1.2, -207.95], yaw: -PI / 2 },
+      { kind: 'wasserspeier', pos: [6.4, Y, -213.5], yaw: PI, height: 1.25 }, { kind: 'pfuetze', pos: [4.5, Y + 0.02, -213.5], size: [1.6, 1.2] },
+      { kind: 'wasserspeier', pos: [-5.4, Y, -295.5], yaw: 0, height: 1.25 }, { kind: 'pfuetze', pos: [-3.5, Y + 0.02, -295.5], size: [1.5, 1.1] },
       { kind: 'regentonne', pos: [-4, Y, -229.4] }, { kind: 'pfuetze', pos: [8, Y + 0.02, -265.8], size: [1.6, 1.1] },
       { kind: 'pfuetze', pos: [3, Y + 0.02, -294], size: [2.4, 1.5] }, { kind: 'regentonne', pos: [-4.8, Y, -289.4] },
       { kind: 'festungsfahne', pos: [-5.4, Y, -97.2], yaw: 0 }, { kind: 'festungsfahne', pos: [5.4, Y, -97.2], yaw: PI },
       { kind: 'festungsfahne', pos: [-4.4, Y, -297.4], yaw: 0 }, { kind: 'festungsfahne', pos: [4.4, Y, -297.4], yaw: PI },
+      // Glühbirnenketten zwischen den Ecktürmen, Wimpel auf den Brüstungen des Torhofs
+      { kind: 'gluehbirnen', from: [-6.1, Y + 4.8, -4.9], to: [6.1, Y + 4.8, -4.9], sag: 0.9 },
+      { kind: 'gluehbirnen', from: [-6.9, Y + 5.2, -163.9], to: [6.9, Y + 5.2, -163.9], sag: 1 },
+      { kind: 'gluehbirnen', from: [-4.9, Y + 6.2, -302.9], to: [4.9, Y + 6.2, -302.9], sag: 0.9 },
+      { kind: 'wimpel', from: [-6.7, Y + 2.2, 10.4], to: [-6.7, Y + 2.2, -3.4], sag: 0.5 },
+      { kind: 'wimpel', from: [6.7, Y + 2.2, 10.4], to: [6.7, Y + 2.2, -3.4], sag: 0.5 },
+      { kind: 'wimpel', from: [-6.7, Y + 2.2, -208.6], to: [-6.7, Y + 2.2, -219.4], sag: 0.5 },
+      { kind: 'wimpel', from: [6.7, Y + 2.2, -208.6], to: [6.7, Y + 2.2, -219.4], sag: 0.5 },
       // Wachstube
       { kind: 'bilderrahmen', pos: [BX - 2, Y + 1.8, -158.6], yaw: -PI / 2 }, { kind: 'regentonne', pos: [BX - 6.4, Y, -157.6] },
       { kind: 'kerzenleuchter', pos: [BX + 6.4, Y, -158] }, { kind: 'standuhr', pos: [BX + 6.6, Y, -146.4], solid: true },
     ] },
     { type: 'deco_w7', items: [
       { kind: 'fahne', hang: true, pos: [-3, Y + 4.2, -5.5], yaw: -PI / 2, length: 2, width: 1.2 },
+      { kind: 'fahne', hang: true, pos: [-6.9, Y + 4.8, -162.6], yaw: -PI / 2, length: 2.2, width: 1.1 },
+      { kind: 'fahne', hang: true, pos: [6.9, Y + 4.8, -162.6], yaw: -PI / 2, length: 2.2, width: 1.1 },
+      { kind: 'fahne', hang: true, pos: [-4.9, Y + 6, -301.6], yaw: -PI / 2, length: 2.4, width: 1.1 },
+      { kind: 'fahne', hang: true, pos: [4.9, Y + 6, -301.6], yaw: -PI / 2, length: 2.4, width: 1.1 },
       { kind: 'fackel', pos: [-6.2, Y, 0.5], mount: 'stand' }, { kind: 'fackel', pos: [6.2, Y, 0.5], mount: 'stand' },
       { kind: 'fackel', pos: [-3.6, Y, -21], mount: 'stand' }, { kind: 'fackel', pos: [3.6, Y, -21], mount: 'stand' },
       { kind: 'fackel', pos: [-4.4, Y, -46], mount: 'stand' }, { kind: 'fackel', pos: [-4.4, Y, -70], mount: 'stand' },

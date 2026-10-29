@@ -230,8 +230,101 @@ export function regenfestung81(level, o) {
   for (const s of o.stege) stegRand8(b, g, [s[0], s[1], s[2], s[3], Y, s[4]], rnd);
   for (const m of o.mauern ?? []) bruestung8(level, b, { y: Y, ...m }, rnd);
   for (const t of o.tuerme ?? []) turm8(level, b, g, t);
+  for (const r of o.laeufer ?? []) laeufer8(b, r, Y);
+  for (const f of o.froesche ?? []) frosch8(b, f, Y);
+  for (const w of o.wappen ?? []) wappen8(b, g, w, Y);
   b.flush(level, { castShadow: false });
   g.flush(level, { material: 'glow', castShadow: false });
+  if (o.graben) graben8(level, o.graben);
+}
+
+/** Roter Läufer mit Goldborte über einem Platz: [x0, x1, zA, zB]. Quasten an den Enden. */
+export function laeufer8(b, [x0, x1, zA, zB], Y) {
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const y = Y + 0.052;                                   // über den Bodenplatten (0,05 m)
+  b.box(w, 0.025, d, cx, y, cz, litTop(0xc02a3e, 0.8), { r: 0 });
+  for (const s of [-1, 1]) b.box(0.14, 0.03, d, cx + s * (w / 2 - 0.16), y + 0.001, cz, RF.gold, { r: 0 });
+  const n = Math.max(2, Math.round(w / 0.45));
+  for (const z of [z0, z1]) {
+    b.box(w, 0.03, 0.12, cx, y + 0.001, z + (z === z0 ? -0.14 : 0.14), RF.gold, { r: 0 });
+    for (let i = 0; i < n; i++) b.sphere(0.06, x0 + 0.15 + i * ((w - 0.3) / (n - 1)), y + 0.035, z + (z === z0 ? 0.04 : -0.04), RF.gold, { ws: 5, hs: 4 });
+  }
+  // Brummbär-Rauten in der Mitte (alle 4 m)
+  for (let z = z0 - 2; z > z1 + 1; z -= 4) b.box(Math.min(0.8, w * 0.4), 0.031, Math.min(0.8, w * 0.4), cx, y + 0.002, z, 0xf0c050, { r: 0, yaw: Math.PI / 4 });
+}
+
+/** Kleiner grüner Frosch (Regen-Detail) an einer Pfütze: [x, z, yaw]. */
+export function frosch8(b, [x, z, yaw = 0], Y) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const at = (u, v) => [x + c * u - s * v, z - s * u - c * v];
+  b.sphere(0.2, x, Y + 0.16, z, 0x5ac84a, { s: [1.2, 0.75, 1] });
+  for (const v of [-0.1, 0.1]) {
+    const [ex, ez] = at(0.12, v);
+    b.sphere(0.07, ex, Y + 0.3, ez, 0xffffff, { ws: 6, hs: 5 });
+    const [px, pz] = at(0.17, v);
+    b.sphere(0.035, px, Y + 0.31, pz, 0x1a1a24, { ws: 5, hs: 4 });
+    const [lx, lz] = at(-0.08, v * 2.2);
+    b.sphere(0.07, lx, Y + 0.06, lz, 0x48a83e, { s: [1.4, 0.6, 1], ws: 6, hs: 4 });
+  }
+  const [mx, mz] = at(0.2, 0);
+  b.sphere(0.05, mx, Y + 0.17, mz, 0xff8aa8, { s: [0.6, 0.4, 1.6], ws: 5, hs: 4 });
+}
+
+/** Wappenschild des Barons an einer Brüstung: { x, z, nx, nz, h } (n = Blickrichtung), lila mit Goldrand und goldener Krone. */
+export function wappen8(b, g, w, Y) {
+  const yaw = Math.atan2(-w.nz, w.nx), y = Y + (w.h ?? 0.35);
+  const off = (d) => [w.x + w.nx * d, w.z + w.nz * d];
+  const [x0, z0] = off(0.02), [x1, z1] = off(0.07), [x2, z2] = off(0.1);
+  b.box(0.1, 0.7, 0.66, x0, y, z0, RF.gold, { yaw, r: 0.05 });
+  b.box(0.08, 0.6, 0.56, x1, y + 0.05, z1, 0x7a3ab8, { yaw, r: 0.05 });
+  b.cone(0.22, 0.32, x0, y - 0.32, z0, RF.gold, 4, { rx: Math.PI });
+  for (const k of [-1, 0, 1]) g.cone(0.05, 0.16, x2 - w.nz * k * 0.13, y + 0.42, z2 + w.nx * k * 0.13, 0xffd23a, 4);
+  g.box(0.04, 0.06, 0.34, x2, y + 0.38, z2, 0xffd23a, { yaw, r: 0 });
+}
+
+/**
+ * Burggraben (8-1): matte, dunkle Wasserfläche unter den Stegen (die Kulisse des Themas spiegelt dort sonst den hellen
+ * Himmel) mit Regenringen, die rings um die Kamera aufgehen. { y, x0, x1, z0, z1, rings 70 } – zwei Zeichenaufrufe.
+ */
+export function graben8(level, o) {
+  const v = level.view;
+  if (!v) return;
+  const { y, x0, x1, z0, z1 } = o;
+  const plane = new THREE.PlaneGeometry(x1 - x0, z0 - z1, 1, 1);
+  plane.rotateX(-Math.PI / 2);
+  plane.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x23344c, roughness: 0.42, metalness: 0.2 });
+  const mesh = new THREE.Mesh(plane, mat);
+  mesh.name = 'burggraben';
+  mesh.receiveShadow = false;
+  addObject(level, mesh);
+  const N = o.rings ?? 70;
+  const ring = new THREE.RingGeometry(0.82, 1, 20);
+  ring.rotateX(-Math.PI / 2);
+  const rm = new THREE.MeshBasicMaterial({ color: 0x9ab4d8, transparent: true, opacity: 0.5, depthWrite: false });
+  const im = new THREE.InstancedMesh(ring, rm, N);
+  im.name = 'regenringe';
+  im.frustumCulled = false;
+  im.renderOrder = 1;
+  const rnd = new Rnd(8111);
+  const items = Array.from({ length: N }, (_, i) => ({ t: rnd.frac() * 1.4, x: 0, z: 0, s: 1 }));
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), pv = new THREE.Vector3(), sv = new THREE.Vector3();
+  const holder = {};
+  addObject(level, im, (dt) => {
+    const d = visDt(level, holder, dt);
+    const c = v.rig?.target ?? v.camera.position;
+    for (let i = 0; i < N; i++) {
+      const it = items[i];
+      it.t += d;
+      if (it.t >= 1.4 || it.x === 0) { it.t = it.t % 1.4; it.x = c.x + rnd.real(-26, 26); it.z = c.z + rnd.real(-30, 14); it.s = rnd.real(0.5, 1.2); }
+      const k = it.t / 1.4, r = it.s * (0.2 + k * 1.3);
+      pv.set(it.x, y + 0.03, it.z); sv.set(r, 1, r);
+      m4.compose(pv, q, sv);
+      im.setMatrixAt(i, m4);
+    }
+    im.instanceMatrix.needsUpdate = true;
+    rm.opacity = 0.42;
+  });
 }
 
 // =====================================================================================================================
