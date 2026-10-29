@@ -139,14 +139,14 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 1: Krallen-Anzug aus dem ?-Block, den Kletterturm hinauf', star: 0, from: [2.8, 0, 4.0],
-        legs: [{ hop: 30 }, { wait: 60 }, { to: [2.8, 5.8], within: 0.3 }, { name: 'auf den ?-Block', to: [2.8, 4.0], y: 3.3, jump: 34, jumpAt: 1.6, within: 0.5 }, { chaseKind: 'powerup', max: 400 },
+        legs: [{ hop: 30 }, { wait: 60 }, { to: [2.8, 5.8], within: 0.3 }, { name: 'auf den ?-Block', to: [2.8, 4.0], y: 2.8, jump: 40, jumpAt: 1.6, rise: 3.1, within: 0.5 }, { chaseKind: 'powerup', max: 400 },
           { expect: 'krallen' }, { to: [-10.2, 2.4], within: 0.4 }, { climb: [-10.2, 0.1], into: [0, -1], top: 7.5 }, { star: 0 }],
         mech: (r) => r.mech.climbs >= 1, mechText: (r) => `Klettern ${r.mech.climbs}`, shot: 'stern1' },
       { name: 'Stern 1 nicht ohne Krallen (an den Kletterturm springen, Wandsprung)', star: 0, expectNot: true, from: [-10.2, 0, 2.6], heroes: ['lotti'],
         legs: [{ climb: [-10.2, 0.1], into: [0, -1], top: 7.5, max: 300 }, { wait: 60 }, { to: [-10.2, 2.4], within: 0.4 }, { hop: 40 }, { wait: 30 }] },
       { name: 'Stern 2: Riesenrad – oben aus der Gondel zum Stern springen', star: 1, from: [8.3, 0, 1.4],
         legs: [{ name: 'Trittstein', to: [8.3, -0.55], y: 0.4, jump: 20, jumpAt: 1.2, within: 0.4 }, { name: 'Einstiegssteg', to: [10.4, -0.4], y: 0.9, jump: 20, jumpAt: 1.4, within: 0.4 },
-          { rad: 'rad', star: 1 }],
+          { rad: 'rad', starIdx: 1 }],
         mech: (r) => r.mech.rad?.top > 13 && !r.dead, mechText: (r) => `Riesenrad ${JSON.stringify(r.mech.rad)}`, shot: 'stern2' },
       { name: 'Stern 2 nicht ohne Riesenrad (vom Steg aus springen)', star: 1, expectNot: true, from: [11.2, 1.0, -0.6], heroes: ['lotti'], place: { settle: 4 },
         legs: [{ hop: 40 }, { wait: 30 }] },
@@ -517,7 +517,7 @@ function install() {
             const dx = cur.mb.pos.x - p.pos.x, dz = cur.mb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
             tick(d > 0.25 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(0.5, d)) } : {});
           }
-          const star = L.entities.find((e) => e.kind === 'star' && e.index === Lg.star && !e.removed);
+          const star = L.entities.find((e) => e.kind === 'star' && e.index === Lg.starIdx && !e.removed);
           const sx = star ? star.pos.x : p.pos.x, sz = star ? star.pos.z : p.pos.z;
           let a = 0;
           for (; a < 300; a++) { tick({ ...(p.mode === 'air' ? this.airSteer(sx, sz, 0, 0, 3, 5) : {}), jump: a < 36 }); if (a > 8 && p.mode === 'ground') break; }
@@ -677,7 +677,7 @@ function install() {
           if (holdJ && landed && p.mode === 'ground' && !highEnough && i > 20) { landed = false; airborne = false; j0 = i + 1; }
           let mag = Lg.slow ?? 1;
           let st;
-          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 8);
+          if (p.mode === 'air' && holdJ && j0 !== null) st = Lg.rise && p.pos.y < Lg.rise && p.vel.y > 0 ? { x: 0, y: 0 } : this.airSteer(tx, tz, 0, 0, 2.6, 8);
           else {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };

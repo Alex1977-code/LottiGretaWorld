@@ -204,8 +204,8 @@ export const LEVEL = {
     { type: 'pipe', id: 'ziel_ausgang', pos: [GX - 4, AY, GZ + 6], height: 1.2, color: 'green' },
   ],
   blocks: [
-    { kind: 'question', pos: [2.8, Y0 + 2.5, 4.0], content: 'krallen' },
-    { kind: 'question', pos: [-2.8, Y0 + 2.5, 4.0], content: 'coins:5' },
+    { kind: 'question', pos: [2.8, Y0 + 2.0, 4.0], content: 'krallen' },
+    { kind: 'question', pos: [-2.8, Y0 + 2.0, 4.0], content: 'coins:5' },
     { kind: 'hidden', pos: [TURM.x, Y0 + TURM.h + 0.2 + 3.3, TURM.z], content: 'oneup' },
     { kind: 'hidden', pos: [0, Y0 + 0.3 + 3.3, (GRABEN.z0 + GRABEN.z1) / 2], content: 'oneup' },
   ],
