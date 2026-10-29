@@ -19,6 +19,7 @@ import * as THREE from 'three';
 import { lin, hex, mixc, smooth, colorize, merge, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { Gimmick, runAction, playerOn, visDt } from '../../entities/gimmick.js';
 import { banner } from '../../blocks/w3kit.js';
+import { MovingBox } from '../../blocks/w2kit.js';
 import { getModel } from '../../models/index.js';
 import { baronPark, crystalInferno, animateW8 } from '../../view/backdrop_w8.js';
 import { cylG, sphereG, coneG, blockG, starG, discG, ringG, bake, owned, spawnLocal, litFn } from '../w3/_helpers_e.js';
@@ -424,5 +425,168 @@ export function funken(level, cfg) {
     level.effects?.sparks({ x: cfg.x + Math.cos(a) * r, y: cfg.y + h, z: cfg.z + Math.sin(a) * r * 0.5 }, cfg.n ?? 26);
   });
 }
+
+/**
+ * Kletterturm (8-B Stern 1): freistehender Turm aus bunten Rummel-Kisten mit Klettergriffen; alle Seiten sind Kletterwände
+ * (climbable – nur mit dem Krallen-Anzug kommt man hinauf), oben eine Plattform mit Goldkante und Wimpel.
+ * o = { pos: [x, y, z] (Mitte unten), size: [w, h, d], colors: [Farben der Kisten] }
+ */
+export function kletterturm(level, o) {
+  const [x, y, z] = o.pos, [w, h, d] = o.size ?? [3, 7.5, 3];
+  level.world.add({ type: 'box', min: [x - w / 2, y, z - d / 2], max: [x + w / 2, y + h, z + d / 2], climbable: true, tag: 'kletterturm' });
+  if (!level.view) return;
+  const P = [], G = [];
+  const cols = o.colors ?? [0xe8423a, 0xffc83a, 0x3a7ae8, 0x9a5ae8, 0x4ac85a, 0xff8ac8];
+  const n = Math.max(2, Math.round(h / 1.25)), sh = h / n;
+  for (let i = 0; i < n; i++) {
+    const c = cols[i % cols.length];
+    P.push(blockG(w, sh - 0.04, d, x, y + i * sh, z, c, { r: 0.06, seg: 1 }));
+    // weiße Querstreifen (Kanten der Kisten)
+    P.push(blockG(w + 0.04, 0.08, d + 0.04, x, y + i * sh + sh - 0.06, z, 0xfff2e8, { r: 0, seg: 0 }));
+  }
+  // Klettergriffe (bunte Knubbel) auf allen vier Seiten
+  const rnd = new Rnd(o.seed ?? 17);
+  const hold = [0xffd04a, 0x5ae0ff, 0xff5a7a, 0x8aff6a, 0xffffff];
+  for (let k = 0; k < 4; k++) {
+    for (let j = 0; j < Math.round(h * 2.2); j++) {
+      const u = rnd.real(-0.42, 0.42), yy = y + 0.5 + rnd.real(0, h - 0.8);
+      const px = k === 0 ? x + u * w : k === 1 ? x + w / 2 + 0.04 : k === 2 ? x + u * w : x - w / 2 - 0.04;
+      const pz = k === 0 ? z + d / 2 + 0.04 : k === 1 ? z + u * d : k === 2 ? z - d / 2 - 0.04 : z + u * d;
+      P.push(sphereG(rnd.real(0.09, 0.15), px, yy, pz, hold[j % hold.length], { ws: 6, hs: 4, sy: 0.7 }));
+    }
+  }
+  // Plattform oben: Goldkante, Stern, Wimpelmast
+  P.push(blockG(w + 0.4, 0.22, d + 0.4, x, y + h - 0.02, z, 0x6a2a9a, { r: 0.06, seg: 1, top: 0x8a4ac0 }));
+  P.push(ringG(Math.min(w, d) * 0.36, 0.05, x, y + h + 0.22, z, 0xffc21a, 24));
+  P.push(cylG(0.06, 0.06, 2.4, x - w / 2 + 0.2, y + h + 0.2, z - d / 2 + 0.2, 0xfff2e0, 6));
+  const flag = new THREE.ConeGeometry(0.34, 0.9, 3).toNonIndexed();
+  flag.rotateZ(-Math.PI / 2); flag.scale(1, 1, 0.15); flag.translate(x - w / 2 + 0.66, y + h + 2.25, z - d / 2 + 0.2);
+  P.push(fill(flag, 0xff5aa8));
+  for (let i = 0; i < 4; i++) G.push(sphereG(0.1, x + (i % 2 ? 1 : -1) * (w / 2 + 0.2), y + h + 0.12, z + (i < 2 ? 1 : -1) * (d / 2 + 0.2), 0xfff0a0, { ws: 6, hs: 4 }));
+  bake(level, P);
+  bake(level, G, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Schiffschaukel (8-B Stempel): ein Schaukelschiff hängt an zwei Stangen unter einem Gerüst und bleibt waagerecht (trägt die
+ * Figur mit, MovingBox). Steht jemand im Schiff, schaukelt es sich in Schwungrichtung auf (grow °/s bis amp); leer schwingt es
+ * langsam aus. Am höchsten Punkt abspringen erreicht Höhen, an die man vom Boden nie käme.
+ * spec = { id, pos: [x, y, z] (Drehachse), length: 5.2 (Achse → Schiffsboden), dir: [1, 0] (Schwingebene), amp: 70 (°),
+ *          grow: 10 (°/s mit Last), decay: 6 (°/s leer), size: [3.4, 0.4, 2.0] (Boden: entlang dir, Dicke, quer), color }
+ * Laufzeit: A (Ausschlag °), theta (aktuell, rad), top (Bodenoberkante), riders, info().
+ */
+export class Schiffschaukel extends Gimmick {
+  constructor(level, spec) {
+    super(level, spec, 'schiffschaukel');
+    this.touch = false;
+    this.L = spec.length ?? 5.2;
+    const d = spec.dir ?? [1, 0], dl = Math.hypot(d[0], d[1]) || 1;
+    this.dir = { x: d[0] / dl, z: d[1] / dl };
+    this.ampMax = (spec.amp ?? 70) * Math.PI / 180;
+    this.grow = (spec.grow ?? 10) * Math.PI / 180;
+    this.decay = (spec.decay ?? 6) * Math.PI / 180;
+    this.omega = Math.sqrt(9.81 / this.L) * 0.92;
+    this.A = 0; this.phi = 0; this.theta = 0;
+    const [len, th, wid] = spec.size ?? [3.4, 0.4, 2.0];
+    this.size = { len, th, wid };
+    const alongX = Math.abs(this.dir.x) > Math.abs(this.dir.z);
+    this.box = { x: alongX ? len : wid, z: alongX ? wid : len };
+    const q = this.place();
+    this.mb = new MovingBox(level, q.x, q.y - th, q.z, this.box.x, th, this.box.z, { tag: 'schiffschaukel', camIgnore: true });
+    this.mb.shape.owner = this;
+    // Bordwände an den Enden (entlang dir): halten die Figur im Schiff
+    this.walls = [-1, 1].map((s) => new MovingBox(level, q.x + this.dir.x * s * (len / 2 - 0.1), q.y, q.z + this.dir.z * s * (len / 2 - 0.1), alongX ? 0.2 : wid, 0.55, alongX ? wid : 0.2, { tag: 'schiffschaukel:bord', camIgnore: true, noWallSlide: true }));
+    this.top = q.y;
+    this.riders = 0; this.maxA = 0;
+    if (level.view) this.buildView();
+  }
+
+  place() {
+    const p = this.pos, th = this.theta, L = this.L;
+    return { x: p.x + this.dir.x * Math.sin(th) * L, y: p.y - Math.cos(th) * L, z: p.z + this.dir.z * Math.sin(th) * L };
+  }
+
+  buildView() {
+    const p = this.pos, Ln = this.L, { len, wid } = this.size;
+    const yaw = Math.atan2(-this.dir.z, this.dir.x);   // lokales +X = dir
+    // Gerüst (statisch): zwei A-Böcke quer zur Schwingebene, Querbalken (Achse)
+    const P = [];
+    const leg = (ax, az, bx, bz, by) => {
+      const a = new THREE.Vector3(ax, p.y - Ln - 1.3, az), b = new THREE.Vector3(bx, by, bz);
+      const dd = b.clone().sub(a), l = dd.length();
+      const g = new THREE.CylinderGeometry(0.12, 0.16, l, 6).toNonIndexed();
+      g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dd.normalize()));
+      g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+      return colorize(g, litFn(0xffc21a));
+    };
+    const nx = -this.dir.z, nz = this.dir.x;   // quer zur Schwingebene
+    for (const s of [-1, 1]) {
+      const cx = p.x + nx * s * (wid / 2 + 0.5), cz = p.z + nz * s * (wid / 2 + 0.5);
+      for (const t of [-1, 1]) P.push(leg(cx + this.dir.x * t * 2.6, cz + this.dir.z * t * 2.6, cx, cz, p.y + 0.2));
+    }
+    const axle = new THREE.CylinderGeometry(0.14, 0.14, wid + 1.4, 8).toNonIndexed();
+    axle.rotateX(Math.PI / 2); axle.rotateY(yaw); axle.translate(p.x, p.y, p.z);
+    P.push(colorize(axle, litFn(0xe8283a)));
+    bake(this.level, P);
+    // Schiff: Rumpf (gestreift), Bordwände, Stangen zur Achse – bewegt
+    const root = new THREE.Group();
+    root.position.set(p.x, p.y, p.z);
+    root.rotation.y = yaw;
+    const swing = new THREE.Group();
+    root.add(swing);
+    const rods = [];
+    for (const s of [-1, 1]) rods.push(cylG(0.07, 0.07, Ln - 0.2, 0, -Ln + 0.1, s * (wid / 2 + 0.1), 0xfff2e0, 6));
+    const rm = new THREE.Mesh(merge(rods), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }));
+    swing.add(rm);
+    const boat = new THREE.Group();
+    boat.position.set(0, -Ln, 0);
+    swing.add(boat);
+    const hull = [];
+    const c1 = this.spec.color ?? 0x7a2ad8, c2 = 0xffc21a;
+    // Rumpf: halber Zylinder (Kiel unten), gestreift
+    const hg = new THREE.CylinderGeometry(wid / 2 + 0.05, wid / 2 + 0.05, len, 18, 1, false, Math.PI / 2, Math.PI).toNonIndexed();
+    hg.rotateZ(Math.PI / 2); hg.scale(1, 0.75, 1); hg.translate(0, -this.size.th, 0);
+    hull.push(colorize(hg, (pp, n, o) => mixc(L(c1), L(0xfff2e8), (Math.floor((pp.x + 10) * 1.4) & 1) * 0.85, o)));
+    hull.push(blockG(len, this.size.th, wid, 0, -this.size.th, 0, 0xb8864a, { r: 0.04, seg: 1, top: 0xd8a868 }));
+    for (const s of [-1, 1]) {
+      hull.push(blockG(0.2, 0.55, wid, s * (len / 2 - 0.1), 0, 0, c1));
+      const bow = coneG(0.3, 0.5, s * (len / 2 + 0.05), 0.55, 0, c2, 8);
+      hull.push(bow);
+      hull.push(blockG(len, 0.12, 0.14, 0, 0.42, s * (wid / 2 - 0.02), c2, { r: 0.03, seg: 0 }));
+    }
+    const bm = new THREE.Mesh(merge(hull), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }));
+    bm.castShadow = true;
+    boat.add(bm);
+    // Lichterkante am Bug (leuchtend)
+    const bulbs = [];
+    for (let i = 0; i < 9; i++) bulbs.push(sphereG(0.07, -len / 2 + 0.2 + i * (len - 0.4) / 8, 0.56, (i % 2 ? 1 : -1) * (wid / 2 - 0.02), [0xfff0a0, 0xff8ac8, 0x9af0ff][i % 3], { ws: 6, hs: 4 }));
+    boat.add(new THREE.Mesh(merge(bulbs), new THREE.MeshBasicMaterial({ vertexColors: true })));
+    root.traverse((m) => { if (m.isMesh) m.userData.owned = true; });
+    this.view = { swing, boat };
+    addObject(this.level, root, () => {
+      swing.rotation.z = this.theta;
+      boat.rotation.z = -this.theta;
+    });
+  }
+
+  update(dt) {
+    this.riders = this.mb.carried(this.level);
+    if (this.riders > 0) this.A = Math.min(this.ampMax, this.A + this.grow * dt);
+    else this.A = Math.max(0, this.A - this.decay * dt);
+    this.maxA = Math.max(this.maxA, this.A);
+    this.phi += this.omega * dt;
+    if (this.A <= 1e-4) this.phi = 0;
+    this.theta = this.A * Math.sin(this.phi);
+    const q = this.place(), th = this.size.th;
+    this.mb.moveTo(q.x, q.y - th, q.z, dt);
+    this.walls.forEach((w, i) => { const s = i ? 1 : -1; w.moveTo(q.x + this.dir.x * s * (this.size.len / 2 - 0.1), q.y, q.z + this.dir.z * s * (this.size.len / 2 - 0.1), dt); });
+    this.top = q.y;
+  }
+
+  info() { return { A: +(this.A * 180 / Math.PI).toFixed(1), theta: +(this.theta * 180 / Math.PI).toFixed(1), top: +this.top.toFixed(2), riders: this.riders, maxA: +(this.maxA * 180 / Math.PI).toFixed(1) }; }
+}
+
+/** Schiffschaukel als lokale Entität anlegen. */
+export function schiffschaukel(level, spec) { return spawnLocal(level, new Schiffschaukel(level, spec)); }
 
 export { Rnd, litFn, fill };

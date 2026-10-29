@@ -108,6 +108,89 @@ const ROUTES = {
       ['hof', [52, 8, -74], 60],
     ],
   },
+  // ================================================================ 8-B (Glut-Rummel, Seilbahn über die Lavaschlucht, Manege mit dem rosa Schlangenkönig)
+  '8-B': {
+    start: [0, 0, 11.5],
+    meta: { stars: 2, slots: 3, time: 500, theme: 'circus', music: 'course_boss', archetype: 'boss' },
+    enemies: { schlangenkoenig: 1, funkenflaemmchen: 2, lavablase: 4, schiffschaukel: 1 },
+    main: [
+      { name: 'Vorplatz', to: [0, 2.0], within: 0.6 },
+      { to: [0, -14.6], within: 0.5 },
+      { name: 'Holzbrücke über den Lavagraben', to: [0, -21.2], within: 0.5 },
+      { name: 'Glutgasse (Lavabrocken-Regen)', to: [0.4, -31.2], within: 0.5 },
+      { name: 'Prachttreppe', to: [0, -41.4], y: 4.3, within: 0.6 },
+      { name: 'Talstation', to: [0, -44.6], within: 0.3 },
+      { name: 'in die Gondel', to: [0, -46.5], y: 4.4, jump: 30, jumpAt: 1.6, within: 0.6 },
+      { name: 'Seilbahn über die Lavaschlucht', gondel: true },
+      { name: 'aufs Zeltplateau', to: [0, -76.6], y: 7.8, jump: 30, jumpAt: 3.2, within: 0.8 },
+      { name: 'Kontrollpunkt Zeltplateau', to: [1.2, -77.6], within: 0.6 },
+      { name: 'in die Manege', to: [0, -94], within: 0.8 },
+      { name: 'rosa Schlangenkönig', koenig: true },
+      { star: 2 },
+      { name: 'am Sockel vorbei', to: [4.2, -102], within: 0.6 }, { to: [2.4, -107.6], within: 0.6 },
+      { name: 'Röhre zum Hinterhof', pipe: 'roehre_ziel' },
+      { name: 'Zielmast', to: [56, -109.6], within: 0.4 },
+    ],
+    routeChecks: [
+      { name: 'rosa Schlangenkönig: drei Treffer vom Teller aufs Haupt, Lavabrocken hinterlassen Lavapfützen, Stern 3',
+        ok: (r) => r.mech.koenig?.hits === 3 && r.mech.koenig.rosa && r.mech.koenig.puddlesMade >= 1 && r.rt.stars[2] },
+      { name: 'Lavabrocken-Regen über der Glutgasse (Landemarken, Einschläge)', ok: (r) => r.mech.regen?.impacts >= 1 },
+      { name: 'rosa Zelt aufgeschnitten (Blick in die Manege)', ok: (r) => r.mech.zelt },
+    ],
+    targets: [
+      { name: 'Stern 1: Krallen-Anzug aus dem ?-Block, den Kletterturm hinauf', star: 0, from: [2.8, 0, 4.0],
+        legs: [{ hop: 30 }, { wait: 60 }, { to: [2.8, 5.8], within: 0.3 }, { name: 'auf den ?-Block', to: [2.8, 4.0], y: 3.3, jump: 34, jumpAt: 1.6, within: 0.5 }, { chaseKind: 'powerup', max: 400 },
+          { expect: 'krallen' }, { to: [-10.2, 2.4], within: 0.4 }, { climb: [-10.2, 0.1], into: [0, -1], top: 7.5 }, { star: 0 }],
+        mech: (r) => r.mech.climbs >= 1, mechText: (r) => `Klettern ${r.mech.climbs}`, shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Krallen (an den Kletterturm springen, Wandsprung)', star: 0, expectNot: true, from: [-10.2, 0, 2.6], heroes: ['lotti'],
+        legs: [{ climb: [-10.2, 0.1], into: [0, -1], top: 7.5, max: 300 }, { wait: 60 }, { to: [-10.2, 2.4], within: 0.4 }, { hop: 40 }, { wait: 30 }] },
+      { name: 'Stern 2: Riesenrad – oben aus der Gondel zum Stern springen', star: 1, from: [8.3, 0, 1.4],
+        legs: [{ name: 'Trittstein', to: [8.3, -0.55], y: 0.4, jump: 20, jumpAt: 1.2, within: 0.4 }, { name: 'Einstiegssteg', to: [10.4, -0.4], y: 0.9, jump: 20, jumpAt: 1.4, within: 0.4 },
+          { rad: 'rad', star: 1 }],
+        mech: (r) => r.mech.rad?.top > 13 && !r.dead, mechText: (r) => `Riesenrad ${JSON.stringify(r.mech.rad)}`, shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Riesenrad (vom Steg aus springen)', star: 1, expectNot: true, from: [11.2, 1.0, -0.6], heroes: ['lotti'], place: { settle: 4 },
+        legs: [{ hop: 40 }, { wait: 30 }] },
+      { name: 'Stempel: Schiffschaukel aufschaukeln, am höchsten Punkt auf den Ausguck springen', stamp: true, from: [-6.4, 0, -21.6],
+        legs: [{ schaukel: 'schaukel', jumpTo: [-17.4, -24.0], y: 6.7 }, { stamp: true }],
+        mech: (r) => r.mech.schaukel?.maxA >= 55, mechText: (r) => `Schaukel ${JSON.stringify(r.mech.schaukel)}`, shot: 'stempel' },
+      { name: 'Stempel nicht ohne Schaukel (vom Boden an den Ausguck springen)', stamp: true, expectNot: true, from: [-14.6, 0, -24.0], heroes: ['lotti'],
+        legs: [{ to: [-15.8, -24.0], within: 0.3 }, { hop: 40 }, { wait: 30 }, { to: [-13.6, -24.0], within: 0.3 }, { to: [-17.0, -24.0], jump: 40, jumpAt: 2.4, within: 0.3, max: 300 }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: verborgener Block über dem Kletterturm (nur mit Krallen erreichbar)', from: [-10.2, 7.5, -1.4], heroes: ['lotti'], expectLives: 1, place: { power: 'krallen' },
+        legs: [{ hop: 34 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: verborgener Block über der Holzbrücke', from: [0, 0.3, -14.2], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [0, -18.0], within: 0.2, slow: 0.5 }, { hop: 34 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Lavabrocken trifft, wer auf der Landemarke stehen bleibt', from: [0, 0, -9.6], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [0, -12.6], within: 0.4 }, { until: 'regenTrifft', max: 120 * 20 }], mech: (r) => r.mech.regen?.hits >= 1, mechText: (r) => `Regen ${JSON.stringify(r.mech.regen)}`, expectAlive: true },
+      { name: 'Krallen-Anzug: Krallenhieb besiegt das Funkenflämmchen', from: [-9.0, 0, -12.6], heroes: ['lotti'], place: { power: 'krallen' },
+        legs: [{ attack: 'flamme1' }], mech: (r) => r.mech.attack?.defeated, mechText: (r) => `Flämmchen ${JSON.stringify(r.mech.attack)}` },
+      { name: 'Wer in den Lavagraben fällt, verbrennt', from: [6, 0, -14.6], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ to: [6, -18.0], within: 0.3, max: 300, autoJump: false }, { wait: 300 }], mech: (r) => r.mech.died && r.mech.deathCause === 'lava', mechText: (r) => `Tod ${r.mech.deathCause}` },
+      { name: 'Kontrollpunkt Talstation: Neustart dort, die Gondel kommt zurück', from: [0, 4.5, -41.0], heroes: ['lotti'], invuln: false, expectAlive: true,
+        legs: [{ to: [0, -41.8], within: 0.4 }, { wait: 20 }, { to: [0, -44.6], within: 0.3 }, { to: [0, -46.5], y: 4.4, jump: 30, jumpAt: 1.6, within: 0.6 },
+          { until: 'gondelOben', max: 2400 }, { die: true }, { expect: 'anTalstationB' }, { until: 'gondelUnten', max: 2400 }] },
+      { name: 'Rosa Schlangenkönig: Lavabrocken hinterlassen heiße Lavapfützen; Tod im Kampf setzt den Kampf zurück', from: [0, 8, -92], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [0, -95], within: 0.6 }, { until: 'pfuetze', max: 120 * 30 }, { die: true }, { expect: 'kampfZurueck' }],
+        mech: (r) => r.mech.koenigInfo?.puddlesMade >= 1, mechText: (r) => `König ${JSON.stringify(r.mech.koenigInfo)}` },
+    ],
+    shots: [
+      ['start', [0, 0, 11.5], 30],
+      ['kletterturm', [-7.0, 0, 4.8], 30],
+      ['riesenrad', [7.6, 0, 3.6], 30],
+      ['riesenrad_oben', [11.2, 1.0, -0.6], 0, 'radOben'],
+      ['glutgasse', [0, 0, -13.2], 200],
+      ['schaukel', [-6.0, 0, -19.6], 0, 'schaukeln'],
+      ['ausguck', [-17.4, 7.0, -22.6], 30],
+      ['treppe', [0, 0, -29.6], 30],
+      ['seilbahn', [0, 4.5, -44.6], 0, 'gondelFahrt'],
+      ['zeltplateau', [1.4, 8, -77.6], 30],
+      ['manege', [0, 8, -93], 300, 'kampf'],
+      ['teller', [0, 8, -93], 0, 'teller'],
+      ['pfuetzen', [0, 8, -93], 0, 'pfuetzen'],
+      ['hof', [52, 8, -90], 60],
+    ],
+  },
 };
 
 const PORT = 4880;
@@ -152,6 +235,12 @@ function install() {
     stern2Sichtbar: () => { const s = L.entities.find((e) => e.kind === 'star' && e.index === 1 && !e.removed); return !!s && !s.hidden; },
     loge: () => at(-10.6, -6.6, 9.9, -18.6, -22.6),
     welleTrifft: () => (P().hurtTries ?? 0) > 0,
+    // 8-B
+    krallen: () => P().power === 'krallen',
+    anTalstationB: () => { const p = P(); return !p.dead && L.runtime.status === 'play' && Math.abs(p.pos.z + 41.8) < 1.2 && Math.abs(p.pos.y - 4.5) < 0.4; },
+    regenTrifft: () => (named('regen')?.hits ?? 0) > 0,
+    pfuetze: () => (named('koenig')?.puddlesMade ?? 0) > 0 && L.entities.some((e) => e.kind === 'lavapfuetze' && !e.removed),
+    kampfZurueck: () => { const b = named('koenig'); return !!b && b.state === 'wait' && b.hp === 3 && !L.archetype?.started && !P().dead && P().pos.z > -80; },
   };
   const W = {
     COND,
@@ -197,7 +286,7 @@ function install() {
       let deadLogged = false;
       const mech = { hurts: 0, pipes: 0, bounces: 0, maxY: -99, hurtBy: {} };
       const track = [];
-      let lastJump = false;
+      let lastJump = false, prevState = p.state;
       let hurt0 = p.hurtTries ?? 0;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
@@ -205,6 +294,8 @@ function install() {
         c.setInput(inp); c.step(1); steps++;
         if ((p.hurtTries ?? 0) > hurt0) { mech.hurtBy[p.lastHurt] = (mech.hurtBy[p.lastHurt] ?? 0) + (p.hurtTries - hurt0); hurt0 = p.hurtTries; }
         mech.maxY = Math.max(mech.maxY, p.pos.y);
+        if (p.state === 'climb' && prevState !== 'climb') mech.climbs = (mech.climbs ?? 0) + 1;
+        prevState = p.state;
         if ((L._zirkus?.tent?.k ?? 0) > 0.95) mech.zelt = true;
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
@@ -379,6 +470,177 @@ function install() {
           log.push(['Welle', k, b.waveHits, p.hurtTries]);
           continue;
         }
+        // ------------------------------------------------ Krallen-Anzug: an der Wand hochklettern (into = Richtung in die Wand)
+        if (Lg.climb) {
+          const [wx, wz] = Lg.climb, [ix, iz] = Lg.into;
+          const top = Lg.top;
+          // vor die Wand stellen
+          for (let k = 0; k < 600; k++) { const dx = wx - ix * 1.4 - p.pos.x, dz = wz - iz * 1.4 - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.2 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.max(0.25, Math.min(1, d))), run: false }); }
+          let k = 0, j = -99;
+          for (; k < (Lg.max ?? 900); k++) {
+            if (p.mode === 'ground' && p.pos.y > top - 0.3) break;
+            const dz2 = Math.hypot(wx - p.pos.x, wz - p.pos.z);
+            let jump = false;
+            if (p.mode === 'ground' && dz2 < 1.0 && k - j > 40) { j = k; }
+            if (k - j < 24) jump = true;
+            if (p.mode === 'wall' && p.state !== 'climb' && k - j > 60 && !Lg.noWallJump) { j = k; }   // Wandrutschen: neu anspringen
+            tick({ ...this.stick(ix, iz, 1), run: false, jump });
+          }
+          for (let i = 0; i < 30 && p.mode !== 'ground'; i++) tick({ ...this.stick(ix, iz, 0.6) });
+          for (let i = 0; i < 20; i++) tick({});
+          log.push(['Klettern', k, mech.climbs ?? 0, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state]);
+          continue;
+        }
+        // ------------------------------------------------ Riesenrad: einsteigen, hinauffahren, oben zum Stern springen
+        if (Lg.rad) {
+          const r = named(Lg.rad);
+          const top0 = r.radius + (r.gondolas[0].mb.top - r.gondolas[0].mb.pos.y) + Math.max(...r.gondolas.map((g) => g.mb.pos.y)) - Math.max(...r.gondolas.map((g) => g.mb.pos.y));
+          const hubTop = () => Math.max(...r.gondolas.map((g) => g.mb.top));
+          const on = () => r.gondolas.find((g) => p.mode === 'ground' && p.ground === g.mb.shape) ?? null;
+          // warten, bis eine Gondel unten vor dem Steg ist, dann hinüber
+          let k = 0, g = null;
+          for (; k < 120 * 40 && !(g = on()); k++) {
+            const low = r.gondolas.reduce((a, b) => (b.mb.pos.y < a.mb.pos.y ? b : a));
+            const near = Math.abs(low.mb.pos.x - p.pos.x) < 0.9 && low.mb.top < p.pos.y + 0.35 && low.mb.top > p.pos.y - 0.8;
+            const dx = low.mb.pos.x - p.pos.x, dz = low.mb.pos.z - p.pos.z;
+            if (p.mode === 'air') tick({ ...this.airSteer(low.mb.pos.x, low.mb.pos.z, low.mb.mover.vx, low.mb.mover.vz, 3, 6) });
+            else tick(near ? { ...this.stick(dx, dz, 0.8), jump: Math.abs(dz) > 0.9 && (k % 30) < 10 } : {});
+          }
+          if (!g) { log.push(['FEHLER: nicht in die Gondel']); break; }
+          // mitfahren (mittig stehen), bis die Gondel ganz oben ist (höchste Planke gerade erreicht)
+          let maxTop = 0, n = 0, prevTop = -1e9;
+          for (; n < 120 * 60; n++) {
+            const cur = on() ?? g;
+            maxTop = Math.max(maxTop, cur.mb.top);
+            if (cur.mb.top < prevTop - 1e-4 && cur.mb.top > 8 && p.mode === 'ground') break;   // Scheitel überschritten
+            prevTop = cur.mb.top;
+            const dx = cur.mb.pos.x - p.pos.x, dz = cur.mb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.25 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(0.5, d)) } : {});
+          }
+          const star = L.entities.find((e) => e.kind === 'star' && e.index === Lg.star && !e.removed);
+          const sx = star ? star.pos.x : p.pos.x, sz = star ? star.pos.z : p.pos.z;
+          let a = 0;
+          for (; a < 300; a++) { tick({ ...(p.mode === 'air' ? this.airSteer(sx, sz, 0, 0, 3, 5) : {}), jump: a < 36 }); if (a > 8 && p.mode === 'ground') break; }
+          for (let i = 0; i < 60; i++) tick({});
+          mech.rad = { boardK: k, rideN: n, top: +maxTop.toFixed(2), hubTop: +hubTop().toFixed(2), top0: +top0.toFixed(2) };
+          log.push(['Riesenrad', k, n, +maxTop.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Schiffschaukel: einsteigen, aufschaukeln lassen, am Scheitel abspringen
+        if (Lg.schaukel) {
+          const s = named(Lg.schaukel);
+          const [tx, tz] = Lg.jumpTo;
+          const side = Math.sign(tx - s.pos.x) || -1;           // Scheitel auf der Seite des Ziels
+          const inBoat = () => p.mode === 'ground' && p.ground === s.mb.shape;
+          let k = 0;
+          for (; k < 900 && !inBoat(); k++) {
+            const bx = s.mb.pos.x, bz = s.mb.pos.z, dx = bx - p.pos.x, dz = bz - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, s.mb.mover.vx, s.mb.mover.vz, 3, 6) : this.stick(dx, dz, Math.max(0.3, Math.min(1, d)))), jump: p.mode === 'ground' ? d < 1.9 && (k % 40) < 20 : p.vel.y > 0 });
+          }
+          if (!inBoat()) { log.push(['FEHLER: nicht in die Schiffschaukel']); break; }
+          // in der Mitte stehen bleiben, bis der Ausschlag groß ist und das Schiff am Scheitel auf der Zielseite ankommt
+          let n = 0;
+          const ampDeg = Lg.amp ?? 64;
+          for (; n < 120 * 30; n++) {
+            const A = s.A * 180 / Math.PI, th = s.theta * 180 / Math.PI;
+            if (A >= ampDeg && side * th > A - 3 && inBoat()) break;
+            const dx = s.mb.pos.x - p.pos.x, dz = s.mb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.3 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(0.4, d)) } : {});
+          }
+          let a = 0;
+          for (; a < 400; a++) { tick({ ...(p.mode === 'air' && a > 4 ? this.airSteer(tx, tz, 0, 0, 3, 7) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: a < 36 }); if (a > 10 && p.mode === 'ground') break; }
+          for (let i = 0; i < 20; i++) tick({});
+          log.push(['Schiffschaukel', k, n, +(s.A * 180 / Math.PI).toFixed(1), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (Lg.y !== undefined && p.pos.y < Lg.y - 0.3) { log.push(['FEHLER: Ausguck nicht erreicht']); break; }
+          continue;
+        }
+        // ------------------------------------------------ Angriff (Aktion: Krallenhieb) auf einen Gegner
+        if (Lg.attack) {
+          const e = named(Lg.attack);
+          let k = 0;
+          for (; k < 1200 && e && !e.defeated && !e.removed; k++) {
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...this.stick(dx, dz, d > 1.2 ? 1 : 0.3), action: d < 1.4 && (k % 24) === 0 });
+          }
+          mech.attack = { k, defeated: !!e?.defeated || !!e?.removed, power: p.power };
+          log.push(['Angriff', Lg.attack, k, JSON.stringify(mech.attack)]);
+          continue;
+        }
+        // ------------------------------------------------ Röhre (fährt nach dem Sieg aus dem Boden): hinauf und ducken
+        if (Lg.pipe) {
+          const r = named(Lg.pipe);
+          let k = 0;
+          for (; k < 900 && (r.hidden || r.k < 0.95); k++) tick({});
+          const x0 = p.pos.x;
+          for (k = 0; k < 900 && Math.abs(p.pos.x - x0) < 20; k++) {
+            const dx = r.pos.x - p.pos.x, dz = r.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            const onTop = p.mode === 'ground' && p.pos.y > r.pos.y + r.H - 0.2;
+            tick(onTop ? { crouch: (k % 10) < 5 } : { ...(p.mode === 'air' ? this.airSteer(r.pos.x, r.pos.z, 0, 0, 3.4, 6) : this.stick(dx, dz, Math.max(0.3, Math.min(1, d)))), jump: p.mode === 'ground' ? d < 2.0 && (k % 40) < 22 : p.vel.y > 0 });
+          }
+          for (let i = 0; i < 60; i++) tick({});
+          log.push(['Röhre', k, mech.pipes, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (p.pos.x < 30) { log.push(['FEHLER: Röhre']); break; }
+          continue;
+        }
+        // ------------------------------------------------ rosa Schlangenkönig: ausweichen, auf den Teller, vom Teller aufs Haupt
+        if (Lg.koenig) {
+          const b = named(Lg.koenig === true ? 'koenig' : Lg.koenig);
+          const A = b.arena;
+          const sub = L.archetype;
+          let k = 0;
+          for (; k < 600 && !sub?.started && b.state === 'wait'; k++) tick({ ...this.stick(A.x - p.pos.x, A.z + 6 - p.pos.z, 0.8) });
+          let n = 0, plateJumps = 0, headJumps = 0, j0 = -99, standN = 0, phase = 'evade';
+          const maxK = Lg.max ?? 120 * 360;
+          const puddles = () => L.entities.filter((e) => e.kind === 'lavapfuetze' && !e.removed);
+          for (; n < maxK && b.state !== 'gone' && !p.dead && L.runtime.status === 'play'; n++) {
+            const t = b.target;
+            const win = (b.state === 'lean' || b.state === 'summon') && t && t.state === 'up' && !t.broken;
+            let inp = {};
+            if (win) {
+              const onPlate = p.mode === 'ground' && p.ground?.owner === t;
+              if (onPlate) {
+                standN++;
+                if (standN > 3) { j0 = n; headJumps++; standN = 0; phase = 'kopf'; }
+                inp = { jump: n - j0 < 32 };
+              } else if (p.mode === 'air' && phase === 'kopf') {
+                const h = b.headWorld({});
+                inp = { ...(p.vel.y < 3 ? this.airSteer(h.x, h.z, 0, 0, 3.4, 6) : {}), jump: n - j0 < 32 };
+              } else {
+                standN = 0;
+                const dx = t.pos.x - p.pos.x, dz = t.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+                if (p.mode === 'ground') {
+                  phase = 'teller';
+                  if (d < 1.7 && n - j0 > 40) { j0 = n; plateJumps++; }
+                  inp = { ...this.stick(dx, dz, d > 1.2 ? 1 : 0.5), jump: n - j0 < 30 };
+                } else {
+                  inp = { ...(p.pos.y > t.plateTop + 0.2 || p.vel.y < 0 ? this.airSteer(t.pos.x, t.pos.z, 0, 0, 3.6, 6) : this.stick(dx, dz, 0.6)), jump: n - j0 < 30 };
+                }
+              }
+            } else {
+              phase = 'evade';
+              standN = 0;
+              // ausweichen: Kreis r ≈ 8 um die Mitte, weg von Landemarken der Brocken und von Lavapfützen
+              const rx = p.pos.x - A.x, rz = p.pos.z - A.z, rr = Math.hypot(rx, rz) || 1;
+              let ax = -rz / rr * 0.5, az = rx / rr * 0.5;
+              ax += (8 - rr) / rr * rx * 0.35; az += (8 - rr) / rr * rz * 0.35;
+              const push = (x, z, R, w = 1) => { const ex = p.pos.x - x, ez = p.pos.z - z, ed = Math.max(0.3, Math.hypot(ex, ez)); if (ed < R) { ax += (ex / ed) * w * (R - ed) / R * 3; az += (ez / ed) * w * (R - ed) / R * 3; } };
+              for (const m of b.markers?.list ?? []) push(m.x, m.z, 2.2, 1.5);
+              for (const q of puddles()) push(q.pos.x, q.pos.z, (q.size ?? 2.2) / 2 + 0.8, 1.5);
+              if (b.state === 'strike') { const h = b.headWorld({}); push(h.x, h.z, 3.2, 2); }
+              inp = { ...this.stick(ax, az, Math.min(1, Math.hypot(ax, az))), run: false };
+              if (p.mode === 'air' && p.vel.y > 0 && n - j0 < 32) inp.jump = true;
+            }
+            tick(inp);
+          }
+          const info = b.info();
+          mech.koenig = { started: !!sub?.started, hits: b.hits, hp: b.hp, rosa: !!info.rosa, puddlesMade: info.puddlesMade, thrown: info.thrown, plateJumps, headJumps, steps: n, state: b.state };
+          for (let i = 0; i < 400 && b.state !== 'gone'; i++) tick({});
+          for (let i = 0; i < 90; i++) tick({});
+          mech.koenig.won = !!sub?.won;
+          log.push(['Schlangenkönig', JSON.stringify(mech.koenig)]);
+          if (!sub?.won) { log.push(['FEHLER: Schlangenkönig nicht besiegt']); break; }
+          continue;
+        }
         // ------------------------------------------------ Warp-Box anspringen (hineinfallen)
         if (Lg.warp) {
           const wb = named(Lg.warp);
@@ -441,6 +703,12 @@ function install() {
       if (lk?.info) mech.lukas = lk.info();
       const bl = named('blase');
       if (bl) mech.waveHits = bl.waveHits ?? 0;
+      const rg = named('regen');
+      if (rg?.info) mech.regen = rg.info();
+      const kg = named('koenig');
+      if (kg?.info) mech.koenigInfo = kg.info();
+      const sk = named('schaukel');
+      if (sk?.info) mech.schaukel = sk.info();
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
