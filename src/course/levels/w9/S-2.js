@@ -215,10 +215,10 @@ export const LEVEL = {
   enemies: [
     { kind: 'krakenpilz', id: 'kp_links', pos: [-6.6, Y, -9], sight: 9, first: 0.9 },
     { kind: 'krakenpilz', id: 'kp_rechts', pos: [8.2, Y, -17], sight: 9, first: 1.6 },
-    { kind: 'krakenpilz', id: 'kp_muenz', pos: [2.4, YM, -24], sight: 10, first: 1.2 },
+    { kind: 'krakenpilz', id: 'kp_muenz', pos: [2.4, YM, -24], sight: 6, first: 1.4 },
     { kind: 'krakenpilz', id: 'kp_bahn', pos: [-6.8, YM + 0.8, -46], sight: 9, first: 1.4 },
     { kind: 'krakenpilz', id: 'kp_zwischen', pos: [-3, YZ, -90], path: [[-3.4, YZ, -90], [3.4, YZ, -90]], spit: false },
-    { kind: 'krakenpilz', id: 'kp_cp', pos: [-5.4, YC, -178], sight: 10, first: 1.0 },
+    { kind: 'krakenpilz', id: 'kp_cp', pos: [-5.4, YC, -178], sight: 6.5, first: 1.5 },
     { kind: 'huepfmaus', id: 'hm_a1', pos: [3, YC + 4.4, -189], path: [[1, YC + 4.4, -189.5], [5.5, YC + 4.4, -189.5]] },
     { kind: 'huepfmaus', id: 'hm_a2', pos: [-3, YC + 8.8, -198], path: [[-5.5, YC + 8.8, -198.4], [-1, YC + 8.8, -198.4]] },
   ],

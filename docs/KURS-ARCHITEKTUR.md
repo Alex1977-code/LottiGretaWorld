@@ -9083,6 +9083,7 @@ Gegenproben (ohne Krallen-Anzug kein Kugelraum, ohne Riesentrank keine Farbfeld-
 nicht auf dem Hauptarm bzw. nicht vom Boden, kein Versteck unter anderen Kippplatten, Stern 4 nicht mit der Grundkamera,
 Westturm nicht nach einer Drehung …), Extras (Extraleben, Münzregen, Kontrollpunkt im Bach, Mitsprung der Hüpfmaus,
 Krakenpilz spuckt und wird besiegt, Boost-Absturz, Schatzstelle, Krümel springt nicht), Messgang entlang der Route und
-Bilder `tests/out/sa_*.png`. Routen: S-1 ≈ 75 s, S-2 ≈ 73 s, S-Kapitän ≈ 63 s, ohne Treffer-Versuche. Kennzahlen
+Bilder `tests/out/sa_*.png`. Routen: S-1 ≈ 76 s, S-2 ≈ 75 s, S-Kapitän ≈ 63 s; Treffer-Versuche (Route unverwundbar): S-1 und S-Kapitän keine, S-2 höchstens
+1 (ein Krakenpilz-Steinchen; die Route besiegt die Krakenpilze auf der Münzinsel und am Kontrollpunkt von oben). Kennzahlen
 (Zeichenaufrufe inkl. Schattenpass / Dreiecke, Höchstwerte): S-1 ≤ 75 / 229 k, S-2 ≤ 90 / 194 k, S-Kapitän ≤ 105 / 247 k
 (9 Funkenflämmchen kosten allein ≈ 36 Aufrufe); Grenzen < 120 / < 300 k.
