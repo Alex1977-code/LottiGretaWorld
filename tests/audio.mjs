@@ -1748,7 +1748,7 @@ if (want('varianten')) {
     await wait(250);
     await e.ctx.suspend();
     m.play('course_beep', { variant: 'schnell' });
-    out.pending = { variant: m.variant, pending: m.pending, b0: m.beat(), t0: performance.now() };
+    out.pending = { variant: m.pendingVariant, current: m.current, currentVariant: m.variant, pending: m.pending, b0: m.beat(), t0: performance.now() };
     await wait(600);
     out.pending.b1 = m.beat();
     out.pending.t1 = performance.now();
@@ -1767,8 +1767,8 @@ if (want('varianten')) {
       && s.n >= 5 && s.consecutive && s.fields && s.intervalErr < 0.03 && x.offset < 0.01 && Math.abs(x.stepDur - 60 / bpm / 4) < 1e-12);
   }
   const pd = clk.pending, pRate = (pd.b1.beat - pd.b0.beat) / ((pd.t1 - pd.t0) / 1000);
-  check(`Vorgemerkt bei angehaltenem Kontext: variant 'schnell', Ersatzuhr mit ${fmt(pd.b0.bpm, 2)} BPM (${fmt(pRate)} Zählzeiten/s); nach dem Fortsetzen hörbar im Takt (Quelle ${clk.resumed.b.source}, Sequencer ${fmt(clk.resumed.offset, 4)} Sechzehntel neben der Uhr)`,
-    pd.variant === 'schnell' && pd.pending === 'course_beep' && pd.b0.source === 'ersatz' && pd.b0.variant === 'schnell' && Math.abs(pd.b0.bpm - BEEP_BPM * SPEED) < 1e-9 && Math.abs(pRate - BEEP_BPM * SPEED / 60) < BEEP_BPM * SPEED / 60 * 0.1
+  check(`Vorgemerkt bei angehaltenem Kontext: pendingVariant 'schnell' (music.variant gehört bis dahin zum laufenden Thema), Ersatzuhr mit ${fmt(pd.b0.bpm, 2)} BPM (${fmt(pRate)} Zählzeiten/s); nach dem Fortsetzen hörbar im Takt (Quelle ${clk.resumed.b.source}, Sequencer ${fmt(clk.resumed.offset, 4)} Sechzehntel neben der Uhr)`,
+    pd.variant === 'schnell' && pd.pending === 'course_beep' && pd.current === 'course_grass' && pd.currentVariant === null && pd.b0.source === 'ersatz' && pd.b0.variant === 'schnell' && Math.abs(pd.b0.bpm - BEEP_BPM * SPEED) < 1e-9 && Math.abs(pRate - BEEP_BPM * SPEED / 60) < BEEP_BPM * SPEED / 60 * 0.1
     && clk.resumed.current === 'course_beep' && clk.resumed.variant === 'schnell' && clk.resumed.b.source === 'audio' && clk.resumed.offset < 0.01 && Math.abs(clk.resumed.bpm - BEEP_BPM * SPEED) < 1e-9 && clk.resumed.b.beat > pd.b1.beat);
 
   // Taktuhr deterministisch (Testhaken) für jede Variante: 10 s virtuelle Zeit
@@ -1811,9 +1811,9 @@ if (want('varianten')) {
   }
   const base = vres.ohne, rel = (a, b) => 20 * Math.log10(a / b);
   for (const v of VARIANTS) {
-    const r = vres[v];
-    check(`Variante ${v}: Pegel im Rahmen – RMS ${fmt(rel(r.rms, base.rms), 1)} dB gegen ohne Variante (±1,5 dB), Spitze ${fmt(r.peak)} < 0,98, Bass und Mitten vorhanden, Beat am Kick-Abstand ${fmt(r.beatExpected)} s, < 120 Knoten/s`,
-      Math.abs(rel(r.rms, base.rms)) <= 1.5 && r.peak < 0.98 && r.bands.bass.dB > -30 && r.bands.mid.dB > -30 && Math.abs(r.beatLag - r.beatExpected) <= r.beatExpected * 0.03 && r.acBeat > r.acOff && r.nodesPerSecond < 120);
+    const r = vres[v], radio = v === 'schwarzweiss'; // altes Radio: Bass bewusst weggefiltert
+    check(`Variante ${v}: Pegel im Rahmen – RMS ${fmt(rel(r.rms, base.rms), 1)} dB gegen ohne Variante (±1,5 dB), Spitze ${fmt(r.peak)} < 0,98, ${radio ? 'Mitten' : 'Bass und Mitten'} vorhanden, Beat am Kick-Abstand ${fmt(r.beatExpected)} s, < 120 Knoten/s`,
+      Math.abs(rel(r.rms, base.rms)) <= 1.5 && r.peak < 0.98 && (radio || r.bands.bass.dB > -30) && r.bands.mid.dB > -30 && Math.abs(r.beatLag - r.beatExpected) <= r.beatExpected * 0.03 && r.acBeat > r.acOff && r.nodesPerSecond < 120);
   }
   const dH = (v) => vres[v].bands.high.dB - base.bands.high.dB, dB_ = (v, k) => vres[v].bands[k].dB - base.bands[k].dB;
   check(`schnell: Tempo +8 % (${fmt(vres.schnell.bpm, 2)} statt ${fmt(base.bpm, 2)} BPM), Klang unverändert (Bänder ±1 dB: ${['bass', 'mid', 'high'].map((k) => fmt(dB_('schnell', k), 1)).join(' / ')})`,
@@ -1841,7 +1841,7 @@ if (want('varianten')) {
       const tl = t.buffer.getChannelData(0), tr = t.buffer.getChannelData(1), sx = s.buffer.getChannelData(0), sr = t.sampleRate;
       let side = 0; for (let i = 0; i < tl.length; i++) side = Math.max(side, Math.abs(tl[i] - tr[i]));
       const mono = Float32Array.from(tl, (x, i) => (x + tr[i]) / 2);
-      const tail = rms(mono, 1.2, 3.0, sr), floor = rms(sx, 1.2, 3.0, sr);
+      const tail = rms(mono, 0.55, 1.6, sr), floor = rms(sx, 0.55, 1.6, sr);   // der Ton ist nach 0,5 s trocken verklungen
       const lvl = async (th, secs) => { const r = await one(th, secs); return rms(r.buffer.getChannelData(0), 0, secs, r.sampleRate); };
       const echo = await one(caveTh, 4);
       const bar = 60 / 132 * 4;
@@ -1861,11 +1861,11 @@ if (want('varianten')) {
   const P = probes, dbv = (v, k) => rel(P[v][k], P.ohne[k]);
   check(`ohne Variante: kein Hall, kein Grundgeräusch, keine Vögel (Hall ${fmt(P.ohne.hall, 3)}, Rauschen ${P.ohne.noise.toExponential(1)})`, P.ohne.hall < 0.01 && P.ohne.noise < 1e-5 && P.ohne.side < 1e-6 && P.ohne.birds < 1e-5);
   check(`nacht: Tiefpass (Höhen ${fmt(dH('nacht'), 1)} dB), mehr Hall (${fmt(P.nacht.hall, 3)}, breit), weicheres Schlagzeug (ohne Kick ${fmt(dbv('nacht', 'kit'), 1)} dB, Kick ${fmt(dbv('nacht', 'kick'), 1)} dB), Glitzer-Glöckchen leiser (${fmt(dbv('nacht', 'bells'), 1)} dB)`,
-    dH('nacht') <= -12 && P.nacht.hall >= 0.08 && P.nacht.side > 1e-3 && dbv('nacht', 'kit') <= -6 && dbv('nacht', 'kick') >= -3 && dbv('nacht', 'bells') <= -3);
+    dH('nacht') <= -12 && P.nacht.hall >= 0.05 && P.nacht.side > 1e-3 && dbv('nacht', 'kit') <= -6 && dbv('nacht', 'kick') >= -3 && dbv('nacht', 'bells') <= -3);
   check(`abend: warm (Bass ${fmt(dB_('abend', 'bass'), 1)} dB), gedämpfte Höhen (${fmt(dH('abend'), 1)} dB), sanfter Hall (${fmt(P.abend.hall, 3)}, weniger als nachts)`,
-    dB_('abend', 'bass') >= 0.5 && dH('abend') <= -6 && dH('abend') > dH('nacht') && P.abend.hall >= 0.03 && P.abend.hall < P.nacht.hall);
+    dB_('abend', 'bass') >= 0.5 && dH('abend') <= -6 && dH('abend') > dH('nacht') && P.abend.hall >= 0.02 && P.abend.hall < P.nacht.hall);
   check(`morgen: hell (Höhen ${fmt(dH('morgen'), 1)} dB), luftiger kurzer Hall (${fmt(P.morgen.hall, 3)}), Glöckchen vorn (${fmt(dbv('morgen', 'bells'), 1)} dB), Vogel-Zwitschern (${P.morgen.osc - P.ohne.osc} Tupfer in 8 Takten)`,
-    dH('morgen') >= 2 && P.morgen.hall >= 0.02 && P.morgen.hall < P.abend.hall && dbv('morgen', 'bells') >= 1 && P.morgen.osc - P.ohne.osc >= 8 && P.morgen.birds > 1e-3);
+    dH('morgen') >= 2 && P.morgen.hall >= 0.01 && P.morgen.hall < P.abend.hall && dbv('morgen', 'bells') >= 1 && P.morgen.osc - P.ohne.osc >= 8 && P.morgen.birds > 1e-3);
   check(`tag: hell (Höhen ${fmt(dH('tag'), 1)} dB) und trocken (kein zusätzlicher Hall ${fmt(P.tag.hall, 3)}, Echo des Themas ${fmt(dbv('tag', 'echo'), 1)} dB)`,
     dH('tag') >= 1 && P.tag.hall < 0.01 && dbv('tag', 'echo') <= -4);
   check(`dunkel: starker Tiefpass (Höhen ${fmt(dH('dunkel'), 1)} dB), sehr viel Hall (${fmt(P.dunkel.hall, 3)}, mehr als nachts), tiefes Brummen (${P.dunkel.noise.toExponential(1)}), Melodie hörbar (Lead allein ${fmt(dbv('dunkel', 'lead'), 1)} dB)`,

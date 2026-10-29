@@ -414,7 +414,10 @@ class Music {
   /** Namen der Klang-Varianten (für `play(name, { variant })`). */
   listVariants() { return [...VARIANT_NAMES]; }
 
-  /** Klang-Variante des laufenden bzw. (vor der Freischaltung) vorgemerkten Themas, sonst null. */
+  /**
+   * Klang-Variante des laufenden Themas (gehört zu `current`); läuft keins (vor der Freischaltung), die des vorgemerkten
+   * Themas (`pending`/`pendingVariant`), sonst null.
+   */
   get variant() { return this.current ? this.curVariant : (this.pending ? this.pendingVariant : null); }
 
   /**
