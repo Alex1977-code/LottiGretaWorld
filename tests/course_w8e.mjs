@@ -7,8 +7,8 @@
 // Abschnitt, Abspann nach dem Ziel (Szene Credits, Spielstand finished), Kennzahlen je Abschnitt (Zeichenaufrufe < 120 inkl.
 // Schattenpass, Dreiecke < 300 k) und Bilder aus der Spielkamera (tests/out/w8e_8-Burg_*.png).
 // Aufruf (nach npm run build): PORT_BASE=0 node tests/course_w8e.mjs
-//   PARTS=load,route,sweep,targets,extra,boss,credits,shots (Standard alle; Teilläufe je ≤ 10 min, z. B. PARTS=load,route ·
-//   PARTS=targets,extra · PARTS=boss,credits · PARTS=sweep,shots) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras mit diesem
+//   PARTS=load,route,sweep,targets,extra,boss,credits,action,shots (Standard alle; Teilläufe je ≤ 10 min, z. B. PARTS=load,route ·
+//   PARTS=targets,extra · PARTS=boss,credits · PARTS=action (Kampfbilder entlang der Route) · PARTS=sweep,shots) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras mit diesem
 //   Namensteil) · VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> (nur diese Bilder) · DETAIL=1 (Zeichenaufrufe je Objekt)
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist auf der Route
@@ -74,9 +74,11 @@ const MAIN = [
   { expect: 'aufA' },
   { name: 'Kontrollpunkt Türmchen A', to: [-2.4, -205.2], within: 0.5, run: false },
   { until: 'baronOben', max: 600 },
+  { until: 'baronVoraus', max: 600 },
   { to: [0.8, -208.4], within: 0.4, run: false },
   { name: 'Brücke 1', bridge: [['steg2', 0.8], ['steg1', -0.8]], to: -215.0 },
   { expect: 'aufB' },
+  { until: 'baronSatt', max: 600 },
   { to: [-0.8, -219.6], within: 0.5, run: false },
   { name: 'Brücke 2', bridge: [['steg3', -0.8], ['steg4', 0.8]], to: -226.6 },
   { expect: 'aufC' },
@@ -103,8 +105,8 @@ const TARGETS = [
   { name: 'Stern 1 nicht mit nur drei Schubsern', star: 1, expectNot: true, from: [0, PZ, -131.6], heroes: ['lotti'], invuln: true,
     legs: [{ schubser: ['rs1', 'rs2', 'rs3'] }, { wait: 240 }], mech: (r) => r.mech.schubserWeg === 3 && !r.mech.stern1Da, mechText: (r) => `${r.mech.schubserWeg}/4, Stern ${r.mech.stern1Da ? 'da' : 'versteckt'}` },
   { name: 'Stern 2: Sternenring in der ersten Finalphase (acht Sternmünzen, dann Super-POW)', star: 2, from: [0, UA, -203.6], prep: 'oben',
-    legs: [{ until: 'baronOben', max: 600 }, { to: [0.8, -208.4], within: 0.4, run: false }, { bridge: [['steg2', 0.8], ['steg1', -0.8]], to: -215.0 },
-      { to: [-0.8, -219.6], within: 0.5, run: false }, { bridge: [['steg3', -0.8], ['steg4', 0.8]], to: -226.6 },
+    legs: [{ until: 'baronOben', max: 600 }, { until: 'baronVoraus', max: 600 }, { to: [0.8, -208.4], within: 0.4, run: false }, { bridge: [['steg2', 0.8], ['steg1', -0.8]], to: -215.0 },
+      { until: 'baronSatt', max: 600 }, { to: [-0.8, -219.6], within: 0.5, run: false }, { bridge: [['steg3', -0.8], ['steg4', 0.8]], to: -226.6 },
       { to: [0, -228.2], within: 0.4, run: false, autoJump: false }, { until: 'obenGeschafft', max: 900 },
       { pipeIn: [0, -230.4] }, { expect: 'ringDa' }, { name: 'Sternenring', to: [-6.4, -239.8], within: 0.4, run: false },
       { name: 'acht Sternmünzen', chaseKind: 'starcoin', max: 2400 }, { until: 'stern2Da', max: 300 }, { star: 2 }],
@@ -173,7 +175,7 @@ const port = PORT + Number(process.env.PORT_BASE ?? 0);
 const sc = (fn, arg) => page.evaluate(fn, arg);
 const ONLY = process.env.ONLY ?? null;
 const pick = (list) => (ONLY ? list.filter((t) => t.name.includes(ONLY)) : list);
-const PARTS = new Set((process.env.PARTS ?? 'load,route,sweep,targets,extra,boss,credits,shots').split(','));
+const PARTS = new Set((process.env.PARTS ?? 'load,route,sweep,targets,extra,boss,credits,action,shots').split(','));
 const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
 const SHOTS = process.env.SHOTS ? new Set(process.env.SHOTS.split('|')) : null;
 
@@ -215,6 +217,8 @@ function install(K) {
     aufB: () => P().pos.y > K.UB - 0.4 && Math.hypot(P().pos.x, P().pos.z + 217) < 4.1 && on(),
     aufC: () => P().pos.y > K.UC - 0.4 && Math.hypot(P().pos.x, P().pos.z + 228.7) < 4.3 && on(),
     baronOben: () => baron()?.cur === 1 && !['wait', 'between', 'intro'].includes(baron()?.state),
+    baronVoraus: () => (baron()?.eaten ?? 0) >= 1 && baron()?.pos.z < -211,
+    baronSatt: () => (baron()?.eaten ?? 0) >= 2 && !['eat', 'clone'].includes(baron()?.state) && baron()?.pos.z < -219.5,
     obenGeschafft: () => baron()?.done?.[1] === true,
     gipfel: () => P().pos.y > K.G - 0.4 && on(),
     perch: () => baron()?.state === 'perch',
@@ -766,12 +770,44 @@ else {
     const reached = res.status === 'goal' || res.status === 'done';
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Treffer-Versuche ${res.mech.hurts}, Baron ${JSON.stringify(res.baron && { state: res.baron.state, hp: res.baron.hp, done: res.baron.done, swipes: res.baron.swipes, walls: res.baron.wallsBroken, fire: res.baron.fireballs, slides: res.baron.slides, clones: res.baron.clonesMade, eaten: res.baron.eaten, powHit: res.baron.powHit, waves: res.baron.waves })}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
+    if (process.env.VERBOSE) console.log('      Treffer-Versuche:', [...new Set(res.mech.hurtList)].join(' '));
     check(`${ID}: Routen-Bot ${hero} erreicht den Zielmast (Seilbahnen, Riesenrad, Turm, Glasröhren)`, reached);
     check(`${ID}: ${hero} Zeit bis zum Ziel < 400 s (${res.time.toFixed(1)} s von 500 s)`, reached && res.time < 400);
     check(`${ID}: ${hero} – Baron in allen drei Abschnitten besiegt (POW-Block, Spiegelfrüchte ${res.baron?.eaten}, Super-POW 4×), Glasröhren ${res.mech.pipes}`,
       !!res.baron && res.baron.state === 'gone' && res.baron.done.every(Boolean) && res.baron.powHit === 1 && res.baron.eaten === 2 && res.mech.powHits === 4 && res.mech.pipes === 3);
     check(`${ID}: ${hero} – Gipfelphasen 1 → 4 der Reihe nach (${res.mech.phases.join(' ')})`, res.mech.phases.join() === '1,2,3,4');
     if (hero === HEROES[0] && PARTS.has('sweep')) sweepTrack = res.track;
+  }
+
+  // ------------------------------------------------ Kampfbilder: Route in Stücken fahren, an Schlüsselstellen ein Bild
+  if (PARTS.has('action') && !ONLY) {
+    const ACTION = [
+      [(l) => l.until === 'baronKlettert', 'kampf_turm', 50],
+      [(l) => l.name === 'Sims 3', 'kampf_sims', 0],
+      [(l) => l.until === 'baronWacht', 'kampf_pow', 20],
+      [(l) => l.until === 'baronOben', 'kampf_spiegel', 60],
+      [(l) => l.expect === 'aufB', 'kampf_bruecke', 0],
+      [(l) => l.name === 'Gipfelkampf', 'kampf_gipfel', 120],
+      [(l) => l.until === 'baronFort', 'sieg', 20],
+      [(l) => l.expect === 'sieger', 'befreiung', 200],
+    ];
+    await load();
+    await W('place', [0, Y0, 5.5], { hero: HEROES[0], settle: 2 });
+    let chunk = [], ok = true;
+    for (const leg of MAIN) {
+      chunk.push(leg);
+      const hit = ACTION.find(([f]) => f(leg));
+      if (!hit) continue;
+      if (hit[2]) chunk.push({ wait: hit[2] });
+      const res = await W('drive', chunk, {});
+      chunk = [];
+      if (res.dead || res.log.some((l) => l[0] === 'TOD' || String(l[0]).startsWith('FEHLER'))) { ok = false; console.log(`  Kampfbilder: abgebrochen bei ${hit[1]} (${res.status})`); break; }
+      if (process.env.VERBOSE) console.log(`    ${hit[1]}: Figur ${res.pos.map((v) => v.toFixed(1)).join(', ')} (${res.info?.mode}), Baron ${res.baron?.state} ${res.baron?.x}, ${res.baron?.y}, ${res.baron?.z}`);
+      await sc(() => { window.__course.player.invuln = 0; }); // kein Blinken im Bild (keine Schritte bis zur nächsten Fahrt)
+      await shot(hit[1]);
+    }
+    if (ok && chunk.length) await W('drive', chunk, {});
+    check(`${ID}: Kampfbilder entlang der Route (${ACTION.length} Bilder)`, ok);
   }
 
   // ------------------------------------------------ Kennzahlen entlang der ganzen Route (alle ~7 m ein Messpunkt)

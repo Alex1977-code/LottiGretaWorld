@@ -406,7 +406,7 @@ export const LEVEL = {
       { kind: 'lampions', from: [-7.4, ZIEL.y + 4.4, -284], to: [-7.4, ZIEL.y + 4.4, -294], sag: 0.9 },
       { kind: 'lampions', from: [7.4, ZIEL.y + 4.4, -284], to: [7.4, ZIEL.y + 4.4, -294], sag: 0.9 },
       { kind: 'lampions', from: [-7.4, ZIEL.y + 4.4, -294], to: [7.4, ZIEL.y + 4.4, -294], sag: 1.1 },
-      { kind: 'ballons', pos: [6.6, ZIEL.y, -296.2], n: 6, color: 'gelb' }, { kind: 'ballons', pos: [-7.2, ZIEL.y, -289], n: 4, color: 'rot' },
+      { kind: 'ballons', pos: [6.6, ZIEL.y, -296.2], n: 6, color: 'gelb' }, { kind: 'ballons', pos: [-8.0, ZIEL.y, -298.0], n: 4, color: 'rot' },
     ] },
 
   ],
@@ -450,9 +450,9 @@ export const LEVEL = {
         {
           type: 'spiegel', id: 'oben',
           trigger: { min: [-4.2, UA - 0.5, -209.5], max: [4.2, UA + 4, -201.4] },
-          route: [[0, UA, -202.4], [0, UA, -208], [0, UA + 1, -211.4], [0, UB, -214.4], [0, UB, -219.6], [0, UB + 1, -222.8], [0, UC, -226], [0, UC, -231]],
+          route: [[0, UA, -207.4], [0, UA, -208.4], [0, UA + 1, -211.4], [0, UB, -214.4], [0, UB, -219.6], [0, UB + 1, -222.8], [0, UC, -226], [0, UC, -231]],
           follow: 'weg', ahead: 6.5, walk: 4.2, every: 3.0, fire: { shots: 1, speed: 6, arc: true, flight: 1.0 },
-          fruits: [[0, UA + 0.9, -206.6], [0, UB + 0.9, -217.4]], clones: [2, 3],
+          fruits: [[0, UA + 0.9, -209.0], [0, UB + 0.9, -219.0]], clones: [2, 3],
           lanes: [[[-0.8, UB, -214.4], [-0.8, UA, -203]], [[0.8, UC, -226.4], [0.8, UB, -214.8]]],
           breaks: ['steg1', 'steg2', 'steg3', 'steg4'], end: { min: [-4.2, UC - 0.5, -232.9], max: [4.2, UC + 4, -228.0] },
         },
