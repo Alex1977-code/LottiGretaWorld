@@ -159,6 +159,94 @@ const ROUTES = {
   },
 };
 
+ROUTES['S-4'] = {
+  start: [0, 0, 6],
+  meta: { stars: 3, time: 100, theme: 'skyway', music: 'course_goalpole', archetype: 'verfolgung', world: 9, maxTime: 100 },
+  enemies: { glotzfisch: 3, fliegender_zielmast: 1 },
+  main: [
+    { name: 'Startwolke: der Zielmast fliegt davon', to: [0, -12.8], within: 0.5 },
+    { expect: '=ent(\'flugmast\').state !== \'wartet\'' },
+    { name: 'Sprung auf die Boost-Wolke', to: [0, -21], jump: 24, jumpAt: 7.6, within: 0.6 },
+    { name: 'Boost-Pfeil über die 13-m-Lücke', boostGap: -34, to: [0, -50] },
+    { expect: '=at(-6, 6, -0.5, -47, -64)' },
+    { name: 'Glotzfisch 1', fish: 'fisch1', at: [1.8, -51.6], to: [1.8, -60] },
+    { to: [0, -62.2], within: 0.4 },
+    { name: 'Sprung auf die Wolkenbahn', to: [0, -71], jump: 24, jumpAt: 7.2, within: 0.6 },
+    { name: 'Wolkenbahn mit zwei Boost-Pfeilen, 12-m-Lücke', boostGap: -96, to: [0, -112] },
+    { expect: '=at(-7, 7, -0.5, -108, -132)' },
+    { name: 'Glotzfisch 2', fish: 'fisch2', at: [2.2, -119.4], to: [2.2, -129.6] },
+    { to: [0, -130.6], within: 0.4 },
+    { name: 'Sprung auf die schmale Wolke', to: [0, -139.4], jump: 24, jumpAt: 7.0, within: 0.6 },
+    { name: 'Boost-Pfeil über die dritte Lücke', boostGap: -150, to: [0, -166] },
+    { expect: '=at(-6, 6, -0.5, -163, -184)' },
+    { name: 'Glotzfisch 3 (springt zur Figur)', fish: 'fisch3', at: [-1.8, -168.6], to: [-1.8, -182.2], need: 1.0 },
+    { to: [0, -183.2], within: 0.4 },
+    { name: 'Donut-Band', to: [0, -199.2], within: 0.6 },
+    { to: [0, -203.6], jump: 16, jumpAt: 4.6, within: 0.6 },
+    { name: 'Donut-Rautenfeld', to: [0, -226], within: 0.6 },
+    { to: [0, -230], jump: 14, jumpAt: 4.2, within: 0.6 },
+    { name: 'Donut-Band unten (neben der Treppe)', to: [3.2, -233.6], within: 0.4 },
+    { to: [3.2, -260.2], within: 0.6 },
+    { to: [2.4, -265], jump: 16, jumpAt: 4.6, within: 0.8 },
+    { name: 'Zielmast fangen', mast: 'flugmast', area: [-7, 7, -263, -289] },
+  ],
+  routeChecks: [
+    { name: 'drei Boost-Lücken mit Boost-Tempo, drei Glotzfische abgepasst, Mast gefangen', ok: (r) => (r.mech.boosts ?? 0) >= 3 && (r.mech.fish ?? 0) === 3 && r.status !== 'play' },
+  ],
+  targets: [
+    { name: 'Stern 0: erste Donut-Blöcke im Bogen rechts der Boost-Lücke', star: 0, from: [0, 0, -22],
+      legs: [{ to: [4.2, -26.2], within: 0.4, run: false }, { path: [[5.9, -26.6], [7.97, -28.85], [9.69, -31.34], [10.91, -34.13], [11.38, -37.14], [11.0, -40.15], [9.88, -42.97], [8.21, -45.54], [7.25, -46.7], [5.2, -48.4]] },
+        { expect: '=at(-6, 6, -0.5, -47, -64)' }], shot: 'stern0' },
+    { name: 'Stern 0 nicht vom Hauptweg (Boost-Lücke)', star: 0, expectNot: true, from: [0, 0, -22], heroes: ['lotti'],
+      legs: [{ boostGap: -34, to: [0, -50] }] },
+    { name: 'Stern 1: vor dem zweiten Glotzfisch ganz links über das Donut-Feld zur Sternwolke', star: 1, from: [0, 0, -110],
+      legs: [{ to: [-6.4, -114.7], within: 0.4, run: false }, { path: [[-8, -114.7], [-11, -114.7], [-14, -114.7], [-16.8, -114.7]] }, { star: 1 },
+        { wait: 400 }, { path: [[-14, -114.7], [-11, -114.7], [-8, -114.7], [-5.6, -114.7]] }, { expect: '=at(-7, 7, -0.5, -108, -132)' }], shot: 'stern1' },
+    { name: 'Stern 2: Donut-Treppe hoch, oberer Weg', star: 2, from: [0, 0, -230],
+      legs: [{ to: [0, -233.4], within: 0.3, run: false }, { to: [0, -235.6], jump: 20, jumpAt: 9, within: 0.4, run: false, land: true },
+        { to: [0, -237.6], jump: 20, jumpAt: 9, within: 0.4, run: false }, { to: [0, -239.6], jump: 20, jumpAt: 9, within: 0.4, run: false },
+        { to: [0, -241.6], jump: 20, jumpAt: 9, within: 0.4, run: false }, { to: [0, -243.6], jump: 20, jumpAt: 9, within: 0.4, run: false },
+        { to: [0, -248.6], within: 0.4 }, { star: 2 }, { expect: '=at(-3, 3, 5.5, -246.6, -252)' }], shot: 'stern2' },
+    { name: 'Stern 2 nicht vom unteren Band', star: 2, expectNot: true, from: [0, 0, -230], heroes: ['lotti'],
+      legs: [{ to: [3.2, -233.6], within: 0.4 }, { to: [3.2, -258], within: 0.6 }] },
+    { name: 'Stempel: hinter dem ersten Glotzfisch auf der Nebenwolke rechts', stamp: true, from: [0, 0, -50],
+      legs: [{ fish: 'fisch1', at: [2.2, -51.6], to: [5.2, -58.6] }, { to: [8, -59], within: 0.4, run: false }], shot: 'stempel' },
+    { name: 'Geheimnis: getimter Weitsprung – der Zielmast wird schon beim Abheben gefangen', stamp: false, star: undefined, secret: true, from: [0, 0, 6],
+      legs: [{ longAt: [-4.0, 0, -12.5] }, { wait: 30 }], mech: (r) => r.status !== 'play' && r.rt.time > 95, mechText: (r) => `Status ${r.status}, Restzeit ${Math.round(r.rt.time)} s` },
+    { name: 'Geheimnis-Gegenprobe: gemütlich hingehen und erst springen, wenn er abhebt, ist zu spät', secret: true, expectNot: true, from: [0, 0, 6], heroes: ['lotti'],
+      legs: [{ to: [0, -2.6], within: 0.4, run: false, slow: 0.6 }, { to: [0, -10], jump: 40, jumpAt: 99, within: 0.5, run: false, max: 150 }, { wait: 60 }],
+      mech: (r) => r.status === 'play', mechText: (r) => `Status ${r.status}` },
+  ],
+  extra: [
+    { name: 'Glotzfisch 2 springt zur Figur und verletzt sie am Teich', from: [0, 0, -121], heroes: ['lotti'], invuln: false, allowFail: true,
+      legs: [{ to: [0, -124], within: 0.2, run: false }, { wait: 700 }],
+      mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+    { name: 'Der Zielmast wartet, wenn man zurückfällt (schwebt in Sichtweite)', from: [0, 0, 6], heroes: ['lotti'],
+      legs: [{ to: [0, -4], within: 0.4 }, { wait: 900 }, { expect: '=ent(\'flugmast\').state === \'schwebt\' && ent(\'flugmast\').dist < 26 && ent(\'flugmast\').s > 4' }] },
+    { name: 'Extraleben: unsichtbarer Block auf der Wolke des zweiten Glotzfischs', from: [-4.4, 0, -125.6], heroes: ['lotti'], expectLives: 1,
+      legs: [{ to: [-4.4, -127.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    { name: 'Extraleben: unsichtbarer Block auf der Zielwolke', from: [5, 0, -278], heroes: ['lotti'], expectLives: 1,
+      legs: [{ to: [5, -280], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    { name: '100 s ohne Zeitboni: danach ist die Zeit um', from: [0, 0, 6], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+      legs: [{ wait: 101 * 120 }], mech: (r) => r.dead && r.cause === 'time', mechText: (r) => `Ursache ${r.cause}` },
+  ],
+  shots: [
+    ['start', [0, 0, 6]],
+    ['abflug', [0, 0, 6], 140, { y: 1, run: true }],
+    ['boost', [0, 0, -22]],
+    ['fisch1', [0, 0, -49]],
+    ['bahn', [0, 0, -70]],
+    ['links', [-8, 0, -110]],
+    ['fisch2', [0, 0, -116]],
+    ['fisch3', [0, 0, -166]],
+    ['band', [0, 0, -183]],
+    ['raute', [0, 0, -206]],
+    ['treppe', [0, 0, -230]],
+    ['oben', [0, 6, -249]],
+    ['ziel', [0, 0, -266]],
+  ],
+};
+
 const PORT = 4945;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -545,6 +633,83 @@ function install() {
           log.push(['neustart', k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ Pfad: Punkte nacheinander im Lauf abfahren (ohne Anhalten), z. B. über Donut-Blöcke
+        if (Lg.path) {
+          let k = 0;
+          for (const [px, pz] of Lg.path) {
+            for (let n = 0; n < 400 && !P().dead; n++, k++) {
+              const q = P(); const dx = px - q.pos.x, dz = pz - q.pos.z, d = Math.hypot(dx, dz);
+              if (d < (Lg.within ?? 0.7)) break;
+              tick({ ...(q.mode === 'air' ? this.airSteer(px, pz, 0, 0, 3, 9) : this.stick(dx, dz, 1)), run: Lg.run ?? true, jump: !!Lg.hopAll && q.mode === 'ground' });
+            }
+          }
+          settle();
+          log.push(['pfad', Lg.path.length, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Weitsprung ab einer z-Marke im Anlauf (longAt: [z, Ziel-x, Ziel-z])
+        if (Lg.longAt) {
+          const [az, tx, tz] = Lg.longAt;
+          let k = 0, t0 = -1, longed = false;
+          for (; k < 600 && !P().dead && L.runtime.status === 'play'; k++) {
+            const q = P();
+            if (t0 < 0 && q.mode === 'ground' && q.pos.z <= az) t0 = k;
+            if (q.state === 'longjump') longed = true;
+            if (t0 >= 0 && k - t0 > 12 && q.mode === 'ground') break;
+            const dt0 = t0 < 0 ? -1 : k - t0;
+            if (q.mode === 'air') { tick({ ...this.airSteer(tx, tz, 0, 0, 2.5, 14) }); continue; }
+            tick({ ...this.stick(tx - q.pos.x, tz - q.pos.z, 1), run: true, crouch: dt0 >= 0 && dt0 < 3, jump: dt0 >= 2 && dt0 < 6 });
+          }
+          log.push(['weitsprung', az, longed, L.runtime.status, +(L.runtime.pole ?? 0).toFixed(2), +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Boost-Lücke: über den Boost-Pfeil rennen, an der Kante (edge = z) abspringen
+        if (Lg.boostGap !== undefined) {
+          const [tx, tz] = Lg.to;
+          let k = 0, jumped = false, boosted = 0;
+          for (; k < 900 && !P().dead; k++) {
+            const q = P();
+            if (jumped && q.mode === 'ground') break;
+            const sp = Math.hypot(q.vel.x, q.vel.z);
+            boosted = Math.max(boosted, sp);
+            if (!jumped && q.mode === 'ground' && q.pos.z < Lg.boostGap + (Lg.margin ?? 0.9)) jumped = true;
+            if (jumped) { tick({ ...(q.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 2.2, 18) : this.stick(tx - q.pos.x, tz - q.pos.z, 1)), jump: true, run: true }); continue; }
+            tick({ ...this.stick((Lg.lane ?? tx) - q.pos.x + 0.0001, (Lg.boostGap - 3) - q.pos.z, 1), run: true });
+          }
+          for (let i = 0; i < 400 && !P().dead; i++) { const q = P(); const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz); if (d < (Lg.within ?? 0.6) && q.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2))), run: false }); }
+          mech.boosts = (mech.boosts ?? 0) + (boosted > 13 ? 1 : 0);
+          log.push(['boost-lücke', Lg.boostGap, jumped, +boosted.toFixed(1), k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Glotzfisch: an at warten, bis er gerade eingetaucht ist (Zeitfenster), dann hinüber
+        if (Lg.fish) {
+          const f = L.entities.find((e) => e.spec?.id === Lg.fish);
+          const [ax, az] = Lg.at, [bx, bz] = Lg.to;
+          goTo(ax, az, 0.3);
+          const left = () => (f.state === 'jump' || f.removed || f.defeated ? -1 : (f.every - f.flight) - f.timer);
+          let k = 0;
+          for (; k < 1200 && f.alive && !f.defeated && left() < (Lg.need ?? 0.75); k++) tick({});
+          let j = 0;
+          for (; j < 400 && !P().dead; j++) { const q = P(); const dx = bx - q.pos.x, dz = bz - q.pos.z, d = Math.hypot(dx, dz); if (d < (Lg.within ?? 0.5) && q.mode === 'ground') break; tick({ ...this.stick(dx, dz, 1), run: true }); }
+          mech.fish = (mech.fish ?? 0) + 1;
+          log.push(['glotzfisch', Lg.fish, k, j, f.jumps, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ fliegenden Zielmast fangen: hinlaufen, hineinspringen
+        if (Lg.mast) {
+          const m = ent(Lg.mast);
+          let k = 0;
+          for (; k < (Lg.max ?? 2400) && L.runtime.status === 'play' && !P().dead; k++) {
+            const q = P();
+            // zu hoch (fliegt noch): auf der Wolke warten, bis er tief genug kommt (bzw. gelandet ist)
+            if (m.pos.y + 1 - q.pos.y > (Lg.reach ?? 3.4) && q.mode === 'ground') { tick({}); continue; }
+            const [ax, az] = Lg.area ? [Math.max(Lg.area[0], Math.min(Lg.area[1], m.pos.x)), Math.max(Lg.area[3], Math.min(Lg.area[2], m.pos.z))] : [m.pos.x, m.pos.z];
+            const dx = ax - q.pos.x, dz = az - q.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(q.mode === 'air' ? this.airSteer(ax, az, 0, 0, 4, 8) : this.stick(dx, dz, 1)), run: d > 3, jump: q.mode === 'ground' ? d < (Lg.jumpAt ?? 2.2) : q.vel.y > 0 });
+          }
+          log.push(['zielmast', Lg.mast, L.runtime.status, +(L.runtime.pole ?? 0).toFixed(2), m.state, k]);
+          continue;
+        }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
@@ -589,7 +754,7 @@ function install() {
       mech.figures = (L.players ?? []).length;
       mech.side = L.entities.filter((e) => e.kind === 'coin' && e.alive && !e.removed && e.pos.x > 4 && e.pos.x < 6.5 && Math.abs(e.pos.z + 130) < 0.3).length;
       mech.pecks = L.entities.filter((e) => e.kind === 'hackvogel').map((e) => `${e.spec?.id}:${e.pecks ?? 0}`).join(' ');
-      return { log, autoJumps, steps, time: steps / 120, pos: [q.pos.x, q.pos.y, q.pos.z], dead: q.dead, status: L.runtime.status, info: q.info(), rt: L.runtime.info(), mech, power: q.power, track };
+      return { log, autoJumps, steps, time: steps / 120, pos: [q.pos.x, q.pos.y, q.pos.z], dead: q.dead, cause: q.deathCause ?? null, status: L.runtime.status, info: q.info(), rt: L.runtime.info(), mech, power: q.power, track };
     },
     chase(kind, o = {}) {
       let n = 0;
@@ -746,8 +911,8 @@ for (const id of LEVELS) {
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
       const res = await W('drive', t.legs, { invuln: t.invuln });
       const rt = await W('rt');
-      let ok = t.star !== undefined ? rt.stars[t.star] : rt.stamp;
-      if (t.expectNot) ok = !ok;
+      let ok = t.secret ? true : t.star !== undefined ? rt.stars[t.star] : rt.stamp;
+      if (t.expectNot && !t.secret) ok = !ok;
       if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (t.mech && !t.mech(res)) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));

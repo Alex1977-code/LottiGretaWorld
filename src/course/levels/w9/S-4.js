@@ -48,14 +48,14 @@ const DONUTS = [
   { id: 'donut_band1', size: DS, delay: 0.5, respawn: 3, color: 'rosa',
     blocks: [-1.4, 0, 1.4].flatMap((x) => [-185.2, -186.6, -188.0, -189.4, -190.8, -192.2, -193.6, -195.0, -196.4, -197.8, -199.2].map((z) => [x, DY, z])) },
   { id: 'donut_band2', size: DS, delay: 0.5, respawn: 3, color: 'schoko',
-    blocks: [[-2.1, -209.2], [-0.7, -209.2], [0.7, -209.2], [2.1, -209.2], [-2.8, -211.4], [-1.4, -211.4], [1.4, -211.4], [2.8, -211.4], [-2.1, -213.6], [-0.7, -213.6],
-      [0.7, -213.6], [2.1, -213.6], [-1.4, -215.8], [0, -215.8], [1.4, -215.8], [-2.1, -218.0], [-0.7, -218.0], [0.7, -218.0], [2.1, -218.0], [-1.4, -220.2], [0, -220.2],
-      [1.4, -220.2], [-0.7, -222.4], [0.7, -222.4], [0, -224.6], [0, -226.0]].map(([x, z]) => [x, DY, z]) },
+    // Rautenfeld: fünf Spalten, an den Rändern Lücken (Mitte durchgehend)
+    blocks: [-2.8, -1.4, 0, 1.4, 2.8].flatMap((x, c) => [-209.2, -210.6, -212.0, -213.4, -214.8, -216.2, -217.6, -219.0, -220.4, -221.8, -223.2, -224.6, -226.0]
+      .filter((z, r) => Math.abs(x) < 2 || (r + c) % 3 !== 0).filter((z, r) => Math.abs(x) < 2 || (r > 0 && r < 12)).map((z) => [x, DY, z])) },
   // Donut-Treppe: Stufen je 1,2 m höher bis zur oberen Wolke (y 6); daneben das flache Band unten zur Zielwolke
   { id: 'donut_treppe', size: DS, delay: 0.6, respawn: 3, color: 'gelb',
     blocks: [[0, 1.2, -235.6], [0, 2.4, -237.6], [0, 3.6, -239.6], [0, 4.8, -241.6], [0, 6.0, -243.6], [0, 6.0, -245.0]].map(([x, y, z]) => [x, y + DY, z]) },
   { id: 'donut_unten', size: DS, delay: 0.5, respawn: 3, color: 'rosa',
-    blocks: [[3.4, -235.6], ...[-237.0, -238.4, -239.8, -241.2, -242.6, -244.0, -245.4, -246.8, -248.2, -249.6, -251.0, -252.4, -253.8, -255.2, -256.6, -258.0, -259.4, -260.8].map((z) => [4.8, z])].map(([x, z]) => [x, DY, z]) },
+    blocks: Array.from({ length: 19 }, (_, i) => [3.2, DY, +(-234.75 - i * 1.4).toFixed(2)]) },
   { id: 'donut_oben', size: DS, delay: 0.55, respawn: 3, color: 'minze',
     blocks: [[0, 6, -253.4], [0, 6, -254.8], [-0.4, 5, -256.6], [-0.8, 4, -258.4], [-1.2, 3, -260.2]].map(([x, y, z]) => [x, y + DY, z]) },
 ];
@@ -63,15 +63,24 @@ const DONUTS = [
 function build(level) {
   donutBloecke(level, DONUTS);
   wolkenInseln(level, WOLKEN);
-  wolkenteiche(level, [[-3.6, 0, -55, 0.95], [3.6, 0, -55, 0.95], [-4, 0, -124, 0.95], [4, 0, -124, 0.95], [-3.4, 0, -174, 0.95], [3.4, 0, -174, 0.95], [0, 0, -178.4, 0.95]]);
+  wolkenteiche(level, [[-4, 0, -55], [0, 0, -55], [4, 0, -55], [-4.5, 0, -124], [0, 0, -124], [4.5, 0, -124], [-3.4, 0, -172.6], [0, 0, -175.4], [3.4, 0, -178.2]]);
 }
 
+// Flugregie des Zielmasts (Daten des Bausteins, je Schritt angepasst): am Start gemächlich (6,5 m/s – so lässt er sich mit
+// einem getimten Weitsprung noch beim Abheben greifen), danach so schnell wie eine rennende Figur; wer ihn überholt hat
+// (Boost!), dem fliegt er mit voller Kraft hinterher statt zu warten.
+const MAST = { start: 6.5, chase: 10.5, near: 11, far: 24 };
 function setup(level) {
   let said = false;
   level.onStep(() => {
-    if (said) return;
     const m = level.named.get('flugmast');
-    if (m && m.state !== 'wartet') { said = true; banner(level, 'Der Zielmast fliegt davon – hinterher!', { hold: 2.2, size: 14, y: 0.36 }); }
+    if (!m || m.state === 'gefangen' || m.state === 'gelandet') return;
+    if (!said && m.state !== 'wartet') { said = true; banner(level, 'Der Zielmast fliegt davon – hinterher!', { hold: 2.2, size: 14, y: 0.36 }); }
+    if (m.state === 'wartet') return;
+    m.speed = m.s > 9 ? MAST.chase : MAST.start;
+    const ahead = (level.players ?? [level.player]).some((f) => f && !f.dead && f.pos.z < m.pos.z - 1);
+    m.near = ahead ? 999 : MAST.near;
+    m.far = ahead ? 1999 : MAST.far;
   });
 }
 
@@ -129,14 +138,14 @@ export const LEVEL = {
   ],
   blocks: [
     { kind: 'question', pos: [-2.4, 2.2, -1.6], content: 'coins:5' },
-    { kind: 'hidden', pos: [4.6, 2.6, -24], content: 'oneup' },               // Extraleben über der ersten Boost-Wolke
+    { kind: 'hidden', pos: [-4.4, 2.6, -127.6], content: 'oneup' },           // Extraleben auf der Glotzfisch-2-Wolke (links hinten)
     { kind: 'coinblock', pos: [0, 2.6, -112], count: 8 },
     { kind: 'hidden', pos: [5, 2.6, -280], content: 'oneup' },                // Extraleben auf der Zielwolke
   ],
   enemies: [
-    { kind: 'glotzfisch', id: 'fisch1', holes: [[-3.6, 0, -55], [3.6, 0, -55]], height: 2.6, every: 2.6, phase: 0, color: 'blau' },
-    { kind: 'glotzfisch', id: 'fisch2', holes: [[-4, 0, -124], [4, 0, -124]], height: 2.8, every: 2.4, phase: 0.35, color: 'gelb' },
-    { kind: 'glotzfisch', id: 'fisch3', holes: [[-3.4, 0, -174], [3.4, 0, -174], [0, 0, -178.4]], height: 2.6, every: 2.2, phase: 0.6, aim: true, sight: 7, color: 'rosa' },
+    { kind: 'glotzfisch', id: 'fisch1', holes: [[-4, 0, -55], [0, 0, -55], [4, 0, -55]], height: 2.6, every: 2.6, phase: 0, color: 'blau' },
+    { kind: 'glotzfisch', id: 'fisch2', holes: [[-4.5, 0, -124], [0, 0, -124], [4.5, 0, -124]], height: 2.8, every: 2.4, phase: 0.35, aim: true, sight: 6, color: 'gelb' },
+    { kind: 'glotzfisch', id: 'fisch3', holes: [[-3.4, 0, -172.6], [0, 0, -175.4], [3.4, 0, -178.2]], height: 2.6, every: 2.2, phase: 0.6, aim: true, sight: 7, color: 'rosa' },
   ],
   items: [
     // Der Zielmast mit Flügeln: steht am Start (Scheinziel), fliegt hoch voraus, wartet, landet auf der Zielwolke
@@ -154,15 +163,15 @@ export const LEVEL = {
     line([0, 0.6, -128.5], [0, 0.6, -132], 2), line([0, 0.6, -138], [0, 0.6, -146], 3), ...arc([0, 0.6, -151.6], [0, 0.6, -161.4], 5, 3.4),
     ring([0, 0.6, -168], 1.4, 5),
     line([0, 1.6, -186], [0, 1.6, -199], 6), line([0, 1.6, -210], [0, 1.6, -225], 6),
-    line([0, 2.4, -235.6], [0, 7.6, -245], 5), line([4.8, 1.6, -238], [4.8, 1.6, -260], 8), line([0, 7.6, -253.4], [-1.2, 4.6, -260.2], 4),
+    line([0, 2.4, -235.6], [0, 7.6, -245], 5), line([3.2, 1.6, -237], [3.2, 1.6, -259], 8), line([0, 7.6, -253.4], [-1.2, 4.6, -260.2], 4),
     ring([0, 0.6, -270], 2.2, 8),
   ],
   stars: [
-    [11.4, 1.1, -37.1],                    // 0: erste Donut-Blöcke (Bogen rechts)
+    [11.4, 0.3, -37.1],                    // 0: erste Donut-Blöcke (Bogen rechts)
     [-17.7, 1.2, -114.7],                  // 1: vor dem zweiten Glotzfisch ganz links, Donut-Feld
     [0, 7.2, -249.4],                      // 2: Donut-Treppe hoch, oberer Weg
   ],
-  stamp: [8, 1.1, -59],
+  stamp: [8, 0.35, -59],
   marks: {
     start: [0, 0, 6], weit: [0, 0, -1.6], b1: [0, 0, -22], boost1: [0, 0, -29], b2: [0, 0, -49], fisch1: [0, 0, -52], bahn: [0, 0, -70],
     c2: [0, 0, -110], fisch2: [0, 0, -120], d1: [0, 0, -138], d2: [0, 0, -166], band1: [0, 0, -182], rast1: [0, 0, -204], treppe: [0, 0, -230],
