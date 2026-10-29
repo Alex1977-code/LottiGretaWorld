@@ -46,6 +46,14 @@
 //            behavior?: 'hop' | 'chase', sight?: 7, coins?: 1, vel? [vx, vy, vz] (startet im Flug), owner?, wake?, edges?, drop? }
 //   Zustände: rest | crouch | hop | air | merge | squashed | flipped. Laufzeit: hops, info().
 // Sound: 'hover' (Ploppen), 'bounce', 'slam', 'swoop', 'panic' (Flucht), 'boss_hit', 'stomp', 'powerdown', 'vanish'.
+//
+// Welt 8 – **goldene Würfelblase** (8-A, Präzisierung Gegner Welt 8, additiv): color: 'gold' (bzw. variant: 'gold'). Gleicher Ablauf
+//   und gleiche Arena wie 6-C, 3 Kopftreffer, aber golden (Modell { color: 'gold' }, goldener Riese giantColor 'gold') und etwas
+//   schneller (Standardwerte: air [1.1, 0.95, 0.85], rest [0.8, 0.65, 0.5], bitSpeed [1.8, 2.1, 2.4], flee [4.0, 3.6, 3.2],
+//   fleeSpeed [3.4, 4.0, 4.6]). **Jede Landung erzeugt goldene Schockwellen** (Entität 'schockwelle', Modell 'schockwelle'):
+//   Riese waves Ringe (Standard 2, der zweite waveGap s später: 0,45), Radius shockR (Standard 8), shockSpeed (Standard 8);
+//   die Würfelblase selbst (Sprung aus dem platzenden Riesen) eine kleine Welle (Radius 4). Alle 0,45 m hoch – überspringbar.
+//   Daten zusätzlich: color: 'gold', waves?: 2, waveGap?: 0.45. Laufzeit zusätzlich: gold, goldWaves (Wellen-Entitäten), waveHits.
 
 import * as THREE from 'three';
 import { EnemyW2, figures, activeFigure, clamp, sharedSlot } from '../EnemyW2.js';
@@ -59,6 +67,8 @@ const G = 40;
 const pick = (v, ph, def) => (Array.isArray(v) ? v[Math.min(v.length - 1, ph - 1)] : v ?? def[ph - 1]);
 const INTRO = 2.4, POP_AT = 0.7, GATHER_MAX = 6, FORM = 0.7, CROUCH = 0.35, LAND = 0.25, SPLIT = 0.8, HIT = 0.6, DEFEAT = 1.6;
 const MERGE = 0.35, SQUASH = 0.45;
+// Welt 8: Standardwerte der goldenen Würfelblase (etwas schneller)
+const GOLD = { air: [1.1, 0.95, 0.85], rest: [0.8, 0.65, 0.5], bitSpeed: [1.8, 2.1, 2.4], flee: [4.0, 3.6, 3.2], fleeSpeed: [3.4, 4.0, 4.6] };
 const BLOB = 1.2;   // Kante der Würfelblase
 
 // =====================================================================================================================
@@ -291,15 +301,19 @@ class Wuerfelblase extends EnemyW2 {
     this.visible = true;
     this.wakeR = spec.wakeR ?? 12;
     this.pools = new BitPools(level, 24);
+    this.gold = spec.color === 'gold' || spec.variant === 'gold';
+    this.goldWaves = [];
+    this.waveQueue = [];
+    this.waveHits = 0;
     this.bits = [];
     this.waves = [];
     this.giant = null;
     this.marker = null;
     this.shadowSrc = null;
     if (level.view) {
-      this.setModel(getModel('wuerfelblase', { size: BLOB }));
+      this.setModel(getModel('wuerfelblase', this.gold ? { size: BLOB, color: 'gold' } : { size: BLOB }));
       this.giantBase = spec.size ?? 3.2;
-      this.giant = getModel('gelee_riese', { size: this.giantBase, color: spec.giantColor ?? 'silber' });
+      this.giant = getModel('gelee_riese', { size: this.giantBase, color: spec.giantColor ?? (this.gold ? 'gold' : 'silber') });
       this.giant.root.visible = false;
       level.view.add(this.giant.root);
       this.marker = getModel('boss_marker');
@@ -336,7 +350,7 @@ class Wuerfelblase extends EnemyW2 {
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
   get managed() { return bossManaged(this.level, this.spec.id); }
-  val(key, def) { return pick(this.spec[key], this.phase, def); }
+  val(key, def) { return pick(this.spec[key], this.phase, this.gold && GOLD[key] ? GOLD[key] : def); }
   get vulnerable() { return this.state === 'flee' && this.grace <= 0 && this.hp > 0; }
   get isGiant() { return ['form', 'gcrouch', 'gair', 'gland', 'grest'].includes(this.state); }
   get liveBits() { return this.bits.filter((b) => !b.removed && !b.defeated && b.state !== 'merge'); }
@@ -357,6 +371,7 @@ class Wuerfelblase extends EnemyW2 {
     for (const b of this.bits) if (!b.removed) { b.touch = false; b.kill(); }
     this.bits.length = 0;
     this.waves.length = 0;
+    this.clearGoldWaves();
     this.hp = this.maxHp;
     this.defeated = false;
     this.visible = true;
@@ -375,6 +390,7 @@ class Wuerfelblase extends EnemyW2 {
     if (this.grace > 0) this.grace -= dt;
     this.bits = this.bits.filter((b) => !b.removed);
     this.stepWaves(dt);
+    if (this.gold) this.stepGold(dt);
     if (this.splitT >= 0) {
       this.splitT += dt;
       if (this.splitT >= SPLIT) { this.splitT = -1; this.scatter(this.splitN); }
@@ -565,9 +581,42 @@ class Wuerfelblase extends EnemyW2 {
       if (!activeFigure(p)) continue;
       if (Math.abs(p.pos.x - this.pos.x) < h + p.half.x && Math.abs(p.pos.z - this.pos.z) < h + p.half.z && p.pos.y < this.pos.y + this.S) p.hurt({ pos: { x: this.pos.x, y: this.pos.y, z: this.pos.z } });
     }
-    // Schockwelle
+    // Schockwelle (golden: waves Ringe als Entitäten 'schockwelle')
     this.wavesN++;
+    if (this.gold) {
+      const n = Math.max(1, this.spec.waves ?? 2), gap = this.spec.waveGap ?? 0.45;
+      for (let i = 0; i < n; i++) this.waveQueue.push({ t: i * gap, x: this.pos.x, y: this.arena.y, z: this.pos.z, r0: this.S / 2, R: this.spec.shockR ?? 8, speed: (this.spec.shockSpeed ?? 8) * (1 - i * 0.12) });
+      return;
+    }
     this.waves.push({ x: this.pos.x, z: this.pos.z, y: this.arena.y, r: this.S / 2, rMax: this.spec.shockR ?? 6, hit: new Set() });
+  }
+
+  /** Goldene Wellen: geplante Ringe auslösen, Treffer zählen; kleine Welle bei der eigenen Landung. */
+  stepGold(dt) {
+    for (let i = this.waveQueue.length - 1; i >= 0; i--) {
+      const q = this.waveQueue[i];
+      q.t -= dt;
+      if (q.t > 0) continue;
+      this.waveQueue.splice(i, 1);
+      if (this.hp <= 0) continue;
+      const w = this.level.spawn('schockwelle', { pos: [q.x, q.y, q.z], radius: q.R, r0: q.r0, speed: q.speed, color: 'gold', owner: this });
+      if (w) { this.goldWaves.push(w); this.level.sfx('slam'); }
+    }
+    for (const w of this.goldWaves) {
+      const h = w.hits ?? 0, c = w.countedHits ?? 0;
+      if (h > c) { this.waveHits += h - c; w.countedHits = h; }
+    }
+    this.goldWaves = this.goldWaves.filter((w) => !w.removed);
+    // die Würfelblase landet nach dem Sprung aus dem platzenden Riesen: kleine Welle
+    const air = !this.grounded;
+    if (this.wasAir && !air && this.state === 'flee' && this.hp > 0) this.waveQueue.push({ t: 0, x: this.pos.x, y: this.arena.y, z: this.pos.z, r0: 0.6, R: 4, speed: 6 });
+    this.wasAir = air;
+  }
+
+  clearGoldWaves() {
+    for (const w of this.goldWaves) if (!w.removed) w.kill();
+    this.goldWaves.length = 0;
+    this.waveQueue.length = 0;
   }
 
   stepWaves(dt) {
@@ -682,6 +731,7 @@ class Wuerfelblase extends EnemyW2 {
       this.touch = false;
       for (const b of this.bits) if (!b.removed && !b.defeated) b.flip(this, 5);
       this.waves.length = 0;
+      this.clearGoldWaves();
       this.level.sfx('powerdown');
       this.level.onBossDefeated?.(this);
     }
@@ -810,7 +860,7 @@ class Wuerfelblase extends EnemyW2 {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, giants: this.giants, giantSize: +(this.S || 0).toFixed(2),
       sizes: this.sizes.slice(), jumpsDone: this.jumpsDone, landings: this.landings, waves: this.wavesN, merged: this.merged,
       bits: this.liveBits.length, bitsDown: this.bitsDown, splits: this.splits, flees: this.flees, hits: this.hits,
-      bounces: this.bounces, misses: this.misses, vulnerable: this.vulnerable,
+      bounces: this.bounces, misses: this.misses, vulnerable: this.vulnerable, gold: this.gold, waveHits: this.waveHits,
       x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2),
     };
   }

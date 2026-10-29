@@ -28,10 +28,17 @@
 //   ihn), sonst nach life s weg; verletzt bei Berührung (darüber springen); fliegt durch Wände.
 // Modelle 'schattenlaeuferin' (opts { clone }, state { anim: idle|run|throw|teleport|clone|hit|defeated, speed,
 // progress }, model.hand()) und 'schatten_bumerang' (state { anim: spin, speed }).
+//
+// Welt 8 – **Schattenläuferin 2** (8-Zug, zweiter Kampf; Präzisierung Gegner Welt 8, additiv): round: 2. Ablauf wie im ersten Kampf,
+//   aber mehr Doppelgänger und schneller: Standard clones [3, 4, 6], throws [2, 3, 3], Wurfsterne speed 8.5 / range 10, alle
+//   Zeiten (Pause, Huschen, Teleport, Versteck, Erscheinen) × 1 / tempo (Standard tempo 1.25), es werfen das Original und die
+//   ersten phase + 1 Doppelgänger. Ansagen: „Die Schattenläuferin ist zurück!“ (Auftritt), „Noch mehr Doppelgänger!“, „Jetzt ist
+//   sie noch flinker!“. Daten zusätzlich: round?: 1 | 2, tempo?: 1.25 (nur round 2), throwers?: [2, 3, 4]. Laufzeit: round.
 
 import { EnemyW2, figures, activeFigure, localOffset, toWorld, clamp } from '../EnemyW2.js';
 import { spawnLoot } from '../Enemy.js';
 import { getModel } from '../../models/index.js';
+import { bossManaged } from '../w6help.js';
 
 const TAU = Math.PI * 2;
 const INTRO = 2.0, THROW = 0.8, RELEASE = 0.5, TELE = 0.35, HIDDEN = 0.5, APPEAR = 0.8, HIT = 0.6, DEFEAT = 2.2, FLEE = 0.8;
@@ -199,9 +206,14 @@ class Schattenlaeuferin extends EnemyW2 {
     this.ringR = spec.ring ?? Math.min(5, this.arena.r - 1.5);
     this.maxHp = spec.hp ?? 3;
     this.hp = this.maxHp;
-    this.cloneCounts = spec.clones ?? [2, 3, 5];
-    this.throwCounts = spec.throws ?? [2, 2, 3];
-    this.boomCfg = spec.boomerang ?? {};
+    // Welt 8: zweiter Kampf (mehr Doppelgänger, schneller)
+    this.round = spec.round === 2 ? 2 : 1;
+    const r2 = this.round === 2;
+    this.tempo = r2 ? Math.max(0.5, spec.tempo ?? 1.25) : 1;
+    this.cloneCounts = spec.clones ?? (r2 ? [3, 4, 6] : [2, 3, 5]);
+    this.throwCounts = spec.throws ?? (r2 ? [2, 3, 3] : [2, 2, 3]);
+    this.throwers = spec.throwers ?? (r2 ? [2, 3, 4] : [1, 2, 3]);
+    this.boomCfg = spec.boomerang ?? (r2 ? { speed: 8.5, range: 10 } : {});
     this.wakeR = spec.wakeR ?? 8;
     this.seed = spec.seed ?? 7;
     this.rnd = lcg(this.seed);
@@ -229,7 +241,7 @@ class Schattenlaeuferin extends EnemyW2 {
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
-  get managed() { return !!this.level.archetype && this.level.data?.boss && (this.level.data.boss.id ?? 'baron') === this.spec.id; }
+  get managed() { return bossManaged(this.level, this.spec.id); }
 
   // ------------------------------------------------------------------ Archetyp-Schnittstelle
 
@@ -238,6 +250,7 @@ class Schattenlaeuferin extends EnemyW2 {
     this.setState('intro');
     this.facePlayerNow();
     this.level.sfx('poof');
+    if (this.round === 2) this.level.archetype?.hud?.banner?.('Die Schattenläuferin ist zurück!', { hold: 1.6, size: 14, y: 0.36, color: '#ff8ad0' });
   }
 
   reset() {
@@ -268,7 +281,7 @@ class Schattenlaeuferin extends EnemyW2 {
   }
 
   stepBoss(dt) {
-    this.stateT += dt;
+    this.stateT += dt * (this.round === 2 && this.state !== 'defeated' && this.state !== 'hit' && this.state !== 'flee' ? this.tempo : 1);
     this.boomerangs = this.boomerangs.filter((b) => !b.removed);
     this.clones = this.clones.filter((c) => !c.removed);
     switch (this.state) {
@@ -450,7 +463,7 @@ class Schattenlaeuferin extends EnemyW2 {
 
   /** Wurf-Salve: Original + die ersten `phase` Doppelgänger. */
   volley() {
-    const throwers = [this, ...this.clones.filter((c) => !c.poofed).slice(0, this.phase)];
+    const throwers = [this, ...this.clones.filter((c) => !c.poofed).slice(0, this.throwers[this.phase - 1] ?? this.phase)];
     let i = 0;
     for (const t of throwers) {
       const p = this.level.nearestPlayer(t.pos);
@@ -478,7 +491,7 @@ class Schattenlaeuferin extends EnemyW2 {
     if (arch.seenPhase === ph || this.state === 'hit' || this.hp <= 0) return;
     arch.seenPhase = ph;
     if (ph === 2) arch.hud?.banner?.('Noch mehr Doppelgänger!', { hold: 1.4, size: 14, color: '#ffb0e0' });
-    if (ph === 3) arch.hud?.banner?.('Achte auf die pinke Schleife!', { hold: 1.6, size: 14, color: '#ff8ad0' });
+    if (ph === 3) arch.hud?.banner?.(this.round === 2 ? 'Jetzt ist sie noch flinker!' : 'Achte auf die pinke Schleife!', { hold: 1.6, size: 14, color: '#ff8ad0' });
   }
 
   // ------------------------------------------------------------------ Treffer
@@ -553,7 +566,7 @@ class Schattenlaeuferin extends EnemyW2 {
   info() {
     return {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, hits: this.hits, clones: this.clones.filter((c) => !c.poofed).length,
-      appearances: this.appearances, cloneLog: this.cloneLog.slice(), boomerangs: this.boomerangs.length, vulnerable: this.vulnerable,
+      appearances: this.appearances, cloneLog: this.cloneLog.slice(), boomerangs: this.boomerangs.length, vulnerable: this.vulnerable, round: this.round,
       x: +this.pos.x.toFixed(2), z: +this.pos.z.toFixed(2),
     };
   }
