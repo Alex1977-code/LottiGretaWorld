@@ -104,7 +104,7 @@ const ROUTES = {
       ['spiegel', [0, 1, -77.2]],
       ['fahrt2', [13, 1.1, -72], 900, null, Math.PI / 2, 'lift2'],
       ['cp', [0, 1, -130]],
-      ['schacht', [0, 1.1, -141.6], 300, null, Math.PI / 2],
+      ['schacht', [0, 1, -136.6]],
       ['gang', [0, 15, -147]],
       ['tueren', [0, 15, -170]],
       ['gangende', [0, 15, -188]],

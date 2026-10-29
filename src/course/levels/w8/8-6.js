@@ -128,6 +128,27 @@ function setup(level) {
   for (const p of [[-5.6, Y + 1.7, 4.8], [5.6, Y + 1.7, -7.6], [-6.4, Y + 1.7, -67.4], [6.4, Y + 1.7, -67.4], [-3, Y + 1.7, -84.9], [3, Y + 1.7, -84.9],
     [-6.6, Y + 1.7, -128], [6.6, Y + 1.7, -128], [-2.4, YU + 1.7, -147], [2.4, YU + 1.7, -158], [-2.4, YU + 1.7, -168], [2.4, YU + 1.7, -178], [-2.4, YU + 1.7, -192],
     [8.4, YU + 1.7, -187.2], [13, YU + 2.2, -191.6], [RB - 6, Y + 1.7, -136], [RB + 6, Y + 1.7, -136]]) level.view?.addLantern(...p);
+  // Kronleuchter schweben über den Fahrten (Kerzen leuchten als Punkte, Laternenlicht an jedem zweiten)
+  {
+    const KR = [[3.2, -20], [-8.2, -36], [4.6, -50], [9.2, -84], [9.4, -106], [-2.8, -116]];
+    const parts = [], flames = [];
+    for (const [x, z] of KR) {
+      const yk = Y + 6.2;
+      parts.push(cyl(0.03, 0.03, 3.4, x, yk + 0.2, z, 0x8a6a2a, 4));
+      const ring = cyl(1.0, 1.0, 0.08, x, yk, z, 0xc8983a, 20, { open: true });
+      parts.push(ring, cyl(0.25, 0.12, 0.5, x, yk - 0.4, z, 0xc8983a, 8));
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2, cx = x + Math.cos(a) * 1.0, cz = z + Math.sin(a) * 1.0;
+        parts.push(cyl(0.05, 0.05, 0.26, cx, yk + 0.06, cz, 0xfff6e0, 6));
+        flames.push([cx, yk + 0.42, cz]);
+      }
+      parts.push(sph(0.12, x, yk - 0.75, z, 0xb8e8ff));
+    }
+    bakeParts(level, parts, { castShadow: false });
+    glowPoints(level, flames, 0xffc860, 0.5, { opacity: 0.95, name: 'kronleuchter-flammen' });
+    glowPoints(level, KR.map(([x, z]) => [x, Y + 6.4, z]), 0xff9a40, 4.5, { opacity: 0.3, name: 'kronleuchter-schein' });
+    KR.forEach(([x, z], i) => { if (i % 2 === 0) level.view?.addLantern(x, Y + 5.6, z); });
+  }
   // Geisteraugen-Schimmer der Ringe (ein Leuchtpunkt je Ring – sichtbar im Dunkel, bevor sie heran sind)
   glowPoints(level, [[5.2, Y + 0.9, -18], [-10.4, Y + 0.9, -34], [6.4, Y + 0.9, -52.5], [18.4, Y + 0.9, -84], [0.6, Y + 0.9, -102]], 0x9ad8ff, 3.6, { opacity: 0.25, name: 'ring-schimmer' });
   farHide(level, ['knochenflieger'], 30);
@@ -170,7 +191,7 @@ export const LEVEL = {
       { kind: 'spinnennetz', pos: [-6.9, Y + 7.6, -9], yaw: 0 },
     ] },
     // ================================================================ C Spiegelsaal
-    { type: 'grosser_spiegel', id: 'spiegel', pos: [0, Y + 1.72, -85.7], size: [3.6, 5], dir: [0, 1], reach: 14, near: 26, star: 'spiegelstern',
+    { type: 'grosser_spiegel', id: 'spiegel', pos: [0, Y + 1.72, -85.7], size: [3.6, 5], dir: [0, 1], reach: 10, near: 22, star: 'spiegelstern',
       parts: [{ pos: [-1.0, Y + 0.9, -80.4], size: [1.4, 0.3, 1.4] }, { pos: [0.6, Y + 2.1, -82.0], size: [1.4, 0.3, 1.4] }] },
     { type: 'deco_w8', items: [
       { kind: 'kerzenleuchter', pos: [-6.4, Y, -67.4] }, { kind: 'kerzenleuchter', pos: [6.4, Y, -67.4] },
