@@ -745,8 +745,8 @@ function install() {
         const b = named('blase') ?? named('koenig');
         for (let i = 0; i < 400 && !L.archetype?.started; i++) { c.setInput({ ...this.stick(0, -1, 0.6) }); c.step(1); }
         c.setInput({});
-        if (what === 'riese') for (let i = 0; i < 120 * 25 && !(b.state === 'gland' || b.state === 'grest'); i++) { p.invuln = 99; c.step(1); }
-        if (what === 'riese') for (let i = 0; i < 14; i++) c.step(1);
+        if (what === 'riese') for (let i = 0; i < 120 * 25 && b.state !== 'gland'; i++) { p.invuln = 99; c.step(1); }
+        if (what === 'riese') for (let i = 0; i < 40; i++) c.step(1);
       } else if (what === 'radOben') {
         // Bild: oben im Riesenrad (die Gondel am Scheitel, Figur darauf)
         const r = named('rad');

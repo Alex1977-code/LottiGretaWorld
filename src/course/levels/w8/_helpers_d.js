@@ -526,6 +526,35 @@ export function buehnenSchuerze(level, list) {
   bake(level, G, { material: 'glow', castShadow: false });
 }
 
+/**
+ * Felsnadeln mit leuchtenden Kristallen, die aus einem Lavasee ragen (Zier, gebacken, ohne Kollision) – wie im Lava-Inferno
+ * nebenan (8-7). list: [{ pos: [x, y, z] (Fuß auf der Lava), h: 6, r: 1.6, color: 'lila' | 'blau' | 'rosa' }]
+ */
+export function felsNadeln(level, list) {
+  if (!level.view) return;
+  const P = [], G = [];
+  const KR = { lila: [0x9a4ae8, 0xf0c8ff], blau: [0x3aa8f0, 0xd8f8ff], rosa: [0xe84aa8, 0xffd0ee] };
+  const rnd = new Rnd(31);
+  for (const it of list) {
+    const [x, y, z] = it.pos, h = it.h ?? 6, r = it.r ?? 1.6;
+    const g = new THREE.ConeGeometry(r, h, 7, 3).toNonIndexed();
+    g.translate(x, y + h / 2, z);
+    P.push(colorize(g, (p, n, o) => mixc(L(0x1e1218), L(0x5a3a48), smooth(-0.4, 0.9, n.y * 0.5 + n.z * 0.4 + (p.y - y) / h * 0.4), o)));
+    const [c0, c1] = KR[it.color ?? 'lila'];
+    for (let k = 0; k < 3; k++) {
+      const ch = rnd.real(1.2, 2.6), cr = rnd.real(0.3, 0.55);
+      const cg = new THREE.ConeGeometry(cr, ch, 5).toNonIndexed();
+      cg.translate(0, ch / 2, 0); cg.rotateZ(rnd.real(-0.6, 0.6)); cg.rotateX(rnd.real(-0.4, 0.4));
+      cg.translate(x + rnd.real(-r * 0.4, r * 0.4), y + h * rnd.real(0.35, 0.7), z + rnd.real(-r * 0.3, r * 0.5));
+      G.push(colorize(cg, (p, n, o) => mixc(L(c0), L(c1), smooth(-0.3, 0.9, n.y * 0.5 + n.z * 0.4), o)));
+    }
+    // glühender Lavasaum am Fuß
+    G.push(fill(new THREE.TorusGeometry(r * 0.95, 0.12, 5, 16).rotateX(Math.PI / 2).translate(x, y + 0.05, z), 0xff8a2a));
+  }
+  bake(level, P, { castShadow: false });
+  bake(level, G, { material: 'glow', castShadow: false });
+}
+
 /** Funkenregen über einer Stelle (Feuerwerk/Glut), solange near(Figur) gilt. cfg = { x, y, z, near, every: 0.5, r: [4, 12], h: [9, 15] } */
 export function funken(level, cfg) {
   let t = 0;

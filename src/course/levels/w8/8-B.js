@@ -21,7 +21,7 @@
 // Gegner: Funkenflämmchen 2, Lavablasen 4, rosa Schlangenkönig.
 
 import {
-  rummelAbend, farbZelt, rummelPflaster, plakat, zuckerwatte, funken, kletterturm, schiffschaukel, glutRand, manege, rummelUnten, buehnenSchuerze, bake, discG, line, ring, arc, column,
+  rummelAbend, farbZelt, rummelPflaster, plakat, zuckerwatte, funken, kletterturm, schiffschaukel, glutRand, manege, felsNadeln, buehnenSchuerze, bake, discG, line, ring, arc, column,
 } from './_helpers_d.js';
 import { circusArena, circusProps, grandStairs, RisingPipe, spawnLocal, particles } from '../w3/_helpers_e.js';
 import { gondelRuf, lichterketten } from '../w6/_helpers_d.js';
@@ -109,6 +109,11 @@ export const LEVEL = {
       { kind: 'wagen', pos: [GX - 8.5, AY, GZ - 8], yaw: 0.6, color: 0x2a6ae8, trim: 0xffc21a },
     ], { shadow: false });
     glutRand(level, [[-19, GRABEN.z0, 19, GRABEN.z1, Y0 - 0.02]]);
+    // Lavaschlucht unter der Seilbahn: Felsnadeln mit leuchtenden Kristallen
+    felsNadeln(level, [
+      { pos: [-12, -6, -52], h: 9, r: 2.2, color: 'lila' }, { pos: [13, -6, -56], h: 8, r: 2.0, color: 'blau' }, { pos: [-7, -6, -66], h: 6.5, r: 1.6, color: 'rosa' },
+      { pos: [9, -6, -68], h: 7, r: 1.8, color: 'lila' }, { pos: [-20, -6, -62], h: 10, r: 2.4, color: 'blau' }, { pos: [22, -6, -50], h: 9, r: 2.2, color: 'rosa' },
+    ]);
     // Ausguck der Schiffschaukel (Stempel): Holzturm mit Plattform
     lichterketten(level, [
       { a: [-3.6, SY + 4.2, -41.4], b: [3.6, SY + 4.2, -41.4], sag: 0.8, kind: 'wimpel', every: 0.6 },
