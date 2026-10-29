@@ -9155,4 +9155,8 @@ Prüft je Level Laden ohne Konsolenfehler, Daten und Gegnerzahlen, Routen-Bot Lo
 S-6 mit Glasröhre/Klon und flinker Treppe, S-7 mit Rutschhang, Lauerblock-Stufen, Tauchstrecke und Röhre), Messgang über die
 Route, alle Sterne und den Stempel mit Gegenproben (ohne Druckknopf, ohne Wurfsichel, ohne Gleitblatt, ohne Riesentrank, ohne
 Stampfen) und Extras (Extraleben, Lava-Wabe, Stachelwalze, vergehende Stufen, Riesentrank-Quelle füllt sich, Schatzkammer,
-Steinwand, Tintling, Strömung).
+Steinwand, Tintling, Strömung, Pixelbild). Routen (Bot, rennend): S-6 ≈ 40 s (Lotti) / 38 s (Greta), S-7 ≈ 57 s / 54 s.
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang über die Route Ø und Höchstwert, Bilder Höchstwert):
+S-6 Ø 61 / 186 k, max 74 / 266 k (Käferfeld), Bilder ≤ 91 / 261 k; S-7 Ø 58 / 169 k, max 90 / 217 k, Bilder ≤ 92 / 231 k
+(Großblock-Lagen). Sparmaßnahmen: Waben-Felder je ≤ 5 Zeilen, Stachelwalzen ohne Sonnenschatten, Großblöcke als je eine
+Instanz-Gruppe mit Bild-Atlas, Blümchen statt Riesenblumen-Modellen; Grenzen < 120 / < 300 k.
