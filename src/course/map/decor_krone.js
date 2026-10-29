@@ -51,6 +51,11 @@ function lavaDiorama(ev, x, y, z) {
     b.box(8, 0.8, 8, { v: (px, py, pz, nx, ny) => (ny > 0.5 ? 0xf4ece0 : 0xe0d4c4) }, { p: [0, 0.4, 0] }, 0.08);
     b.box(8.2, 0.12, 8.2, 0xffc830, { p: [0, 0.82, 0] }, 0.02);
     b.box(7, 0.5, 7, 0x3a2a2a, { p: [0, 1.05, 0] }, 0.05);
+    // Beckenrand: dunkle Basaltwände mit Goldkante (die Lava bleibt im Becken)
+    for (const [w, d, px, pz] of [[7.4, 0.35, 0, 3.52], [7.4, 0.35, 0, -3.52], [0.35, 6.7, 3.52, 0], [0.35, 6.7, -3.52, 0]]) {
+      b.box(w, 1.5, d, { v: (px2, py, pz2, nx, ny) => (ny > 0.5 ? 0x5a4446 : mix(0x2a2024, 0x4a3a3e, py + 0.75)) }, { p: [px, 2.05, pz] }, 0.04);
+      b.box(w + 0.1, 0.12, d + 0.1, 0xffc830, { p: [px, 2.84, pz] }, 0.02);
+    }
     // Felsturm (gestapelte Basaltblöcke) mit Nische
     for (let i = 0; i < 6; i++) b.box(2.2 - i * 0.12, 1, 2.2 - i * 0.12, { v: (px, py, pz, nx, ny) => mix(0x4a3a3a, 0x8a6a5a, ny * 0.4 + 0.4 + (i % 2) * 0.1) }, { p: [0.6, 1.8 + i, -0.6], r: [0, i * 0.3, 0] }, 0.1);
     // rote Plattform und Donut-Steg-Halter
@@ -60,12 +65,16 @@ function lavaDiorama(ev, x, y, z) {
     for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; b.sphere(0.55, { v: (px, py, pz, nx, ny) => mix(0xd8e0f4, 0xffffff, ny * 0.5 + 0.5) }, { p: [0.6 + Math.cos(a) * 1.2, 8.3, -0.6 + Math.sin(a) * 1.2], s: [1, 0.7, 1] }, 7, 5); }
     return b.geometry();
   }, x, y, z);
-  solidBox(ev, x - 4, y, z - 4, x + 4, y + 1.3, z + 4, 'sockel');
+  solidBox(ev, x - 4, y, z - 4, x + 4, y + 2.9, z + 4, 'sockel');
   solidBox(ev, x - 0.6, y, z - 1.8, x + 1.8, y + 8, z + 0.6, 'turm');
   // Lava im Becken: steigt und sinkt (je zwei Takte), glüht im Takt
-  const lavaM = new THREE.MeshBasicMaterial({ color: 0xff6a1a, fog: true });
+  const tex = lavaTexture12().clone();
+  tex.needsUpdate = true;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  ev.own.push(tex);
+  const lavaM = new THREE.MeshBasicMaterial({ map: tex, color: 0xffffff, fog: true });
   ev.own.push(lavaM);
-  const lava = new THREE.Mesh(cached('w12m:lavaplane', () => new THREE.PlaneGeometry(6.8, 6.8).rotateX(-PI / 2)), lavaM);
+  const lava = new THREE.Mesh(cached('w12m:lavaplane', () => new THREE.PlaneGeometry(6.7, 6.7).rotateX(-PI / 2)), lavaM);
   lava.position.set(x, y + 1.35, z);
   lava.name = 'w12:diorama-lava';
   ev.view.add(lava);
@@ -78,8 +87,9 @@ function lavaDiorama(ev, x, y, z) {
     const bt = beatAt(t);
     const u = ((bt.beat % 8) + 8) % 8 / 8;
     level = 0.5 - 0.5 * Math.cos(u * TAU);
-    lava.position.y = y + 1.32 + level * 1.1;
-    lavaM.color.setHex(0xff6a1a).lerp(_c.setHex(0xffc84a), 0.25 * bt.k);
+    lava.position.y = y + 1.36 + level * 1.2;
+    tex.offset.set(t * 0.03, t * 0.05);
+    lavaM.color.setScalar(0.85 + 0.25 * bt.k);
   });
   cullByView(ev, lava, x, y + 2, z, 5, 70);
   // Propellerplattformen drehen, Donut-Brücke
@@ -95,6 +105,23 @@ function lavaDiorama(ev, x, y, z) {
   const kru = MK.live(ev, 'kruemel', {}, [x + 0.6, y + 8.65, z - 0.6], FRONT + 0.4, 1.3, (dt, t) => ({ anim: beatAt(t).frac < 0.5 ? 'cheer' : 'idle' }), true, 6000, 65);
   addInfo(ev, () => ({ lavadiorama: { lava: +level.toFixed(3), propellers: props.length, donuts, kruemel: !!kru } }));
   modelsInfo(ev);
+}
+
+/** Fließende Lava (Glutadern auf Orange), wiederholbar. */
+function lavaTexture12() {
+  return canvasTexture('w12:lava', 128, 128, (ctx, w, h) => {
+    const img = ctx.createImageData(w, h);
+    for (let j = 0; j < h; j++) {
+      for (let i = 0; i < w; i++) {
+        const u = (i / w) * TAU, v = (j / h) * TAU;
+        const f = Math.sin(u * 2 + Math.sin(v * 3) * 1.2) * 0.5 + Math.sin(v * 2 - Math.sin(u) * 1.6) * 0.5;
+        const vein = Math.max(0, 1 - Math.abs(f) * 4);
+        const o = (j * w + i) * 4;
+        img.data[o] = 235 + 20 * vein; img.data[o + 1] = 80 + 150 * vein; img.data[o + 2] = 20 + 90 * vein * vein; img.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }, { repeat: true });
 }
 
 // ------------------------------------------------------------------ K-Haus Marathon-Haus der 30 Räume

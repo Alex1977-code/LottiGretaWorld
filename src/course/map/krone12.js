@@ -13,7 +13,7 @@
 // `bridge`): 'goldstairs' (Goldstufen mit rotem Teppich, Geländer mit Goldkugeln).
 // Requisiten (map.props): 'pillar12' (Marmorsäule mit Goldkapitell), 'urn12' (Goldvase mit Blumen), 'lamp12' (Goldlaterne,
 // leuchtet im Takt), 'banner12' (Wimpelmast), 'cloud12' (Wolkenpuff), 'flowers12' (Blumenkübel).
-// Ferne Gipfel: map.peaks [{ pos: [x, z], h, r, snow }] (nur Optik). Fahnen: map.flags [[x, y, z, Masthöhe, Farbe]] (wehen, eine
+// Ferne Gipfel: map.peaks [{ pos: [x, z], h, r, snow }] (nur Optik). Wimpelketten: map.bunting [[x0, y0, z0, x1, y1, z1]]. Fahnen: map.flags [[x, y, z, Masthöhe, Farbe]] (wehen, eine
 // Instanz-Fläche je Teil). Konfetti-Kanonen: map.confetti [{ pos: [x, y, z], dir: [dx, dz] }].
 // Lebendige Kulisse (KroneLife): Goldlaternen, Kronen-Funkeln und Sterne im Puls-Material 'bglow' (je Zählzeit der Kartenmusik
 // heller Aufschein; Ersatzuhr im Tempo von course_worldkrone_map); Konfetti – je Zählzeit schießt eine der Kanonen einen Schwall
@@ -334,7 +334,29 @@ export function scatterKrone(level, map, grid) {
       view.addStatic(gs, { material: 'bglow', castShadow: false, tile: GLOW_TILE12 });
     }
   }
+  if (view && map.bunting?.length) view.addStatic(buntingGeo(map.bunting), { castShadow: false, tile: 'w12:wimpel' });
   kroneRims(level, map, grid);
+}
+
+/** Wimpelketten: map.bunting [[x0, y0, z0, x1, y1, z1], …] – eine durchhängende Schnur mit bunten Dreieckswimpeln, ein Mesh. */
+function buntingGeo(list) {
+  const b = new Build();
+  let n = 0;
+  for (const [x0, y0, z0, x1, y1, z1] of list) {
+    const len = Math.hypot(x1 - x0, z1 - z0), cnt = Math.max(3, Math.round(len / 0.9)), sag = Math.min(1.4, len * 0.08);
+    const yaw = Math.atan2(z1 - z0, x1 - x0);
+    const at = (u) => [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u - sag * 4 * u * (1 - u), z0 + (z1 - z0) * u];
+    for (let i = 0; i < cnt; i++) {
+      const u = (i + 0.5) / cnt, [px, py, pz] = at(u);
+      const [ax, ay, az] = at(i / cnt), [bx, by, bz] = at((i + 1) / cnt);
+      b.box(Math.hypot(bx - ax, bz - az) + 0.02, 0.03, 0.03, 0xfff0c8, { p: [(ax + bx) / 2, (ay + by) / 2, (az + bz) / 2], r: [0, -yaw, Math.atan2(by - ay, Math.hypot(bx - ax, bz - az))] }, 0);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute([-0.28, 0, 0, 0, -0.55, 0, 0.28, 0, 0, -0.28, 0, 0, 0.28, 0, 0, 0, -0.55, 0], 3));
+      g.computeVertexNormals();
+      b.add(g, CONF[(n++) % CONF.length], { p: [px, py - 0.02, pz], r: [0, -yaw, 0] });
+    }
+  }
+  return b.geometry();
 }
 
 // ------------------------------------------------------------------ Inselchen, Nachbarwelten
@@ -376,7 +398,7 @@ const _c = new THREE.Color();
 const CONF = [0xff4a5a, 0xffd23a, 0x3ac8ff, 0x5ad84a, 0xff8ac8, 0xb07af0, 0xffffff, 0xff9a2e];
 const FLAGC = { rot: 0xd8283a, blau: 0x3a6ae8, gold: 0xffc830, gruen: 0x2ec85a, lila: 0xb05aff, rosa: 0xff8ac8 };
 
-function confettiGeo() { return cached('w12m:confetti', () => { const b = new Build(); b.add(new THREE.PlaneGeometry(0.16, 0.1), 0xffffff, {}); return b.geometry(); }); }
+function confettiGeo() { return cached('w12m:confetti', () => { const b = new Build(); b.add(new THREE.PlaneGeometry(0.26, 0.16), 0xffffff, {}); return b.geometry(); }); }
 function flagClothGeo() {
   return cached('w12m:flagcloth', () => {
     const g = new THREE.PlaneGeometry(1.4, 0.9, 6, 2);
@@ -395,7 +417,7 @@ function poleGeo() { return cached('w12m:flagpole', () => { const b = new Build(
  * Bewegte Kulisse des Kronen-Gipfels (MapBuilder: out.life; state().decor über liveInfo):
  *   Puls-Material 'bglow'  Goldlaternen, Kronen-Funkeln, Gipfelspitzen – je Zählzeit heller Aufschein (beatPulse)
  *   Konfetti               map.confetti [{ pos, dir }] Konfetti-Kanonen: je Zählzeit schießt die nächste einen Schwall Schnipsel
- *                          (eine Instanz-Fläche, je Kanone 36 Schnipsel), die flatternd herabsegeln
+ *                          (eine Instanz-Fläche, je Kanone 56 Schnipsel), die flatternd herabsegeln
  *   Fahnen                 map.flags [[x, y, z, Masthöhe, Farbe]] – Mast und Tuch als Instanzen, das Tuch weht im Wind und
  *                          schlägt je Zählzeit kräftiger aus
  */
@@ -425,11 +447,11 @@ export class KroneLife {
 
   buildConfetti(list) {
     this.cannons = list.map((c) => ({ pos: c.pos, dir: c.dir ?? [0, -1] }));
-    this.per = 36;
+    this.per = 56;
     const n = this.cannons.length * this.per;
     const rnd = new Rnd(0xc0f7);
     this.bits = [];
-    for (let i = 0; i < n; i++) this.bits.push({ c: CONF[i % CONF.length], sp: rnd.real(0.7, 1.3), a: rnd.real(-0.6, 0.6), up: rnd.real(5, 9), ph: rnd.real(0, TAU), spin: rnd.real(4, 9) });
+    for (let i = 0; i < n; i++) this.bits.push({ c: CONF[i % CONF.length], sp: rnd.real(0.7, 1.3), a: rnd.real(-0.6, 0.6), up: rnd.real(7, 12), ph: rnd.real(0, TAU), spin: rnd.real(4, 9) });
     const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, color: 0xffffff, fog: true });
     this.own.push(mat);
     this.conf = this.inst(confettiGeo(), n, mat, 'w12:konfetti');
@@ -471,7 +493,7 @@ export class KroneLife {
         for (let j = 0; j < this.per; j++) {
           const i = ci * this.per + j, b = this.bits[i];
           const yaw = Math.atan2(c.dir[1], c.dir[0]) + b.a;
-          const vx = Math.cos(yaw) * 3.2 * b.sp, vz = Math.sin(yaw) * 3.2 * b.sp;
+          const vx = Math.cos(yaw) * 4.2 * b.sp, vz = Math.sin(yaw) * 4.2 * b.sp;
           const fall = Math.max(0, tt - 0.6);
           const y = c.pos[1] + 1.2 + b.up * Math.min(tt, 0.6) - 4.9 * Math.min(tt, 0.6) ** 2 * 2 - fall * 1.1;
           const drift = Math.min(tt, 1.2);
