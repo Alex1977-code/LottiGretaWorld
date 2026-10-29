@@ -455,8 +455,10 @@ function expressHorizont(sky, bounds) {
   // Riesenrad-Silhouette mit Glühbirnen (dreht sich langsam)
   const rad = new THREE.Group();
   const dark = sky.track(new THREE.MeshBasicMaterial({ color: 0x3a1e46, fog: true }));
-  rad.add(new THREE.Mesh(sky.track(new THREE.TorusGeometry(26, 0.9, 6, 48)), dark));
-  for (let i = 0; i < 8; i++) { const sp = new THREE.Mesh(sky.track(new THREE.BoxGeometry(52, 0.6, 0.6)), dark); sp.rotation.z = (i / 8) * Math.PI; rad.add(sp); }
+  // Reif und Speichen in einem Mesh (ein Zeichenaufruf)
+  const parts = [new THREE.TorusGeometry(26, 0.9, 6, 48)];
+  for (let i = 0; i < 8; i++) parts.push(new THREE.BoxGeometry(52, 0.6, 0.6).rotateZ((i / 8) * Math.PI));
+  rad.add(new THREE.Mesh(sky.track(mergeGeometries(parts.map((q) => q.toNonIndexed()), false)), dark));
   const bulbs = new THREE.InstancedMesh(sky.track(new THREE.SphereGeometry(1.1, 6, 4)), sky.track(new THREE.MeshBasicMaterial({ color: 0xffe08a, fog: false })), 32);
   const m4 = new THREE.Matrix4();
   for (let i = 0; i < 32; i++) { const a = (i / 32) * TAU; m4.makeTranslation(Math.cos(a) * 26, Math.sin(a) * 26, 0.8); bulbs.setMatrixAt(i, m4); }

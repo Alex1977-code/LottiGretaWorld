@@ -69,7 +69,7 @@ const ZW = ZUG3.byId.zielwagen;
 
 // ---------------------------------------------------------------------- Fahrplan (Bildfenster; z = 10 − s)
 const S_END = 10 - (PZ + 7);                     // Halt: Röhre gerade am vorderen Rand des Fensters
-const BAHNSTEIG = { x0: 2.1, x1: 6.6, zA: 14, zB: -12, top: 1.1 };
+const BAHNSTEIG = { x0: 1.9, x1: 6.4, zA: 12, zB: -14, top: 1.4 };
 
 // ---------------------------------------------------------------------- Gegner
 const hack = (id, x, y, z, o = {}) => ({ kind: 'hackvogel', id, pos: [x, y, z], dir: [0, 1], sight: 6.5, period: 2.2, stuck: 0.9, ...o });
@@ -81,10 +81,9 @@ const enemies = [
   { kind: 'schubser', id: 'sb1', pos: [0.4, D, M.f2.z0 - 4], dir: [0, 1], behavior: 'guard', sight: 5.5, charge: 4.5, chargeTime: 1.2, push: 7 },
   { kind: 'schubser', id: 'sb2', pos: [-0.5, D, M.f2.z0 - 7.6], dir: [0, 1], behavior: 'guard', sight: 5, charge: 4.5, chargeTime: 1.2, push: 7 },
   { kind: 'schubser', id: 'sb3', pos: [0, D, M.f3.z0 - 5.5], dir: [0, 1], behavior: 'guard', sight: 5.5, charge: 4.5, chargeTime: 1.2, push: 7 },
-  { kind: 'wutkaulquappe', id: 'wq1', pos: [0, 2.2, M.t1.z0 - 3.6], center: [0, 2.2, M.t1.z0 - 3.6], radius: 0.9, sight: 4, range: 4 },
-  { kind: 'wutkaulquappe', id: 'wq2', pos: [0, 2.2, M.t1.z0 - 8.6], center: [0, 2.2, M.t1.z0 - 8.6], radius: 0.9, sight: 4, range: 4, cw: true },
-  { kind: 'wutkaulquappe', id: 'wq3', pos: [0, 2.2, M.t2.z0 - 4], center: [0, 2.2, M.t2.z0 - 4], radius: 0.9, sight: 4, range: 4 },
-  { kind: 'wutkaulquappe', id: 'wq4', pos: [0, 2.2, M.t2.z0 - 8.4], center: [0, 2.2, M.t2.z0 - 8.4], radius: 0.9, sight: 4, range: 4, cw: true },
+  // Wutkaulquappen zwischen den Schwimmkisten (wer nicht schwimmen mag, hüpft über die Kisten)
+  ...[[M.t1, -0.2, 5.7], [M.t1, 0.2, 10.2], [M.t2, 0.2, 5.2], [M.t2, -0.2, 9.4]].map(([car, x, dz], i) => ({
+    kind: 'wutkaulquappe', id: `wq${i + 1}`, pos: [x, 2.0, car.z0 - dz], center: [x, 2.0, car.z0 - dz], radius: 0.5, cw: i % 2 === 1, sight: 3.5, chase: 2.2, range: 3.5 })),
   // Mini-Pilzlinge im Salon
   ...[[0.9, -2.6], [-0.8, -5.4], [0.7, -8.0], [-0.6, -13.2], [0.8, -15.6]].map(([x, dz], i) => ({ kind: 'pilzling', id: `mini${i + 1}`, mini: true, pos: [x, D, M.salon.z0 + dz], dir: [0, 1], sight: 5 })),
   // Gang im Gepäckwagen, Hammer-Werfer vor der Bossröhre
@@ -111,7 +110,7 @@ const items = [
   // Becken: Münzen unter Wasser
   line([0, 1.9, M.t1.z0 - 1.6], [0, 1.9, M.t1.z0 - 10.4], 6),
   // Salon: Münzring um den Kronleuchter, Münzen auf dem Klavier
-  ring([0, 3.2, M.salon.z0 - 5.0], 1.1, 6),
+  ring([0, 2.9, M.salon.z1 + 4.0], 1.1, 6),
   line([0, D + 0.6, M.salon.z0 - 13.6], [0, D + 0.6, M.salon.z0 - 16.8], 3),
   // Kistentreppe → Gepäckwagen-Dach, Spur zur goldenen Luke
   line([-0.9, D + 1.6, M.f5.z0 - 1.8], [-0.9, D + 2.6, M.f5.z0 - 3.4], 2),
@@ -143,7 +142,7 @@ export const LEVEL = {
   killY: -8,
   prebuild: abendExpressThema,
   build,
-  start: { pos: [3.4, BAHNSTEIG.top, 2.0], yaw: Math.PI / 2 },
+  start: { pos: [3.6, BAHNSTEIG.top, -1.0], yaw: Math.PI },
   // Gegner und Münzen weit voraus (außerhalb des Bildfensters) nicht zeichnen bzw. ohne Sonnenschatten (Budget)
   instances: {
     coin: { farHide: 34, shadow: false }, hackvogel: { farHide: 28, shadowDist: 14 }, schubser: { farHide: 28, shadowDist: 14 },
@@ -200,7 +199,7 @@ export const LEVEL = {
   stamp: [0, 6.95, HZ],
   goal: { pos: [AX, D, ZW.z0 - 6.4], height: 6 },
   marks: {
-    start: [3.4, BAHNSTEIG.top, 2.0], cp: [0.9, D, M.f4.z0 - 2.0], salon: [0, D, M.salon.z0 - 1], hebeblock: [0, 3.2, HZ],
+    start: [3.6, BAHNSTEIG.top, -1.0], cp: [0.9, D, M.f4.z0 - 2.0], salon: [0, D, M.salon.z0 - 1], hebeblock: [0, 3.2, HZ],
     roehre: [0, D, PZ], buehne: [AX, AY, AZ], ziel: [AX, D, ZW.z0 - 6.4],
   },
   zug: Object.fromEntries([...ZUG.list, ...ZUG2.list, ...ZUG3.list].map((c) => [c.id, { kind: c.kind, z0: c.z0, z1: c.z1 }])),
@@ -242,6 +241,11 @@ function build(level) {
     // f3: Kistenstapel (Münzen oben)
     { kind: 'kiste', pos: [-1.0, D, M.f3.z0 - 8.4], size: [1, 1.2, 1] },
     { kind: 'kiste', pos: [1.0, D, M.f3.z0 - 8.4], size: [1, 1.2, 1], color: 0xb8803a },
+    // Schwimmkisten in den Becken (Oberseite knapp über dem Wasser)
+    { kind: 'kiste', pos: [0.85, 2.5, M.t1.z0 - 3.4], size: [0.8, 0.8, 0.8], color: 0xd8a050 },
+    { kind: 'kiste', pos: [-0.85, 2.5, M.t1.z0 - 7.9], size: [0.8, 0.8, 0.8], color: 0xd8a050 },
+    { kind: 'kiste', pos: [-0.85, 2.5, M.t2.z0 - 3.2], size: [0.8, 0.8, 0.8], color: 0xd8a050 },
+    { kind: 'kiste', pos: [0.85, 2.5, M.t2.z0 - 7.2], size: [0.8, 0.8, 0.8], color: 0xd8a050 },
     // f4: Fässer
     { kind: 'fass', pos: [1.1, D, M.f4.z0 - 6.6], size: [0.7, 0.9, 0.7], color: 0x3a8a5a },
     // Salon: Sofas, Klavier (Tritt zum Hebeblock)
