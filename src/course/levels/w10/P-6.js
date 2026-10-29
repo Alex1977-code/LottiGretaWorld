@@ -82,7 +82,7 @@ export const LEVEL = remixOf('6-2', {
       isl(WX - 4, WX + 4, 6, -3.2, Y, 5, { top: 'rock' }),
       { type: 'kippschiff', id: 'wrack2', pos: [WX, Y, -19], length: 30, width: 12, style: 'holz', masts: 3, rails: false, maxTilt: 6, weight: 1.0, slide: 0.5, wave: { amp: 3, period: 6.5 } },
       { type: 'mover', id: 'hebebuehne', path: [[WX, Y - 0.5, -36.4], [WX, BUG - 0.5, -36.4]], size: [4, 0.5, 4], speed: 1.4, wait: 1.4, color: 'brown' },
-      isl(WX - 5, WX + 5, -38.6, -46, BUG, 6, { top: 'rock' }),
+      isl(WX - 5, WX + 5, -38.6, -46, BUG, 6, { top: 'none', color: 0x5e3c24 }),              // hohes Vorderdeck (Holz)
       isl(WX + 5, WX + 15, -42.2, -42.8, BUG, 0.4, { top: 'none' }),                // schmaler Steg rechts der Warp-Box (Stern 1)
       isl(WX - 18.2, WX - 6.2, -14.6, -17.4, Y, 0.5, { top: 'none' }),             // langer Steg links (Stern 2)
       isl(WX - 22, WX - 18.2, -14, -18, Y, 4, { top: 'rock' }),
