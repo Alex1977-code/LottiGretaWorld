@@ -6,11 +6,14 @@
 //
 //   1) Stimmung       rummelAbend (Abend über dem Brummbär-Rummelplatz: Thema circus als lokale Variante mit Abendhimmel,
 //                     Baron-Turm, Riesenrad, Achterbahn; für 8-B dazu der Lavasee des Infernos)
-//   2) Zelt           farbZelt (Zirkuszelt aufgeschnitten wie 3-B, Bahnen in eigener Farbe: gold-lila bzw. rosa-rot)
+//   2) Zelt           farbZelt (Zirkuszelt aufgeschnitten wie 3-B, Bahnen in eigener Farbe: gold-lila bzw. rosa-rot),
+//                     manege (circusArena aus 3-B, Publikum nur nahe am Zelt gezeichnet)
 //   3) Rummel         hauDenLukas (Kraftmesser: nur die Stampfattacke schlägt den Schlitten bis zur Glocke),
-//                     rummelPflaster (Pflaster, roter Teppich mit Goldkante, Stern-Mosaik), plakat (Plakatwand mit
-//                     eigener Leinwand: goldene Würfelblase bzw. rosa Schlangenkönig), zuckerwatte (Zuckerwatte-Wolken
-//                     als Zier), glutRand (glühender Rand an Lavakanten)
+//                     Schiffschaukel (Schaukelschiff, schaukelt sich mit Last auf), kletterturm (Kisten-Turm, nur mit
+//                     Krallen), rummelPflaster (Pflaster, roter Teppich mit Goldkante, Stern-Mosaik), plakat (Plakatwand mit
+//                     eigener Leinwand: goldene Würfelblase, rosa Schlangenkönig, gefangene Freunde), zuckerwatte
+//                     (Zuckerwatte-Stände), buehnenSchuerze (Streifen an Inselkanten), rummelUnten (Rummel tief unter der
+//                     Seilbahn), felsNadeln (Kristall-Felsen im Lavasee), glutRand (glühender Rand an Lavakanten), funken
 //   4) Münzen         line, ring, arc, column (aus 6-C)
 //
 // Alles Statische wird verschmolzen (addStatic → Abschnitts-Meshes); Bewegtes ist je Objekt ein Mesh.
