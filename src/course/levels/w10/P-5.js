@@ -42,7 +42,7 @@ export const M5 = {
   BALKON: { x0: -34.2, x1: -28.2, zA: -41.6, zB: -47.8 },
   STERN0: [-31.4, F[2] + 1.1, -45.6],
   SCHATTEN: { x: -6, y: F[2], z: -51.35 },
-  GONG2: [4.4, YE, -81.2], MUENZWARP: [-3.4, YE, -80.6],
+  GONG2: [2.2, YE, -81.6], MUENZWARP: [-3.4, YE, -80.6],
   STERN1: [0, YE + 1.3, -74.6], STERN2: [RX, 3.3, -120.4],
   WOLKEN: [[-5, YE + 9.4, -138.2], [3.4, YE + 11.2, -138.4]],
   MAST: { y: YE + 13.2, z: -140.6, x: 5.5 },
