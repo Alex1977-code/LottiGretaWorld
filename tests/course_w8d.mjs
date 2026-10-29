@@ -222,7 +222,7 @@ function install() {
     p.__hurtWrapped = true;
     p.hurtTries = 0;
     const orig = p.hurt.bind(p);
-    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
+    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? (src?.pos ? 'aufprall' : String(src)); return orig(src); };
   };
   wrapHurt();
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
