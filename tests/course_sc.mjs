@@ -108,6 +108,105 @@ const ROUTES = {
       ['turm_oben', [3.69, 7.2, -295.42]],
     ],
   },
+  'S-7': {
+    start: [0, 0, 4],
+    meta: { stars: 3, time: 400, theme: 'grotto', music: 'course_grotto', archetype: 'parcours' },
+    enemies: { pilzlingsturm: 4, grossrollpilz: 5, tintling: 6, lauerblock: 5, pilzling: 2, schnappblume: 1 },
+    main: [
+      { name: 'Dschungelstart', to: [1.5, -12], within: 0.7 }, { to: [1.5, -32], within: 0.7 },
+      { name: 'Rutschhang', to: [0, -64], within: 1.0, max: 1200 }, { to: [0, -70], within: 0.7 },
+      { name: 'Riesen-Pilzlingstürme', to: [-1, -85], within: 0.7 }, { to: [0, -100], within: 0.7 },
+      { name: 'Riesentrank-Feld, an Wand A vorbei', to: [-9, -111], within: 0.6 }, { to: [-9, -117], within: 0.6 },
+      { name: 'Lücke in Wand B', to: [7.2, -123.5], within: 0.6 }, { to: [7.2, -128.5], within: 0.6 },
+      { name: 'an der Schatzkammer vorbei', to: [-1.5, -136], within: 0.6 }, { to: [-1.5, -150], within: 0.7 },
+      { name: 'vor die Blockwächter-Wand', to: [3, -167.8], within: 0.3, run: false },
+      { name: 'auf den Lauerblock (Reihe 1)', lauer: 'lb2' },
+      { name: 'auf den Lauerblock (Reihe 2)', lauer: 'lb5' },
+      { name: 'auf die Wand', to: [6, -173.8], jump: 30, jumpAt: 4, within: 0.5, run: false },
+      { expect: '=P().pos.y > -4.2' },
+      { name: 'Kontrollpunkt Plateau', to: [4, -182], within: 0.6 },
+      { to: [1, -188.8], within: 0.4, run: false },
+      { name: 'in den Tintenteich', to: [0, -194.5], jump: 16, jumpAt: 6, within: 1.2, land: false },
+      { name: 'unter Stamm 1', swim: [0, -9.5, -201] }, { swim: [0, -9.5, -212] },
+      { name: 'Strömung nach rechts', swim: [0, -9.5, -226] }, { name: 'unter Stamm 2', swim: [0, -9.5, -238] },
+      { name: 'Strömung nach links', swim: [0, -9.5, -252] }, { name: 'unter Stamm 3', swim: [0, -9.5, -264] },
+      { name: 'Gegenströmung', swim: [0, -9.5, -277] }, { name: 'unter Stamm 4', swim: [0, -9.5, -286] },
+      { name: 'auftauchen', swim: [0, -6.9, -289.6], within: 0.9, withinY: 0.6 },
+      { name: 'Ausstieg', to: [0, -294], within: 0.7, max: 600 },
+      { name: 'Trampolin-Platz', to: [-6, -300], within: 0.6 }, { to: [-6, -318], within: 0.6 }, { to: [-1.8, -322], within: 0.3, run: false },
+      { name: 'auf die Zielröhre', to: [0, -322], jump: 20, jumpAt: 2.2, within: 0.35, run: false },
+      { name: 'Röhre zum Ziel', crouch: 40 },
+      { expect: '=P().pos.z < -340 && P().pos.y > -0.5' },
+      { name: 'Zielmast', to: [0, -354], within: 0.2, run: false },
+    ],
+    routeChecks: [
+      { name: 'Rutschhang gerutscht, Lauerblöcke als Stufen, geschwommen, Röhre zum Ziel', ok: (r) => r.mech.swims > 120 * 20 && r.mech.lauer >= 2 && r.mech.pipes >= 1 },
+    ],
+    targets: [
+      { name: 'Stempel: auf den Großblock-Ring, Stampfattacke auf den Deckel – drinnen liegt der Stempel', stamp: true, from: [-6, 0, -8],
+        legs: [{ to: [-6, -10.4], within: 0.3, run: false }, { to: [-6, -12], jump: 24, jumpAt: 2.2, within: 0.4, run: false }, { expect: '=P().pos.y > 1.9' },
+          { pound: [-6, -14], above: 4.2, hold: 40 }, { wait: 60 }], shot: 'stempel' },
+      { name: 'Stempel nicht ohne Stampfen (Deckel bleibt zu)', stamp: true, expectNot: true, from: [-6, 0, -8], heroes: ['lotti'],
+        legs: [{ to: [-6, -10.4], within: 0.3, run: false }, { to: [-6, -12], jump: 24, jumpAt: 2.2, within: 0.4, run: false },
+          { to: [-6, -14], jump: 30, jumpAt: 2.5, within: 0.3, run: false }, { wait: 120 }] },
+      { name: 'Stern 0: versteckter Gleitblatt-Block, Lauerblöcke hinauf, im Gleitflug zur Blätterinsel', star: 0, from: [-5, -10, -157.5],
+        legs: [{ to: [-5, -159.6], within: 0.2, run: false }, { hop: 30 }, { wait: 20 }, { grab: [-5, -160], back: [-5, -157.6] },
+          { to: [3, -167.8], within: 0.3, run: false }, { lauer: 'lb2' }, { lauer: 'lb5' }, { to: [6, -173.8], jump: 30, jumpAt: 4, within: 0.5, run: false },
+          { to: [4, -187], within: 0.4, run: false }, { glide: [-22.5, -188], jumpAt: 16.2 }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Gleitblatt (Sprung zu kurz)', star: 0, expectNot: true, from: [4, -4, -187],
+        legs: [{ glide: [-22.5, -188], jumpAt: 16.2 }, { wait: 60 }] },
+      { name: 'Blätterinsel: Röhre zurück aufs Plateau', from: [-22.5, -4, -186.5], heroes: ['lotti'],
+        legs: [{ to: [-22.5, -189.2], within: 0.2, run: false }, { to: [-22.5, -189.6], jump: 16, jumpAt: 1, within: 0.3, run: false }, { crouch: 40 },
+          { expect: '=P().pos.x > -8 && P().pos.y > -4.3' }] },
+      { name: 'Stern 1: Riesentrank, Pilz-Trampolin durch die erste Großblock-Lage, zweites Trampolin durch die zweite', star: 1, from: [-4, -5, -295.8],
+        legs: [{ grab: [-4, -298], back: [-4, -295.8] }, { expect: '=P().power === \'riese\'' }, { to: [0, -302.6], within: 0.3, run: false },
+          { to: [0, -306], jump: 30, jumpAt: 3.6, within: 0.8, run: false, land: false }, { airTo: [4, -306], minY: 2.6 }, { airTo: [5.4, -307.6], minY: 9.6 }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Riesentrank (Großblöcke halten)', star: 1, expectNot: true, from: [0, -5, -302.6], heroes: ['lotti'],
+        legs: [{ to: [0, -306], jump: 30, jumpAt: 3.6, within: 0.8, run: false, land: false }, { airTo: [4, -306], minY: 2.6, soft: true }, { wait: 120 }] },
+      { name: 'Stern 2: Pilz-Trampolin zum Bonusbereich über der Röhre, Riesentrank, Druckschalter – blaue Münzen aus den Steinkäfigen', star: 2, from: [-8, -5, -318.5],
+        legs: [{ to: [-8, -322], jump: 30, jumpAt: 3.6, within: 0.8, run: false, land: false }, { airTo: [-4.6, -322], minY: 2.6 },
+          { grab: [-4, -319], back: [-4, -321.4] }, { pound: [3, -318.5] }, { chaseKind: 'bluecoin', walk: true, max: 1600 },
+          { until: '=L.entities.some((e) => e.kind === \'star\' && e.index === 2 && !e.hidden && e.alive)', max: 300 }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Riesentrank (Münzen bleiben in den Käfigen)', star: 2, expectNot: true, from: [2, 3, -316.8], heroes: ['lotti'],
+        legs: [{ pound: [3, -318.5] }, { chaseKind: 'bluecoin', walk: true, max: 1500 }] },
+    ],
+    extra: [
+      { name: 'Extraleben: unsichtbarer Block über dem Münzkreis', from: [-6, 0, -24.5], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-7.2, -25.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', power: 'oneup', max: 1200 }] },
+      { name: 'Extraleben in der Schatzkammer: nur als Riese durch die Steinwände', from: [0, -10, -102], heroes: ['lotti'], expectLives: 1, place: { power: 'riese' },
+        legs: [{ to: [3, -133], within: 0.6 }, { to: [5, -139.5], within: 0.4 }, { chaseKind: 'powerup', power: 'oneup', max: 300 }] },
+      { name: 'Schatzkammer: ohne Riesentrank bleibt sie zu', from: [5, -10, -133.5], heroes: ['lotti'], allowFail: true,
+        legs: [{ to: [5, -139.5], within: 0.4, max: 240 }], mech: (r) => r.pos[2] > -136.6, mechText: (r) => `z ${r.pos[2].toFixed(1)}` },
+      { name: 'Riesentrank-Quelle füllt sich nach dem Riesentrank wieder', from: [0, -10, -101.6], heroes: ['lotti'],
+        legs: [{ grab: [0, -104], back: [0, -101.6] }, { wait: 1800 }, { expect: '=L.named.get(\'quelle1\').info().kind === \'question\' && L.named.get(\'quelle1\').fills >= 1' }] },
+      { name: 'Riese zertrümmert Steinwand A', from: [0, -10, -110], heroes: ['lotti'], place: { power: 'riese' },
+        legs: [{ to: [0, -117], within: 0.6 }, { expect: '=L.named.get(\'wandA\').broken > 0' }] },
+      { name: 'Tintling: Berührung verletzt', from: [-5, -11, -210], heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ swim: [-5, -11, -214], within: 0.4, soft: true, max: 400 }, { wait: 60 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Strömung versetzt die Schwimmerin (nach rechts)', from: [0, -10, -219], heroes: ['lotti'], allowFail: true,
+        legs: [{ wait: 120 }], mech: (r) => r.pos[0] > 1.5, mechText: (r) => `x ${r.pos[0].toFixed(1)}` },
+    ],
+    shots: [
+      ['start', [0, 0, 4]],
+      ['kaefig', [-6, 0, -9.5]],
+      ['tuerme1', [1, 0, -22]],
+      ['rutsch', [0, 0, -36]],
+      ['lichtung', [0, -10, -70]],
+      ['pilzhut', [-7.5, -5.4, -80]],
+      ['feld', [0, -10, -104]],
+      ['kammer', [0, -10, -131]],
+      ['wand', [0, -10, -164]],
+      ['plateau', [4, -4, -182]],
+      ['insel', [-22.5, -4, -187]],
+      ['teich', [0, -6, -197]],
+      ['unter1', [0, -10, -216]],
+      ['unter2', [0, -10, -250]],
+      ['trampolin', [0, -5, -298]],
+      ['lagen', [3, 2, -303]],
+      ['bonus', [0, 3, -320]],
+      ['ziel', [0, 0, -349]],
+    ],
+  },
 };
 
 const PORT = 4955;
@@ -358,6 +457,59 @@ function install() {
             log.push(['stufe', i, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().ground?.tag ?? '']);
             if (Math.abs(P().pos.y - s.y) > 0.15) { log.push(['FEHLER: Stufe verfehlt', i]); break; }
           }
+          continue;
+        }
+        // ------------------------------------------------ Lauerblock (S-7): warten, bis er frisch ganz draußen ist, dann hinauf
+        if (Lg.lauer) {
+          const b = L.named.get(Lg.lauer);
+          const top = () => b.wall.y + b.size;
+          let k = 0;
+          const ready = () => b.state === 'push' || (b.state === 'hold' && b.holdT - b.stateT > (Lg.need ?? 1.1));
+          for (; k < 1200 && !ready(); k++) tick({});
+          let n = 0, air = false;
+          for (; n < 300 && !P().dead; n++, k++) {
+            const q = P(), c = b.blockCenter(b.out, {});
+            const dx = c.x - q.pos.x, dz = c.z - q.pos.z, d = Math.hypot(dx, dz);
+            if (air && q.mode === 'ground') break;
+            if (q.mode === 'air') { air = true; tick({ ...(q.pos.y > top() + 0.1 ? this.airSteer(c.x, c.z, 0, 0, 4, 6) : this.airSteer(q.pos.x + dx * 0.3, q.pos.z + dz * 0.3, 0, 0, 2, 3)), jump: q.vel.y > 0 }); continue; }
+            tick({ ...this.stick(dx, dz, Math.min(1, d / 1.5)), jump: true, run: false });
+          }
+          for (let w = 0; w < 4; w++) tick({});
+          const on = P().ground?.owner === b;
+          if (on) mech.lauer = (mech.lauer ?? 0) + 1;
+          log.push(['lauer', Lg.lauer, on, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), b.state]);
+          if (!on) { log.push(['FEHLER: Lauerblock verfehlt', Lg.lauer]); break; }
+          continue;
+        }
+        // ------------------------------------------------ in der Luft (Trampolin-Sprung) zu [x, z] lenken: erst über minY steigen, dann hin
+        if (Lg.airTo) {
+          const [tx, tz] = Lg.airTo, minY = Lg.minY ?? -99;
+          let k = 0, ok = false, prevVy = P().vel.y;
+          for (; k < (Lg.max ?? 600) && !P().dead; k++) {
+            const q = P();
+            const bounced = q.vel.y > 12 && prevVy <= 0;
+            if ((q.mode === 'ground' || bounced) && k > 2 && q.pos.y >= minY - 0.3) { ok = true; break; }
+            prevVy = q.vel.y;
+            const high = q.pos.y > minY + 0.4;
+            tick({ ...(high || q.vel.y < 0 ? this.airSteer(tx, tz, 0, 0, 3.5, 7) : this.airSteer(q.pos.x, q.pos.z, 0, 0, 2, 2)), jump: q.vel.y > 0 });
+          }
+          log.push(['luft', `${Lg.airTo}`, ok, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode]);
+          if (!ok && !Lg.soft) { log.push(['FEHLER: Landung verfehlt', Lg.airTo]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Anlauf und Sprung (jumpAt m vor dem Ziel), in der Luft Sprung gehalten (Gleitblatt: Gleitflug)
+        if (Lg.glide) {
+          const [tx, tz] = Lg.glide;
+          let k = 0, air = false, jumped = false;
+          for (; k < 900 && !P().dead; k++) {
+            const q = P();
+            if (air && (q.mode === 'ground' || q.mode === 'swim')) break;
+            const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz);
+            if (q.mode === 'air') { air = true; tick({ ...this.stick(dx, dz, Math.min(1, d)), jump: true, run: true }); continue; }
+            if (d <= (Lg.jumpAt ?? 16)) jumped = true;
+            tick({ ...this.stick(dx, dz, 1), run: true, jump: jumped });
+          }
+          log.push(['gleiten', `${Lg.glide}`, k, P().power, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode]);
           continue;
         }
         // ------------------------------------------------ Schwimmen zu [x, y, z] (Ducken taucht ab, Sprung/gehalten steigt)

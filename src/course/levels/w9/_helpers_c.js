@@ -398,3 +398,278 @@ export function leuchtring(level, o = {}) {
     mat.opacity = 0.8 + Math.sin(t * 5) * 0.12;
   });
 }
+
+// =====================================================================================================================
+// 4) Mechanik S-7
+// =====================================================================================================================
+
+let GROSS = null;
+/**
+ * Riesenziegel 2 × 2 × 2 m: gerundeter Würfel mit Bild-Atlas (links Ziegelmauer in warmem Terrakotta mit hellen Fugen und
+ * Moosrand oben, rechts Mooskissen mit Blümchen für die Oberseite) – ein Material, ein Zeichenaufruf für alle Blöcke.
+ */
+function grossLook(S) {
+  if (GROSS?.S === S) return GROSS;
+  const g0 = roundedBox(S * 0.98, S * 0.98, S * 0.98, 0.16, SIDE.ALL, 0, 3);
+  const g = g0.index ? g0.toNonIndexed() : g0;
+  const pos = g.attributes.position, nor = g.attributes.normal;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i) / S + 0.5, y = pos.getY(i) / S + 0.5, z = pos.getZ(i) / S + 0.5;
+    const nx = Math.abs(nor.getX(i)), ny = nor.getY(i), nz = Math.abs(nor.getZ(i));
+    let u, v;
+    if (ny > 0.7) { u = 0.5 + x * 0.5; v = z; }                    // Oberseite: Moos
+    else if (ny < -0.7) { u = x * 0.5; v = z * 0.25; }             // Unterseite: Ziegel
+    else if (nx > nz) { u = z * 0.5; v = y; }                       // Seiten ±X
+    else { u = x * 0.5; v = y; }                                    // Seiten ±Z
+    uv[i * 2] = Math.min(0.999, Math.max(0.001, u)); uv[i * 2 + 1] = Math.min(0.999, Math.max(0.001, v));
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  if (g.attributes.color) g.deleteAttribute('color');
+  g.translate(0, S / 2, 0);
+  const W = 512, H = 256;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  // Ziegel (linke Hälfte: 256 × 256 = eine Blockseite)
+  x.fillStyle = '#f2c89a'; x.fillRect(0, 0, 256, 256);
+  const cols = ['#e2703c', '#ec8448', '#d26234', '#e87a42', '#dc6a38'];
+  const rows = 4, bh = 256 / rows;
+  for (let r = 0; r < rows; r++) {
+    const off = r % 2 ? 64 : 0;
+    for (let k = -1; k < 3; k++) {
+      const bx = k * 128 + off, by = r * bh;
+      x.fillStyle = cols[(r * 3 + k + 5) % cols.length];
+      x.beginPath(); x.roundRect(bx + 5, by + 5, 118, bh - 10, 10); x.fill();
+      x.fillStyle = 'rgba(255,255,255,0.22)'; x.beginPath(); x.roundRect(bx + 12, by + 9, 80, 9, 4); x.fill();
+      x.fillStyle = 'rgba(90,30,10,0.18)'; x.beginPath(); x.roundRect(bx + 8, by + bh - 18, 112, 9, 4); x.fill();
+    }
+  }
+  // Moosrand oben an den Seiten (Textur v = 1 oben → Zeile 0 im Bild)
+  x.fillStyle = '#58c03a';
+  x.beginPath(); x.moveTo(0, 0); x.lineTo(256, 0); x.lineTo(256, 18);
+  for (let i = 16; i >= 0; i--) x.lineTo(i * 16, 16 + (i % 2 ? 14 : 4) + (i % 3) * 3);
+  x.closePath(); x.fill();
+  // Moos-Oberseite (rechte Hälfte) mit Blümchen
+  x.fillStyle = '#5ac83a'; x.fillRect(256, 0, 256, 256);
+  for (let i = 0; i < 40; i++) {
+    const px = 256 + ((i * 97) % 240) + 8, py = ((i * 61) % 240) + 8;
+    x.fillStyle = i % 3 ? 'rgba(160,240,110,0.55)' : 'rgba(40,140,40,0.35)';
+    x.beginPath(); x.arc(px, py, 10 + (i % 4) * 4, 0, TAU); x.fill();
+  }
+  for (let i = 0; i < 6; i++) {
+    const px = 256 + 30 + ((i * 83) % 200), py = 30 + ((i * 47) % 200);
+    x.fillStyle = ['#ffffff', '#ffd23a', '#ff8ad0'][i % 3];
+    for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; x.beginPath(); x.arc(px + Math.cos(a) * 6, py + Math.sin(a) * 6, 5, 0, TAU); x.fill(); }
+    x.fillStyle = '#ffb020'; x.beginPath(); x.arc(px, py, 4, 0, TAU); x.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 });
+  GROSS = { S, g, mat };
+  return GROSS;
+}
+
+/**
+ * Großblöcke (S-7): Riesenziegel (2 m). Fest; **Stampfen von oben**, der **Riesentrank** (Riesenkörper), Explosionen und
+ * Kanonenkugeln zerbrechen einen Block (Tatze, Feuer, Kopfstoß prallen ab). Eine Instanz-Gruppe für alle Blöcke einer Gruppe.
+ *   spec { id, blocks: [[x, y, z], …] (Mitte der Unterseite), size 2, content: { index: Inhalt } ('coins:3', Power-up, …),
+ *          onBreak (Aktion beim ersten Bruch), by: ['pound', 'mega', 'bomb', 'cannon'] }
+ *   level.named.get(id) = { blocks [{ x, y, z, broken }], broken (Zahl), info() }
+ */
+export function grossbloecke(level, spec) {
+  const S = spec.size ?? 2;
+  const by = new Set(spec.by ?? ['pound', 'mega', 'bomb', 'cannon']);
+  const blocks = spec.blocks.map((p, i) => ({ x: p[0], y: p[1], z: p[2], i, broken: false, id: null }));
+  const handle = { blocks, broken: 0, kind: 'grossbloecke', info: () => ({ blocks: blocks.length, broken: handle.broken }) };
+  let mesh = null;
+  const m4 = new THREE.Matrix4(), zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  const brk = (b) => {
+    if (b.broken) return;
+    b.broken = true;
+    handle.broken++;
+    if (b.id) level.world.remove(b.id);
+    level.effects?.debris({ x: b.x, y: b.y + S * 0.5, z: b.z }, 0xd8683a, 12);
+    level.effects?.debris({ x: b.x, y: b.y + S * 0.9, z: b.z }, 0x5ac83a, 5);
+    level.sfx('brickbreak');
+    level.shake?.(0.12);
+    const c = spec.content?.[b.i];
+    if (c) {
+      const m = /^coins?:(\d+)$/.exec(String(c));
+      if (m) { for (let k = 0; k < +m[1]; k++) { const a = (k / +m[1]) * TAU; level.spawn('coin', { pos: [b.x + Math.cos(a) * 0.7, b.y + 0.2, b.z + Math.sin(a) * 0.7] }); } }
+      else level.spawn('powerup', { pos: [b.x, b.y, b.z], power: c });
+    }
+    if (handle.broken === 1) runAction(level, spec.onBreak, { pos: [b.x, b.y, b.z], source: handle });
+    if (mesh) { mesh.setMatrixAt(b.i, zero); mesh.instanceMatrix.needsUpdate = true; }
+  };
+  for (const b of blocks) {
+    b.onHit = (kind) => { if (by.has(kind)) brk(b); };
+    b.id = level.world.add({ type: 'box', min: [b.x - S / 2, b.y, b.z - S / 2], max: [b.x + S / 2, b.y + S, b.z + S / 2], breakable: true, owner: b, tag: 'block:gross' });
+  }
+  if (spec.id) level.named.set(spec.id, handle);
+  if (!level.view || !blocks.length) return handle;
+  const look = grossLook(S);
+  mesh = new THREE.InstancedMesh(look.g, look.mat, blocks.length);
+  mesh.name = 'grossbloecke';
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  for (const b of blocks) { m4.makeTranslation(b.x, b.y, b.z); mesh.setMatrixAt(b.i, m4); }
+  mesh.instanceMatrix.needsUpdate = true;
+  const sp = sphereOf(blocks.map((b) => ({ x: b.x, y: b.y + S / 2, z: b.z })), S);
+  mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(sp.center.x, sp.center.y, sp.center.z), sp.radius);
+  addObject(level, mesh);
+  return handle;
+}
+
+/**
+ * Riesentrank-Quelle (S-7): ein ?-Block mit Riesentrank, der sich wieder füllt, sobald niemand mehr riesig ist, kein
+ * Riesentrank herumliegt und refill s vergangen sind (nach einem Absturz oder wenn die 10 s um sind, gibt es also einen
+ * neuen – fair für Kinder). spec { id, pos: [x, y, z] (Mitte der Unterseite), refill 2.5 }
+ *   level.named.get(id) = { block, fills, info() }
+ */
+export function riesentrankQuelle(level, spec) {
+  const handle = { kind: 'riesentrankquelle', fills: 0, block: null, wait: 0 };
+  const make = () => { handle.block = level.spawn('question', { pos: spec.pos, content: 'riese' }); };
+  make();
+  handle.info = () => ({ fills: handle.fills, kind: handle.block?.kind ?? null, alive: !!handle.block?.alive });
+  if (spec.id) level.named.set(spec.id, handle);
+  level.onStep((dt) => {
+    const b = handle.block;
+    const empty = !b || !b.alive || b.kind === 'used';
+    if (!empty) { handle.wait = 0; return; }
+    const giant = figures(level).some((f) => f.power === 'riese');
+    const lying = level.entities.some((e) => e.kind === 'powerup' && e.power === 'riese' && e.alive && !e.removed);
+    if (giant || lying) { handle.wait = 0; return; }
+    handle.wait += dt;
+    if (handle.wait < (spec.refill ?? 2.5)) return;
+    handle.wait = 0;
+    handle.fills++;
+    if (b && b.alive) { b.content = { coins: 0, power: 'riese' }; b.kind = 'question'; b.setLook('question'); b.bump?.(); }
+    else make();
+    level.sfx('powerup_appear');
+    level.effects?.sparks({ x: spec.pos[0], y: spec.pos[1] + 1.2, z: spec.pos[2] }, 10);
+  });
+  return handle;
+}
+
+// =====================================================================================================================
+// 5) Dschungel-Kulisse S-7 (statisch verschmolzen; Kollision, wo man darauf steht)
+// =====================================================================================================================
+
+const C3 = (h) => lin(typeof h === 'number' ? h : hex(h));
+const shadeY = (g, lo, hi, k = 0.8) => { const L = C3(lo), H = C3(hi); return colorize(g.index ? g.toNonIndexed() : g, (p, n, o) => mixc(L, H, smooth(-0.7, 0.9, n.y * k + n.z * 0.25 - n.x * 0.1), o)); };
+
+/**
+ * Riesenpilz als Plattform: dicker Stiel (fest) und breiter, gepunkteter Hut, auf dem man steht (Oberseite top, Radius r).
+ * Kollision: Zylinder für Stiel und Hut-Oberseite. o { x, y (Boden), z, top, r, color }
+ */
+export function riesenpilzPlattform(level, o) {
+  const r = o.r ?? 2.8, top = o.top, y0 = o.y ?? 0, cap = Math.max(0.9, r * 0.36);
+  level.world.add({ type: 'cyl', x: o.x, z: o.z, r: r * 0.24, y0, y1: top - cap * 0.5, tag: 'riesenpilz:stiel' });
+  level.world.add({ type: 'cyl', x: o.x, z: o.z, r: r * 0.97, y0: top - 0.6, y1: top, tag: 'riesenpilz' });
+  if (!level.view) return;
+  const parts = [];
+  const st = new THREE.CylinderGeometry(r * 0.22, r * 0.3, top - y0, 14); st.translate(o.x, y0 + (top - y0) / 2, o.z);
+  parts.push(shadeY(st, 0xd8c8a0, 0xfff6e0));
+  const ring = new THREE.TorusGeometry(r * 0.27, 0.12, 6, 18); ring.rotateX(Math.PI / 2); ring.translate(o.x, top - cap - 0.5, o.z);
+  parts.push(shadeY(ring, 0xe8dcc0, 0xffffff));
+  const hc = C3(o.color ?? 0xff5a3a), white = C3(0xffffff), under = C3(0xf0d8b0);
+  const capG = new THREE.SphereGeometry(r, 22, 10, 0, TAU, 0, Math.PI / 2).toNonIndexed(); capG.scale(1, cap / r, 1);
+  colorize(capG, (p, n, out) => {
+    const a = Math.atan2(p.z, p.x), h = p.y / cap;
+    const dot = Math.sin(a * 5 + h * 3) * Math.sin(h * 9 + 1.2) > 0.55 && h > 0.15;
+    const c = dot ? white : hc; const k = 0.78 + 0.22 * n.y; out[0] = c[0] * k; out[1] = c[1] * k; out[2] = c[2] * k;
+  });
+  capG.translate(o.x, top - cap * 0.55, o.z);
+  parts.push(capG);
+  const base = new THREE.CylinderGeometry(r * 0.98, r * 0.98, 0.12, 22, 1); base.translate(o.x, top - cap * 0.55 - 0.05, o.z);
+  parts.push(colorize(base.toNonIndexed(), (p, n, out) => { out[0] = under[0]; out[1] = under[1]; out[2] = under[2]; }));
+  level.view.addStatic(merge(parts), { material: 'world', castShadow: true });
+}
+
+/**
+ * Treibende Riesenstämme auf dem Wasser (S-7): liegen quer (entlang X) knapp unter der Oberfläche – oben schwimmen geht
+ * nicht, man taucht darunter durch. Kollision als Quader. list [{ x, y (Mitte), z, length, r }]
+ */
+export function riesenstaemme(level, list) {
+  const parts = [];
+  for (const s of list) {
+    const r = s.r ?? 0.8, len = s.length ?? 20;
+    level.world.add({ type: 'box', min: [s.x - len / 2, s.y - r, s.z - r], max: [s.x + len / 2, s.y + r, s.z + r], tag: 'riesenstamm' });
+    if (!level.view) continue;
+    const g = new THREE.CylinderGeometry(r, r, len, 14, 1).toNonIndexed();
+    g.rotateZ(Math.PI / 2);
+    const bark = C3(0x8a5a32), barkHi = C3(0xb07a48), moss = C3(0x5ab83a);
+    colorize(g, (p, n, o) => {
+      const ring = Math.abs(n.x) > 0.8;
+      if (ring) { const d = Math.hypot(p.y, p.z) / r; mixc(C3(0xe8c890), C3(0xc89a60), (Math.sin(d * 18) * 0.5 + 0.5), o); return; }
+      const st = Math.sin(p.x * 5 + p.z * 2) * 0.5 + 0.5;
+      mixc(bark, barkHi, st * 0.6, o);
+      if (n.y > 0.55 && Math.sin(p.x * 1.3) > -0.2) mixc(o, moss, 0.75, o);
+    });
+    g.translate(s.x, s.y, s.z);
+    parts.push(g);
+    // zwei Äste mit Blättchen
+    for (const dx of [-len * 0.28, len * 0.31]) {
+      const b = new THREE.CylinderGeometry(0.12, 0.18, 1.6, 6); b.rotateZ(0.6); b.translate(s.x + dx, s.y + r + 0.5, s.z);
+      parts.push(shadeY(b, 0x6a4a2a, 0x9a6a3a));
+      const leaf = new THREE.SphereGeometry(0.55, 8, 5); leaf.scale(1, 0.25, 0.6); leaf.translate(s.x + dx + 0.6, s.y + r + 1.25, s.z);
+      parts.push(shadeY(leaf, 0x2a9a3a, 0x9af07a));
+    }
+  }
+  if (level.view && parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: true });
+}
+
+/**
+ * Riesenbäume am Rand (S-7, Kulisse): dicker Stamm mit Wurzelfüßen, Moos, oben ein Blätterdach aus großen Kugeln.
+ * list [{ x, y, z, r (Stamm), h (Höhe), crown }] – optional fest (solid: Stamm-Zylinder).
+ */
+export function riesenbaeume(level, list) {
+  const parts = [];
+  const rnd = new Rnd(4711);
+  for (const t of list) {
+    const r = t.r ?? 1.6, h = t.h ?? 18, y = t.y ?? 0;
+    if (t.solid) level.world.add({ type: 'cyl', x: t.x, z: t.z, r, y0: y - 30, y1: y + h, tag: 'riesenbaum' });
+    if (!level.view) continue;
+    const st = new THREE.CylinderGeometry(r * 0.85, r * 1.15, h + 30, 14, 3).toNonIndexed(); st.translate(t.x, y + (h - 30) / 2, t.z);
+    const bark = C3(0x7a4e2c), barkHi = C3(0xa06a3a), moss = C3(0x4aa83a);
+    colorize(st, (p, n, o) => { mixc(bark, barkHi, Math.sin(Math.atan2(p.z - t.z, p.x - t.x) * 9) * 0.5 + 0.5, o); if (n.z > 0.4 && Math.sin(p.y * 0.7) > 0.3) mixc(o, moss, 0.6, o); });
+    parts.push(st);
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * TAU + rnd.real(-0.3, 0.3);
+      const root = new THREE.CylinderGeometry(0.25 * r, 0.55 * r, 2.6 * r, 7); root.rotateZ(1.0); root.rotateY(-a);
+      root.translate(t.x + Math.cos(a) * r * 1.3, y + 0.5, t.z + Math.sin(a) * r * 1.3);
+      parts.push(shadeY(root, 0x6a4424, 0x9a6a3a));
+    }
+    const crown = t.crown ?? 1;
+    if (crown) {
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * TAU + rnd.real(0, 1);
+        const s = new THREE.SphereGeometry(r * 2.6 * rnd.real(0.8, 1.2), 12, 8);
+        s.scale(1, 0.55, 1);
+        s.translate(t.x + Math.cos(a) * r * 2.4, y + h + rnd.real(-1, 1.5), t.z + Math.sin(a) * r * 2.4);
+        parts.push(shadeY(s, 0x1e7a32, 0x7ae05a, 1));
+      }
+    }
+  }
+  if (level.view && parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: false });
+}
+
+/** Wurzelsäulen unter Wasser (S-7): senkrechte Wurzelstränge vom Grund bis über die Oberfläche (fest). list [{ x, z, y0, y1, r }] */
+export function wurzelsaeulen(level, list) {
+  const parts = [];
+  for (const w of list) {
+    const r = w.r ?? 0.7;
+    level.world.add({ type: 'cyl', x: w.x, z: w.z, r, y0: w.y0, y1: w.y1, tag: 'wurzel' });
+    if (!level.view) continue;
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * TAU;
+      const g = new THREE.CylinderGeometry(r * 0.5, r * 0.62, w.y1 - w.y0 + 0.6, 7, 4).toNonIndexed();
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) { const yy = pos.getY(i); pos.setX(i, pos.getX(i) + Math.sin(yy * 0.9 + k * 2) * 0.18); pos.setZ(i, pos.getZ(i) + Math.cos(yy * 0.8 + k) * 0.18); }
+      g.computeVertexNormals();
+      g.translate(w.x + Math.cos(a) * r * 0.42, (w.y0 + w.y1) / 2, w.z + Math.sin(a) * r * 0.42);
+      parts.push(shadeY(g, 0x5a3a22, 0x9a6a3a));
+    }
+  }
+  if (level.view && parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: true });
+}
