@@ -61,11 +61,11 @@ const PZMAP = [K4, CL, dr('..h. ..h. ..h. ..o.')];
 // Melodie, Glockenspiel-Tupfer, Kick auf 1 und 3 | Refrain D E cis fis | D E A A (IV–V–iii–vi | IV–V–I): der Lead singt die
 // Blüten-Hook, das Glockenspiel spielt sie eine Oktave höher mit, Piano auf der „und“, Schellen.
 const bmProg = ['A', 'E', 'F#m', 'D', 'A', 'E', 'D', 'E', 'D', 'E', 'C#m', 'F#m', 'D', 'E', 'A', 'A'];
-const bmFlute = ['C#5:2 D5:2 E5:2 A5:2 G#5:4 E5:4', 'B4:2 C#5:2 E5:2 G#5:2 F#5:4 E5:4', 'C#5:2 E5:2 F#5:2 A5:2 G#5:4 F#5:4', 'D5:2 E5:2 F#5:2 A5:2 F#5:4 D5:4',
-  'C#5:2 D5:2 E5:2 A5:2 G#5:4 E5:4', 'B4:2 C#5:2 E5:2 G#5:2 F#5:4 E5:4', 'A4:2 B4:2 D5:2 F#5:2 E5:4 D5:4', 'E5:2 F#5:2 G#5:2 B5:2 A5:4 G#5:4'];
-const bmHook = ['A5:1 G#5:1 A5:1 B5:1 C#6:2 E6:2 D6:2 C#6:2 A5:4', 'G#5:1 F#5:1 G#5:1 A5:1 B5:2 E6:2 C#6:2 B5:2 G#5:4',
-  'E5:1 D#5:1 E5:1 F#5:1 G#5:2 C#6:2 B5:2 A5:2 G#5:4', 'A5:2 C#6:2 B5:2 A5:2 F#5:4 E5:4'];
-const bmLead = chorusOf(bmHook, 'A5:1 G#5:1 A5:1 B5:1 C#6:2 E6:2 D6:2 C#6:2 B5:4', 'A5:4 G#5:2 F#5:2 E5:8');
+const bmFlute = ['C#5:2 D5:2 E5:2 F#5:2 E5:4 C#5:4', 'B4:2 C#5:2 E5:2 F#5:2 G#5:4 E5:4', 'C#5:2 E5:2 F#5:2 G#5:2 A5:4 F#5:4', 'D5:2 E5:2 F#5:2 E5:2 D5:4 A4:4',
+  'C#5:2 D5:2 E5:2 F#5:2 E5:4 C#5:4', 'B4:2 C#5:2 E5:2 F#5:2 G#5:4 E5:4', 'F#5:2 E5:2 D5:2 E5:2 F#5:4 A5:4', 'G#5:2 F#5:2 E5:2 F#5:2 G#5:4 B5:4'];
+const bmHook = ['A5:1 G#5:1 A5:1 B5:1 C#6:2 E6:2 D6:2 C#6:2 A5:4', 'G#5:1 F#5:1 G#5:1 A5:1 B5:2 E6:2 B5:2 A5:2 G#5:4',
+  'E5:1 D#5:1 E5:1 F#5:1 G#5:2 C#6:2 G#5:2 A5:2 G#5:4', 'A5:2 C#6:2 B5:2 A5:2 F#5:4 A5:4'];
+const bmLead = chorusOf(bmHook, 'A5:1 G#5:1 A5:1 B5:1 C#6:2 E6:2 C#6:2 B5:2 A5:4', 'A5:4 G#5:2 F#5:2 E5:8');
 const petals = (c) => pat(tones(c, 'A5'), '.... ..0. .... 1.2.');           // Glockenspiel-Tupfer (Blütenblätter)
 const BMMAP = [KH, CL, H8O, dr('..j. ..j. ..j. ..j.')];
 
@@ -83,17 +83,18 @@ const PAUKE = dr('t... .... t.t. ....');
 const KGMAP = [KH, CL, H8O, PAUKE];
 
 // ================================================================ Boss-Marathon B-12 (Nacht-Weltraum) ====
-// f-Moll, 148 BPM, 24 Takte, treibend und dramatisch. Intro f Des Es C (die Weltraum-Hörner spielen die Hook) | Strophe
-// f f Des Es | f f b C (i–VI–VII | i–iv–V, Arpeggiator, Galopp-Bass) | Refrain f Des As Es | f Des b C (i–VI–III–VII |
-// i–VI–iv–V, Blitz-Hook, Hörner-Stöße, Piano auf der „und“, treibender Bass) | Überleitung Des Es f C (lange Töne,
-// Sternschnuppe, Pauken-Wirbel). Weltraum-Hall, Blitz-Einschläge (Crash und tiefer Schlag), Sternenglitzern.
-const bbProg = ['Fm', 'Db', 'Eb', 'C', 'Fm', 'Fm', 'Db', 'Eb', 'Fm', 'Fm', 'Bbm', 'C', 'Fm', 'Db', 'Ab', 'Eb', 'Fm', 'Db', 'Bbm', 'C', 'Db', 'Eb', 'Fm', 'C'];
+// f-Moll, 148 BPM, 24 Takte, treibend und dramatisch. Intro f b Es C (die Weltraum-Hörner spielen die Hook) | Strophe
+// f f Des Es | f f b C (i–VI–VII | i–iv–V, Arpeggiator, Galopp-Bass) | Refrain f b As Es | f b Des C (i–iv–III–VII |
+// i–iv–VI–V, Blitz-Hook, Hörner-Stöße, Piano auf der „und“, treibender Bass; im siebten Takt zuckt der Blitz eine Terz
+// tiefer weiter) | Überleitung Des Es f C (lange Töne, die Septime führt in den Loop, Sternschnuppe). Weltraum-Hall,
+// Blitz-Einschläge (Crash und tiefer Schlag), Sternenglitzern.
+const bbProg = ['Fm', 'Bbm', 'Eb', 'C', 'Fm', 'Fm', 'Db', 'Eb', 'Fm', 'Fm', 'Bbm', 'C', 'Fm', 'Bbm', 'Ab', 'Eb', 'Fm', 'Bbm', 'Db', 'C', 'Db', 'Eb', 'Fm', 'C'];
 const bbHook = ['C6:2 Ab5:2 Bb5:2 G5:2 Ab5:3 Bb5:1 C6:4', 'Db6:2 Bb5:2 C6:2 Ab5:2 Bb5:3 C6:1 Db6:4',
   'Eb6:2 C6:2 Db6:2 Bb5:2 C6:3 Bb5:1 Ab5:4', 'G5:2 Eb5:2 F5:2 G5:2 Bb5:4 G5:4'];
-const bbChorus = chorusOf(bbHook, 'Db6:2 Bb5:2 C6:2 Ab5:2 Bb5:3 Ab5:1 F5:4', 'E5:2 G5:2 Bb5:2 G5:2 C6:4 -:4');
+const bbChorus = chorusOf(bbHook, 'Ab5:2 F5:2 G5:2 Eb5:2 F5:3 Eb5:1 Db5:4', 'E5:2 G5:2 Bb5:2 G5:2 C6:4 -:4');
 const bbIntro = [bbHook[0], bbHook[1], bbHook[3], 'E5:2 G5:2 Bb5:2 G5:2 E5:4 C5:4'];
-const bbV = ['F4:2 Ab4:2 C5:2 Ab4:2 Bb4:2 C5:2 Ab4:4', 'F4:2 Ab4:2 C5:2 Db5:2 C5:2 Bb4:2 Ab4:4', 'F4:2 Ab4:2 Db5:2 Ab4:2 Bb4:2 C5:2 Db5:4', 'Eb5:2 Db5:2 C5:2 Bb4:2 G4:2 Bb4:2 G4:4'];
-const bbVerse = [...bbV, bbV[0], bbV[1], 'F4:2 Bb4:2 Db5:2 Bb4:2 C5:2 Db5:2 F5:4', 'C5:2 E5:2 G5:2 E5:2 G5:2 Bb5:2 G5:4'];
+const bbV = ['F4:2 Ab4:2 C5:2 Ab4:2 C5:2 Bb4:2 Ab4:4', 'F4:2 Ab4:2 C5:2 Db5:2 C5:2 Bb4:2 Ab4:4', 'F4:2 Ab4:2 Db5:2 C5:2 Ab4:2 Bb4:2 Db5:4', 'Eb5:2 Db5:2 C5:2 Bb4:2 G4:2 Bb4:2 G4:4'];
+const bbVerse = [...bbV, bbV[0], bbV[1], 'F4:2 Bb4:2 Db5:2 Bb4:2 Db5:2 C5:2 F5:4', 'C5:2 E5:2 G5:2 E5:2 G5:2 Bb5:2 G5:4'];
 const bbBridge = ['F5:8 Ab5:8', 'G5:8 Bb5:8', 'Ab5:8 C6:8', 'G5:8 Bb5:8'];
 const bbArp = (c) => pat([...tones(c, 'F4'), tones(c, 'F5')[0]], '0123 2101 2321 0123');   // Arpeggiator
 const STRIKE = dr('d... .... .... ....');                                                    // Blitz-Einschlag (tief)
@@ -109,9 +110,9 @@ const chProg = ['D', 'A', 'Bm', 'G', 'Bm', 'G', 'D', 'A', 'Bm', 'G', 'Em', 'A', 
 const chHook = ['D5:2 F#5:1 F#5:1 A5:2 A5:2 D6:6 C#6:2', 'C#6:2 B5:1 B5:1 A5:2 A5:2 E5:6 F#5:2',
   'B4:2 D5:1 D5:1 F#5:2 F#5:2 B5:6 A5:2', 'G5:2 F#5:1 F#5:1 D5:2 D5:2 B4:6 D5:2'];
 const chChorus = chorusOf(chHook, 'B4:2 D5:1 D5:1 G5:2 G5:2 B5:6 A5:2', 'C#6:2 B5:1 B5:1 A5:2 A5:2 E5:4 C#5:4');
-const chIntro = [chHook[0], chHook[1], chHook[2], 'G5:2 F#5:1 F#5:1 D5:2 D5:2 B4:4 C#5:4'];
-const chV = ['D5:2 C#5:1 B4:1 C#5:2 D5:2 F#5:2 E5:2 D5:4', 'B4:2 A4:1 G4:1 A4:2 B4:2 D5:2 E5:2 D5:4', 'F#5:2 E5:1 D5:1 E5:2 F#5:2 A5:2 G5:2 F#5:4', 'E5:2 D5:1 C#5:1 D5:2 E5:2 G5:2 F#5:2 E5:4'];
-const chVerse = [...chV, chV[0], chV[1], 'G5:2 F#5:1 E5:1 F#5:2 G5:2 B5:2 A5:2 G5:4', 'E5:2 F#5:1 G5:1 A5:2 G5:2 F#5:2 E5:2 C#5:4'];
+const chIntro = [chHook[0], chHook[1], chHook[2], 'G5:2 F#5:1 F#5:1 D5:2 D5:2 B4:4 D5:4'];
+const chV = ['D5:2 C#5:1 B4:1 C#5:2 D5:2 F#5:2 E5:2 D5:4', 'B4:2 A4:1 G4:1 A4:2 B4:2 D5:2 E5:2 D5:4', 'F#5:2 E5:1 D5:1 E5:2 F#5:2 A5:2 G5:2 F#5:4', 'E5:2 D5:1 C#5:1 D5:2 E5:2 A5:2 G5:2 E5:4'];
+const chVerse = [...chV, chV[0], chV[1], 'G5:2 F#5:1 E5:1 F#5:2 G5:2 B5:2 A5:2 G5:4', 'E5:2 F#5:1 G5:1 A5:2 G5:2 E5:2 D5:2 C#5:4'];
 const chBridge = ['D5:8 G5:8', 'E5:8 A5:8', 'F#5:8 B5:8', 'A5:8 E5:8'];
 const chChoir = ['B5:16', 'C#6:16', 'D6:16', 'C#6:8 E6:8'];
 const PAUKE8 = dr('t... .... t.t. ....');
@@ -202,8 +203,8 @@ export const BONUS_THEMES = {
   },
 
   // Boss-Marathon B-12 (Hub mit sechs Warp-Boxen im Weltraum bei Nacht, fünf Bosse, dann die Würfelblase): 148 BPM, f-Moll,
-  // 24 Takte, treibend und dramatisch. Intro (f Des Es C): die Weltraum-Hörner spielen die Hook, Blitz-Einschlag | Strophe
-  // (f f Des Es | f f b C): Lead treibend, Arpeggiator, Galopp-Bass | Refrain (f Des As Es | f Des b C): Blitz-Zickzack-Hook,
+  // 24 Takte, treibend und dramatisch. Intro (f b Es C): die Weltraum-Hörner spielen die Hook, Blitz-Einschlag | Strophe
+  // (f f Des Es | f f b C): Lead treibend, Arpeggiator, Galopp-Bass | Refrain (f b As Es | f b Des C): Blitz-Zickzack-Hook,
   // Hörner-Stöße, Piano auf der „und“, Sechzehntel-Hats, treibender Bass, Sternenglitzern | Überleitung (Des Es f C):
   // lange Töne, Sternschnuppe in den Loop. Weltraum-Hall in allen Takten.
   course_bossblitz: {
