@@ -38,7 +38,7 @@ const LAGE1 = []; for (const x of [-2, 0, 2, 4]) for (const z of [-304, -306, -3
 const LAGE2 = []; for (const x of [2, 4, 6]) for (const z of [-304, -306, -308]) LAGE2.push([x, 8, z]);
 // blaue Münzen in Steinkäfigen auf dem Bonusbereich (Stern 2)
 const KAEFIGE = [[-3, -324.5], [0.5, -325.5], [4, -323.5], [-0.5, -320.5]];
-const BLAU = KAEFIGE.flatMap(([x, z]) => [[x, YB + 0.3, z], [x, YB + 1.3, z]]);
+const BLAU = KAEFIGE.flatMap(([x, z]) => [[x, YB + 0.25, z], [x, YB + 0.9, z]]);
 const STEINE = KAEFIGE.flatMap(([x, z]) => {
   const out = [];
   for (const [dx, dz] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]) for (const dy of [0, 1]) out.push({ kind: 'steinblock', pos: [x + dx, YB + dy, z + dz] });

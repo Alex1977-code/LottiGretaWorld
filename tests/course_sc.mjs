@@ -162,10 +162,10 @@ const ROUTES = {
         legs: [{ to: [0, -306], jump: 30, jumpAt: 3.6, within: 0.8, run: false, land: false }, { airTo: [4, -306], minY: 2.6, soft: true }, { wait: 120 }] },
       { name: 'Stern 2: Pilz-Trampolin zum Bonusbereich über der Röhre, Riesentrank, Druckschalter – blaue Münzen aus den Steinkäfigen', star: 2, from: [-8, -5, -318.5],
         legs: [{ to: [-8, -322], jump: 30, jumpAt: 3.6, within: 0.8, run: false, land: false }, { airTo: [-4.6, -322], minY: 2.6 },
-          { grab: [-4, -319], back: [-4, -321.4] }, { pound: [3, -318.5] }, { chaseKind: 'bluecoin', walk: true, max: 1600 },
+          { grab: [-4, -319], back: [-4, -321.4] }, { pound: [3, -318.5] }, { chaseKind: 'bluecoin', jump: false, max: 1600 },
           { until: '=L.entities.some((e) => e.kind === \'star\' && e.index === 2 && !e.hidden && e.alive)', max: 300 }, { star: 2 }], shot: 'stern2' },
       { name: 'Stern 2 nicht ohne Riesentrank (Münzen bleiben in den Käfigen)', star: 2, expectNot: true, from: [2, 3, -316.8], heroes: ['lotti'],
-        legs: [{ pound: [3, -318.5] }, { chaseKind: 'bluecoin', walk: true, max: 1500 }] },
+        legs: [{ pound: [3, -318.5] }, { chaseKind: 'bluecoin', jump: false, max: 1500 }] },
     ],
     extra: [
       { name: 'Extraleben: unsichtbarer Block über dem Münzkreis', from: [-6, 0, -24.5], heroes: ['lotti'], expectLives: 1,
@@ -603,7 +603,7 @@ function install() {
         if (!e) break;
         const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
         const dy = e.pos.y - p.pos.y;
-        const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
+        const jump = o.jump === false ? false : ((n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
         p.invuln = Math.max(p.invuln, 5);
         c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
         c.step(1);
