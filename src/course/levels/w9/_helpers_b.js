@@ -251,6 +251,17 @@ export function wiesenDeko(level, o = {}) {
       pixelblume(parts, x + Math.cos(a) * d, y, z + Math.sin(a) * d, 0.9 + rnd() * 0.45, BLUMEN[(c0 + (i % 2) * 2) % BLUMEN.length]);
     }
   }
+  // Felsbrocken (grau, oben Moos): [x, y, z, s]
+  for (const [x, y, z, s = 1] of o.steine ?? []) {
+    for (let i = 0; i < 2; i++) {
+      const r = (i ? 0.32 : 0.5) * s;
+      const g = new THREE.IcosahedronGeometry(r, 0).toNonIndexed();
+      g.scale(1.25, 0.8, 1); g.rotateY(rnd() * PI);
+      g.translate(x + (i ? 0.55 * s : 0), y + r * 0.62, z + (i ? 0.3 * s : 0));
+      parts.push(faceColor(g, (cx, cy, cz, out) => { const c = lin(cy > y + r * 0.95 ? 0x6ac84a : ((Math.floor(cx * 7 + cz * 5) & 1) ? 0xa8a4b4 : 0x8e8a9c)); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }));
+      parts[parts.length - 1].computeVertexNormals();
+    }
+  }
   // Feldwege (Sand-Schachbrett im Raster der Grasdecke, knapp darüber): [x0, x1, zA, zB, top]
   const S1 = lin(0xf6dca0), S2 = lin(0xe8c47e);
   for (const [x0, x1, zA, zB, top] of o.wege ?? []) {
