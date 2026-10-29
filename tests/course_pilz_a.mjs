@@ -16,12 +16,14 @@
 import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 // ------------------------------------------------------------------ Routen
-// Beine (legs): { to: [x, z], jump: Schritte (Sprungtaste gehalten), jumpAt, within, run, slow, max, land, autoJump, stopIf }
+// Beine (legs): { to: [x, z], jump: Schritte (Sprungtaste gehalten), jumpAt, within, run, slow, max, land, autoJump, stopIf,
+// airK/airMax (Luftlenkung: Stärke, Höchsttempo m/s) }
 // · { wait } · { hop } · { crouch } (Röhre) · { star: i } · { chaseKind, ids } · { expect } · { until } (Name aus COND oder
 // Ausdruck '=…') · { warp: [x, z] } · { pipe: [x, z] } (Glasröhre) · { stompAll: Id-Anfang } · { pound: [x, z] } ·
 // { stomp: true } (Sprung + Stampfen auf der Stelle) · { climb: [x, z], top } (Krallen-Anzug an einer Wand) · { grab: [x, z] }
 // (Power-up aus einem ?-Block) · { tiles: [[x, z] …] } · { plank: Id, pick } / { toPlank } / { ridePlank, until } (Riesenrad) ·
-// { long: [x, z] } (Weitsprung) · { throwAt: [x, z] } (Wurfsichel) · { timeLeft: s } (Restzeit setzen, nur Ziele)
+// { long: [x, z] } (Weitsprung) · { throwAt: [x, z], wait } (Wurfsichel) · { dropHelmet: true } (Ducken + Aktion: Helm absetzen) ·
+// { face: [dx, dz], exact: true } (genau ausrichten – Kanonen-Helm) · { timeLeft: s } (Restzeit setzen, nur Ziele)
 const YU = 6, YD = -14, YG = 10;
 // P-1: Sternmünzen rund um den Stufenhügel (7, −74) und hinauf auf die oberste Terrasse
 const RING_COINS = [141.4, 192.9, 244.3, 295.7, 347.1, 38.6, 90].map((a) => [7 + 4.4 * Math.cos(a * Math.PI / 180), -74 + 4.4 * Math.sin(a * Math.PI / 180)]);
@@ -323,6 +325,93 @@ ROUTES['P-3'] = {
   ],
 };
 
+// ------------------------------------------------------------------ P-4 (Basis 2-3: nur die Schattenbühne)
+const Z4 = -87.5;
+/** Bedingung: alle genannten Gegner besiegt (oder entfernt). */
+const dead4 = (ids) => `=[${ids.map((i) => `'${i}'`).join(', ')}].every((i) => { const e = ent(i); return !e || e.defeated || e.removed || !e.alive; })`;
+const P4_ALL = ['g_p1', 'g_k1', 'g_s1', 'grosser_turm', 'g_pk', 'g_p3', 'riese', 'g_p4', 'g_p5', 'g_s2', 'g_k2'];
+ROUTES['P-4'] = {
+  base: '2-3',
+  start: [0, 2.5, -74.4],
+  meta: { stars: 3, time: 100, theme: 'shadow', music: 'course_shadow', variant: 'schnell', archetype: 'parcours' },
+  enemies: { pilzlingsturm: 1, pilzling: 4, krallen_pilzling: 2, panzerkroete: 1, schnappblume: 2, riesenschnappblume: 1, feuer_schnappblume: 0, wuschel: 2,
+    helm_kanone: 3, kampfraum: 1, warpbox: 1, crate: 0, checkpoint: 0 },
+  main: [
+    { name: 'Kanonen-Helm im Gang', to: [0, -78.6], within: 0.3, run: false },
+    { expect: '=P().helmet === \'kanone\'' },
+    { name: 'Bühne', to: [0.6, Z4], within: 0.3, run: false },
+    { face: [1, 0], exact: true },
+    { name: 'erste Bohlen freischießen (Pilzling, Krallen-Pilzling, Schnappblume)', until: dead4(['g_p1', 'g_k1', 'g_s1']), max: 1200 },
+    { to: [9.4, Z4] },
+    { name: 'Schattenplatte A', to: [12.3, Z4], jump: 40 },
+    { name: 'Wuschel unten abwarten', until: '=ent(\'wu_a\').pos.y < 2.2', max: 900 },
+    { name: 'Schattenplatte B', to: [15.9, Z4], jump: 40 },
+    { name: 'Schattenplatte C', to: [19.5, Z4], jump: 40 },
+    { face: [1, 0], exact: true },
+    { name: 'großen Turm umschießen', until: dead4(['grosser_turm']), max: 1500 },
+    { name: 'Bühnenboden 2', to: [22.6, Z4], jump: 16 },
+    { face: [1, 0], exact: true },
+    { name: 'Panzerkröte', until: dead4(['g_pk']), max: 900 },
+    { to: [28.4, Z4] },
+    { name: 'über die Falltür', to: [32.6, Z4], jump: 40 },
+    { face: [1, 0], exact: true },
+    { name: 'Riesenschnappblume (drei Treffer) und Pilzlinge', until: dead4(['g_p3', 'riese', 'g_p4', 'g_p5', 'g_s2']), max: 2400 },
+    { to: [41, Z4] },
+    { name: 'Krallen-Pilzling am Bühnenende', until: dead4(['g_k2']), max: 900 },
+    { expect: dead4(P4_ALL) },
+    { name: 'Bühnenboden 4', to: [47.4, Z4] },
+    { to: [53.4, Z4] },
+    { name: 'Schattenstufe H', to: [55.6, Z4], jump: 40 },
+    { name: 'Schattenstufe I', to: [58.2, Z4], jump: 40 },
+    { name: 'Podest', to: [59.85, Z4], jump: 40, within: 0.3 },
+    { until: '=!ent(\'warp_ziel\').hidden', max: 240 },
+    { name: 'Ziel-Warp-Box', warp: [65.2, Z4] },
+    { expect: '=P().pos.x > 74' },
+    { name: 'Zielmast', to: [92, -88], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'alle 11 Gegner der Bühne besiegt (Kampfraum frei), Turm mit dem Kanonen-Helm umgeworfen, Warp-Box benutzt, < 100 s', ok: (r) => r.mech.raum?.state === 'done' && r.mech.raum?.total === 11 && r.mech.towerDown && r.mech.warps === 1 && r.time < 100 },
+  ],
+  targets: [
+    { name: 'Stern 0: Wurfsichel aus dem ?-Block holen, Kanonen-Helm absetzen, vom unsichtbaren Sims durch den Schlitz der unsichtbaren Loge über der Tür werfen', star: 0, from: [46.6, 2.5, Z4], place: { helmet: 'kanone' },
+      legs: [{ face: [1, 0], exact: true }, { until: dead4(['g_s2', 'g_k2']), max: 1200 }, { to: [50.6, Z4], within: 0.2, run: false }, { hop: 30 }, { to: [49.2, Z4], within: 0.2, run: false },
+        { name: 'auf den ?-Block (Wurfsichel)', to: [50.6, Z4], jump: 60, airMax: 1.6, within: 0.3 }, { chaseKind: 'powerup', max: 600 }, { expect: 'sichel' },
+        { to: [53.4, Z4] }, { to: [55.6, Z4], jump: 40 }, { to: [58.2, Z4], jump: 40 }, { to: [59.85, Z4], jump: 40, within: 0.3 },
+        { name: 'Sims links der Loge', to: [61.0, Z4], jump: 40, within: 0.25 }, { expect: '=P().pos.y > 9.7' },
+        { dropHelmet: true }, { expect: '=!P().helmet' }, { throwAt: [70, Z4], wait: 200 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht ohne Wurfsichel (die Loge ist zu, der Schlitz zu eng – Sprünge vom Sims und vom Dach)', star: 0, expectNot: true, from: [61.0, 9.85, Z4], heroes: ['lotti'],
+      legs: [{ to: [63.4, Z4], jump: 40, within: 0.3, max: 240, land: false }, { wait: 60 }, { to: [63.4, Z4], within: 0.3, max: 300 }, { crouch: 30 }, { to: [61.4, Z4], within: 0.3, max: 300 }, { wait: 60 }] },
+    { name: 'Stern 0 nicht mit der Sichel vom Podest aus (zu tief: sie prallt an der Loge ab)', star: 0, expectNot: true, from: [60.6, 7, Z4], heroes: ['lotti'], place: { power: 'sichel' },
+      legs: [{ throwAt: [70, Z4], wait: 200 }, { hop: 40 }, { throwAt: [70, Z4], wait: 200 }] },
+    { name: 'Stern 1: links vom großen Turm – Turm umschießen, von Schattenplatte C auf die unsichtbare Stufe springen', star: 1, from: [19.5, 3.6, Z4], place: { helmet: 'kanone' },
+      legs: [{ face: [1, 0], exact: true }, { until: dead4(['grosser_turm']), max: 1500 }, { to: [20.3, Z4], within: 0.15, run: false },
+        { name: 'unsichtbare Stufe', to: [23.1, Z4], jump: 60, airMax: 4, within: 0.3 }], shot: 'stern1' },
+    { name: 'Stern 1 nicht von den Bohlen aus (die unsichtbare Stufe hält den Kopf auf)', star: 1, expectNot: true, from: [23.6, 2.5, Z4], heroes: ['lotti'],
+      legs: [{ hop: 60 }, { to: [23.1, Z4], jump: 60, within: 0.2, max: 300, land: false }, { wait: 60 }] },
+    { name: 'Stern 2: Sims rechts vom Turm – von der ersten Schattenplatte über der Riesenschnappblume hinüberspringen', star: 2, from: [32.6, 2.5, Z4], place: { helmet: 'kanone' },
+      legs: [{ to: [34, Z4], jump: 40, within: 0.3 }, { expect: '=P().pos.y > 4.8' }, { to: [34.7, Z4], within: 0.15, run: false },
+        { name: 'Sims', to: [30.6, Z4], jump: 60, jumpAt: 3.1, airMax: 3.5, within: 0.3 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht von den Bohlen aus (Sims zu hoch)', star: 2, expectNot: true, from: [32.0, 2.5, Z4], heroes: ['lotti'],
+      legs: [{ to: [30.4, Z4], jump: 60, within: 0.3, max: 300, land: false }, { wait: 90 }] },
+  ],
+  extra: [
+    { name: 'Ziel-Warp-Box bleibt verborgen, solange ein Gegner übrig ist (Turm steht), erscheint nach dem letzten', from: [19.5, 3.6, Z4], heroes: ['lotti'], probe: 'p4raum' },
+    { name: 'Großer Turm: Stampfen/Draufspringen geht nicht (18,8 m hoch), Panzer/Feuer nehmen je eine Stufe, die Kanonenkugel wirft ihn ganz um', from: [19.5, 3.6, Z4], heroes: ['lotti'], probe: 'p4turm' },
+    { name: 'Kanonen-Helm im Gang liegt nach dem Aufheben wieder da', from: [0, 2.5, -74.4], heroes: ['lotti'], probe: 'p4helm' },
+  ],
+  shots: [
+    ['start', [0, 2.5, -74.4]],
+    ['buehne', [1, 2.5, Z4]],
+    ['turm', [19.5, 3.6, Z4]],
+    ['falltuer', [27, 2.5, Z4]],
+    ['riese', [33, 2.5, Z4]],
+    ['sichelblock', [47.4, 2.5, Z4]],
+    ['podest', [60.2, 7, Z4]],
+    ['logensims', [61, 9.85, Z4]],
+    ['ziel', [83, 2.5, -88]],
+  ],
+};
+
 const PORT = 5035;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -459,9 +548,22 @@ function install() {
         const Lg = legs[li];
         if (p.dead || L.runtime.status !== 'play') break;
         rode = false;
-        if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
+        if (Lg.wait && !Lg.to && !Lg.throwAt) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); settle(); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
-        if (Lg.face) { const y0 = p.yaw; for (let i = 0; i < (Lg.n ?? 10); i++) tick({ ...this.stick(Lg.face[0], Lg.face[1], Lg.mag ?? 0.35), run: false }); for (let i = 0; i < (Lg.pause ?? 30); i++) tick({}); log.push(['blick', `${Lg.face}`, +y0.toFixed(2), +p.yaw.toFixed(2)]); continue; }
+        if (Lg.face) {
+          const y0 = p.yaw;
+          if (Lg.exact) {
+            // genau ausrichten (Kanonen-Helm: die Kugel fliegt in Blickrichtung) – kleine Lenkung, bis die Blickrichtung passt
+            for (let i = 0; i < 240; i++) { const fv = p.facingVec(), l = Math.hypot(Lg.face[0], Lg.face[1]); if ((fv.x * Lg.face[0] + fv.z * Lg.face[1]) / l > 0.9998 && i >= 4) break; tick({ ...this.stick(Lg.face[0], Lg.face[1], Lg.mag ?? 0.16), run: false }); }
+            for (let i = 0; i < (Lg.pause ?? 6); i++) tick({});
+            log.push(['blick', `${Lg.face}`, +y0.toFixed(2), +p.yaw.toFixed(3)]);
+            continue;
+          }
+          for (let i = 0; i < (Lg.n ?? 10); i++) tick({ ...this.stick(Lg.face[0], Lg.face[1], Lg.mag ?? 0.35), run: false });
+          for (let i = 0; i < (Lg.pause ?? 30); i++) tick({});
+          log.push(['blick', `${Lg.face}`, +y0.toFixed(2), +p.yaw.toFixed(2)]);
+          continue;
+        }
         if (Lg.log) { log.push(['wert', Lg.log, JSON.stringify(new Function('P', 'L', 'ent', `return (${Lg.log});`)(P, L, ent))]); continue; }
         if (Lg.expect) { const ok = cond(Lg.expect); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.until && !Lg.ridePlank && !Lg.raft) { let k = 0; for (; k < (Lg.max ?? 1200) && !cond(Lg.until); k++) tick({}); log.push(['bis', Lg.until, k]); if (!cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
@@ -859,6 +961,16 @@ function install() {
           log.push(['weitsprung', `${Lg.long}`, longed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ Trage-Helm absetzen (Ducken + Aktion)
+        if (Lg.dropHelmet) {
+          const h0 = p.helmet;
+          for (let k = 0; k < 12; k++) tick({ crouch: true });
+          tick({ crouch: true, action: true });
+          for (let k = 0; k < 20; k++) tick({ crouch: true });
+          for (let k = 0; k < 30; k++) tick({});
+          log.push(['helm ab', h0, p.helmet]);
+          continue;
+        }
         // ------------------------------------------------ Wurfsichel auf einen Punkt werfen, Rückkehr abwarten
         if (Lg.throwAt) {
           const [tx, tz] = Lg.throwAt;
@@ -897,7 +1009,7 @@ function install() {
           if (done && i > 0) break;
           let mag = Lg.slow ?? 1;
           let st;
-          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, 2.6, 11);
+          if (p.mode === 'air' && holdJ && j0 !== null) st = this.airSteer(tx, tz, 0, 0, Lg.airK ?? 2.6, Lg.airMax ?? 11);
           else {
             if (dist < 1.2 && !holdJ) mag = Math.max(0.2, Math.min(mag, dist / 1.2));
             st = dist > 0.05 ? this.stick(dx, dz, mag) : { x: 0, y: 0 };
@@ -920,6 +1032,8 @@ function install() {
       mech.ghostsGone = L.entities.filter((e) => (e.kind === 'spuk' || e.kind === 'kreisgeist') && (!e.alive || e.removed || e.state === 'defeated')).length + (L.data.id === 'P-3' ? 13 - L.entities.filter((e) => e.kind === 'spuk' || e.kind === 'kreisgeist').length : 0);
       mech.bells = ['baum1', 'baum2', 'baum3'].map((id) => L.named.get(id)?.rung ?? null).filter((v) => v !== null);
       mech.lives = L.runtime.save?.lives;
+      mech.raum = L.entities.find((e) => e.kind === 'kampfraum' && !e.removed)?.info?.() ?? null;
+      { const t = ent('grosser_turm'); mech.towerDown = L.data.id === 'P-4' ? (!t || t.defeated || t.removed) : null; }
       return { log, autoJumps, steps, time: steps / 120, keys: L.keys?.schluessel?.n ?? 0, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
@@ -1136,8 +1250,101 @@ RULES['P-3'] = async () => {
     r.baseTheme === 'jungle' && r.baseVariant === null && r.baseBrummer === 4 && r.baseRanken === 6 && !r.baseWarpHidden && r.baseRing && r.baseStamp && r.baseRemix === null && !r.baseSpuk && r.baseTitle === 'Floßfahrt durch den Giftsee-Dschungel');
 };
 
+RULES['P-4'] = async () => {
+  const r = await sc(() => {
+    const c = window.__course, L = c.level, CL = window.__courseLevels;
+    const base = CL.get('2-3'), raw = CL.raw('P-4');
+    const calls = window.__audio?.music?.__calls ?? [];
+    const ents = (k) => L.entities.filter((e) => e.kind === k && !e.removed);
+    const t = L.named.get('grosser_turm') ?? ents('pilzlingsturm')[0];
+    const raum = ents('kampfraum')[0];
+    const wall = L.data.segments.find((x) => x.id === 'sw_buehne');
+    const baseWall = base.segments.find((x) => x.id === 'sw_buehne');
+    return {
+      stub: CL.isRemix(raw) && raw.remix.base === '2-3' && !raw.segments, title: L.data.title, theme: L.data.theme,
+      music: L.data.music, variant: L.data.musicVariant, call: calls.filter((x) => x[0] === 'course_shadow').slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
+      limit: L.runtime.timeLimit, cp: ents('checkpoint').length, stamp: ents('stamp').length, start: L.data.start.pos, remix: L.data.remix,
+      far: L.entities.filter((e) => !e.removed && (e.pos.z > -70 || e.pos.x > 72) && !['goal', 'coin', 'warpbox', 'kampfraum'].includes(e.kind)).map((e) => e.kind),
+      doors: ents('tuer').map((e) => [e.spec.id, e.locked, e.spec.target ?? null]), rb: ents('warpbox').map((e) => e.spec.id), movers: L.data.segments.filter((x) => x.type === 'mover').length,
+      tower: t ? { count: t.count, h: +(t.half.y * 2).toFixed(2), topple: [...t.topple] } : null, kanonen: ents('helm_kanone').length,
+      raum: raum ? { ids: raum.ids?.length ?? 0, onClear: raum.spec.onClear } : null, warpHidden: L.named.get('warp_ziel')?.hidden ?? ents('warpbox')[0]?.hidden,
+      feuer: ents('feuer_schnappblume').length, oneup: ents('hidden').filter((e) => e.spec?.content === 'oneup').length, tree: wall?.casters?.filter((q) => q.pos[0] === 65).length,
+      loge: L.data.segments.find((x) => x.id === 'sw_loge')?.parts?.length ?? 0, sims: !!L.data.segments.find((x) => x.id === 'sw_sims'),
+      baseTitle: base.title, baseLimit: base.timeLimit, baseCp: !!base.checkpoint, baseStamp: !!base.stamp, baseVariant: base.musicVariant ?? null, baseRemix: base.remix ?? null,
+      baseTower: base.enemies.some((e) => e.kind === 'pilzlingsturm'), baseDoor: base.segments.find((x) => x.id === 'tuer_a')?.target, baseOneup: base.blocks.some((b) => b.content === 'oneup'),
+      baseFeuer: base.enemies.filter((e) => e.kind === 'feuer_schnappblume').length, baseWuschel: base.enemies.filter((e) => e.kind === 'wuschel').length, baseTree: baseWall?.casters?.filter((q) => q.pos[0] === 65).length,
+    };
+  });
+  console.log(`  Remix: ${JSON.stringify({ call: r.call, cut: r.remix.cut, kept: r.remix.kept, removed: r.remix.removed, added: r.remix.added, tower: r.tower, doors: r.doors, far: r.far, raum: r.raum })}`);
+  check('P-4: Remix-Platzhalter (Basis 2-3), eigener Titel, Thema der Basis (shadow)', r.stub && r.title === 'Schattenspuk-Gerangel' && r.theme === 'shadow');
+  check('P-4: Musik der Basis mit Klang-Variante schnell → music.play(\'course_shadow\', { variant: \'schnell\' })', r.music === 'course_shadow' && r.variant === 'schnell' && r.call?.[1]?.variant === 'schnell' && r.mVariant === 'schnell');
+  check(`P-4: nur der Schatten-Abschnitt (Start im Gang z ${r.start[2]}, ${r.remix.cut} Objekte weggeschnitten, keine Fahrplattformen, keine Rätselbox, Tür verschlossen), 100 s, kein Checkpoint, kein Stempel`,
+    r.start[2] < -72 && r.remix.cut > 100 && r.movers === 0 && r.rb.length === 1 && r.rb[0] === 'warp_ziel' && r.far.length === 0 && r.doors.length === 1 && r.doors[0][1] === true && r.doors[0][2] === null
+    && r.limit === 100 && r.cp === 0 && r.stamp === 0);
+  check(`P-4: Pilzlingsturm aus 30 Pilzlingen (${r.tower?.count}, ${r.tower?.h} m hoch; Kanonenkugel wirft ihn um), ${r.kanonen} Kanonen-Helme`, r.tower?.count === 30 && r.tower.h > 18.5 && r.tower.topple.includes('cannon') && r.kanonen === 3);
+  check(`P-4: Kampfraum über alle ${r.raum?.ids} Gegner → Ziel-Warp-Box (anfangs verborgen); Feuer-Schnappblume und Extraleben-Block entfallen, Schatten-Baum versetzt; Loge (${r.loge} Teile) und Sims unsichtbar`,
+    r.raum?.ids === 11 && r.raum.onClear?.reveal === 'warp_ziel' && r.warpHidden === true && r.feuer === 0 && r.oneup === 0 && r.tree === 0 && r.loge === 5 && r.sims);
+  check('P-4: Gegenprobe Basis 2-3 unverändert (400 s, Checkpoint, Stempel, ohne Variante/Turm, Tür → tuer_b, Extraleben-Block, 4 Feuer-Schnappblumen, 11 Wuschel, Schatten-Baum bei x 65)',
+    r.baseTitle === 'Scherenschnittkeller' && r.baseLimit === 400 && r.baseCp && r.baseStamp && r.baseVariant === null && r.baseRemix === null && !r.baseTower && r.baseDoor === 'tuer_b' && r.baseOneup
+    && r.baseFeuer === 4 && r.baseWuschel === 11 && r.baseTree === 2);
+};
+
 // ------------------------------------------------------------------ Sonder-Proben (extra[].probe)
 const PROBES = {
+  p4raum: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa, p = c.player;
+      W.place([19.5, 3.6, -87.5], { settle: 4, helmet: 'kanone', invuln: 99, yaw: 0 });
+      const raum = L.entities.find((e) => e.kind === 'kampfraum');
+      const box = L.named.get('warp_ziel');
+      c.step(5);
+      const s0 = raum.info();
+      // alle außer dem Turm per Skript besiegen (Funkelstern-Treffer)
+      for (const id of ['g_p1', 'g_k1', 'g_s1', 'g_pk', 'g_p3', 'riese', 'g_p4', 'g_p5', 'g_s2', 'g_k2']) L.named.get(id)?.onHit?.('star', p);
+      for (let i = 0; i < 120; i++) { c.setInput({}); c.step(1); }
+      const s1 = raum.info(), h1 = box.hidden;
+      // jetzt den Turm mit dem Kanonen-Helm umschießen (die Figur schaut nach rechts, der Helm feuert von selbst)
+      let k = 0;
+      for (; k < 1500 && raum.state !== 'done'; k++) { p.invuln = 99; c.setInput({}); c.step(1); }
+      for (let i = 0; i < 30; i++) c.step(1);
+      return { s0, s1, h1, k, s2: raum.info(), h2: box.hidden };
+    });
+    console.log(`     Kampfraum: ${JSON.stringify(r)}`);
+    return r.s0.state === 'active' && r.s0.total === 11 && r.s1.left === 1 && r.h1 === true && r.s2.state === 'done' && r.h2 === false;
+  },
+  p4turm: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa, p = c.player;
+      W.place([19.5, 3.6, -87.5], { settle: 4, invuln: 99, yaw: 0 });
+      const t = L.named.get('grosser_turm');
+      const n0 = t.count, h0 = +(t.half.y * 2).toFixed(2);
+      t.onHit('shell', p); for (let i = 0; i < 90; i++) c.step(1);
+      const n1 = t.count;
+      t.onHit('fire', p); for (let i = 0; i < 90; i++) c.step(1);
+      const n2 = t.count;
+      p.wearHelmet('kanone');
+      let k = 0;
+      for (; k < 1500 && !t.defeated; k++) { p.invuln = 99; c.setInput({}); c.step(1); }
+      return { n0, h0, n1, n2, k, defeated: !!t.defeated, state: t.state, nEnd: t.count };
+    });
+    console.log(`     Turm: ${JSON.stringify(r)}`);
+    return r.n0 === 30 && r.h0 > 18.5 && r.n1 === 29 && r.n2 === 28 && r.defeated && r.nEnd >= 27;
+  },
+  p4helm: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa, p = c.player;
+      const helms = () => L.entities.filter((e) => e.kind === 'helm_kanone' && e.alive && !e.removed && Math.hypot(e.pos.x, e.pos.z + 78.6) < 1.5).length;
+      W.place([0, 2.5, -74.4], { settle: 2 });
+      const n0 = helms();
+      for (let i = 0; i < 200 && !p.helmet; i++) { c.setInput(W.stick(0, -1, 0.6)); c.step(1); }
+      c.setInput({});
+      const worn = p.helmet, n1 = helms();
+      for (let i = 0; i < 120 * 6.5; i++) c.step(1);
+      return { n0, worn, n1, n2: helms() };
+    });
+    console.log(`     Kanonen-Helm: ${JSON.stringify(r)}`);
+    return r.n0 === 1 && r.worn === 'kanone' && r.n1 === 0 && r.n2 === 1;
+  },
   helme: async () => {
     const r = await sc(() => {
       const c = window.__course, L = c.level, W = window.__pa, p = c.player;
