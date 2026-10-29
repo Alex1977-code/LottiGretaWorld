@@ -122,6 +122,26 @@ function scene(level) {
   block(level, b, N.x0, N.x1, N.z0, N.z1, FLOOR, U, { side: C.blau, top: C.holz, tag: 'nordturm' });
   // Zinnen-Kränze aus Messing an den Turmkanten (nur Optik, unter Kniehöhe)
   for (const t of [S, E, W, N]) for (const [ax, az, bx, bz] of [[t.x0, t.z0, t.x1, t.z0], [t.x0, t.z1, t.x1, t.z1], [t.x0, t.z0, t.x0, t.z1], [t.x1, t.z0, t.x1, t.z1]]) b.tube([[ax, U + 0.02, az], [bx, U + 0.02, bz]], 0.07, C.messing, 6, 5);
+  // Turmkronen: Eck-Knäufe in Bonbonfarben, eingelegtes Sternwappen in der Turmfarbe, Wimpel an einer Ecke
+  const KNAUF = [0xff8ac8, 0x8ad8ff, 0xffe070, 0x9af0b0];
+  for (const [i, t, col] of [[0, S, C.rosa], [1, E, C.mint], [2, W, C.gelb], [3, N, C.blau]]) {
+    const cx = (t.x0 + t.x1) / 2, cz = (t.z0 + t.z1) / 2;
+    [[t.x0, t.z0], [t.x1, t.z0], [t.x0, t.z1], [t.x1, t.z1]].forEach(([x, z], k) => { b.sphere(0.17, x, U + 0.12, z, litTop(KNAUF[(i + k) % 4], 0.9)); });
+    // farbiger Rahmen auf dem Holzdeckel (Spielbrett-Optik)
+    const w = t.x1 - t.x0, d = Math.abs(t.z0 - t.z1), fw = 0.42, fc = litTop(col, 0.8);
+    b.box(w - 0.5, 0.03, fw, cx, U, Math.max(t.z0, t.z1) - 0.25 - fw / 2, fc, { r: 0.01 });
+    b.box(w - 0.5, 0.03, fw, cx, U, Math.min(t.z0, t.z1) + 0.25 + fw / 2, fc, { r: 0.01 });
+    b.box(fw, 0.03, d - 0.5 - 2 * fw, t.x0 + 0.25 + fw / 2, U, cz, fc, { r: 0.01 });
+    b.box(fw, 0.03, d - 0.5 - 2 * fw, t.x1 - 0.25 - fw / 2, U, cz, fc, { r: 0.01 });
+    if (t !== S && t !== N) {
+      b.cyl(0.95, 0.95, 0.03, cx, U - 0.01, cz, litTop(col, 0.95), 20);
+      g.star(0.6, 0.26, 0.012, cx, U + 0.015, cz, 0xfff2a0, { rx: -PI / 2, bevel: 0.01 });
+    }
+    const [fx, fz] = [t.x1 - 0.2, t.z1 + 0.2];
+    b.cyl(0.04, 0.05, 1.7, fx, U, fz, litTop(C.messing), 6);
+    b.box(0.62, 0.36, 0.03, fx + 0.33, U + 1.32, fz, litTop(KNAUF[(i + 2) % 4], 0.95), { r: 0.02 });
+    g.sphere(0.07, fx, U + 1.74, fz, 0xfff2a0, { ws: 6, hs: 5 });
+  }
   uhr(b, g, 0, 1.5, S.z0 + 0.02, '+z');
   uhr(b, g, E.x1 + 0.02, 1.5, 0, '+x');
   uhr(b, g, W.x0 - 0.02, 1.5, 0, '-x');
