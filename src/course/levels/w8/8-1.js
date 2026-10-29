@@ -3,25 +3,73 @@
 //
 // Eine Außenfestung Baron Brummbärs im Dauerregen: schmale Steinstege zwischen Wachtürmen hoch über dem Burggraben. Abschnitte
 // (nach −Z, Laufhöhe y 1, Absturz unter y −8):
-//   1. Stachelstege-Auftakt (z 10 … −54): Torhof, zwei schmale Stege mit Stachelfallen im festen Takt (eine Welle aus drei),
+//   1. Stachelstege-Auftakt (z 11 … −54): Torhof, zwei schmale Stege mit Stachelfallen im festen Takt (eine Welle aus drei),
 //      Knochenflieger stoßen von oben herab; Warp-Box über den breiten Graben.
 //   2. Werferstege (z −69 … −132): Stegstücke mit 3-m-Lücken, Feuer-Werfer auf den Plattformen; links vom ersten Werfer die
 //      Kletter-Säule (Stern 0, nur mit dem Krallen-Anzug); Warp-Box zur Kontrollpunkt-Insel.
-//   3. Kontrollpunkt-Insel (z −147 … −165): nach Südwesten ein Holzsteg zum Stempel-Turm; die Wand dahinter ist mit dem
-//      Krallen-Anzug kletterbar – oben die Rätselbox in den Bonus-Hof (Stern 1).
+//   3. Kontrollpunkt-Insel (z −147 … −165): nach Südwesten ein Steg (Stachelfalle) zum Stempel-Turm; die Wand dahinter ist mit
+//      dem Krallen-Anzug kletterbar – oben die Rätselbox in die Wachstube des Barons (Stern 1: die Wache besiegen).
 //   4. Knochenflieger-Strecke (z −165 … −228): große Knochenflieger-Gruppen, die sich nach dem Besiegen neu zusammensetzen;
 //      nach der großen Keil-Gruppe führen einzelne Fallblöcke hinaus zu Stern 2.
-//   5. Stachel-Schwebeplattformen (z −228 … −273): Stachelblöcke (oben begehbar, ringsum Stacheln) tragen über den Abgrund;
-//      Warp-Box zum Zielturm.
+//   5. Stachel-Schwebeplattformen (z −228 … −273): Stachelblöcke (oben begehbar, an den Seiten Stacheln) tragen über den
+//      Abgrund; Warp-Box zum Zielturm.
 
-import { isl, line, ring, arc, column, sign, falle, fallblockRuhig } from './_helpers_a.js';
+import { isl, line, ring, arc, column, sign, falle, fallblockRuhig, regenfestung81, RF } from './_helpers_a.js';
 
 const Y = 1;            // Laufhöhe der Festung
 const PI = Math.PI;
-const BX = 90;          // Bonus-Hof (abseits)
+const BX = 90;          // Wachstube (abseits)
 
-const steg = (zA, zB, w = 2.6, x = 0) => isl(x - w / 2, x + w / 2, zA, zB, Y, 1.6, { top: 'stone' });
+// Plätze [x0, x1, zA, zB, Fassaden-Seiten] und Stege [x0, x1, zA, zB, Laternen] – aus ihnen entstehen Inseln und Kulisse
+const PLAETZE = {
+  torhof: [-7, 7, 11, -6], turm1: [-4, 4, -20, -27], turm2: [-5, 5, -45, -54],
+  ankunft: [-5, 5, -69, -77], werfer1: [-6, 6, -89, -98], werfer2: [-5, 5, -110, -119], werfer3: [-5, 5, -125, -132],
+  cp: [-8, 8, -147, -165], stempel: [-22, -16, -144, -152, 'flb'],
+  keil: [-7, 7, -180, -192], ring: [-7, 7, -208, -220],
+  schwebe: [-5, 5, -228, -236], warp: [3, 13, -264.4, -273], ziel: [-6, 6, -288, -304],
+  bonus: [BX - 9, BX + 9, -140, -160],
+};
+const STEGE = [
+  [-1.3, 1.3, -6, -20], [-1.2, 1.2, -27, -45],
+  [-1.3, 1.3, -77, -82, false], [-1.3, 1.3, -85, -89, false], [-1.3, 1.3, -101, -107], [-1.3, 1.3, -119, -125, false],
+  [-16, -8, -148.3, -150.7],
+  [-1.5, 1.5, -165, -180], [-1.5, 1.5, -192, -208], [-1.5, 1.5, -220, -228, false],
+];
+const platz = (k, h = 7) => { const [x0, x1, zA, zB] = PLAETZE[k]; return isl(x0, x1, zA, zB, Y, h); };
+const steg = ([x0, x1, zA, zB]) => isl(x0, x1, zA, zB, Y, 1.6, { top: 'stone' });
 const werfer = (id, x, z, o = {}) => ({ kind: 'feuer_werfer', id, pos: [x, o.y ?? Y, z], axis: o.axis ?? [1, 0], pace: o.pace ?? 1.1, sight: o.sight ?? 11, interval: o.interval ?? 2.6, ...o });
+
+function build(level) {
+  regenfestung81(level, {
+    Y,
+    plaetze: Object.entries(PLAETZE).map(([, r]) => r),
+    stege: STEGE,
+    // keine Platten unter Fallen, Warp-Boxen und der Kletterwand
+    avoid: [[-1.4, 1.4, -11.8, -14.2], [-1.4, 1.4, -29.8, -42.2], [-1.6, 1.6, -195.8, -204.2], [-13.2, -10.8, -148.2, -150.8],
+      [1.6, 3.4, -49.6, -51.4], [-3.4, -1.6, -72.1, -73.9], [1.6, 3.4, -128.1, -129.9], [3.6, 5.4, -149.6, -151.4], [7.1, 8.9, -268.1, -269.9],
+      [-3.9, -2.1, -291.1, -292.9], [-5.4, -3.4, -94.7, -96.5], [-22, -16, -152, -152.5], [BX - 6.3, BX - 4.5, -145.3, -147.1]],
+    mauern: [
+      { from: [-6.7, 10.6], to: [-6.7, -3.5], faces: [1] }, { from: [6.7, 10.6], to: [6.7, -3.5], faces: [-1] },
+      { from: [-7.7, -153], to: [-7.7, -162.6], faces: [1] }, { from: [7.7, -147.4], to: [7.7, -162.6], faces: [-1] },
+      { from: [-6.7, -180.4], to: [-6.7, -191.6], faces: [1] },
+      { from: [-6.7, -208.4], to: [-6.7, -219.6], faces: [1] }, { from: [6.7, -208.4], to: [6.7, -219.6], faces: [-1] },
+      { from: [-5.7, -288.4], to: [-5.7, -301.4], faces: [1] }, { from: [5.7, -288.4], to: [5.7, -301.4], faces: [-1] },
+    ],
+    tuerme: [
+      // an den hinteren Ecken der Plätze (fest)
+      { x: -6.1, y: Y, z: -4.9, r: 1.1, h: 5.4, roof: RF.roofs[0], solid: true }, { x: 6.1, y: Y, z: -4.9, r: 1.1, h: 5.4, roof: RF.roofs[1], solid: true },
+      { x: -4.2, y: Y, z: -52.9, r: 0.9, h: 4.6, roof: RF.roofs[2], solid: true },
+      { x: 4.6, y: Y, z: -76, r: 0.9, h: 4.6, roof: RF.roofs[3], solid: true },
+      { x: -6.9, y: Y, z: -163.9, r: 1.1, h: 6, roof: RF.roofs[1], solid: true }, { x: 6.9, y: Y, z: -163.9, r: 1.1, h: 6, roof: RF.roofs[4], solid: true },
+      { x: 4.2, y: Y, z: -235, r: 0.9, h: 4.8, roof: RF.roofs[0], solid: true },
+      { x: -4.9, y: Y, z: -302.9, r: 1.1, h: 7.5, roof: RF.roofs[1], solid: true }, { x: 4.9, y: Y, z: -302.9, r: 1.1, h: 7.5, roof: RF.roofs[0], solid: true },
+      // Kulisse im Graben (fern)
+      ...[[-24, -10, 2.2, 1], [26, -38, 2.6, 0], [-28, -80, 2.4, 3], [24, -112, 2.2, 2], [-34, -138, 2.8, 0], [28, -170, 2.4, 1],
+        [-26, -202, 2.2, 4], [27, -232, 2.6, 2], [-22, -262, 3, 0], [24, -290, 2.4, 3], [-26, -312, 2.6, 1]].map(([x, z, r, k]) =>
+        ({ x, y: -14, z, r, h: 15 + (Math.abs(x) % 4), roof: RF.roofs[k] })),
+    ],
+  });
+}
 
 function setup(level) {
   fallblockRuhig(level, 'fall_stern');
@@ -38,6 +86,7 @@ export const LEVEL = {
   killY: -8,
   farHide: 60,
   instances: { coin: { farHide: 44, shadow: false } },
+  build,
   setup,
   start: { pos: [0, Y, 6], yaw: PI / 2 },
   camera: [
@@ -46,55 +95,65 @@ export const LEVEL = {
     { from: -134, to: -166, pitch: 46, dist: 14, fov: 40, x: -4, xLock: 0.2, area: [-40, 40] },
     { from: -166, to: -228, pitch: 45, dist: 14, fov: 40, x: 0, xLock: 0.3, area: [-40, 40] },
     { from: -228, to: -310, pitch: 46, dist: 14, fov: 40, x: 2, xLock: 0.3, area: [-40, 40] },
-    // Bonus-Hof (abseits)
+    // Wachstube (abseits)
     { from: -130, to: -175, pitch: 48, dist: 14, fov: 40, x: BX, xLock: 0.5, area: [BX - 25, BX + 25] },
   ],
   segments: [
-    // ================================================================ 1 Stachelstege-Auftakt
-    isl(-7, 7, 11, -6, Y, 7),                                       // Torhof
+    // ================================================================ Plätze und Stege (Listen oben)
+    ...Object.keys(PLAETZE).map((k) => platz(k)),
+    ...STEGE.map(steg),
     sign(-5.2, Y, 3.4, 'Regenfestung', { yaw: 0.25 }),
-    steg(-6, -20),                                                  // Steg 1: eine Falle
-    isl(-4, 4, -20, -27, Y, 6),                                     // Turm 1
-    steg(-27, -45, 2.4),                                            // Steg 2: Welle aus drei Fallen
-    isl(-5, 5, -45, -54, Y, 6),                                     // Turm 2 (Warp-Box)
-
-    // ================================================================ 2 Werferstege
-    isl(-5, 5, -69, -77, Y, 6),                                     // Ankunft
-    steg(-77, -82),
-    steg(-85, -89),                                                 // 3-m-Lücken
-    isl(-6, 6, -89, -98, Y, 6),                                     // Werfer-Platz 1
     { type: 'wall', pos: [-4.4, Y, -95.6], size: [1.8, 7, 1.8], climbable: true },    // Kletter-Säule (Stern 0)
-    steg(-101, -107),
-    isl(-5, 5, -110, -119, Y, 6),                                   // Werfer-Platz 2
-    steg(-119, -125),
-    isl(-5, 5, -125, -132, Y, 6),                                   // Werfer-Platz 3 (Warp-Box)
-
-    // ================================================================ 3 Kontrollpunkt-Insel
-    isl(-8, 8, -147, -165, Y, 7),
-    isl(-16, -8, -148.3, -150.7, Y, 1.6),                           // Steg nach Südwesten (Stachelfalle)
-    isl(-22, -16, -144, -152, Y, 7),                                // Stempel-Turm
     { type: 'wall', pos: [-19, Y, -153.5], size: [6, 9, 3], climbable: true },        // Kletterwand (Rätselbox oben)
-
-    // ================================================================ 4 Knochenflieger-Strecke
-    steg(-165, -180, 3),
-    isl(-7, 7, -180, -192, Y, 7),                                   // Platz der Keil-Gruppe
-    steg(-192, -208, 3),
-    isl(-7, 7, -208, -220, Y, 7),                                   // Platz der großen Ring-Gruppe
-    steg(-220, -228, 3),
     { type: 'fallblock_bruecke', id: 'fall_stern', mode: 'einzeln', blocks: [[9.4, Y - 0.6, -186], [12, Y - 0.3, -186.3], [14.6, Y, -186], [17.2, Y + 0.3, -186.3]], size: [1.6, 0.6, 1.6], respawn: 5 },
 
     // ================================================================ 5 Stachel-Schwebeplattformen
-    isl(-5, 5, -228, -236, Y, 6),
     { type: 'stachelblock', id: 'schwebe1', pos: [0, Y - 1, -238.2], size: [3, 1, 3], color: 'blau', spikes: ['unten', '+x', '-x'], move: [0, 0, -9], speed: 2.4, wait: 1.6, warn: 0.6 },
     { type: 'stachelblock', id: 'schwebe2', pos: [0, Y - 1, -251.2], size: [3, 1, 3], color: 'blau', spikes: ['unten', '+z', '-z'], move: [8, 0, 0], speed: 2.4, wait: 1.6, warn: 0.6, phase: 1.5 },
     { type: 'stachelblock', id: 'schwebe3', pos: [8, Y - 1, -255.4], size: [3, 1, 3], color: 'rot', spikes: ['unten', '+x', '-x'], move: [0, 0, -7], speed: 1.8 },
-    isl(3, 13, -264.4, -273, Y, 6),                                 // Warp-Turm
-    isl(-6, 6, -288, -304, Y, 7),                                   // Zielturm
 
-    // ================================================================ Bonus-Hof (abseits): Wachstube des Barons
-    isl(BX - 9, BX + 9, -140, -160, Y, 6),
+    // ================================================================ Wachstube des Barons (Rätselbox)
     { type: 'room', pos: [BX, Y, -151.5], size: [15, 4.4, 15], floor: false, top: 'stone' },
     sign(BX + 1.5, Y, -145.2, 'Besiege die Wache!', { size: [2.8, 0.9] }),
+
+    // ================================================================ Kulisse (Registry-Modelle: Pfützen, Regentonnen, Wasserspeier, Fahnen, Fackeln)
+    { type: 'deco_w8', items: [
+      { kind: 'pfuetze', pos: [-3.5, Y + 0.02, 6.5], size: [2.4, 1.6] }, { kind: 'pfuetze', pos: [4, Y + 0.02, -2.5], size: [1.8, 1.2] },
+      { kind: 'regentonne', pos: [-5.6, Y, 8.6] }, { kind: 'regentonne', pos: [-5.9, Y, 7.3], height: 1 },
+      { kind: 'wasserspeier', pos: [-4.2, Y - 1.2, 11.05], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [4.2, Y - 1.2, 11.05], yaw: -PI / 2 },
+      { kind: 'pfuetze', pos: [2.4, Y + 0.02, -24.6], size: [1.6, 1.1] },
+      { kind: 'wasserspeier', pos: [0, Y - 1.2, -44.95], yaw: -PI / 2 }, { kind: 'pfuetze', pos: [-2.6, Y + 0.02, -47.4], size: [1.8, 1.2] },
+      { kind: 'regentonne', pos: [4, Y, -70.4] }, { kind: 'pfuetze', pos: [-3, Y + 0.02, -91], size: [2, 1.3] },
+      { kind: 'wasserspeier', pos: [-3, Y - 1.2, -88.95], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [3, Y - 1.2, -88.95], yaw: -PI / 2 },
+      { kind: 'pfuetze', pos: [2.8, Y + 0.02, -116.4], size: [1.8, 1.2] }, { kind: 'regentonne', pos: [-4, Y, -126.4] },
+      { kind: 'pfuetze', pos: [4.6, Y + 0.02, -156], size: [2.6, 1.6] }, { kind: 'pfuetze', pos: [-4, Y + 0.02, -160.8], size: [1.8, 1.2] },
+      { kind: 'regentonne', pos: [6.8, Y, -148.2] }, { kind: 'regentonne', pos: [6.6, Y, -149.5], height: 1 },
+      { kind: 'wasserspeier', pos: [-4, Y - 1.2, -146.95], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [4, Y - 1.2, -146.95], yaw: -PI / 2 },
+      { kind: 'pfuetze', pos: [-20.4, Y + 0.02, -145.2], size: [1.4, 1] },
+      { kind: 'pfuetze', pos: [3.4, Y + 0.02, -184], size: [2.2, 1.4] }, { kind: 'regentonne', pos: [-6, Y, -181.2] },
+      { kind: 'pfuetze', pos: [-3.4, Y + 0.02, -213.6], size: [2.2, 1.4] }, { kind: 'pfuetze', pos: [3.2, Y + 0.02, -217.6], size: [1.6, 1.1] },
+      { kind: 'wasserspeier', pos: [-3, Y - 1.2, -179.95], yaw: -PI / 2 }, { kind: 'wasserspeier', pos: [3, Y - 1.2, -207.95], yaw: -PI / 2 },
+      { kind: 'regentonne', pos: [-4, Y, -229.4] }, { kind: 'pfuetze', pos: [8, Y + 0.02, -265.8], size: [1.6, 1.1] },
+      { kind: 'pfuetze', pos: [3, Y + 0.02, -294], size: [2.4, 1.5] }, { kind: 'regentonne', pos: [-4.8, Y, -289.4] },
+      { kind: 'festungsfahne', pos: [-5.4, Y, -97.2], yaw: 0 }, { kind: 'festungsfahne', pos: [5.4, Y, -97.2], yaw: PI },
+      { kind: 'festungsfahne', pos: [-4.4, Y, -297.4], yaw: 0 }, { kind: 'festungsfahne', pos: [4.4, Y, -297.4], yaw: PI },
+      // Wachstube
+      { kind: 'bilderrahmen', pos: [BX - 2, Y + 1.8, -158.6], yaw: -PI / 2 }, { kind: 'regentonne', pos: [BX - 6.4, Y, -157.6] },
+      { kind: 'kerzenleuchter', pos: [BX + 6.4, Y, -158] }, { kind: 'standuhr', pos: [BX + 6.6, Y, -146.4], solid: true },
+    ] },
+    { type: 'deco_w7', items: [
+      { kind: 'fahne', hang: true, pos: [-3, Y + 4.2, -5.5], yaw: -PI / 2, length: 2, width: 1.2 },
+      { kind: 'fackel', pos: [-6.2, Y, 0.5], mount: 'stand' }, { kind: 'fackel', pos: [6.2, Y, 0.5], mount: 'stand' },
+      { kind: 'fackel', pos: [-3.6, Y, -21], mount: 'stand' }, { kind: 'fackel', pos: [3.6, Y, -21], mount: 'stand' },
+      { kind: 'fackel', pos: [-4.4, Y, -46], mount: 'stand' }, { kind: 'fackel', pos: [-4.4, Y, -70], mount: 'stand' },
+      { kind: 'fackel', pos: [5.4, Y, -90], mount: 'stand' }, { kind: 'fackel', pos: [-4.4, Y, -111], mount: 'stand' }, { kind: 'fackel', pos: [4.4, Y, -126], mount: 'stand' },
+      { kind: 'fackel', pos: [-7.2, Y, -147.6], mount: 'stand' }, { kind: 'fackel', pos: [-21.4, Y, -144.6], mount: 'stand' },
+      { kind: 'knochen', pos: [5.4, Y, -183], n: 4 }, { kind: 'knochen', pos: [-5.2, Y, -217.4], n: 5 }, { kind: 'knochen', pos: [3.6, Y, -230], n: 3 },
+      { kind: 'fackel', pos: [-6.2, Y, -186], mount: 'stand' }, { kind: 'fackel', pos: [6.2, Y, -214], mount: 'stand' },
+      { kind: 'fackel', pos: [-4.4, Y, -265.4], mount: 'stand' },
+      { kind: 'kette', pos: [-1.6, Y + 6, -5.6], length: 2.6 }, { kind: 'kette', pos: [1.6, Y + 6, -5.6], length: 2.6 },
+      { kind: 'fackel', pos: [BX - 7, Y, -145], mount: 'stand' }, { kind: 'knochen', pos: [BX + 5, Y, -157], n: 3 },
+    ] },
   ],
   blocks: [
     { kind: 'question', pos: [-2.5, Y + 1.9, -1], content: 'krallen' },
@@ -103,7 +162,7 @@ export const LEVEL = {
     { kind: 'question', pos: [2.2, Y + 1.9, -73], content: 'krallen' },
     { kind: 'question', pos: [-2.5, Y + 1.9, -152], content: 'krallen' },
     { kind: 'question', pos: [2.5, Y + 2.4, -161], content: 'wachstumsbeere' },
-    { kind: 'hidden', pos: [BX + 6, Y + 2.6, -156], content: 'oneup' },               // Extraleben im Bonus-Hof
+    { kind: 'hidden', pos: [BX + 6, Y + 2.6, -156], content: 'oneup' },               // Extraleben in der Wachstube
   ],
   enemies: [
     werfer('werfer1', 1.8, -94.5),
@@ -130,7 +189,7 @@ export const LEVEL = {
     { kind: 'warpbox', id: 'warp2b', pos: [4.5, Y, -150.5], target: 'warp2' },
     { kind: 'warpbox', id: 'warpZ', pos: [8, Y, -269], target: 'warpZb' },
     { kind: 'warpbox', id: 'warpZb', pos: [-3, Y, -292], target: 'warpZ' },
-    // Rätselbox oben auf der Kletterwand → Bonus-Hof
+    // Rätselbox oben auf der Kletterwand → Wachstube
     { kind: 'warpbox', id: 'raetsel', style: 'mystery', pos: [-19, Y + 9, -153.5], target: 'raetsel2' },
     { kind: 'warpbox', id: 'raetsel2', style: 'mystery', pos: [BX - 5.4, Y, -146.2], target: [-4, Y, -158],
       task: { area: { min: [BX - 8, Y - 1, -159], max: [BX + 8, Y + 6, -144] }, star: 1, pos: [BX, Y + 1.2, -152] } },
