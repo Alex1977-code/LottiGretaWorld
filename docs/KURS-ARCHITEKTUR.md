@@ -8389,3 +8389,229 @@ und `instanced_star.js`. Test `tests/course_models_star.mjs`.
   (durchsichtig, nicht backen; für S-8 statt `nebelschwaden` empfohlen); Krone: `krone_podest`, `pokal_gross`.
 - **Instanz-Varianten:** `wabe`, `farbplatte`, `drehplatte`, `retro_block` (je ≤ 900 Dreiecke).
 - **Nicht vorhanden:** `krakenpilz`, `tintling` (Gegner – gehören zum Gegner-Agenten der Bonuswelten).
+
+## Präzisierung (Motor und Bausteine Bonuswelten)
+
+Ergänzung des Motor-/Bausteine-Agenten für die Bonuswelten: **Remix-Technik** (Pilz, Blume; Vertrag „Remix-Level“ oben) und
+**Motor, Bausteine und Themen der Welt Stern** „Sternenzelt“ (Stand: Sternenwerkstatt `0-34`, Remix-Beispiele `0-R1`,
+`0-R2`). Nichts oben Festgelegtes wird geändert; alles ist additiv. Jede Datei dokumentiert ihre Felder vollständig im
+Kopfkommentar. Alle Stern-Bausteine sind `type` in `segments` **und** `kind` (Hülle wie Welt 7/8, `level.spawn(kind, spec)`;
+`level.named.get(id)` = Griff), Aktionen im bekannten Format (Signal-Verben `start`/`stop`/`toggle` rufen die gleichnamigen
+Methoden der benannten Griffe). Takte laufen auf der Level-Uhr (`level.time`) – deterministisch. Richtungen im 90°-Raster,
+Level verlaufen nach −Z. Jeder Baustein nutzt die Registry-Modelle der Bonuswelten („Präzisierung (Modelle Bonuswelten)“,
+Tabelle „Modelle“ unten); ohne Modell bzw. mit `look: 'eigen'` baut er eigene Ersatz-Optik mit gleicher Kollision und Mechanik.
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Dateien
+
+```
+src/course/level/remix.js                   remixOf(base, rules), resolveRemix, refreshRemix, isRemix, cloneData, applyFilter,
+                                            setRemixSource (Registry meldet getLevel an); window.__courseLevels (Tests)
+src/course/view/themeVariants.js            Licht-Varianten <thema>@<licht>[+sw] (LIGHTS, lightVariant, remixTheme,
+                                            themeFromName – als THEME_HOOKS.resolve in getTheme eingetragen)
+src/course/blocks/starkit.js                star(level) Sammelstelle, Kostüme (unlockOutfit/hasOutfit/outfits), camYawAt/yawIn,
+                                            PlateSet, cullSphere, useModel, instancedModel, ModelSet, bakeRoot, sphereOf, …
+src/course/blocks/types/star_zeituhr.js     zeituhren
+src/course/blocks/types/star_platten.js     drehplatte, farbplatten, plattenwand
+src/course/blocks/types/star_walze.js       schienenwalze, walzenraum
+src/course/blocks/types/star_draufsicht.js  draufsicht, waben
+src/course/blocks/types/star_nebel.js       nebelplattform, nebelboden
+src/course/blocks/types/star_schiene.js     schienenbrett (mit Weichen), kanonenkugel_wand
+src/course/blocks/types/star_diorama.js     drehdiorama
+src/course/blocks/types/star_misc.js        Entitäts-Gimmicks als type (auch list), sternenglanz
+src/course/blocks/types/deco_star.js        deco_star (Kulisse; Registry-Modelle gebacken)
+src/course/entities/kinds/star_gimmicks.js  fliegender_zielmast, scheinziel, felsblock, riesen_frageturm, laufbombe; Hüllen
+src/course/view/theme_starspace|rainbow|galaxy|woodspace|blockland|honeycomb|grotto|fogbog|cosmic|bossblitz.js
+src/course/view/backdrop_star.js            Kulissen-Bausteine der Themen (Sternenkugel, Sternschnuppen, Nebel, Planetoiden …)
+src/course/levels/w0/0-34.js                Sternenwerkstatt (Stationen S0–S13 mit Schildern, marks für den Test)
+src/course/levels/w0/0-R1.js, 0-R2.js       Remix-Beispiele (Nacht-Remix von 1-1; Ausschnitt von 2-4 mit Zeitdruck)
+tests/course_star_blocks.mjs                Port 4900, SB_PART=remix|mech|themes, SB_SHOTS=0, Bilder tests/out/sb_*.png
+```
+
+Additiv geändert (je wenige Zeilen, mit Kommentar): `course/levels/index.js` (`getLevel` löst Remix-Platzhalter auf,
+`setRemixSource`), `course/CourseScene.js` und `course/player/powers/stern.js` (Levelmusik mit Klang-Variante:
+`music.play(LEVEL.music, LEVEL.musicVariant ? { variant } : undefined)`), `course/view/themes.js` (`THEME_HOOKS.resolve`
+in `getTheme` für `?theme=<thema>@<licht>` und 10 Registrierzeilen `??=`). Motor (Player, Level, Kollision) unverändert.
+Das Welt-Stern-Weltraumthema heißt `starspace` (`space` bleibt das Welt-2-Thema von 2-2).
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Remix-Helfer (exakt)
+
+```js
+import { remixOf } from '../../level/remix.js';
+export const LEVEL = remixOf('2-4', { id: 'P-1', world: 10, title: 'Eigener Titel', light: 'nacht', … });
+```
+
+`remixOf(base, rules)` liefert einen **Platzhalter** `{ id, world, title, archetype?, remix: { base, rules } }`; die Registry
+(`levels/index.js getLevel`) löst ihn beim ersten Abruf auf und liefert danach ein gewöhnliches LEVEL (gemerkt;
+`refreshRemix(platzhalter)` vergisst die Auflösung). `base` = Level-Id (über die Registry – auch ein anderer Remix) oder das
+LEVEL-Objekt selbst (`import { LEVEL as BASIS } from '../w2/2-4.js'`). Der Remix arbeitet auf einer tiefen Kopie der Daten
+(Funktionen und Klassen-Objekte werden geteilt): **die Basis bleibt unverändert, Änderungen der Basis wirken im Remix mit**.
+Fehlt die Basis, entsteht ein leeres Level mit `remix.missing = true` und einer Warnung.
+
+| Regel (Anwendung in dieser Reihenfolge) | Wirkung |
+| --- | --- |
+| `id`, `world`, `title` | Pflicht/Meta (eigener deutscher Titel) |
+| `keep: { box: [x0, y0, z0, x1, y1, z1] \| [x0, z0, x1, z1], hooks: 'filter' \| 'all' \| false, camera: true, margin: 2 }` | Abschnitt kürzen: nur Objekte, deren Hüllquader den Bereich (± margin) schneidet, bleiben – segments, blocks, enemies, items, Unterlisten `items` der Kulissen-Bausteine, checkpoint, stars, stamp, goal (nach Anker), Kameraschienen (nach z/area, `camera: false` lässt sie). Haken der Basis: `'filter'` (Standard; statische Geometrie und feste Formen ganz außerhalb entfallen, Entitäten außerhalb werden gleich wieder entfernt), `'all'` (ungefiltert), `false` (nicht ausführen) |
+| `remove: [Auswahl …]` | Einträge entfernen (Daten und Entitäten aus den Basis-Haken) |
+| `replaceKind: { alt: 'neu' \| { kind: 'neu', …Felder } }` | Art ersetzen: blocks/enemies/items, Entitäten der Basis-Haken **und alle Laufzeit-spawns** (?-Blöcke, Werfer …); `{ huepfmaus: 'huepfmaus_stachel' }` |
+| `replaceType: { alt: 'neu' \| { type: 'neu', …Felder } }` | Baustein-Typ in segments ersetzen |
+| `replace: [{ match: Auswahl, with: { … } \| (eintrag) => eintrag \| eintrag[] \| null }]` | Objekt = neuer Eintrag (übernimmt pos/from/to/path, wenn er keine eigenen hat); Funktion frei (null entfernt, Liste = mehrere) |
+| `change: [{ match: Auswahl, set: { … }, move: [dx, dy, dz], fn(eintrag) }]` | Felder setzen, verschieben, frei ändern |
+| `beepSpeed: 4`, `beepWarn: false` | Piep-Blöcke (piep_block/_treppe/_rutsche): `every = max(1, round((every ?? 8) / beepSpeed))`, `warn = 0` bei beepWarn false, sonst `min(every − 1, warn ?? 3)`; setzt auch `LEVEL.beepSpeed`/`beepWarn` |
+| `stars: [[x, y, z] \| { pos, id, hidden } …]` \| `{ 0: [x, y, z], 2: null }` \| `false` | alle Sterne neu bzw. je Index setzen/entfernen bzw. keine |
+| `stamp: false \| [x, y, z] \| { pos }` | Stempel aus (Pilz/Blume) bzw. neu |
+| `clocks: [[x, y, z] …] \| { list, sec: 10, id }` | Zeit-Uhren (Baustein `zeituhren`: +sec Restzeit je Uhr) |
+| `add: { segments, blocks, enemies, items }` | neue Objekte (nach allen anderen Listen-Regeln) |
+| jedes andere Feld (`timeLimit`, `start`, `goal`, `checkpoint`, `camera`, `killY`, `theme`, `archetype`, `marks` …) | überschreibt das der Basis (`marks` werden zusammengeführt; `checkpoint: null` = keiner) |
+| `music: { theme?, variant? } \| 'variante'` | Thema (Standard: das der Basis) + Klang-Variante (`nacht`, `abend`, `morgen`, `tag`, `dunkel`, `schnell`, `schwarzweiss`) → `LEVEL.music` (Name) + `LEVEL.musicVariant`; CourseScene und Funkelstern spielen `music.play(thema, { variant })`. Ohne Regel bleibt die Musik der Basis (auch deren Variante bei `{ theme, variant }`) |
+| `light: 'nacht' \| 'abend' \| 'morgen' \| 'tag' \| 'dunkel'` | Beleuchtung: Themen-Variante `<thema>@<licht>` (Himmel, Nebel, Licht, Sonne/Mond, Sterne, Figuren-/Laternenlicht, Gelände-Farben getönt; `tag` bei Weltraum-Themen = Taghimmel statt Weltraum) |
+| `filter: 'schwarzweiss'` | Graustufen-CSS-Filter über der 3D-Leinwand (HUD bleibt bunt), endet mit der Szene; Thema `<thema>@<licht>+sw` |
+| `prebuild/build/setup(level, scene?)`, `onStep(dt, t, level)` | eigene Haken (laufen nach denen der Basis) |
+| `baseHooks: true \| false \| { prebuild, build, setup }` | Haken der Basis (einzeln) abschalten |
+
+**Auswahl** (remove, replace, change): Objekt, alle Bedingungen müssen passen – `id: 'x' | [...]`, `kind`, `type` (je Name oder
+Liste), `box: [x0, y0, z0, x1, y1, z1] | [x0, z0, x1, z1]` (Anker liegt im Bereich: pos, Mitte from–to, erster Pfadpunkt,
+erstes Teil), `in: 'segments' | 'blocks' | 'enemies' | 'items' | 'deco' (Unterlisten items der Kulissen) | Liste` (Standard:
+die vier Listen), `where: (eintrag, liste) => bool`. Kurzform `'name'` = id, kind oder type gleich name.
+**Ergebnis** `LEVEL.remix = { base, removed, replaced, changed, added, kept, cut, light, filter, variant, missing }`.
+
+Beispiele: `0-R1` (Nacht-Remix von 1-1):
+
+```js
+remixOf('1-1', { id: '0-R1', world: 0, title: 'Kraxelwiese bei Mondschein', light: 'nacht', music: { variant: 'nacht' },
+  timeLimit: 400, stamp: false, replaceKind: { pilzling: 'huepfmaus' }, remove: [{ kind: ['bunny', 'itemtree'] }],
+  change: [{ match: { kind: 'question', box: [-4.5, 5, -12.2, -3.5, 7, -11] }, set: { content: 'funkenbluete' } }],
+  stars: [[-3.5, 11.2, -76], [8, 13.2, -98.5], [7.4, 4.95, -159]],
+  clocks: { id: 'uhren', list: [[0, 2.2, -2], [-4, 5.4, -26], [-1, 5.4, -58]], sec: 10 },
+  add: { enemies: [{ kind: 'huepfmaus_stachel', id: 'nacht_stachel', pos: [0, 7, -112], path: [[-4, 7, -112], [4, 7, -112]] }] } });
+```
+
+`0-R2` (nur der Rollhügel von 2-4, 30 s, Zeit-Uhren als Ideallinie, Abendrot, schnelle Musik):
+
+```js
+remixOf(HUEGELMUEHLE, { id: '0-R2', world: 0, title: 'Walzenhatz gegen die Uhr',
+  keep: { box: [-14, -4, -24, 14, 24, -110], margin: 0.5 },
+  remove: [{ box: [-10, 0, -25, 10, 12, -20] }, { id: ['g_links', 'g_rechts', 'p_hinab'] }, { type: 'sign', box: [-8, 0, -104, -2, 10, -100] }],
+  replaceKind: { huepfmaus: 'huepfmaus_stachel' }, light: 'abend', music: { variant: 'schnell' }, timeLimit: 30,
+  clocks: { id: 'uhren', sec: 8, list: [[0, 7.2, -34], [0, 7.2, -47.5], [0, 7.2, -60.5], [-3, 7.2, -78], [2, 7.2, -92]] },
+  start: { pos: [0, 6, -27], yaw: Math.PI / 2 }, checkpoint: null, goal: { pos: [0, 6, -104], height: 7 }, stamp: false,
+  stars: [[9, 7.2, -36], [7, 10.4, -74], [-9, 7.2, -100]] });
+```
+
+Weitere Muster: B-6 `{ filter: 'schwarzweiss', music: { variant: 'schwarzweiss' }, add: { enemies: [...] } }`; B-8
+`{ beepSpeed: 4, beepWarn: false }` (Musik der Basis – Taktkopplung bleibt); B-10 `remixOf('S-6', { light: 'tag', music:
+{ variant: 'tag' } })` (honeycomb@tag: Taghimmel); P-4 `keep` + `timeLimit: 100`. Licht-Varianten lassen sich ohne Remix mit
+`?theme=<thema>@<licht>` ansehen (z. B. `?course=1-1&theme=grass@abend`).
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Bausteine und Arten (Felder exakt im Kopfkommentar)
+
+| Typ / Art | Kern | Wichtige Felder (Standard) → Griff | Beispiel |
+| --- | --- | --- | --- |
+| `zeituhren` | schwebende goldene Wecker: Berühren = +sec Restzeit, Ansage „+10 Sekunden“; eingesammelte bleiben nach Checkpoint-Neustart weg | `list` [[x, y, z] …] \| `from`, `to`, `n` \| `pos`, `sec` 10, `size` 1, `color` 'gold' \| 'silber' \| 'rosa', `banner` true → `{ got, items, sec, info() }` | `{ type: 'zeituhren', id: 'uhren', list: [[0, 2, -20], [2, 2.5, -34]], sec: 10 }` |
+| `drehplatte` | Platte kippt nach dem Betreten (Vorwarnung zittert) um 90°, hängt, dreht zurück; ab 30° nicht mehr fest; Boost-Pfeil möglich | `pos` (Oberseite), `size` [2, 0.3, 2], `grid` \| `tiles` \| `from`/`to`/`n`, `spacing`, `axis` 'x' \| 'z', `mode` 'stand' \| 'takt' (`wait` 2, `phase`, `stagger` 0.4), `delay` 0.45, `warn` ≤ 0.3, `tilt` 0.3, `hold` 1.2, `back` 0.45, `color` 'blau', `color2` 'gelb', `arrow` [dx, dz] \| false, `speed` 15 → `{ plates [{ state 'ruhe'\|'warn'\|'kippt'\|'haengt'\|'zurueck', k, tilts }], tilts, start(), stop(), reset(), info() }`; Form-Tag `drehplatte` | `{ type: 'drehplatte', id: 'dreh', pos: [0, 0, -40], grid: [3, 2] }`; Boost-Strecke `{ …, from: [0, 0, -60], to: [0, 0, -84], n: 9, delay: 0.25, arrow: [0, -1] }` |
+| `farbplatten` | Betreten färbt um (from → to); alle umgefärbt → Ereignis; `toggle` = Schachbrett-Rätsel; `time` = Zeitrennen | wie drehplatte (Lage), `from` 'blau', `to` 'gelb', `toggle` false, `onAll` Aktion \| `star` Index, `at`, `time` 0 → `{ plates [{ on }], count, done, reset(), info() → { count, of, done, map } }` | `{ type: 'farbplatten', id: 'schach', pos: [0, 0, -100], grid: [3, 3], star: 0 }` |
+| `plattenwand` | senkrechte Wand mit **Schubplatten**: fahren waagerecht heraus (Trittstufen), Vorwarnung, fahren ein (wer drauf ist, fällt); Wand fest (Wandsprung) | `pos` (Mitte Unterkante der Wandfläche), `dir` [0, 1], `size` [6, 8], `grid` [3, 4] (Stufe r bei (r + 1)·h/(Reihen + 1)), `depth` 1.6, `plate` 0.6, `gap` 0.3, `thick` ≥ depth + 0.1, `mode` 'takt' \| 'treppe' \| 'signal', `order` 'treppe' \| 'reihe' \| [[c, r] …], `period` 5, `out` 2.4, `move` 0.35, `stagger` 0.45, `near` 6, `warn` 0.6, `color` 'rot', `wall` 'weiss' \| 'grau' → `{ panels [{ col, row, k, solid, state, mb }], start(), stop(), info() → { out '#~.', solid, running, opened } }`; Formen `plattenwand`, `plattenwand-stufe` | `{ type: 'plattenwand', id: 'wand', pos: [-3, 0, -78], size: [6, 8], grid: [3, 4], mode: 'takt' }`; Treppe `{ …, mode: 'treppe', near: 4 }` |
+| `schienenwalze` | Holzwalze rollt auf Schienen den Pfad entlang; Oberfläche läuft gegen die Fahrt (`roll`): mitlaufen = oben bleiben; Ende fallen/halt/zurück, respawn | `path` (Achsmitte) \| `pos` + `to`, `radius` 1.6, `length` 7, `speed` 2.6, `roll` 1.1, `start` 'stand' \| 'auto' \| 'signal', `wait` 0.35, `end` 'fallen' \| 'halt' \| 'zurueck', `respawn` 3, `rails` true, `posts` 2 (Stützen), `style`, `slice` 0.3 → `{ state 'ruhe'\|'wartet'\|'rollt'\|'ende'\|'faellt'\|'weg'\|'zurueck', s, pos, rolls, carried(), start(), stop(), reset(), info() }`; Tag `schienenwalze` | `{ type: 'schienenwalze', id: 'walze', path: [[0, -1.4, -86.8], [0, -1.4, -117]], radius: 1.4, length: 6 }` |
+| `walzenraum` | hohle Riesenwalze dreht per Schalter in 90°-Schritten; Einbauten und Items drehen mit, Figuren schweben während der Drehung | `pos` (Achsmitte), `radius` 4, `length` 8, `axis` 'z' \| 'x', `thick` 0.5, `parts` [{ u, v, w, h, color, a }], `turn` 0, `time` 0.9, `items` [{ kind, u, v, a } \| { star, u, v, a }], `schalter` { pos, id, color }, `onTurn`, `color` 'holz' \| 'birke' → `{ turn, turning, turns, toggle(), start(), info() }` | `{ type: 'walzenraum', id: 'raum', pos: [0, 4, -139], radius: 4, length: 8, parts: [{ u: 0, v: -2.5, w: 3, h: 0.5 }], schalter: { pos: [6, 0, -131], id: 'raumknopf' } }` |
+| `draufsicht` | Kamera senkrecht von oben (89,5°) im Bereich, weich überblendet; Steuerung: oben = −Z | `area` [x0, z0, x1, z1] \| `whole`, `height` 24, `fov` 42, `blend` 6, `yaw` 0, `ahead` 1.5, `lead` 0.5 → `{ area, weight(x, z), info() → { weight, pitch } }` | `{ type: 'draufsicht', id: 'oben', area: [-16, -242, 16, -270] }` |
+| `waben` | Sechseck-Feld: normal, Lava (Treffer + hochschleudern; `damage: 'tod'`), Eis (glatt), hoch (+rise) | `pos` (Oberseite Zeile 0/Spalte 0), `size` 1.6, `height` 0.6, `map` ['nnl', ' iin' …] (n, l, i, h, ' '/'.'), `gap` 0.06, `rise` 1, `damage` 'treffer' \| 'tod', `color` (eigene Optik) → `{ cells [{ q, r, type, x, y, z }], at(x, z), hits, info() }`; Tags `wabe`, `wabe-lava`, `wabe-eis` | `{ type: 'waben', id: 'feld', pos: [-6, 0, -40], map: ['nnnn', 'nlin', 'nnnn'] }` |
+| `nebelplattform` | Platten steigen/sinken im Takt aus dem Nebel (`heben`, tragen mit) oder erscheinen/verschwinden (`blinken`) | `pos` (Oberseite oben) \| `parts` [{ pos, size, phase, up, down }] \| `from`/`to`/`n`, `size` [2.6, 0.5, 2.6], `mode` 'heben' \| 'blinken', `depth` 3, `up` 2.6, `down` 2, `move` 1.1 (blinken 0.3), `warn` 0.7, `phase`, `stagger` 1.1, `fog`, `idle` → `{ parts [{ state, k, solid, mb }], start(), stop(), info() }`; Tag `nebelplattform` | `{ type: 'nebelplattform', id: 'nebel', from: [0, 0, -281], to: [0, 0, -305], n: 5, depth: 3 }` |
+| `nebelboden` | dichter Bodennebel mit Absturz darunter, optional erscheinende Bodenstücke | `pos` (y = Nebeloberfläche), `size` [w, d], `depth` 1.5, `kill` 'fall' \| 'gift' \| false, `density` 0.6, `color`, `layers` 3, `height` 1.2, `parts` [{ pos, size, up, down, phase }], `warn` 0.7 → `{ surface, parts, info() }`; Tag `nebelboden` | `{ type: 'nebelboden', pos: [0, -0.6, -293], size: [26, 32], parts: [{ pos: [-6, -0.4, -284], size: [3, 0.4, 3] }] }` |
+| `schienenbrett` | Brett fährt auf einem Schienennetz von Knoten zu Knoten; an Weichen der eingestellte Abzweig; Ende halt/fallen (respawn). Weichen: Treffer von Kanonenkugel, Wurfsichel, Panzer, Feuer, Tatze, Stampfen, Bombe (Sperre `cool`) | `nodes` { A: [x, y, z] … } (Schienen-Oberkante), `rails` [['A', 'B'] …], `start`, `next`, `weichen` { B: { to: ['C', 'D'], state 0, pos, id, cool 0.9, look } }, `speed` 5, `size` [2.6, 0.35, 2.6], `go` 'stand' \| 'auto' \| 'signal', `wait` 0.3, `end` 'fallen' \| 'halt', `respawn` 3, `posts` 0, `onRespawn` → `{ state 'ruhe'\|'wartet'\|'faehrt'\|'ende'\|'faellt'\|'weg', from, to, u, route, weichen { B: { state, to, hits, pos, toggle() } }, mb, start(), stop(), reset(), info() }`; Weiche benannt `${id}:${Knoten}`; Tags `schienenbrett`, `weiche` | `{ type: 'schienenbrett', id: 'brett', nodes: { A: [0, 0.2, -316], B: [0, 0.2, -327], C: [-3.6, 0.2, -337], D: [3.6, 0.2, -337] }, rails: [['A', 'B'], ['B', 'C'], ['B', 'D']], weichen: { B: { to: ['C', 'D'] } } }` |
+| `kanonenkugel_wand` | gestaffelte Kanonen schießen langsame, große Kugeln quer; Kugeln = tragende Trittstufen, weg nach `range` | `pos` (Fuß der untersten Kanone), `dir` [1, 0], `rows` 6, `rise` 2.2, `step` [0, 0, 0], `range` 14, `speed` 3, `period` 3.2, `stagger` 0.55, `phase`, `size` 1.4, `idle` → `{ balls, shots, start(), stop(), info() }`; Tag `kanonenkugel` | `{ type: 'kanonenkugel_wand', id: 'kugeln', pos: [-9, 0.6, -366], rows: 5, rise: 2.1 }` |
+| `drehdiorama` | Diorama-Teile drehen per Schalter in 90°-Schritten um eine senkrechte Achse (Figuren, Items, Sterne drehen mit); Sterne mit `sicht` nur aus einer Blickrichtung bzw. Stellung sichtbar/einsammelbar | `pos` (Drehpunkt, y = Unterkante), `parts` [{ pos (relativ, Mitte Unterseite), size, color, top, climbable }], `turn` 0, `time` 1.2, `dir` 1, `schalter` { pos, id, color } \| [...], `items` [{ kind, pos } \| { star }], `sicht` [{ star, yaw: [a, b] (Grad) \| turn: [...] }], `onTurn`, `disc` { radius, height, color }, `gear` true → `{ turn, turning, turns, angle, toggle(), start(), visible(star), info() }`; Tag `drehdiorama` | `{ type: 'drehdiorama', id: 'diorama', pos: [0, 0, -388], disc: { radius: 5.5 }, parts: [{ pos: [0, 0, -3], size: [8, 1.2, 1.4] }], schalter: { pos: [8, 0, -377] }, sicht: [{ star: 'blickstern', yaw: [100, 180] }] }` |
+| `sternenglanz` | Belohnung: Kostüm im Spielstand freischalten (`courseSave.data.outfits[outfit] = { from, at }`, additiv), Ansage, Funkeln | `outfit` 'stern', `when` 'ziel' \| 'sofort' \| 'signal' (Signal `sternenglanz` bzw. start()), `banner` Text \| false → `{ outfit, unlocked, isNew, fired, start(), info() }` | `{ type: 'sternenglanz', id: 'glanz', when: 'ziel' }` |
+| `fliegender_zielmast` (kind) | Zielmast mit Flügeln fliegt seinen Pfad, solange eine Figur nah ist (sonst schwebt er und wartet), landet am Ende; Fangen = Ziel (Greifhöhe zählt) | `pos` (Fuß), `path`, `height` 9, `speed` 6.5, `near` 11, `far` 24, `start` 'nah' \| 'auto' \| 'signal', `trigger` 9, `mode` 'flucht' \| 'pendel', `land`, `bob` 0.35 → `{ state 'wartet'\|'fliegt'\|'schwebt'\|'gelandet'\|'gefangen', s, dist, start(), info() }` | `{ kind: 'fliegender_zielmast', id: 'flugmast', pos: [4, 0, -164], path: [[4, 3, -176], [-4, 3, -188], [-7, 0, -199]], start: 'signal' }` |
+| `scheinziel` (kind) | sieht aus wie ein Zielmast; Berühren → Aktion, Signal, startet `mast`; fliegt davon (`fluegel`) oder verpufft (`poff`) | `pos`, `height` 9, `onTouch`, `mast` id, `mode` 'fluegel' \| 'poff' → `{ touched, info() }` | `{ kind: 'scheinziel', id: 'schein', pos: [0, 0, -156], mast: 'flugmast' }` |
+| `felsblock` (kind) | fest; Stampfen/Tatze/Feuer prallen ab; Bombe, Kanonenkugel, Riesentrank sprengen → Inhalt/Aktion | `pos` (Mitte Unterseite), `size` 2.4 \| [w, h, d], `look` 'fels' \| 'wand' \| 'eis', `by` ['bomb', 'cannon', 'mega'], `content`, `onBreak`, `hidden` → `{ broken, by, info() }` | `{ kind: 'felsblock', id: 'felswand', pos: [-5, 0, -230], size: [4, 3, 1.2], look: 'wand', content: { star: 1 } }` |
+| `riesen_frageturm` (kind) | Riesen-?-Block wächst beim Anschlagen zu einem Turm; wer oben steht, fährt mit; je Block Münzen, oben der Inhalt | `pos`, `size` 2, `blocks` 4, `delay` 0.22, `coins` 1, `content`, `onGrow`, `trigger` ['bump', 'pound', 'throw', 'shell', 'bomb', 'mega', 'cannon'], `color`, `hidden` → `{ state 'bereit'\|'waechst'\|'turm', grown, top, grow(), info() }` | `{ kind: 'riesen_frageturm', id: 'turm', pos: [-5, 2.6, -214] }` |
+| `laufbombe` (kind) | = Kickbombe (Verhalten unverändert, sprengt Felsblöcke) mit Modell `laufbombe` | Felder der Kickbombe | `{ kind: 'laufbombe', id: 'bombe', pos: [1, 0, -218], dir: [1, 0], speed: 0 }` |
+| `deco_star` | Kulisse (verschmolzen bzw. Registry-Modelle gebacken) | `items` [{ kind, pos, yaw, scale, solid, shadow, look, variant … }]; Arten: planet, stern, sterne, rakete, kristall, komet, regenbogen, holzkiste, holzbalken, walzenstapel, riesenblock, retro_wolke, retro_busch, roehre_deko, wabe, honigtopf, riesenpflanze, riesenpilz, riesenblume, liane, grabstein, kahler_baum, schneehuegel, laterne, irrlicht, antenne, neonring, leuchtsaeule; nur als Modell: kuppel, torbogen, regenbogenweg, walzen_schiene, brett_schiene, nebelbank; modell ({ name, opts, state }) | `{ type: 'deco_star', items: [{ kind: 'planet', pos: [-12, 6, -20], radius: 3, variant: 'pilz' }, { kind: 'rakete', pos: [9, 0, -4] }] }` |
+
+Hinweise für Level-Bauer: Drehplatten-Boost-Strecken mit `delay` 0,25 und Pfeil – wer rennt, ist weiter, bevor sie kippen.
+Plattenwand: die Wand ist mindestens `depth + 0,1` m tief (Rückseite nicht begehbar planen). Schienenwalze: Achse liegt
+`radius + 0,2` über der Schienen-Oberkante (Modell-Räder); Pfad = Achsmitte. Schienenbrett: Deck-Oberseite 0,62 m über den
+Knoten (Modell); die **Weiche** nutzt das Modell, wenn genau zwei Abzweige links/rechts im Winkel der Modell-Äste liegen
+(8°–34° zur Zulaufrichtung, ≥ 5,1 m voraus; z. B. Knoten 10 m voraus und 3,6 m seitlich) – dann sitzt die Zielscheibe am
+Signalmast links neben der Weiche (`weichen.B.pos` entfällt; Treffer an Mast oder Scheibe); sonst eigene Scheibe auf Pfosten
+bei `pos`. Drehdiorama: Teile in Stücke ≤ max(1,2 m, Breite) zerlegt (Kollision während der Drehung). Blick-Sterne: Gier in
+Grad wie die Kamera (0 = Kamera bei +Z, positiv = Kamera nach +X). Draufsicht-Level: Thema `honeycomb` (Sterne auch unten).
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Signale, Zustände, Schnittstellen
+
+- **Signale** (`level.signal(name, data)`): `zeituhr` { sec, got, pos }, `farbplatten` { id, count, of }, `weiche` { id, node,
+  state }, `drehdiorama` { id, turn }, `kostuem` { name, from, isNew }, `scheinziel` { id, pos }, `zielmast_gefangen` { id, s,
+  frac }, `felsblock` { id, by, pos }, `frageturm` { id, via, top }. Gehört wird `sternenglanz` (when 'signal').
+- **Sammelstelle** `star(level)` (blocks/starkit.js): { clocks, plates, colors, walls, rollers, drums, poles, towers, topdown,
+  combs, fogs, boards, cannons, dioramas, rocks, rewards } – z. B. für Gegner, die Kanonenkugeln oder Walzen abfragen.
+- **Kostüme** (Karten- und Figuren-Agent): `courseSave.data.outfits = { stern: { from: 'S-2', at } }` (additiv); Hilfen
+  `unlockOutfit(name, from)`, `hasOutfit(name)`, `outfits()` in blocks/starkit.js; die Figur-Gestaltung liest den Namen.
+- **Schnittstellen für Level-Agenten**: Remix-Dateien nur über `remixOf` (keine Kopien); Stern-Level nutzen die Themen unten
+  (`theme: 'galaxy'` …) und die Bausteine; `?theme=<thema>@<licht>` zum Ansehen. Musik-Variante nur über `music` (Regel).
+- **Schnittstellen für Gegner-Agenten**: `replaceKind` ersetzt auch Laufzeit-spawns (eigene Gegner-Arten wirken sofort in
+  Remixen); `level.spawn('felsblock' | 'riesen_frageturm' | … )`; Kanonenkugel-Treffer an Stern-Bausteinen über
+  `owner.onHit('cannon')`.
+- **Schnittstellen für Karten-Agenten**: Karten können die Stern-Themen als `theme` setzen (z. B. `starspace`), die
+  Licht-Varianten (`starspace@nacht`) ebenso; Remix-Level erscheinen über ihre Platzhalter-Daten (`id`, `world`, `title`)
+  in der Registry, ohne dass die Basis geladen werden muss.
+- **Klänge** (vorhandene Effekte): Drehplatte `flip`, Farbplatten `switch`/`key`/`alarm`, Plattenwand `flip`, Walze
+  `rumble`/`fall`, Walzenraum `rumble`/`slam`, Drehdiorama `chain`/`rumble`/`slam`, Weiche `switch`, Brett `rumble`/`chain`/
+  `fall`, Kanonen `cannon`, Zeit-Uhr `coin`/`timewarn`, Sternenglanz `powerup`, Felsblock `brickbreak`/`slam`/`bump`, ?-Turm `blockhit`/`powerup_appear`, Scheinziel `pfiff`/`swoop`, Zielmast
+  `swoop`/`land`, Lava-Wabe `burn`. `tests/sfx_namen.mjs` prüft sie.
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Themen
+
+Registriert in `view/themes.js` (`??=`); Kulissen aus `view/backdrop_star.js` (verschmolzen/unbeleuchtet, Bewegtes als wenige
+Objekte; Sternenkugel auch unterhalb des Levels).
+
+| Thema | Name | für | Kulisse und Licht |
+| --- | --- | --- | --- |
+| `starspace` | Sternenzelt | Welt Stern (Grundthema, Karte) | tiefblauer Sternenhimmel rundum, Pastell-Nebel, Ringplaneten, Sternschnuppen, kleine Planetoiden; lavendel-weiße Decken |
+| `rainbow` | Regenbogenweg | S-1 | Nachtblau/Violett, zwei Regenbogen-Bögen, Sterne, Sternschnuppen, Wattewolken tief unten |
+| `galaxy` | Planetoiden | S-2 | rosa-goldene Sternenwirbel-Wolke, viele Planetoiden mit Grashaube/Bäumchen/Ringen; Grasdecken über lila Erde |
+| `woodspace` | Holz-Athletik | S-3 | blaugrüner Weltraum, großer Mond, treibende Holzbalken/Kisten/Walzen; warmes Holz |
+| `blockland` | Riesenblockland | S-5 | Taghimmel, Wiese tief unten mit bunten Riesenblöcken, runde Hügel, Retro-Wolken; Raster-Grasdecken |
+| `honeycomb` | Waben-Sternenweg | S-6 (Draufsicht), B-10 mit `@tag` | Sterne rundum auch unten, leuchtendes Wabengitter tief unten, Honig-Lichter |
+| `grotto` | Riesengrotte | S-7 | Blätterdach-Licht, Dschungeldunst, Riesenbäume/-pilze/-blätter, Lianen; Unterwasser klares Türkis |
+| `fogbog` | Nebelfriedhof | S-8 | Winternacht, dichter heller Nebel (nah), Schneefall, Grabsteine, kahle Bäume, Laternen, Irrlichter; Figurenlicht |
+| `cosmic` | Kanonen-Kosmos | S-9 | Violett-Schwarz, Neon-Raumstation (Ringe, Türme, Lichtstrahlen), cyan Gasplanet; helles Metall |
+| `bossblitz` | Blitz-Arena | B-12 | Nacht-Weltraum-Arena, großer Mond, Lichtmasten mit Scheinwerfer-Kegeln; kräftiges Randlicht |
+
+Licht-Varianten (`view/themeVariants.js`, Remix-Regel `light` bzw. `?theme=`): `nacht` (Mond, Sterne, kühles Mondlicht mit
+Schatten, sanftes Figurenlicht), `abend` (Sonnenuntergang Lila–Rosa–Orange), `morgen` (Morgenrot, weiches Licht), `tag`
+(Taghimmel; Weltraum-Kulissen entfallen), `dunkel` (fast schwarz, naher Nebel, kräftiges Figuren- und Laternenlicht); Gelände-
+Farben werden in die Lichtfarbe gezogen, die Kulisse des Grundthemas bleibt (gedämpft/getönt).
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Modelle
+
+| Baustein | Registry-Modell | Abbildung |
+| --- | --- | --- |
+| drehplatte | `drehplatte` (Instanz-Variante) | size [w, d], thick = h, axis gleich, color/back; state tilt = k·90°, shake in der Vorwarnung |
+| farbplatten | `farbplatte` (Instanz-Variante) | colors [from, to], state color 0 → 1 (weich), flash beim Betreten, pulsiert nach dem Abschluss |
+| plattenwand | `plattenwand` (ModelSet: alle Platten einer Wand = 2 Zeichenaufrufe) | size [Plattenbreite, plate], depth; out = k; Vorwarnung zittert |
+| waben | `wabe` (Instanz-Variante je Art) | size = Eckradius − gap/2, thick = height, um 90° gedreht (Ecke ±Z), hoch = gestreckt; press unter stehenden Figuren |
+| nebelplattform / nebelboden-Teile | `nebelplattform` (ModelSet) | size [w, d], thick; blinken = schrumpfen/flackern; ganz unter der Nebeldecke nicht gezeichnet |
+| kanonenkugel_wand | `kanonenkugel_tritt` (ModelSet, nur fliegende Kugeln gezeichnet) | size = Kugel, Blick in Flugrichtung |
+| schienenwalze | `schienenwalze` + `walzen_schiene` (gebacken je Pfad-Abschnitt, auch geneigt) | radius, length; angle = Rollen; Schienen gauge = length, Prellböcke bei end halt/zurück |
+| schienenbrett | `schienenbrett`, `brett_schiene` (gebacken), `weiche` (wenn sie passt) | Brett blickt in Fahrtrichtung, speed/fall; Weiche dir = Abzweig, hit = Treffer |
+| drehdiorama (disc) | `diorama_drehscheibe` | radius, height, teeth ≈ 9·radius; angle |
+| fliegender_zielmast, scheinziel | `zielmast_fluegel` (Scheinziel bis zur Berührung `goal_pole`) | fly 0 / 0,75 / 1, flagY; blickt in Flugrichtung |
+| riesen_frageturm | `riesen_frageblock_turm` (kopf + segmente) | Kopf oben bei k·size, Segmente out = Wachstum |
+| felsblock | `felsblock_riss` (fels, wand) | size [w, h, d], break 0 → 1 in 0,9 s nach dem Sprengen |
+| laufbombe | `laufbombe` | Zustände der Kickbombe übersetzt (walk, fuse, carried, thrown) |
+| deco_star | planet { kind }, spielzeugrakete, sternschnuppe, retro_block, retro_wolke, retro_busch, wabensaeule, riesenpflanze, schneegrab, weltraum_antenne, weltraum_kuppel, sternen_torbogen, regenbogenweg, walzen_schiene, brett_schiene, nebelbank | gebacken (nebelbank bewegt) |
+
+Eigene Optik bleibt für: zeituhren, walzenraum, draufsicht, nebelboden-Fläche, Kanonen, Boost-Pfeile und die übrigen
+Kulissen-Arten (kein passendes Modell).
+
+### Präzisierung (Motor und Bausteine Bonuswelten): Tests und Kennzahlen
+
+`tests/course_star_blocks.mjs` (nach `npm run build`; je Teil < 10 min): **remix** 18 Prüfungen (Platzhalter/Registry, Nacht-
+Beleuchtung, replaceKind auch für Laufzeit-spawns, remove/change/stars/stamp, Musik-Variante im Musiksystem, Gegenprobe Basis
+unverändert, Basis-Änderung wirkt mit, Zeit-Uhr mit Gegenprobe, keep mit gefilterten Basis-Haken, Gegenprobe 2-4, Zeitdruck mit
+und ohne Uhr, Schwarz-Weiß-Filter samt Ende, beepSpeed/beepWarn mit Gegenprobe 4-3, replace/replaceType/move/in 'deco',
+Licht-Varianten, Kennzahlen, Konsole); **mech** 33 Prüfungen (jede Mechanik mit Gegenprobe, Hüllen als kind, Registry-Modelle
+mit Gegenprobe `look: 'eigen'`); **themes** 4 Prüfungen (zehn Themen mit Bildern und Rundblick). Kennzahlen (Zeichenaufrufe
+inkl. Schattenpass / Dreiecke) in der Werkstatt: Start 52 / 118 k, Drehplatte 47 / 118 k, Farbplatten 35 / 65 k, Plattenwand
+34 / 130 k, Schienenwalze 22 / 86 k, Walzenraum 43 / 111 k, Flug-Zielmast 77 / 199 k, ?-Turm 79 / 245 k (zwei Türme, Fels,
+Laufbombe, Wabenfeld im Blick), Draufsicht/Waben 33 / 137 k, Nebel 42 / 149 k, Schienenbrett 38 / 119 k, Kanonenkugeln
+48 / 166 k, Drehdiorama 63 / 148 k; Themen ≤ 65 / 177 k; Remixe ≤ 77 / 193 k. Grenzen < 120 / < 300 k.
