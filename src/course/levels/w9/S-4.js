@@ -16,7 +16,7 @@
 //   6. Zielwolke (z −262 … −290): der Mast landet; Fang, die Figur rutscht hinab.
 // Kein Kontrollpunkt (100 s, ein Atemzug). Gegner: 3 Glotzfische.
 
-import { PI, line, ring, arc, sign, wolkenInseln, wolkenteiche, donutBloecke, banner } from './_helpers_b.js';
+import { PI, line, ring, arc, sign, wolkenInseln, wolkenteiche, donutBloecke, himmelsDeko, wimpel, banner } from './_helpers_b.js';
 
 const DS = 1.4;                 // Donut-Blockgröße (m)
 const DY = -DS;                 // Donut-Unterkante, damit die Oberseite bei y 0 liegt
@@ -60,10 +60,49 @@ const DONUTS = [
     blocks: [[0, 6, -253.4], [0, 6, -254.8], [-0.4, 5, -256.6], [-0.8, 4, -258.4], [-1.2, 3, -260.2]].map(([x, y, z]) => [x, y + DY, z]) },
 ];
 
+const TEICHE = [[-4, 0, -55], [0, 0, -55], [4, 0, -55], [-4.5, 0, -124], [0, 0, -124], [4.5, 0, -124], [-3.4, 0, -172.6], [0, 0, -175.4], [3.4, 0, -178.2]];
+const BOOSTS = [[0, -31.6], [0, -73], [0, -93.4], [0, -147.4]];
+
+/** Wolkenblüten entlang der Längsränder jeder größeren Wolke (deterministisch gestreut, frei von Teichen und Boost-Pfeilen). */
+function blueten() {
+  const out = [];
+  let k = 0;
+  for (const [x0, x1, zA, zB, top] of WOLKEN) {
+    if (x1 - x0 < 5) continue;
+    const za = Math.min(zA, zB), zb = Math.max(zA, zB);
+    for (const side of [-1, 1]) {
+      const x = side < 0 ? x0 + 0.9 : x1 - 0.9;
+      for (let z = zb - 1.4; z > za + 1; z -= 2.6 + ((k * 37) % 7) * 0.25) {
+        k++;
+        if (TEICHE.some(([tx, , tz]) => Math.hypot(tx - x, tz - z) < 1.6) || BOOSTS.some(([bx, bz]) => Math.abs(bz - z) < 2 && Math.abs(bx - x) < 2)) continue;
+        const n = 1 + (k % 3 === 0 ? 1 : 0);
+        for (let i = 0; i < n; i++) out.push([x + side * -0.1 - side * i * 0.55, top, z - i * 0.5 + ((k * 13) % 5) * 0.08, undefined, 0.9 + ((k + i) % 3) * 0.15]);
+      }
+    }
+  }
+  return out;
+}
+
 function build(level) {
   donutBloecke(level, DONUTS);
   wolkenInseln(level, WOLKEN);
-  wolkenteiche(level, [[-4, 0, -55], [0, 0, -55], [4, 0, -55], [-4.5, 0, -124], [0, 0, -124], [4.5, 0, -124], [-3.4, 0, -172.6], [0, 0, -175.4], [3.4, 0, -178.2]]);
+  wolkenteiche(level, TEICHE);
+  himmelsDeko(level, {
+    ballons: [
+      { pos: [6.2, 0, 8.6], n: 4 }, { pos: [-6.3, 0, -12.8], n: 3 }, { pos: [-4.4, 0, -19], n: 3 }, { pos: [-5.4, 0, -63.2], n: 3 }, { pos: [9, 0, -56.9], n: 2 },
+      { pos: [3.5, 0, -69], n: 2 }, { pos: [-3.5, 0, -95.4], n: 3 }, { pos: [6.4, 0, -108.6], n: 3 }, { pos: [6.4, 0, -131.4], n: 3 }, { pos: [-19, 0, -112.4], n: 2 },
+      { pos: [2.5, 0, -136.5], n: 2 }, { pos: [-5.4, 0, -163.6], n: 3 }, { pos: [5.4, 0, -183.4], n: 3 }, { pos: [3.5, 0, -201.6], n: 2 }, { pos: [-3.5, 0, -227.6], n: 2 },
+      { pos: [2.5, 6, -251.5], n: 2 }, { pos: [-7.3, 0, -262.8], n: 4 }, { pos: [7.3, 0, -262.8], n: 4 }, { pos: [-7.3, 0, -289.3], n: 3 }, { pos: [7.3, 0, -289.3], n: 3 },
+    ],
+    heissluft: [[-21, 3, -42, 0xff5a5a, 1.4], [25, 9, -96, 0x4aa8ff, 1.6], [-25, 5, -166, 0xffc83a, 1.5], [23, 1, -232, 0xb87aff, 1.5], [-17, 11, -284, 0x5ad86a, 1.3], [18, -5, -8, 0xff9a3a, 1.2]],
+    blueten: blueten(),
+    zielbogen: { pos: [0, 0, -267.5], width: 13, height: 5.4 },
+  });
+  wimpel(level, [
+    { from: [-6.4, 3.4, -13.2], to: [6.4, 3.4, -13.2], n: 16, sag: 0.7, poles: true, y0: 0 },
+    { from: [-7.4, 2.8, -268.5], to: [-7.4, 2.8, -288.6], n: 14, sag: 0.6, poles: true, y0: 0 },
+    { from: [7.4, 2.8, -268.5], to: [7.4, 2.8, -288.6], n: 14, sag: 0.6, poles: true, y0: 0 },
+  ]);
 }
 
 // Flugregie des Zielmasts (Daten des Bausteins, je Schritt angepasst): am Start gemächlich (6,5 m/s – so lässt er sich mit
@@ -134,7 +173,11 @@ export const LEVEL = {
       { kind: 'komet', pos: [-24, 22, -60], size: 1.4, dir: [1, -0.3, 0.2] }, { kind: 'regenbogen', pos: [0, 0, -288], width: 10, height: 5 },
       { kind: 'stern', pos: [-6.4, 0, -286], pole: 3, size: 1.1 }, { kind: 'stern', pos: [6.4, 0, -286], pole: 3, size: 1.1 },
       { kind: 'sterne', pos: [0, 10, -60], size: [36, 60], n: 12, height: 8 }, { kind: 'sterne', pos: [0, 12, -200], size: [36, 80], n: 14, height: 10 },
+      // große Regenbögen tief unten zwischen den Wolken (Blick über den Rand)
+      { kind: 'regenbogen', pos: [17, -8, -44], width: 16, height: 9, yaw: 0.35 }, { kind: 'regenbogen', pos: [-18, -9, -100], width: 18, height: 10, yaw: -0.3 },
+      { kind: 'regenbogen', pos: [17, -8, -158], width: 16, height: 9, yaw: 0.3 }, { kind: 'regenbogen', pos: [-17, -8, -214], width: 16, height: 9, yaw: -0.35 },
     ] },
+    sign(-4.4, 0, -48.6, 'Hinterher!', { yaw: 0.3, size: [2, 0.8] }),
   ],
   blocks: [
     { kind: 'question', pos: [-2.4, 2.2, -1.6], content: 'coins:5' },
