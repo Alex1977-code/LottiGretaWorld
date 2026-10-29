@@ -13,6 +13,12 @@
 //   Zustände: idle (weit weg) → chase ⇄ shy → fade (im Licht) → defeated (0,6 s) …; hit (0,4 s).
 //   Laufzeit: light (aufsummierte Lichtzeit), lightCalls, chaseTime, shyTime, looked (Figur schaut gerade).
 //   Modell 'spuk' (opts { size }, state { anim: chase|shy|fade|idle|hit|defeated }).
+//   Welt 8 (Präzisierung Gegner Welt 8, additiv) – **Jäger** (8-6 Türreihe, Großspuk): hunt: true → er wartet (lurk) bis eine Figur
+//   den trigger-Kasten betritt (ohne trigger: näher als sight) und **verfolgt sie dann unablässig** (auch durch Wände und Türen):
+//   huntSpeed m/s (Standard 2,4; Großspuk), angeschaut nur shySpeed (Standard 0,35 · huntSpeed, Hände vors Gesicht), weiter als
+//   catchUp m (10) weg holt er mit 1,6-fachem Tempo auf; giveUp m (Standard ∞) weit weg gibt er auf (lurk). Licht-Helm löst ihn
+//   wie bisher auf (fade s Licht, Großspuk 2,2), Funkelstern/Riese ebenso. Daten zusätzlich: hunt?, trigger?: { min, max },
+//   huntSpeed?, shySpeed?, catchUp?: 10, giveUp?. Zustände zusätzlich: lurk, hunt. Laufzeit: hunting, huntTime.
 //
 // kreisgeist – einzelner Kreisgeist: kreist um center (radius, speed m/s, cw, phase) bzw. fährt eine Bahn (path,
 //   loop) oder schwebt an pos. Berührung verletzt (immer). **Licht** löst ihn nach fade s (0,6) auf; Funkelstern und
@@ -24,7 +30,8 @@
 //   Angriffe je Geist; erloschene fehlen im Ring, Modell-Maske alive). Schauen auf (peek), wenn eine Figur nah ist.
 //   Daten: { kind: 'kreisgeist_kreis', id?, pos: [x, y, z] (Mitte), count?: 8, radius?: 3, speed?: 1.6 (m/s am Umfang),
 //            cw?: false, phase?: 0..1 (Startdrehung), fade?: 0.6, peek?: 2.5 (m über den Ring hinaus) }
-//   Laufzeit: angle, alive (Zahl), members (Entitäten), mask. Beispiel:
+//   Laufzeit: angle, alive (Zahl), members (Entitäten), mask (Bits 0–30), aliveList (je Glied true/false; das Modell bekommt die
+//   Liste – Ringe bis 40 Geister, z. B. 8-6 mit 44 Kreisgeistern in mehreren Ringen). Beispiel:
 //     { kind: 'kreisgeist_kreis', pos: [0, 1.2, -40], count: 10, radius: 4, speed: 2 }
 //
 // Halloween-Optik (Präzisierung Gegner Halloween, additiv): alle drei Arten nehmen `halloween: true | false`; Standard ist
@@ -77,6 +84,16 @@ class Spuk extends EnemyW2 {
     this.edges = false;
     this.baseY = this.pos.y;
     this.state = 'idle';
+    // Welt 8: Jäger
+    this.hunt = !!spec.hunt;
+    this.huntSpeed = spec.huntSpeed ?? (big ? 2.4 : 2.8);
+    this.shySpeed = spec.shySpeed ?? this.huntSpeed * 0.35;
+    this.catchUp = spec.catchUp ?? 10;
+    this.giveUp = spec.giveUp ?? Infinity;
+    this.trigger = spec.trigger ?? null;
+    this.hunting = false;
+    this.huntTime = 0;
+    if (this.hunt) this.state = 'lurk';
     this.halloween = halloweenOf(level, spec, 'spuk_halloween');
     if (level.view) this.setModel(this.halloween ? getModel('spuk_halloween', { size: this.size, hat: spec.hat }) : getModel('spuk', { size: this.size }));
     this.initShadows(1);
@@ -113,10 +130,11 @@ class Spuk extends EnemyW2 {
     const p = this.player;
     const act = activeFigure(p);
     if (this.state === 'fade') {
-      if (this.litAgo > 0.25) this.setState(act ? 'shy' : 'idle');
+      if (this.litAgo > 0.25) this.setState(this.hunting ? 'hunt' : act ? 'shy' : 'idle');
       this.drift(dt, p, 0);
       return;
     }
+    if (this.hunt) { this.huntStep(dt, p, act); return; }
     // Pilz-Maske (Welt 6): eine zugewandte Figur mit Maske erkennt er nicht – er schwebt ruhig (idle statt shy/chase)
     if (!act || this.playerDist() > this.sight || maskedFrom(this.level, this, p)) {
       if (this.state !== 'idle') this.setState('idle');
@@ -145,6 +163,37 @@ class Spuk extends EnemyW2 {
       this.chaseTime += dt;
       this.drift(dt, p, this.speed);
     }
+  }
+
+  /** Jäger (Welt 8): lauert bis zum Auslöser, dann verfolgt er die Figur unablässig (angeschaut nur langsam). */
+  huntStep(dt, p, act) {
+    if (!this.hunting) {
+      let go = false;
+      for (const f of figures(this.level)) {
+        if (!activeFigure(f)) continue;
+        const t = this.trigger;
+        if (t ? (f.pos.x >= t.min[0] && f.pos.x <= t.max[0] && f.pos.y >= t.min[1] && f.pos.y <= t.max[1] && f.pos.z >= t.min[2] && f.pos.z <= t.max[2])
+          : Math.hypot(f.pos.x - this.pos.x, f.pos.z - this.pos.z) < this.sight) { go = true; break; }
+      }
+      if (this.state !== 'lurk') this.setState('lurk');
+      this.drift(dt, null, 0);
+      if (go) { this.hunting = true; this.setState('hunt'); this.level.sfx('ghost'); }
+      return;
+    }
+    if (!act) { this.drift(dt, null, 0); return; }
+    const d = this.playerDist();
+    if (d > this.giveUp) { this.hunting = false; this.setState('lurk'); return; }
+    const c = this.center();
+    let looked = false;
+    for (const f of figures(this.level)) if (activeFigure(f) && looksAt(this.level, f, c, this.look)) { looked = true; break; }
+    this.looked = looked;
+    this.huntTime += dt;
+    let v = looked || this.hitT > 0 ? this.shySpeed : this.huntSpeed;
+    if (d > this.catchUp) v *= 1.6;
+    const want = looked ? 'shy' : 'hunt';
+    if (this.state !== want && this.state !== 'fade') this.setState(want);
+    if (looked) this.shyTime += dt; else this.chaseTime += dt;
+    this.drift(dt, p, v);
   }
 
   /** Schweben: waagerecht mit speed zur Figur, Höhe weich auf Figur + hover (sonst Ausgangshöhe). */
@@ -182,13 +231,13 @@ class Spuk extends EnemyW2 {
     if (s === 'defeated') return { anim: 'defeated' };
     if (this.flinch !== undefined && this.level.time - this.flinch < HIT) return { anim: 'hit' };
     if (s === 'fade') return { anim: 'fade' };
-    if (s === 'chase') return { anim: 'chase' };
+    if (s === 'chase' || s === 'hunt') return { anim: 'chase' };
     if (s === 'shy') return { anim: 'shy' };
     return { anim: 'idle' };
   }
 
   info() {
-    return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), looked: this.looked, light: +this.light.toFixed(2), size: this.size, defeated: this.defeated, halloween: this.halloween };
+    return { state: this.state, x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2), looked: this.looked, light: +this.light.toFixed(2), size: this.size, defeated: this.defeated, halloween: this.halloween, hunting: this.hunting, huntTime: +this.huntTime.toFixed(2) };
   }
 }
 
@@ -323,6 +372,7 @@ class KreisgeistKreis extends EnemyW2 {
     this.t = level.time;
     this.yaw = 0;
     this.mask = 0;
+    this.aliveList = new Array(this.count).fill(true);
     this.members = [];
     this.peek = false;
     this.halloween = halloweenOf(level, spec, 'kreisgeist_kreis_halloween');
@@ -358,6 +408,7 @@ class KreisgeistKreis extends EnemyW2 {
 
   memberGone(g) {
     this.mask &= ~(1 << g.index);
+    this.aliveList[g.index] = false;
   }
 
   update(dt) {
@@ -378,7 +429,7 @@ class KreisgeistKreis extends EnemyW2 {
   onPlayer() { return 'none'; }
   onHit() {}
 
-  modelState() { return { anim: this.peek ? 'peek' : 'circle', angle: this.angle, alive: this.mask }; }
+  modelState() { return { anim: this.peek ? 'peek' : 'circle', angle: this.angle, alive: this.count > 30 ? this.aliveList : this.mask }; }
 
   syncModel() {
     if (!this.model) return;
