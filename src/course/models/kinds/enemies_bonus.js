@@ -29,15 +29,13 @@
 
 import {
   THREE, TAU, Build, cached, vcol, basic, mesh, joint, eyes, dizzyStars, makeModel, Clock, Blinker, damp, clamp, col, mix,
-  smoothstep, lerp, instMesh, setInst, placed,
+  smoothstep, lerp, instMesh, setInst, placed, onLathe, decals,
 } from '../lib/kit.js';
 import { taperTube } from '../lib/hwGeos.js';
 import { fibDirs } from '../lib/w6Geos.js';
 import { prog, num, fxPuffs, spikeCone, ownMat, puffyGeo } from '../lib/w8Geos.js';
 
 const _v = new THREE.Vector3();
-const dirOf = (x, y, z) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; };
-const nearDir = (d, list, cosR) => list.some((q) => d[0] * q[0] + d[1] * q[1] + d[2] * q[2] > cosR);
 
 // =============================================================================================
 // Krakenpilz
@@ -47,9 +45,11 @@ const KP = {
   face: 0xfdeefe, faceLow: 0xdcc0ec, cheek: 0xff9ac8, tent: 0x8a56ee, tentHi: 0xc8a8ff, tentLow: 0x4a1ea8, sucker: 0xffd0ea,
   lip: 0xff6aae, mouth: 0x5a1438,
 };
-const KP_SPOTS = [[0.15, 1, 0.55], [-0.5, 0.8, 0.45], [0.55, 0.75, -0.45], [-0.25, 0.85, -0.6], [0.85, 0.45, 0.2], [-0.8, 0.45, -0.1], [0.05, 0.5, 0.95], [0.2, 0.45, -0.95], [-0.45, 0.4, 0.9], [-0.95, 0.3, 0.45], [0.7, 0.35, 0.75]]
-  .map(([x, y, z]) => dirOf(x, y, z));
 const KP_EYE_Y = 0.36;
+const KP_CAP = [[0, 0.48], [0.2, 0.47], [0.34, 0.455], [0.44, 0.47], [0.48, 0.52], [0.47, 0.6], [0.41, 0.71], [0.31, 0.815], [0.17, 0.885], [0, 0.9]];
+/** Tupfen auf dem Hut: [Azimut, Höhenwinkel, Radius] (Strahl von der Hutmitte y 0,5). */
+const KP_SPOT_AE = [[0.35, 0.95, 0.085], [1.55, 0.8, 0.075], [2.65, 0.9, 0.085], [3.75, 0.72, 0.08], [4.85, 0.85, 0.075], [5.75, 0.72, 0.08],
+  [0.95, 0.36, 0.065], [2.1, 0.32, 0.065], [3.2, 0.38, 0.07], [4.3, 0.3, 0.065], [5.3, 0.36, 0.065], [0.2, 1.45, 0.095]];
 
 function kpBodyGeo() {
   return cached('bonus:kp:body', () => {
@@ -57,14 +57,14 @@ function kpBodyGeo() {
     // Gesicht/Stiel: rundlicher Knubbel
     b.lathe([[0, 0.08], [0.2, 0.09], [0.28, 0.15], [0.315, 0.26], [0.305, 0.38], [0.27, 0.46], [0.2, 0.5], [0, 0.52]],
       { v: (x, y, z, nx, ny) => mix(KP.faceLow, KP.face, smoothstep(ny * 0.5 + 0.55 + (y - 0.2) * 0.8)) }, undefined, 26, 3);
-    // Kuppelhut mit Leuchttupfen (Farbe je Dreieck: Tupfen scharf)
-    b.lathe([[0, 0.9], [0.17, 0.885], [0.31, 0.815], [0.41, 0.71], [0.47, 0.6], [0.48, 0.52], [0.44, 0.47], [0.34, 0.455], [0.2, 0.47], [0, 0.48]],
-      (x, y, z, nx, ny) => {
-        if (ny < -0.25) return mix(KP.rim, KP.capLow, 0.35);
-        const d = dirOf(x, (y - 0.5) * 1.15, z);
-        if (y > 0.5 && nearDir(d, KP_SPOTS, 0.955)) return nearDir(d, KP_SPOTS, 0.985) ? KP.spotHi : KP.spot;
-        return mix(KP.capLow, mix(KP.cap, KP.capHi, smoothstep((y - 0.62) / 0.28) * 0.75), smoothstep((y - 0.47) / 0.12));
-      }, undefined, 30, 3);
+    // Kuppelhut (weicher Verlauf) mit runden Leuchttupfen (Aufkleber auf der Hutfläche)
+    b.lathe(KP_CAP, { v: (x, y, z, nx, ny) => {
+      if (ny < -0.3) return mix(KP.rim, KP.capLow, 0.35);
+      return mix(KP.capLow, mix(KP.cap, KP.capHi, smoothstep((y - 0.62) / 0.28) * 0.75), smoothstep((y - 0.47) / 0.12));
+    } }, undefined, 30, 3);
+    const hits = KP_SPOT_AE.map(([az, el, r]) => ({ ...onLathe(KP_CAP, 0.5, az, el), r }));
+    decals(b, hits, 0.08, KP.spot, 0.2);
+    decals(b, hits.map((h) => h && { p: h.p.clone().addScaledVector(h.n, 0.004).add(new THREE.Vector3(0, h.r * 0.25, 0)), n: h.n, r: h.r * 0.38 }), 0.03, KP.spotHi, 0.2);
     // Hutrand-Wulst
     b.torus(0.445, 0.035, KP.rim, { p: [0, 0.495, 0], r: [Math.PI / 2, 0, 0] }, 8, 32);
     // Rosabäckchen
@@ -81,8 +81,8 @@ function kpTentGeo() {
     const b = new Build();
     const pts = [[0, 0.06, 0], [0.1, 0.03, 0], [0.2, 0.012, 0], [0.28, 0.02, 0], [0.32, 0.06, 0], [0.305, 0.105, 0], [0.27, 0.11, 0]];
     b.add(taperTube(pts, (t) => 0.062 * (1 - t * 0.62) + 0.012, 18, 8), (x, y, z, nx, ny) => {
-      if (ny < -0.45 && Math.sin(x * 70) > 0.1 && x < 0.3) return KP.sucker;
-      return mix(KP.tentLow, mix(KP.tent, KP.tentHi, smoothstep(ny * 0.7 + 0.2) * 0.6), smoothstep(ny * 0.6 + 0.7));
+      const base = mix(KP.tentLow, mix(KP.tent, KP.tentHi, smoothstep(ny * 0.7 + 0.2) * 0.6), smoothstep(ny * 0.6 + 0.7));
+      return ny < -0.55 && x < 0.3 ? mix(base, KP.sucker, 0.55) : base;
     });
     return b.geometry();
   });
@@ -196,18 +196,16 @@ const TL = {
   skirtLow: 0xf0a8d0, tent: 0xff96cc, tentHi: 0xffdcee, tentLow: 0xd25a9e, sucker: 0xfff4fa, lash: 0x3a1430, beak: 0xff5a86,
 };
 const TL_BASE = 0.5;   // Ansatz der Arme (Mantel-Unterkante) über dem Ursprung
-const TL_DOTS = [[0.2, 0.9, 0.4], [-0.3, 0.7, 0.6], [-0.2, 0.8, -0.55], [0.4, 0.55, -0.7], [-0.75, 0.4, 0.1], [-0.6, 0.2, -0.75], [0.1, 0.3, 0.95], [-0.25, 0.25, 0.95], [0.6, 0.25, 0.7], [-0.95, 0.6, -0.1], [0.05, 0.98, -0.1]]
-  .map(([x, y, z]) => dirOf(x, y, z));
+/** Tupfen auf dem Mantel: [Azimut, Höhenwinkel, Radius] (Strahl von y = Ansatz + 0,3; vorn bei Azimut 0 sind die Augen). */
+const TL_DOT_AE = [[Math.PI, 0.25, 0.07], [2.3, 0.65, 0.06], [-2.3, 0.65, 0.06], [1.55, 0.15, 0.065], [-1.55, 0.15, 0.065], [2.6, -0.3, 0.055],
+  [-2.6, -0.3, 0.055], [0.9, 0.85, 0.05], [-0.9, 0.85, 0.05], [Math.PI, 1.05, 0.06], [1.2, -0.45, 0.05], [-1.2, -0.45, 0.05]];
 function tlMantleGeo() {
   return cached('bonus:tl:mantle', () => {
     const b = new Build();
     const B = TL_BASE;
-    b.lathe([[0, B + 0.82], [0.06, B + 0.8], [0.16, B + 0.72], [0.25, B + 0.58], [0.31, B + 0.42], [0.34, B + 0.26], [0.33, B + 0.12], [0.29, B + 0.03], [0.22, B - 0.02], [0, B - 0.02]],
-      (x, y, z, nx, ny) => {
-        const d = dirOf(x, (y - B - 0.3) * 0.8, z);
-        if (y > B + 0.1 && nx < 0.6 && nearDir(d, TL_DOTS, 0.965)) return TL.dot;
-        return mix(TL.mantleLow, mix(TL.mantle, TL.mantleHi, smoothstep(ny * 0.6 + nx * 0.2) * 0.7), smoothstep((y - B) / 0.35 + ny * 0.3));
-      }, undefined, 28, 3);
+    const MANTLE = [[0, B - 0.02], [0.22, B - 0.02], [0.29, B + 0.03], [0.33, B + 0.12], [0.34, B + 0.26], [0.31, B + 0.42], [0.25, B + 0.58], [0.16, B + 0.72], [0.06, B + 0.8], [0, B + 0.82]];
+    b.lathe(MANTLE, { v: (x, y, z, nx, ny) => mix(TL.mantleLow, mix(TL.mantle, TL.mantleHi, smoothstep(ny * 0.6 + nx * 0.2) * 0.7), smoothstep((y - B) / 0.35 + ny * 0.3)) }, undefined, 28, 3);
+    decals(b, TL_DOT_AE.map(([az, el, r]) => ({ ...onLathe(MANTLE, B + 0.3, az, el), r })), 0.06, TL.dot, 0.18);
     // Seitenflossen (spitz, magenta)
     const fin = new THREE.Shape();
     fin.moveTo(0, 0); fin.quadraticCurveTo(0.2, 0.02, 0.3, 0.16); fin.quadraticCurveTo(0.14, 0.24, 0, 0.36); fin.lineTo(0, 0);
@@ -234,8 +232,8 @@ function tlArmGeo() {
     const b = new Build();
     const pts = [[0, 0, 0], [0.025, -0.13, 0], [0.04, -0.27, 0], [0.03, -0.4, 0], [0.0, -0.48, 0], [-0.03, -0.5, 0]];
     b.add(taperTube(pts, (t) => 0.058 * (1 - t * 0.7) + 0.008, 18, 7), (x, y, z, nx) => {
-      if (nx < -0.5 && Math.sin(y * 55) > 0.2) return TL.sucker;
-      return mix(TL.tentLow, mix(TL.tent, TL.tentHi, smoothstep(nx * 0.5 + 0.3) * 0.5), smoothstep(y * 2 + 1.1));
+      const base = mix(TL.tentLow, mix(TL.tent, TL.tentHi, smoothstep(nx * 0.5 + 0.3) * 0.5), smoothstep(y * 2 + 1.1));
+      return nx < -0.6 ? mix(base, TL.sucker, 0.45) : base;
     });
     return b.geometry();
   });
