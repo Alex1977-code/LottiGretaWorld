@@ -536,14 +536,18 @@ export function baronZug(level, cars, opt = {}) {
       const Lb = zb0 - z1, czb = (zb0 + z1) / 2;
       if (kind === 'kasten') add(-hw, hw, 1.0, 3.75, z0, z1);
       else add(-hw, hw, 1.4, 3.75, zb0, z1);
-      b.box(w, 2.2, Lb, 0, 1.4, czb, ZUGF.body, { r: 0.1 });
-      b.box(w + 0.04, 0.16, Lb + 0.02, 0, 2.5, czb, ZUGF.trim, { r: 0.04 });
-      b.box(w + 0.2, 0.18, Lb + 0.2, 0, 3.58, czb, ZUGF.roof, { r: 0.09 });
-      b.box(w - 0.4, 0.05, Lb - 0.4, 0, 3.74, czb, ZUGF.roofHi, { r: 0.03 });
+      // unten fest, oben (Wand ab 2,45, Goldband, Dach, Laufsteg) blendet aus, wenn der Wagen die Figur verdeckt
+      const F = fb(c.id);
+      b.box(w, 1.1, Lb, 0, 1.4, czb, ZUGF.body, { r: 0.1 });
+      F.box(w, 1.2, Lb, 0, 2.45, czb, ZUGF.body, { r: 0.1 });
+      F.box(w + 0.04, 0.16, Lb + 0.02, 0, 2.5, czb, ZUGF.trim, { r: 0.04 });
+      F.box(w + 0.2, 0.18, Lb + 0.2, 0, 3.58, czb, ZUGF.roof, { r: 0.09 });
+      F.box(w - 0.4, 0.05, Lb - 0.4, 0, 3.74, czb, ZUGF.roofHi, { r: 0.03 });
       // Laufsteg aus Holzplanken mit Goldnieten (zeigt den Weg übers Dach)
-      b.box(1.1, 0.04, Lb - 0.7, 0, 3.78, czb, ZUGF.wood, { r: 0, seg: 0 });
-      for (let k = 1; k < Math.floor((Lb - 0.7) / 0.6); k++) b.box(1.1, 0.012, 0.04, 0, 3.82, zb0 - 0.35 - k * 0.6, ZUGF.woodDk, { r: 0, seg: 0 });
-      for (const sx of [-0.62, 0.62]) b.box(0.06, 0.05, Lb - 0.7, sx, 3.78, czb, ZUGF.trim, { r: 0, seg: 0 });
+      F.box(1.1, 0.04, Lb - 0.7, 0, 3.78, czb, ZUGF.wood, { r: 0, seg: 0 });
+      for (let k = 1; k < Math.floor((Lb - 0.7) / 0.6); k++) F.box(1.1, 0.012, 0.04, 0, 3.82, zb0 - 0.35 - k * 0.6, ZUGF.woodDk, { r: 0, seg: 0 });
+      for (const sx of [-0.62, 0.62]) F.box(0.06, 0.05, Lb - 0.7, sx, 3.78, czb, ZUGF.trim, { r: 0, seg: 0 });
+      faders.push({ id: c.id, occ: { x0: OX - hw - 0.1, x1: OX + hw + 0.1, y0: 2.45, y1: 3.9, z0: z1, z1: zb0 } });
       // Fenster (leuchten) und Wappen
       const n = Math.max(1, Math.floor(Lb / 2.2));
       for (let i = 0; i < n; i++) {
@@ -598,7 +602,7 @@ export function baronZug(level, cars, opt = {}) {
       // Stirnwände mit Tür (die hintere blendet aus)
       for (const [ez, rear] of [[z0, true], [z1, false]]) {
         const ze = rear ? ez - t / 2 : ez + t / 2;
-        const B = rear ? F : b;
+        const B = F;
         for (const sx of [-1, 1]) { const x0 = sx > 0 ? D : -hw, x1 = sx > 0 ? hw : -D; add(x0, x1, 1.4, top, ze + t / 2, ze - t / 2); B.box(x1 - x0, top - 1.4, t, (x0 + x1) / 2, 1.4, ze, ZUGF.bodyDk, { r: 0.03 }); }
         add(-D, D, DH, top, ze + t / 2, ze - t / 2);
         B.box(2 * D, top - DH, t, 0, DH, ze, ZUGF.bodyDk, { r: 0.03 });
@@ -615,7 +619,8 @@ export function baronZug(level, cars, opt = {}) {
       const K = ha / 2 + 0.5, KH = 2.2;
       for (const [x0, x1, za, zb] of [[hx - K - 0.12, hx - K, hz + K + 0.12, hz - K - 0.12], [hx + K, hx + K + 0.12, hz + K + 0.12, hz - K - 0.12], [hx - K, hx + K, hz + K + 0.12, hz + K], [hx - K, hx + K, hz - K, hz - K - 0.12]]) add(x0, x1, top + 0.2, top + 0.2 + KH, za, zb);
       add(hx - K - 0.12, hx + K + 0.12, top + 0.2 + KH, top + 0.4 + KH, hz + K + 0.12, hz - K - 0.12);
-      faders.push({ id: c.id, box: { x0: OX - hw + 0.1, x1: OX + hw - 0.1, y0: 1.2, y1: top - 0.1, z0: z1 + 0.1, z1: z0 - 0.1 } });
+      faders.push({ id: c.id, box: { x0: OX - hw + 0.1, x1: OX + hw - 0.1, y0: 1.2, y1: top - 0.1, z0: z1 + 0.1, z1: z0 - 0.1 },
+        occ: { x0: OX - hw - 0.1, x1: OX + hw + 0.1, y0: 2.7, y1: top + 0.2, z0: z1, z1: z0 } });
       c.dome = { x: OX + hx, z: hz, K, top: top + 0.2, KH, a: ha };
     }
     if (kind === 'gepaeck') {
@@ -637,7 +642,7 @@ export function baronZug(level, cars, opt = {}) {
       }
       for (const [ez, rear] of [[z0, true], [z1, false]]) {
         const ze = rear ? ez - t / 2 : ez + t / 2;
-        const B = rear ? F : b;
+        const B = F;
         const D = rear ? 0 : c.door ?? 0, DH = c.doorH ?? 2.8;
         if (!D) { add(-hw, hw, 1.4, top, ze + t / 2, ze - t / 2); B.box(w, top - 1.4, t, 0, 1.4, ze, GD, { r: 0.03 }); continue; }
         for (const sx of [-1, 1]) { const x0 = sx > 0 ? D : -hw, x1 = sx > 0 ? hw : -D; add(x0, x1, 1.4, top, ze + t / 2, ze - t / 2); B.box(x1 - x0, top - 1.4, t, (x0 + x1) / 2, 1.4, ze, GD, { r: 0.03 }); }
@@ -654,7 +659,8 @@ export function baronZug(level, cars, opt = {}) {
       }
       // Lukenrahmen (Gold) – verrät das Geheimnis
       for (const [dx, dz, sx, sz] of [[0, la / 2, la + 0.2, 0.1], [0, -la / 2, la + 0.2, 0.1], [la / 2, 0, 0.1, la], [-la / 2, 0, 0.1, la]]) b.box(sx, 0.08, sz, lx + dx, top + 0.2, lz + dz, ZUGF.trim, { r: 0.02 });
-      faders.push({ id: c.id, box: { x0: OX - hw + 0.1, x1: OX + hw - 0.1, y0: 1.2, y1: top - 0.05, z0: z1 + 0.1, z1: z0 - 0.1 } });
+      faders.push({ id: c.id, box: { x0: OX - hw + 0.1, x1: OX + hw - 0.1, y0: 1.2, y1: top - 0.05, z0: z1 + 0.1, z1: z0 - 0.1 },
+        occ: { x0: OX - hw - 0.1, x1: OX + hw + 0.1, y0: 2.5, y1: top + 0.25, z0: z1, z1: z0 } });
       c.luke = [OX + lx, lz, la];
       c.top = top;
     }
@@ -718,36 +724,80 @@ export function baronZug(level, cars, opt = {}) {
   }
   b.flush(level, { castShadow: true });
   g.flush(level, { material: 'glow', castShadow: false });
-  // Ausblend-Teile (Dach/Rückwand/obere Seitenwände) je Wagen ein Mesh mit eigenem Material
-  if (level.view) {
-    for (const f of faders) {
-      const geo = fade.get(f.id)?.geometry();
-      if (!geo) continue;
-      const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, transparent: true, opacity: 1 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.name = `zug-ausschnitt:${f.id}`;
-      mesh.castShadow = true; mesh.receiveShadow = true;
-      mesh.userData.owned = true;
-      level.view.add(mesh);
-      f.mesh = mesh; f.mat = mat; f.k = 0;
-    }
-    level.view.onFrame((dt) => {
-      const p = level.player;
-      for (const f of faders) {
-        if (!f.mesh) continue;
-        const inside = !!p && imWagen(f, p);
-        f.k = clamp(f.k + (inside ? 1 : -1) * Math.min(0.1, dt || 0) / 0.3, 0, 1);
-        f.mat.opacity = 1 - 0.86 * f.k;
-        f.mat.depthWrite = f.k < 0.5;
-        f.mesh.castShadow = f.k < 0.5;
-      }
-    });
-  }
+  // Ausblend-Teile aller Wagen in einem Mesh: je Wagen blendet der Aufbau gerastert aus (Bayer-Muster, deckendes Zeichnen
+  // ohne Sortierprobleme), solange die Figur darin ist (Ausschnitt) oder der Wagen zwischen Kamera und Figur steht
+  if (level.view && faders.length) aufbauMesh(level, faders, fade, opt.name ?? 'zug-aufbau');
   return { wheels, faders };
 }
 
 /** Steht die Figur p im Ausschnitt-Wagen f? */
-export const imWagen = (f, p) => { const B = f.box, q = p.pos; return q.x > B.x0 && q.x < B.x1 && q.y > B.y0 && q.y < B.y1 && q.z > B.z0 && q.z < B.z1; };
+export const imWagen = (f, p) => { const B = f.box, q = p.pos; return !!B && q.x > B.x0 && q.x < B.x1 && q.y > B.y0 && q.y < B.y1 && q.z > B.z0 && q.z < B.z1; };
+
+const BAYER = '0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.';
+const _zr = new THREE.Ray(), _zh = new THREE.Vector3(), _zp = new THREE.Vector3();
+
+/** Ein Mesh für die Ausblend-Teile aller Wagen (Attribut aCar je Wagen, Uniform uFade[N] = sichtbarer Anteil 0..1). */
+function aufbauMesh(level, faders, fade, name) {
+  const geos = [], used = [];
+  faders.forEach((f) => {
+    const geo = fade.get(f.id)?.geometry();
+    if (!geo) return;
+    const g2 = geo.index ? geo.toNonIndexed() : geo;
+    for (const k of Object.keys(g2.attributes)) if (!['position', 'normal', 'color'].includes(k)) g2.deleteAttribute(k);
+    g2.setAttribute('aCar', new THREE.BufferAttribute(new Float32Array(g2.attributes.position.count).fill(used.length), 1));
+    geos.push(g2);
+    f.slot = used.length;
+    used.push(f);
+  });
+  if (!geos.length) return null;
+  const N = used.length;
+  const uFade = { value: new Array(N).fill(1) };
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62 });
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uFade = uFade;
+    sh.vertexShader = 'attribute float aCar;\nvarying float vCar;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vCar = aCar;');
+    sh.fragmentShader = `#define ZF_N ${N}\nuniform float uFade[ZF_N];\nvarying float vCar;\n` + sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+  {
+    float zf = uFade[int(vCar + 0.5)];
+    if (zf < 0.999) {
+      const float zb[16] = float[16](${BAYER});
+      ivec2 zp = ivec2(mod(gl_FragCoord.xy, 4.0));
+      if ((zb[zp.x + zp.y * 4] + 0.5) / 16.0 >= zf) discard;
+    }
+  }`);
+  };
+  mat.customProgramCacheKey = () => `w8b:zugaufbau:${N}`;
+  const mesh = new THREE.Mesh(mergeGeometries(geos, false), mat);
+  mesh.name = name;
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  mesh.userData.owned = true;
+  level.view.add(mesh);
+  for (const f of used) {
+    f.vis = 1;
+    if (f.occ) f.occBox = new THREE.Box3(new THREE.Vector3(f.occ.x0, f.occ.y0, f.occ.z0), new THREE.Vector3(f.occ.x1, f.occ.y1, f.occ.z1));
+  }
+  level.view.onFrame((dt) => {
+    const p = level.player, cam = level.view.camera.position;
+    let ray = false, len = 0;
+    if (p) {
+      _zh.set(p.pos.x, p.pos.y + 0.75, p.pos.z);
+      _zr.origin.copy(cam);
+      _zr.direction.copy(_zh).sub(cam);
+      len = _zr.direction.length();
+      _zr.direction.normalize();
+      ray = true;
+    }
+    const step = Math.min(0.1, dt || 0) / 0.25;
+    for (const f of used) {
+      const inside = !!p && imWagen(f, p);
+      const blocks = ray && !inside && f.occBox && !f.occBox.containsPoint(_zh) && !!_zr.intersectBox(f.occBox, _zp) && _zp.distanceTo(cam) < len - 0.3;
+      const want = inside ? 0.1 : blocks ? 0.35 : 1;
+      f.vis += clamp(want - f.vis, -step, step);
+      uFade.value[f.slot] = f.vis;
+    }
+  });
+  return mesh;
+}
 
 // ------------------------------------------------------------------ Fahrt-Illusion
 
@@ -1012,14 +1062,22 @@ export function bahnhofOptik(level, bh) {
     b.box(0.5, 0.35, 1.2, bh.x1 - 0.3, y, z, 0x8a5a30, { r: 0.04 });
     for (let k = 0; k < 4; k++) b.sphere(0.13, bh.x1 - 0.3, y + 0.42, z - 0.45 + k * 0.3, [0xff6a8a, 0xffd84a, 0xffffff, 0x9a7aff][(k + Math.round(z)) & 3], { ws: 6, hs: 4 });
   }
-  // Häuschen mit Uhr
-  b.box(3.4, 3.2 + y, 5, bh.x1 + 2.2, -0.5, cz + 3, 0xf0d8c0, { r: 0.1 });
-  b.box(3.8, 0.4, 5.4, bh.x1 + 2.2, y + 2.7, cz + 3, ZUGF.body, { r: 0.1 });
-  b.cone(3.1, 1.6, bh.x1 + 2.2, y + 3.1, cz + 3, ZUGF.roof, 4, { yaw: Math.PI / 4 });
-  b.cyl(0.55, 0.55, 0.12, bh.x1 + 0.45, y + 2.0, cz + 3, 0xffffff, 16, { rz: Math.PI / 2 });
-  b.box(0.04, 0.4, 0.06, bh.x1 + 0.38, y + 2.05, cz + 3, ZUGF.black, { r: 0, seg: 0 });
-  g.box(0.06, 1, 1, bh.x1 + 0.48, y + 0.6, cz + 1.4, ZUGF.glow, { r: 0, seg: 0 });
-  g.box(0.06, 1, 1, bh.x1 + 0.48, y + 0.6, cz + 4.6, ZUGF.glow, { r: 0, seg: 0 });
+  // Bahnhofsgebäude gegenüber (links der Gleise, Uhrtürmchen und Fenster zum Zug) auf eigenem Sockel
+  const hx = bh.houseX ?? -6.2, hz = cz + 2, fs = Math.sign(cx - hx) || 1;
+  b.box(4.4, 16 + y, 8, hx, -16, hz, gradY(0x5a3a5a, 0xc8a8c0, -16, y), { r: 0.06 });
+  b.box(3.4, 3.2, 5, hx, y, hz, 0xf6e0c8, { r: 0.1 });
+  b.box(3.8, 0.4, 5.4, hx, y + 3.2, hz, ZUGF.body, { r: 0.1 });
+  b.cone(3.1, 1.6, hx, y + 3.6, hz, ZUGF.roof, 4, { yaw: Math.PI / 4 });
+  b.box(1.2, 1.5, 1.2, hx, y + 4.5, hz, 0xf6e0c8, { r: 0.05 });
+  b.cone(1.05, 1.1, hx, y + 6.0, hz, ZUGF.roof, 4, { yaw: Math.PI / 4 });
+  b.sphere(0.14, hx, y + 7.15, hz, ZUGF.trim);
+  b.cyl(0.46, 0.46, 0.1, hx + fs * 0.62, y + 5.25, hz, 0xffffff, 16, { rz: Math.PI / 2 });
+  b.box(0.04, 0.32, 0.05, hx + fs * 0.69, y + 5.25, hz, ZUGF.black, { r: 0, seg: 0 });
+  b.box(0.04, 0.05, 0.26, hx + fs * 0.69, y + 5.25, hz - 0.1, ZUGF.black, { r: 0, seg: 0 });
+  for (const dz of [-1.5, 1.5]) g.box(0.06, 1.0, 1.0, hx + fs * 1.71, y + 1.0, hz + dz, ZUGF.glow, { r: 0, seg: 0 });
+  b.box(0.06, 1.9, 1.0, hx + fs * 1.71, y, hz, 0x7a4a2a, { r: 0, seg: 0 });
+  b.box(0.08, 0.5, 2.8, hx + fs * 1.75, y + 2.3, hz, ZUGF.trim, { r: 0.03 });
+  b.box(0.06, 0.36, 2.6, hx + fs * 1.79, y + 2.37, hz, ZUGF.lok, { r: 0.02 });
   // Bänke, Koffer, Laternen, Schild
   for (const z of [z0 - 4, z1 + 5]) { b.box(0.5, 0.45, 1.8, bh.x1 - 0.5, y, z, ZUGF.woodDk, { r: 0.05 }); b.box(0.1, 0.6, 1.8, bh.x1 - 0.3, y + 0.45, z, ZUGF.wood, { r: 0.03 }); }
   b.box(0.7, 0.5, 0.45, cx + 1.6, y, z0 - 7, 0x8a4a2a, { r: 0.06 }); b.box(0.5, 0.4, 0.35, cx + 1.6, y + 0.5, z0 - 7, 0x3a7ab8, { r: 0.05 });
