@@ -3,9 +3,14 @@
 // dieses Modul). Nur für diese vier Level – andere Remix-Level haben eigene Hilfsdateien; Basislevel und gemeinsame Dateien
 // bleiben unverändert. Alles Level-Lokale hängt sich über die Remix-Haken (prebuild/build/setup, level.onStep) an.
 //
+//   line, ring, arc            Münzen (Reihe, Ring, Bogen)    isl, plank   Insel bzw. Holzbrett mit Oberkante top
 //   uhrenZurueck(level, id)    Zeit-Uhren erscheinen nach jedem Neustart wieder (P-1 hat keinen Checkpoint: ohne die Uhren
 //                              wäre der Kurs nach einem Sturz nicht mehr zu schaffen)
-//   (weitere Hilfen der Level P-2 … P-4 folgen unten)
+//   holzbretter(level, list)   feste Bretter im Dielen-Look des Mühlenkellers (P-1, oberer Kellerweg)
+//   stachelringe(level, list)  Stachelringe an Ranken: fahren im Takt aus (Warnzucken vorher), verletzen nur ausgefahren (P-2)
+//   glockenbaeume(level, list) Glockenbäume: Kletterstamm (Krallen-Anzug) mit Krone als Plattform und läutender Glocke (P-2)
+//   lichtplattformen(level, l) unsichtbare Plattformen, die der Lichtkegel des Licht-Helms sichtbar macht (P-3)
+//   P-4 braucht keine eigenen Hilfen (Loge und Sims sind Schattenwege der Basis-Bausteine).
 
 import * as THREE from 'three';
 import { lin, addStatic, addObject, box, merge } from '../../blocks/kit.js';

@@ -399,6 +399,8 @@ ROUTES['P-4'] = {
     { name: 'Ziel-Warp-Box bleibt verborgen, solange ein Gegner übrig ist (Turm steht), erscheint nach dem letzten', from: [19.5, 3.6, Z4], heroes: ['lotti'], probe: 'p4raum' },
     { name: 'Großer Turm: Stampfen/Draufspringen geht nicht (18,8 m hoch), Panzer/Feuer nehmen je eine Stufe, die Kanonenkugel wirft ihn ganz um', from: [19.5, 3.6, Z4], heroes: ['lotti'], probe: 'p4turm' },
     { name: 'Kanonen-Helm im Gang liegt nach dem Aufheben wieder da', from: [0, 2.5, -74.4], heroes: ['lotti'], probe: 'p4helm' },
+    { name: 'Unterbühne (Falltür): über die Stufe unter der Falltür wieder hinauf auf die Bohlen', from: [27.4, -1.5, Z4], heroes: ['lotti', 'greta'],
+      legs: [{ to: [29.6, Z4], within: 0.25, run: false }, { to: [30.25, Z4], jump: 30, within: 0.3 }, { expect: '=P().pos.y > -0.4' }, { to: [32.4, Z4], jump: 60, within: 0.4 }, { expect: '=P().pos.y > 2.4' }] },
     { name: 'Route auch verwundbar gefahren: kein Treffer (Helm bleibt auf), alle besiegt, Ziel in < 100 s', from: [0, 2.5, -74.4], legsFrom: 'main', invuln: false,
       mech: (r) => r.status === 'goal' && r.mech.hurts === 0 && r.mech.raum?.state === 'done' && r.time < 100, mechText: (r) => `${r.time.toFixed(1)} s, Treffer ${r.mech.hurts}` },
   ],
