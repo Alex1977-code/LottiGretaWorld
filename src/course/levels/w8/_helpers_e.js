@@ -5,10 +5,12 @@
 //
 //   1) Daten-Helfer   dach (Dach-/Platzplatte als island mit Felsdeckel), line/ring/arc/column (Münzen), sign
 //   2) Kulisse        haus (Rummelhaus vom Rummelboden bis zum Dach: Fensterreihen, Gesimse, Markise, Glühbirnen), vulkan,
+//                     dachKram (Dachluke, Lüftungsrohr, Wassertank, Kisten, Geschenk, Antenne – mit Kollision), manege
+//                     (Keilmuster auf dem Gipfel), teppich/stern (Läufer und Sternchen auf dem Boden), banner (Turmfahne),
 //                     trommel/kletterfront/tuermchen/schaft (der große Turm), kelchturm (Siegerturm), schilder (ein Schild-Atlas,
 //                     1 Zeichenaufruf), birnenKette (Glühbirnen als Leuchtpunkte), glockenbaum (kletterbarer Baum mit Glocken)
-//   3) Ablauf         parkKulisse (Thema baronpark ohne zweiten Turm im Hintergrund), freundeFest (befreite Freunde am Ziel),
-//                     feuerwerk, glockenKlang
+//   3) Ablauf         kanonenTor (Gitter vor einer Glasröhre, open()), parkKulisse (Thema baronpark ohne zweiten Turm im
+//                     Hintergrund), freundeFest (befreite Freunde am Ziel), feuerwerk, glockenKlang
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe); Leuchtendes ins
 // Glüh-Material bzw. ins gemeinsame Leuchtfeld (1 Zeichenaufruf für alle weichen Lichter).
 
