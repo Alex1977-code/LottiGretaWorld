@@ -43,7 +43,6 @@ export const DYNAMIC = {
   'src/course/player/Player.js|kind': { names: ['jump', 'jump2', 'jump3'], why: 'startJump: im letzten Zweig ist kind jump/jump2/jump3 (Salto, Weit- und Seitwärtssprung haben eigene Zweige)' },
   'src/course/levels/w8/_helpers_e.js|`note${k++ % 8}`': { names: ['note0', 'note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'], why: '8-Burg Glockenbaum: Tonleiter-Index k % 8' },
   'src/course/blocks/types/w2_space.js|`note${st.note % 8}`': { names: ['note0', 'note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'], why: 'Tastenstein: Ton-Index note % 8' },
-  'src/course/levels/w8/_helpers_e.js|`note${k++ % 8}`': { names: ['note0', 'note1', 'note2', 'note3', 'note4', 'note5', 'note6', 'note7'], why: '8-Burg Glockenbaum (glockenKlang): Ton-Index k % 8' },
 };
 
 /** Kommentare durch Leerzeichen ersetzen (Zeilen bleiben erhalten), Zeichenketten und Regex-Literale überspringen. */
