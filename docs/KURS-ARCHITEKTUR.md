@@ -9620,4 +9620,5 @@ Extras (Zeit-Uhren, Neustart, Stachel-Hüpfmaus, Stachelring, Schlüssel/Box, Gr
 Turm, Helm-Nachschub, Unterbühne). Routen (Bot): P-1 ≈ 45 / 42 s (Lotti/Greta, Restzeit ≈ 30 s), P-2 ≈ 73 / 70 s,
 P-3 ≈ 90 / 89 s, P-4 ≈ 32 / 32 s (Restzeit ≈ 68 s). Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke, Höchstwerte
 Messgang bzw. Bilder): P-1 80 / 176 k bzw. 91 / 171 k; P-2 86 / 212 k bzw. 88 / 203 k; P-3 70 / 166 k bzw. 64 / 153 k;
-P-4 ≤ 85 / 268 k (der 30er-Turm kostet ≈ 110 k Dreiecke samt Schattenpass); Grenzen < 120 / < 300 k.
+P-4 101 / 207 k bzw. 95 / 228 k (Sparmaßnahme: der 30er-Turm wirft keinen Sonnenschatten – spart ≈ 66 k Dreiecke im
+Schattenpass, sein Schatten steht auf der Leinwand); Grenzen < 120 / < 300 k.

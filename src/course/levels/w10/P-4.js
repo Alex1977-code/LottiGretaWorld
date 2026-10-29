@@ -148,6 +148,11 @@ export const LEVEL = remixOf('2-3', {
     footlights(level, GX - 7, GX + 7, YC, -82.3);
     carpet(level, GX - 6.5, GX + 4.5, -87.2, -88.8, YC);
   },
+  setup(level) {
+    // Sparmaßnahme: der 30er-Turm wirft keinen Sonnenschatten (≈ 66 k Dreiecke im Schattenpass) – seinen Schatten zeigt die
+    // Leinwand, am Boden bleibt der Schattenfleck
+    level.named.get('grosser_turm')?.model?.root.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  },
   marks: {
     start: [0, YC, -74.4], gang: [0, YC, -80], buehne: [0.6, YC, ZS], turm: [25.8, YC, ZS], turmstufe: [23.1, 6.6, ZS],
     sims: [30.4, 8.2, ZS], riese: [39.6, YC, ZS], block: [50.6, YC, ZS], podest: [60, 7, ZS], logensims: [61, SIMS_TOP, ZS],
