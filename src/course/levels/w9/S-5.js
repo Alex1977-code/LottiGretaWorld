@@ -35,9 +35,9 @@ const BLOECKE = [
   // Bitcoin-Insel (nur gleitend erreichbar)
   [18, 1.8, -77, 4.4, 1.2, 4.4, 'gelb'],
   // hohe Großblock-Stufen (Stern 2) und Plateau
-  [6.4, 0, -141.6, 3, 3, 3, 'gruen'], [9.4, 0, -145, 3, 6, 3, 'gelb'], [12.4, 0, -148.4, 3, 9, 3, 'rosa'], [13.5, 0, -155, 5, 12, 6, 'blau'],
+  [6.4, 0, -141.6, 3, 2.6, 3, 'gruen'], [9.4, 0, -145, 3, 5.2, 3, 'gelb'], [12.4, 0, -148.4, 3, 7.8, 3, 'rosa'], [13.5, 0, -154.1, 5, 10.4, 7, 'blau'],
   // Riesensäule neben dem Turm-Schacht
-  [17.2, 0, -156, 3, 22, 4, 'rot'],
+  [17.2, 0, -155.6, 3, 20.4, 4, 'rot'],
   // Gebiet 2: Säule mit Schlüsselmünze, Trittblock
   [X2 + 6, 0, -203, 2.4, 4.4, 2.4, 'lila'], [X2 + 3.4, 0, -205.4, 2, 2.2, 2, 'orange'],
   // Gebiet 2: Sprungblöcke über die Lücke zur Schlüsselmünze 3
@@ -129,7 +129,7 @@ export const LEVEL = {
     sign(X2 - 3, 0, -266, '5 Schlüssel\nöffnen die Box', { size: [2.8, 1.1], yaw: 0.2 }),
     // ================================================================ Zehn-Sekunden-Raum
     isl(X3 - 9, X3 + 9, -84, -106, 0),
-    { type: 'plattenwand', id: 'zehnwand', pos: [X3, 0, -102], dir: [0, 1], size: [10, 10], grid: [5, 3], depth: 1.6, thick: 1.8, mode: 'signal', order: 'treppe',
+    { type: 'plattenwand', id: 'zehnwand', pos: [X3, 0, -102], dir: [0, 1], size: [10, 10], grid: [5, 4], depth: 1.6, thick: 1.8, mode: 'signal', order: [[0, 0], [1, 1], [2, 2], [3, 3]],
       stagger: 0.08, move: 0.3, warn: 0.6, color: 'rot', wall: 'weiss' },
     sign(X3 - 4, 0, -88, 'Knopf drücken –\nzehn Sekunden!', { size: [2.8, 1.1], yaw: 0.2 }),
     // ================================================================ Kulisse (Retro-Wolken, -Büsche, Röhren, Riesenblöcke tief unten)
@@ -153,7 +153,7 @@ export const LEVEL = {
     { kind: 'blockwand', pos: [-6, 2, -95.6], size: [4, 3, 1], block: 'steinblock' }, { kind: 'blockwand', pos: [-3.5, 2, -98], size: [1, 3, 4], block: 'steinblock' },
     { kind: 'question', pos: [2.4, 2.0, -6], content: 'gleitblatt' },
     { kind: 'question', pos: [0, 9.2, -44], content: 'gleitblatt' },          // auf der hohen Insel (Gleitflug zur Bitcoin-Insel)
-    { kind: 'hidden', pos: [-4.5, 4.6, -84], content: 'riese' },               // versteckter Riesentrank-Block
+    { kind: 'hidden', pos: [-4.5, 3.9, -84], content: 'riese' },               // versteckter Riesentrank-Block
     { kind: 'hidden', pos: [18, 5.4, -77], content: 'oneup' },                // Extraleben auf der Bitcoin-Insel
     { kind: 'brick', pos: [-1, 2.6, -112], content: 'coins:3' }, { kind: 'brick', pos: [1, 2.6, -122] },
     { kind: 'hidden', pos: [X2 - 5.5, 2.6, -257.6], content: 'oneup' },       // Extraleben in der Pilzling-Nische
@@ -176,7 +176,7 @@ export const LEVEL = {
     // Großblock (Stampfen → Stempel)
     { kind: 'riesen_frageturm', id: 'grossblock', pos: [-4, 0, -148], size: 3, blocks: 1, coins: 0, trigger: ['pound'], color: 'orange', content: [stempelHeraus] },
     // schwebender ?-Block auf dem Plateau (anschlagen → Turm, Schacht für Wandsprünge zu Stern 2)
-    { kind: 'riesen_frageturm', id: 'schachtturm', pos: [12.5, 14.6, -156], size: 2, blocks: 4, coins: 1, content: 'coins:3' },
+    { kind: 'riesen_frageturm', id: 'schachtturm', pos: [12.5, 13.0, -155.6], size: 2, blocks: 4, coins: 1, content: 'coins:3' },
     // Warp-Box zum Kontrollpunkt (Gebiet 2) und zurück
     { kind: 'warpbox', id: 'warp1', pos: [0, 0, -163], target: 'cpbox' },
     { kind: 'warpbox', id: 'cpbox', pos: [X2, 0, -190], target: 'warp1' },
@@ -202,21 +202,21 @@ export const LEVEL = {
     ring([18, 3.6, -77], 1.4, 6), ...arc([7.4, 8.2, -60], [16, 3.6, -75], 6, 2),
     line([-2, 2.6, -74], [2, 2.6, -86], 4), line([-7, 2.6, -97.4], [-4.8, 2.6, -99.2], 5),
     line([0, 0.6, -105], [0, 0.6, -130], 8),
-    ring([0, 0.6, -140], 2, 8), column(6.4, -141.6, 3.6, 5, 2), column(9.4, -145, 6.6, 8, 2), column(12.4, -148.4, 9.6, 11, 2),
+    ring([0, 0.6, -140], 2, 8), column(6.4, -141.6, 3.2, 4.4, 2), column(9.4, -145, 5.8, 7, 2), column(12.4, -148.4, 8.4, 9.6, 2),
     line([X2, 0.6, -196], [X2, 0.6, -210], 5), line([X2, 0.6, -218], [X2, 0.6, -242], 7), line([X2, 0.6, -250], [X2, 0.6, -264], 5),
     ring([X2, 0.6, -306], 2.4, 10), line([X3, 0.6, -86], [X3, 0.6, -96], 4),
   ],
   checkpoint: { pos: [X2, 0, -196.4], yaw: PI / 2 },
   stars: [
-    [X3, 10.3, -102.9],                                               // 0: Zehn-Sekunden-Raum (oben auf der Wand)
+    [X3 + 2, 10.3, -102.9],                                           // 0: Zehn-Sekunden-Raum (oben auf der Wand)
     { pos: [X2 - 6.6, 0.4, -230], hidden: true, id: 'felsstern' },     // 1: im Felsblock (Laufbombe)
-    [17.2, 22.3, -156],                                               // 2: oben auf der Riesensäule (Turm-Schacht, Wandsprünge)
+    [17.2, 20.7, -155.6],                                             // 2: oben auf der Riesensäule (Turm-Schacht, Wandsprünge)
   ],
   stamp: [-4, 1.0, -148],
   goal: [X2, 0, -311],
   marks: {
     start: [0, 0, 6], i1: [0, 0, -24], aufzug: [3.6, 0, -31], hoch: [0, 7.2, -40], gleit: [4, 7.2, -58], i3: [0, 2, -76], raetsel: [5, 2, -93.4],
-    i4: [0, 0, -106], i5: [0, 0, -138], gross: [-4, 0, -144], plateau: [13, 12, -154], warp: [0, 0, -160], cp: [X2, 0, -196.4], fels: [X2 + 2, 0, -230],
+    i4: [0, 0, -106], i5: [0, 0, -138], gross: [-4, 0, -144], plateau: [13, 10.4, -154], warp: [0, 0, -160], cp: [X2, 0, -196.4], fels: [X2 + 2, 0, -230],
     j3: [X2, 0, -252], ziel: [X2, 0, -300], raum: [X3, 0, -88],
   },
 };

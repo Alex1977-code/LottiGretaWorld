@@ -299,8 +299,56 @@ ROUTES['S-5'] = {
   routeChecks: [
     { name: 'fünf Schlüsselmünzen geöffnet, zwei Warp-Boxen, zwei Aufzug-Türme gewachsen', ok: (r) => r.mech.keys === 5 && r.mech.warps === 2 && r.mech.towers >= 2 },
   ],
-  targets: [],
-  extra: [],
+  targets: [
+    { name: 'Stern 0: Rätselbox auf der Riesentrank-Insel, Knopf drücken, in zehn Sekunden die ausgefahrenen Blöcke hinauf', star: 0, from: [5, 2, -93.4],
+      legs: [{ warp: [5, -96] }, { until: '=P().pos.x < -50', max: 600 }, { to: [X3, -91], within: 0.4, run: false }, { press: 'zehnknopf' },
+        { to: [X3 - 4, -99.3], within: 0.3 }, { to: [X3 - 4, -101.2], jump: 30, jumpAt: 9, within: 0.35, run: false },
+        { to: [X3 - 2, -101.2], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [X3, -101.2], jump: 30, jumpAt: 9, within: 0.35, run: false },
+        { to: [X3 + 2, -101.2], jump: 30, jumpAt: 9, within: 0.35, run: false }, { to: [X3 + 2, -102.9], jump: 30, jumpAt: 9, within: 0.35, run: false }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht ohne Knopf (Wand glatt)', star: 0, expectNot: true, from: [X3, 0, -96], heroes: ['lotti'],
+      legs: [{ to: [X3, -99.6], within: 0.3, run: false }, { to: [X3, -101.4], jump: 40, jumpAt: 9, within: 0.3, run: false, max: 200 }, { wait: 60 }] },
+    { name: 'Stern 0: nach zehn Sekunden fahren die Blöcke wieder ein', star: 0, expectNot: true, from: [X3, 0, -91], heroes: ['lotti'],
+      legs: [{ press: 'zehnknopf' }, { wait: 1300 }, { expect: '=ent(\'zehnwand\').info().solid === 0' }, { to: [X3 - 4, -99.3], within: 0.3 },
+        { to: [X3 - 4, -101.2], jump: 30, jumpAt: 9, within: 0.35, run: false, max: 160 }, { wait: 60 }] },
+    { name: 'Stern 1: Laufbombe in den Felsblock kicken – er zerspringt', star: 1, from: [X2 + 3, 0, -226],
+      legs: [{ kick: 'lb3', toward: [X2 - 6.6, -230], away: [X2 + 4, -224] }, { until: '=L.entities.some((e) => e.kind === \'star\' && e.index === 1 && !e.hidden)', max: 600 },
+        { star: 1 }], mech: (r) => r.log.some((l) => l[0] === 'kick'), shot: 'stern1' },
+    { name: 'Stern 1 nicht mit Stampfen auf den Felsblock', star: 1, expectNot: true, from: [X2 - 2, 0, -230], heroes: ['lotti'],
+      legs: [{ pound: [X2 - 6.6, -230] }, { wait: 60 }, { expect: '=!ent(\'fels\') || !L.entities.find((e) => e.kind === \'felsblock\').broken' }] },
+    { name: 'Stern 2: hohe Großblöcke hinauf, schwebenden ?-Block anschlagen, im Schacht mit Wandsprüngen auf die Riesensäule', star: 2, from: [4, 0, -139.6],
+      legs: [{ to: [6.4, -141.6], jump: 24, jumpAt: 9, within: 0.4, run: false }, { to: [9.4, -145], jump: 30, jumpAt: 9, within: 0.4, run: false },
+        { to: [12.4, -148.4], jump: 30, jumpAt: 9, within: 0.4, run: false }, { to: [12.6, -152.2], jump: 36, jumpAt: 9, within: 0.4, run: false },
+        { to: [12.5, -155.6], within: 0.25, run: false }, { hop: 30 }, { until: '=ent(\'schachtturm\').state === \'turm\'', max: 300 }, { wait: 30 },
+        { to: [14.6, -155.6], within: 0.2, run: false }, { chimney: { a: 13.5, b: 15.7, z: -155.6, top: 20.4, land: [17.2, -155.6], first: 1 } }, { star: 2 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht ohne Turm (nur eine Wand im Schacht)', star: 2, expectNot: true, from: [14.6, 10.4, -155.6], heroes: ['lotti'],
+      legs: [{ chimney: { a: 13.5, b: 15.7, z: -155.6, top: 20.4, land: [17.2, -155.6], first: 1 } }, { wait: 60 }] },
+    { name: 'Stempel: am Ende von Gebiet 1 auf den Großblock stampfen – der Stempel springt obendrauf', stamp: true, from: [-4, 0, -144],
+      legs: [{ pound: [-4, -148] }, { until: '=ent(\'grossblock\').state === \'turm\'', max: 300 }, { wait: 30 }], shot: 'stempel' },
+    { name: 'Stempel nicht mit bloßem Draufspringen', stamp: true, expectNot: true, from: [-4, 0, -144], heroes: ['lotti'],
+      legs: [{ to: [-4, -148], jump: 30, jumpAt: 9, within: 0.4, run: false }, { hop: 20 }, { wait: 60 }] },
+  ],
+  extra: [
+    { name: 'Versteckter Riesentrank-Block: als Riese die Steinblock-Nische zertrümmern', from: [-4.5, 2, -82], heroes: ['lotti'], expectCoins: 4,
+      legs: [{ grab: [-4.5, -84], back: [-4.5, -81.6] }, { expect: 'riese' }, { to: [-5.6, -94.4], within: 0.5, run: true }, { to: [-6, -98.4], within: 0.5, run: true },
+        { to: [-4.8, -99], within: 0.5, run: true }], mech: (r) => r.mech.stones >= 8, mechText: (r) => `Steinblöcke zertrümmert ${r.mech.stones}` },
+    { name: 'Gleitblatt: vom Rand der hohen Insel zur Bitcoin-Insel gleiten, Extraleben', from: [0, 7.2, -46.6], heroes: ['lotti'], expectLives: 1,
+      legs: [{ grab: [0, -44], back: [0, -46.6] }, { expect: 'gleitblatt' }, { to: [4, -54], within: 0.4, run: false }, { to: [6.4, -59.6], within: 0.3 },
+        { to: [18, -77], jump: 400, jumpAt: 99, within: 0.8 }, { expect: '=at(15.8, 20.2, 2.8, -74.8, -79.2)' }, { to: [18, -77.6], within: 0.2, run: false },
+        { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 600 }] },
+    { name: 'Gleitblatt-Gegenprobe: ohne Blatt ist die Bitcoin-Insel zu weit', from: [6.4, 7.2, -54], heroes: ['lotti', 'greta'], expectAlive: false, allowFail: true,
+      legs: [{ to: [6.4, -59.6], within: 0.3 }, { to: [18, -77], jump: 400, jumpAt: 99, within: 0.8, max: 400 }],
+      mech: (r) => r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : 'drüben?') },
+    { name: 'Extraleben: unsichtbarer Block in der Pilzling-Nische', from: [X2 - 5.5, 0, -256], heroes: ['lotti'], expectLives: 1,
+      legs: [{ stompAll: 'p6' }, { stompAll: 'p7' }, { to: [X2 - 5.5, -257.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    { name: 'Riesen-?-Block über der Wiese von unten anschlagen: Turm wächst, Bitcoins', from: [-3.4, 0, -112.6], heroes: ['lotti'], expectCoins: 5,
+      legs: [{ to: [-3.4, -114.6], within: 0.25, run: false }, { hop: 30 }, { until: '=ent(\'turm_a\').state === \'turm\'', max: 300 }, { wait: 60 }] },
+    { name: 'Laufbombe zündet bei Nähe; in die Ziegelmauer gekickt, sprengt sie Ziegel', from: [5, 7.2, -48], heroes: ['lotti'],
+      legs: [{ until: '=L.entities.find((e) => e.spec?.id === \'lb1\').pos.z > -53', max: 900 }, { kick: 'lb1', toward: [-4.5, -50], away: [5, -44] }],
+      mech: (r) => r.mech.bricks >= 2 && r.mech.lb1 === 'weg', mechText: (r) => `Ziegel gesprengt ${r.mech.bricks}, Bombe ${r.mech.lb1}` },
+    { name: 'Ziel-Warp-Box erst nach allen fünf Schlüsselmünzen', from: [X2, 0, -268], heroes: ['lotti'],
+      legs: [{ expect: '=ent(\'zielbox\').hidden && (L.keys?.ziel?.n ?? 0) === 0' }, { to: [X2, -272], jump: 20, jumpAt: 9, within: 0.3, run: false }, { wait: 60 },
+        { expect: '=P().pos.z > -276 && P().pos.z < -264' }] },
+  ],
   shots: [
     ['start', [0, 0, 6]],
     ['aufzug', [0, 0, -24]],
@@ -401,7 +449,7 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, warps: 0, rides: 0, walzen: 0, huerden: 0, stomped: [], hurtList: [], clocks0: ent('uhren')?.got ?? 0 };
+      const mech = { hurts: 0, warps: 0, rides: 0, walzen: 0, huerden: 0, stomped: [], hurtList: [], clocks0: ent('uhren')?.got ?? 0, stones0: L.entities.filter((e) => e.kind === 'steinblock' && e.alive && !e.removed).length, bricks0: L.entities.filter((e) => e.kind === 'brick' && e.alive && !e.removed).length };
       const track = [];
       let lastHurts = p.hurtTries ?? 0;
       const tick = (inp) => {
@@ -888,8 +936,11 @@ function install() {
       mech.revealed = L.revealedCoins ?? 0;
       mech.clocks = (ent('uhren')?.got ?? 0) - mech.clocks0;
       mech.figures = (L.players ?? []).length;
+      { const b = L.entities.find((e) => e.spec?.id === 'lb1'); mech.lb1 = b ? `${b.state}/${b.lit ? 'lit' : '-'}/${b.exploded ? 'boom' : '-'}/${b.trigger}` : 'weg'; }
       mech.keys = L.keys?.ziel?.n ?? 0;
       mech.towers = L.entities.filter((e) => e.kind === 'riesen_frageturm' && e.state === 'turm').length;
+      mech.stones = (mech.stones0 ?? 0) - L.entities.filter((e) => e.kind === 'steinblock' && e.alive && !e.removed).length;
+      mech.bricks = (mech.bricks0 ?? 0) - L.entities.filter((e) => e.kind === 'brick' && e.alive && !e.removed).length;
       mech.side = L.entities.filter((e) => e.kind === 'coin' && e.alive && !e.removed && e.pos.x > 4 && e.pos.x < 6.5 && Math.abs(e.pos.z + 130) < 0.3).length;
       mech.pecks = L.entities.filter((e) => e.kind === 'hackvogel').map((e) => `${e.spec?.id}:${e.pecks ?? 0}`).join(' ');
       return { log, autoJumps, steps, time: steps / 120, pos: [q.pos.x, q.pos.y, q.pos.z], dead: q.dead, cause: q.deathCause ?? null, status: L.runtime.status, info: q.info(), rt: L.runtime.info(), mech, power: q.power, track };
