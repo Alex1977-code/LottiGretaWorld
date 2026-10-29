@@ -5,7 +5,7 @@
 //   Welt 9; Rückkehr aus einem S-Level zeigt Welt 9 (Präfix 'S'); Eingänge zeigen Titel bzw. „Bald“ (mapAlias); Freischaltung
 //   nacheinander (Schranken-Schwenk, Regenbogenwege und Sternenbrücken begehbar) inkl. Abzweig S-Kapitän; Sternschranke 280 (alle
 //   Sterne) mit Hinweis „Benötigt 280 Sterne (x/280)“; Glasröhre WP „Welt Pilz kommt bald!“ (auch Welt-Warp nach Welt 10 über den
-//   Rückfall); funkelnde Sterne und Farbplatten im Takt der Kartenmusik (Taktuhr, manuell vorgespult) und Ersatzuhr ohne Musik;
+//   Rückfall) bzw. – mit der Karte der Welt Pilz (w10.js) – Fahrt und Welt-Warp in den Pilz-Remix (Ankunft an dessen Röhre WS); funkelnde Sterne und Farbplatten im Takt der Kartenmusik (Taktuhr, manuell vorgespult) und Ersatzuhr ohne Musik;
 //   lebendige Kulisse (Planeten, Raketen, Sternschnuppen, Walze, Zielmast, Diorama, ?-Turm, Waben, Großrollpilz, Nebel, Station);
 //   Rückweg nach Welt 8; Beerenhaus, Glückshaus; Abspann (?credits=1) läuft weiter richtig; gespeicherte Welt bleibt nach Neuladen;
 //   Anflug; Kennzahlen (< 120 Zeichenaufrufe, < 300 k Dreiecke an jeder Ansicht inkl. Ankunft und Anflug); keine Konsolenfehler.
@@ -487,9 +487,35 @@ if (part(7)) {
     r = await walkTo(48, -100, (s) => s.player.z > -101, 900);
     check('Vom Nebelfriedhof zurück: Schranke S-8 auf der Sternenbrücke lässt die Figur von hinten durch', r.s.player.z > -101 && r.s.gates['S-8'] === 'closed' && Math.abs(r.s.player.y - 18) < 0.1);
   } else {
-    await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
+    // Welt Pilz gibt es (worlds/w10.js): A startet die Fahrt, Ankunft im Pilz-Remix an der Rückweg-Röhre WS – ohne Codeänderung hier
+    const sign = await sc(() => window.__courseMap.signOf('WP'));
+    await sc(() => { const m = window.__courseMap; m.hud.toast('', 0.01); m.step(2); m.setInput({ jump: true }); m.step(1); m.setInput({}); });
     st = await sc(() => window.__courseMap.state());
-    check('Pilz-Röhre nach S-8: Karte der Welt Pilz vorhanden – A startet die Fahrt', st.travel?.mode === 'depart');
+    const msg = await toast();
+    check(`Pilz-Röhre nach S-8: Karte der Welt Pilz vorhanden – A startet die Fahrt (Meldung „${msg}“, Schild „${sign.replace('\n', ' / ')}“)`, r.s.onPad === 'WP'
+      && st.travel?.mode === 'depart' && st.entrances.WP.enterable && !st.entrances.WP.soon && msg !== 'Welt Pilz kommt bald!' && sign === `Welt Pilz\n${st.entrances.WP.title}`);
+    r = await stepUntil(() => false, 900);
+    check('Nach der Fahrt verlässt die Karte das Sternenzelt (Szenenwechsel zu Welt 10)', r.s.leaving === true);
+    await waitMap(10);
+    st = await sc(() => window.__courseMap.state());
+    check('Welt 10 geladen: Ankunft durch deren Rückweg-Röhre WS (Regel next: 9)', st.world === 10 && st.travel?.mode === 'arrive' && st.travel.entrance === 'WS' && st.worlds.includes(10));
+    r = await stepUntil((s) => s.travel?.t > 1.4, 400);
+    await shot('pilz_ankunft', 400);
+    r = await stepUntil((s) => !s.travel, 900);
+    // Welt-Warp nach Welt 10 aus einem Welt-9-Level landet jetzt im Pilz-Remix (Ankunft wie mit der Glasröhre)
+    const done6 = ['S-1', 'S-2', 'S-3', 'S-4', 'S-5', 'S-6'];
+    await loadWith({ levels: with9(w1to8(true), done6), mapOpened: [...OPENED_1_8, ...opened9(done6)], world: 9, worlds: WORLDS9, mapPos: null }, '&mapAlias=S-1:0-0');
+    await waitMap(9);
+    await tp(P1[0], P1[1] + 0.3, P1[2] + 3, Math.PI / 2, 20);
+    r = await walkTo(P1[0], P1[2], (s) => s.onPad === 'S-1', 900);
+    await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
+    await waitCourse();
+    await sc(() => { window.__courseSave.openWorld(10); window.__course.exitToMap({ warpWorld: 10 }); });
+    await waitMap(10);
+    st = await sc(() => window.__courseMap.state());
+    console.log('  Warp 10:', JSON.stringify(st.travel), st.soonWorld);
+    check('Welt-Warp nach Welt 10 endet im Pilz-Remix: Ankunft durch die Rückweg-Röhre WS, keine „bald“-Meldung', st.world === 10 && st.travel?.mode === 'arrive'
+      && st.travel.entrance === 'WS' && st.soonWorld === null && st.worlds.includes(10));
   }
 }
 
