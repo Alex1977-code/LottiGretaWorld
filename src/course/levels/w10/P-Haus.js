@@ -79,7 +79,7 @@ const RAEUME = [
     pictures: [{ wall: 'l', u: 4, motif: 'kaktus' }, { wall: 'r', u: 4, motif: 'berg' }],
     clocks: [{ wall: 'l', u: 8, y: 3.6, r: 0.4 }],
     props: [{ kind: 'pflanze', x: 6.1, u: 1.4, size: 1.2 }, { kind: 'pflanze', x: -6.1, u: 1.4, size: 1.0 },
-      ...[-4.5, 0, 4.5].map((x) => ({ kind: 'eimer', x, u: x === 0 ? 14.6 : 13.2, color: 0xc86a3a, solid: false }))] },
+      ...[-4, 0, 4].map((x) => ({ kind: 'eimer', x, u: x === 0 ? 13.2 : 12, color: 0xc86a3a, solid: false }))] },
   { id: 'r10', name: 'Hammerhalle', title: 'Hammerhalle: Mit der Pilz-Maske anspringen!', paper: 'maschine', wood: 0x3a4a5a, kapsel: { helmet: 'maske' },
     floors: [{ u0: -1, u1: LEN, style: 'metall' }],
     pictures: [{ wall: 'l', u: 4, motif: 'burg' }, { wall: 'r', u: 4, motif: 'zielfahne' }],
@@ -117,9 +117,9 @@ const ENEMIES = [
   { kind: 'zauberkroete', id: 'r8_k2', roomId: 'r8', spots: [P(7, 0, 11.5), P(7, 1.5, 14.5)], hidden: 1.0, sight: 16, wake: 40 },
   { kind: 'zauberkroete', id: 'r8_k3', roomId: 'r8', spots: [P(7, 4.5, 9.5), P(7, 2.5, 13.5)], hidden: 1.0, sight: 16, wake: 40 },
   // 9 Rankengarten: Ranken aus Blumentöpfen, immer ausgewachsen, Köpfe zur Figur
-  ...[[-4.5, 13.2], [0, 14.6], [4.5, 13.2]].map(([x, u], k) => ({ kind: 'rankenschnapper', id: `r9_r${k + 1}`, roomId: 'r9', pos: P(8, x, u, Y + 0.4), dir: [0, 1], length: 3.4, height: 1.3, mode: 'static', reach: 1.8, sight: 6 })),
+  ...[[-4, 12], [0, 13.2], [4, 12]].map(([x, u], k) => ({ kind: 'rankenschnapper', id: `r9_r${k + 1}`, roomId: 'r9', pos: P(8, x, u, Y + 0.4), dir: [0, 1], length: 3.4, height: 1.3, mode: 'static', reach: 1.8, sight: 6 })),
   // 10 Hammerhalle
-  ...[[-3.5, 9], [0, 10.5], [3.5, 9]].map(([x, u], k) => werfer('hammer_werfer', 9, x, u, k + 1, { pace: 0.5, jumpEvery: 9, interval: 3.2 })),
+  ...[[-3, 8], [0, 9.5], [3, 8]].map(([x, u], k) => werfer('hammer_werfer', 9, x, u, k + 1, { pace: 0.25, jumpEvery: 99, interval: 3.2 })),
 ];
 
 // ====================================================================== Level-Haken

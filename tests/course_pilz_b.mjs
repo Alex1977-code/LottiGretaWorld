@@ -452,7 +452,7 @@ function hausLegs(i, z0) {
     [{ name: 'mit dem Funkelstern durch die Flämmchen', chaseKind: 'funkenflaemmchen', run: true, max: 1150 }],
     [{ to: R(0, 4.4), within: 0.4, run: false }, { name: 'Kröten treffen, solange sie sichtbar sind', shootR: ['r8_k2', 'r8_k1', 'r8_k3'], dist: 4, slack: 2.5, min: 1, visible: true, gap: 20 }],
     [{ name: 'Stampfattacke auf die Rankenköpfe', poundOn: ['r9_r1', 'r9_r2', 'r9_r3'], back: 1.4 }],
-    [{ name: 'mit der Pilz-Maske die Hammer-Werfer anspringen', stompAll: ['r10_w2', 'r10_w1', 'r10_w3'], lineUp: true }],
+    [{ name: 'mit der Pilz-Maske die Hammer-Werfer anspringen', stompAll: ['r10_w1', 'r10_w2', 'r10_w3'], lineUp: true, stampf: true }],
   ];
   return L[i];
 }
@@ -563,6 +563,7 @@ function install() {
     wandSteht: () => L.entities.filter((e) => e.kind === 'steinblock' && !e.removed && !e.broken && e.alive !== false).length === 30,
     zweiS4Weg: () => ['s4_1', 's4_2'].every((id) => { const e = L.entities.find((x) => x.spec?.id === id); return !e || e.defeated || e.removed || !e.alive; }),
     // P-Haus
+    bulleNah: () => L.entities.some((e) => e.kind === 'rammbock_bulle' && e.state === 'charge' && Math.hypot(e.pos.x - P().pos.x, e.pos.z - P().pos.z) < 3.4),
     tuermeAmPow: () => {
       const pw = L.entities.find((e) => e.kind === 'pow' && e.spec?.id === 'r6_pow' && !e.removed);
       if (!pw) return true;
@@ -735,7 +736,7 @@ function install() {
                 if (!pounding && k > 8 && d < 0.35 && p.vel.y < 3 && p.pos.y > h.y + 0.2) pounding = true;
                 tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(h.x, h.z, 0, 0, 3, 6) : this.stick(dx, dz, 1)), jump: k < 34, run: false });
               }
-              for (let q = 0; q < 30; q++) tick({});
+              for (let q = 0; q < (Lg.after ?? 12); q++) tick({});
             }
             if (!e || !e.alive || e.defeated || e.removed) { done.push(id); mech.stomped.push(id); }
             log.push(['stampfattacke', id, !e || !e.alive || e.defeated || e.removed, tries]);
@@ -901,7 +902,7 @@ function install() {
               if (p.mode === 'ground' && d < (Lg.near ?? 2.2) && !e.overhead) { jl = !jl; tick({ ...this.stick(dx, dz, 0.5), jump: jl, run: false }); continue; }
               jl = false;
               // Rollpilz (und mit pound jeder Gegner): Stampfattacke – einfaches Draufspringen legt ihn nur auf den Rücken
-              if (p.mode === 'air' && (e.kind === 'rollpilz' || Lg.pound) && d < 0.55 && p.vel.y < 1.5 && p.pos.y > e.pos.y + 0.9) { pounds++; tick({ crouch: true }); continue; }
+              if (p.mode === 'air' && (e.kind === 'rollpilz' || Lg.stampf) && d < 0.55 && p.vel.y < 1.5 && p.pos.y > e.pos.y + 0.9) { pounds++; tick({ crouch: true }); continue; }
               if (p.mode === 'air' && Lg.lineUp) { tick({ ...(d > 0.08 ? this.stick(dx, dz, Math.min(1, d / 1.5)) : {}), jump: p.vel.y > 0 }); continue; }
               if (p.mode === 'air') { const ev = e.vel ?? { x: 0, z: 0 }; tick({ ...this.airSteer(e.pos.x + ev.x * 0.2, e.pos.z + ev.z * 0.2, ev.x, ev.z, 3.6, 7), jump: p.vel.y > 0 }); continue; }
               if (d < 3 && e.overhead) { tick({}); continue; }
@@ -1317,10 +1318,11 @@ async function hausExtra(id) {
     const kap = L.named.get('kapseln');
     kap.off = !!oo.ohne;
     H.waitPlay(k);
+    const h0 = p.hurtTries ?? 0;
     const res = window.__pb.drive(lg, { house: true });
     const foes = L.entities.filter((e) => e.enemy && e.spec?.roomId === `r${k + 1}` && !e.removed);
     const out = { power: p.power, helmet: p.helmet ?? null, alive: foes.filter((e) => e.alive && !e.defeated).length, hp: foes.map((e) => e.hp ?? e.segments ?? e.count ?? null),
-      hurts: res.mech.hurts, star: !!L.runtime.stars[k], log: res.log.filter((l) => l[0] !== 'spur').slice(-6) };
+      hurts: (p.hurtTries ?? 0) - h0, star: !!L.runtime.stars[k], log: res.log.filter((l) => l[0] !== 'spur').slice(-6) };
     kap.off = false;
     return out;
   }, [i, legs, o]);
@@ -1328,11 +1330,11 @@ async function hausExtra(id) {
   const g = {};
   g.flamme = await run(6, [{ stompAll: ['r7_f1'], max: 480, partial: true }], { ohne: true });
   g.saeule = await run(1, [{ stompAll: ['r2_s2'], max: 200, partial: true }, { to: R(1, 0, 4), within: 0.5, run: false, max: 200, partial: true }], { ohne: true });
-  g.bulle = await run(0, [{ stompAll: ['r1_b2'], max: 180, partial: true }, { to: R(0, 0, 4), within: 0.5, run: false, max: 200, partial: true }], { ohne: true });
+  g.bulle = await run(0, [{ to: R(0, 0, 0.9), within: 0.3, run: false }, { until: 'bulleNah', max: 600 }, { hop: 30 }, { stompAll: 'r1_b', max: 240, partial: true }], { ohne: true });
   for (const [k, v] of Object.entries(g)) console.log(`       ${k}: ${JSON.stringify(v)}`);
   check(`${id}: ohne Funkelstern sind die Funkenflämmchen heiß – Draufspringen besiegt keins (${g.flamme.alive} übrig, Treffer-Versuche ${g.flamme.hurts})`, g.flamme.power === 'none' && g.flamme.alive === 3 && g.flamme.hurts > 0 && !g.flamme.star);
   check(`${id}: ohne Funkenblüte nimmt Draufspringen nur Segmente ab (Säulen ${g.saeule.hp.join('/')}, alle stehen)`, g.saeule.power === 'none' && g.saeule.alive === 3 && g.saeule.hp.some((n) => n < 4));
-  check(`${id}: ohne Riesentrank kostet ein Sprung den Bullen nur 1 hp (hp ${g.bulle.hp.join('/')})`, g.bulle.power === 'none' && g.bulle.alive === 3 && g.bulle.hp.some((n) => n === 2));
+  check(`${id}: ohne Riesentrank kostet jeder Sprung einen Bullen nur 1 hp (3 hp, an der Wand benommen anspringen) – die Bullen bleiben (hp ${g.bulle.hp.join('/')}, ${g.bulle.alive} stehen)`, g.bulle.power === 'none' && g.bulle.alive >= 2 && g.bulle.hp.some((n) => n < 3) && g.bulle.hp.filter((n) => n === 3).length >= 2 && !g.bulle.star);
 
   // Zeitablauf: zwei Räume lösen, im dritten nichts tun → Haus verlassen, Ergebnis 2 von 10 Sternen gespeichert
   if (!(await load(id, { fresh: true, hero: 'greta' }))) return;
