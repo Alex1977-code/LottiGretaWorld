@@ -24,7 +24,90 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // { stompAll: Id-Anfang } · { pound: [x, z], above } · { klotz: Id, pound: n (Stampfattacken unterwegs), leave: { z } (vorher
 // abspringen), jumpAt: { z } (auf der Fahrt hochspringen), exit: [x, z] } · { warp: [x, z] } · { ride: mover-Id, board, exit, to } ·
 // { light: Id-Anfang } (Licht-Helm auf Geister richten, bis sie verschwinden)
+const S6 = { Y: 1, YU: 15, RB: 68 };
 const ROUTES = {
+  '8-6': {
+    start: [0, 1, 5],
+    meta: { stars: 3, time: 400, theme: 'darkghost', music: 'course_beamdark', archetype: 'parcours' },
+    enemies: {
+      'spuk (klein)': () => window.__course.level.entities.filter((e) => e.kind === 'spuk' && e.size < 1.5).length,
+      'großspuk': () => window.__course.level.entities.filter((e) => e.kind === 'spuk' && e.size > 1.5).length,
+      kreisgeist: () => window.__course.level.entities.filter((e) => e.kind === 'kreisgeist' || e.kind === 'kreisgeist_glied').length,
+      knochenflieger: 10, helm_licht: 4, figurenschalter: 1, pow: 1, roter_ring: 1, warpbox: 2,
+    },
+    enemyCounts: { 'spuk (klein)': 10, 'großspuk': 2, kreisgeist: 44 },
+    main: [
+      { name: 'Licht-Helm vom Regal', to: [-1.8, 1.5], within: 0.3, run: false }, { expect: 'helm' },
+      { name: 'auf die runde Aufzugplattform', to: [0, -9.6], within: 0.4, run: false },
+      { name: 'erste Fahrt (Licht auf die Geister, POW-Block)', lift: 'lift1', guard: true, pow: { z: -15.5 }, exit: [0, -68.5] },
+      { expect: 'saal' },
+      { name: 'Großspuk mit Licht besiegen', light: 'grossspuk1' },
+      { until: 'saaltuerOffen', max: 240 },
+      { name: 'durch die Saaltür', to: [9.6, -72], within: 0.4, run: false },
+      { name: 'zweite Fahrt (roter Ring)', lift: 'lift2', guard: true, exit: [0, -128] },
+      { expect: 'cp' },
+      { name: 'Kontrollpunkt', to: [0, -130], within: 0.5 },
+      { name: 'Schnell-Aufzug im Statuenschacht', steig: 'steig', exit: [0, -146.5] },
+      { expect: 'gang' },
+      { name: 'Türreihe: Tür 1', to: [0, -153.8], within: 0.4, run: false },
+      { name: 'Kreisgeist 1 (Lücke abwarten)', gap: 'kreisgeist', near: [0, -157, 3.2], to: [0, -160.4], clear: 1.3 },
+      { name: 'Tür 2', to: [0, -163.8], within: 0.4, run: false },
+      { name: 'Kreisgeist 2', gap: 'kreisgeist', near: [0, -167, 3.2], to: [0, -170.4], clear: 1.3 },
+      { name: 'Tür 3', to: [0, -173.8], within: 0.4, run: false },
+      { name: 'Kreisgeist 3', gap: 'kreisgeist', near: [0, -177, 3.2], to: [0, -180.4], clear: 1.3 },
+      { name: 'zur Ausgangstür', to: [1.6, -190], within: 0.4, run: true },
+      { to: [5.2, -190], within: 0.5, run: false },
+      { expect: 'balkon' },
+      { name: 'Sprung auf den Zielturm', to: [8.6, -190], within: 0.4, run: false },
+      { name: 'Zielmast', to: [12.6, -190], jump: 40, within: 0.3, run: true }, { to: [13, -190], within: 0.15, run: false },
+    ],
+    routeChecks: [
+      { name: 'Licht-Helm getragen, POW-Block verscheucht Geister, zwei Aufzugfahrten, Schnell-Aufzug', ok: (r) => r.mech.lifts === 3 && r.mech.schreck >= 3 && r.mech.lit >= 1 },
+      { name: 'roter Ring auf der Fahrt: alle acht roten Münzen (Extraleben)', ok: (r) => r.mech.rotring === 'done' },
+      { name: 'ohne Treffer-Versuch (Licht auf Geister, Lücken der Kreisgeister abgewartet)', ok: (r) => r.mech.hurts === 0 },
+    ],
+    targets: [
+      { name: 'Stern 0: Spiegelbild – über die unsichtbaren Spiegelstufen zum Stern', star: 0, from: [0, 1, -77.6], place: { invuln: 99 },
+        legs: [{ to: [-1.0, -79.0], within: 0.3, run: false }, { to: [-1.0, -80.4], jump: 30, within: 0.4, run: false }, { expect: 'spiegelStufe1' },
+          { to: [0.6, -82.0], jump: 30, within: 0.4, run: false }, { expect: 'spiegelStufe2' }, { to: [0.5, -82.25], within: 0.2, run: false }, { hop: 24 }], shot: 'stern0' },
+      { name: 'Stern 0 ist im Saal unsichtbar (nur Spiegel-Ebene) und der Spiegel zeichnet sein Spiegelbild', star: 0, expectNot: true, from: [0, 1, -76], heroes: ['lotti'], place: { invuln: 99 },
+        legs: [{ wait: 30 }], post: () => { const sp = window.__course.level.named.get('spiegel'); let l5 = !!sp.star?.model; sp.star?.model?.root?.traverse((o) => { if (o.isMesh && o.layers.mask !== 32) l5 = false; }); return { layer5: l5, renders: sp.renders, active: sp.active }; },
+        postOk: (q) => q.layer5 && q.renders > 0 && q.active, postText: (q) => JSON.stringify(q) },
+      { name: 'Stern 1: Rätselbox am Schnell-Aufzug – sechs Spuke mit Licht besiegen', star: 1, from: [0, 1, -137.6], place: { helmet: 'licht' },
+        legs: [{ steig: 'steig', jumpTo: { y: 8.1, to: [-4.2, -141.8] } }, { until: 'rbraum', max: 600 }, { lightAll: 'rbspuk' }, { wait: 120 }, { star: 1 }, { warp: [68, -136.4] }, { expect: 'sims' }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Licht (Spuke nur anschauen)', star: 1, expectNot: true, from: [68, 1, -140], heroes: ['lotti'], place: { invuln: 99 },
+        legs: [{ to: [64, -142], within: 0.5, run: false }, { wait: 240 }, { to: [72, -142], within: 0.5, run: false }, { wait: 240 }], mech: (r) => r.mech.rbLeft === 6, mechText: (r) => `${r.mech.rbLeft} Spuke` },
+      { name: 'Stern 2: Ende des letzten Gangs – Großspuk 2 mit Licht besiegen', star: 2, from: [0, 15, -184.4], place: { helmet: 'licht', invuln: 99 },
+        legs: [{ light: 'grossspuk2' }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stempel: Figurenschalter nur für Greta – Leuchttreppe zur Empore', stamp: true, from: [3.6, 1, 3.6], heroes: ['greta'],
+        legs: [{ to: [4.6, 2.2], within: 0.25, run: false }, { wait: 60 }, { expect: 'treppe' },
+          ...[0, 1, 2, 3, 4, 5].map((i) => ({ to: [5.5, -0.6 - i * 0.96], jump: 26, within: 0.35, run: false })), { to: [5.6, -7.0], jump: 30, within: 0.4, run: false }, { hop: 20 }], shot: 'stempel' },
+      { name: 'Stempel nicht mit Lotti (Schalter bleibt aus, Treppe verborgen)', stamp: true, expectNot: true, from: [3.6, 1, 3.6], heroes: ['lotti'],
+        legs: [{ to: [4.6, 2.2], within: 0.25, run: false }, { wait: 90 }, { to: [5.5, -0.6], jump: 26, within: 0.35, run: false, max: 300 }, { wait: 30 }], mech: (r) => !r.mech.treppe, mechText: (r) => `Treppe ${r.mech.treppe ? 'da' : 'verborgen'}` },
+    ],
+    extra: [
+      { name: 'Aufzugplattform ruht, bis man draufsteht', from: [0, 1, -6], heroes: ['lotti'], legs: [{ wait: 600 }], mech: (r) => r.mech.lift1s === 0, mechText: (r) => `s ${r.mech.lift1s}` },
+      { name: 'Saaltür bleibt zu, solange Großspuk 1 da ist', from: [6.4, 1, -72], heroes: ['lotti'], place: { invuln: 99 },
+        legs: [{ to: [10, -72], within: 0.4, run: false, max: 300, autoJump: false }], allowFail: true, mech: (r) => r.pos[0] < 8 && !r.mech.saaltuer, mechText: (r) => `x ${r.pos[0].toFixed(2)}` },
+      { name: 'Extraleben: unsichtbarer Block im Spukzimmer', from: [62.5, 1, -137], heroes: ['lotti'], place: { invuln: 99 }, expectLives: 1,
+        legs: [{ to: [62.5, -136], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+    ],
+    shots: [
+      ['start', [0, 1, 5]],
+      ['helmhalle', [-1.8, 1, 2.6], 0, null, 0],
+      ['fahrt1', [0, 1.1, -11.6], 1500, null, Math.PI / 2, 'lift1'],
+      ['spiegelsaal', [0, 1, -68.5]],
+      ['spiegel', [0, 1, -77.2]],
+      ['fahrt2', [13, 1.1, -72], 900, null, Math.PI / 2, 'lift2'],
+      ['cp', [0, 1, -130]],
+      ['schacht', [0, 1.1, -141.6], 300, null, Math.PI / 2],
+      ['gang', [0, 15, -147]],
+      ['tueren', [0, 15, -170]],
+      ['gangende', [0, 15, -188]],
+      ['balkon', [6, 15, -190], 0, null, 0],
+      ['spukzimmer', [68, 1, -138.5]],
+    ],
+  },
   '8-7': {
     start: [0, 0, 5],
     meta: { stars: 3, time: 400, theme: 'inferno', music: 'course_inferno', archetype: 'parcours' },
@@ -135,7 +218,20 @@ function install() {
   wrapHurt();
   const ent = (id) => L.named.get(id) ?? L.entities.find((e) => e.spec?.id === id && !e.removed) ?? null;
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
+  const named = (id) => L.named.get(id);
   const COND = {
+    // 8-6
+    helm: () => P().helmet === 'licht',
+    saal: () => at(-8, 8, 0.5, -65.5, -79),
+    saaltuerOffen: () => named('saaltuer')?.locked === false,
+    cp: () => at(-8, 8, 0.5, -125.5, -146),
+    gang: () => P().pos.y > 14.5 && P().pos.z < -143 && !P().dead,
+    balkon: () => at(3.6, 9.2, 14.5, -186, -194),
+    spiegelStufe1: () => P().pos.y > 2.1 && P().mode === 'ground',
+    spiegelStufe2: () => P().pos.y > 3.3 && P().mode === 'ground',
+    rbraum: () => P().pos.x > 55 && !P().dead,
+    sims: () => P().pos.x < -2 && P().pos.y > 8.5 && P().pos.z < -139 && !P().dead,
+    treppe: () => named('stempeltreppe')?.info?.().hidden === false,
     // 8-7
     plateau1: () => at(-7, 7, -0.5, -57.5, -67),
     festland: () => at(-11, 13, -6.5, -127.5, -183),
@@ -188,7 +284,9 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, klotz: 0, falls: 0, boosts: 0, warps: 0, rides: 0, stomped: [], hurtList: [] };
+      const mech = { hurts: 0, klotz: 0, falls: 0, boosts: 0, warps: 0, rides: 0, lifts: 0, stomped: [], hurtList: [] };
+      const ghosts = new Set();
+      const GHOSTS = ['spuk', 'kreisgeist', 'kreisgeist_glied'];
       const track = [];
       let lastHurts = p.hurtTries ?? 0;
       const tick = (inp) => {
@@ -199,6 +297,7 @@ function install() {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 2) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
+        if (steps % 30 === 0) for (const e of L.entities) if (GHOSTS.includes(e.kind) && e.alive) ghosts.add(e);
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
         if (window.__trace && steps % 10 === 0) log.push(['spur', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power, p.ground?.tag ?? '']);
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
@@ -235,6 +334,135 @@ function install() {
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        // ------------------------------------------------ runde Aufzugplattform (mover, fährt beim Draufstehen los): Mitte halten,
+        // Geister im Licht-Kegel halten (guard), unterwegs auf den mitfahrenden POW-Block springen (pow), am Ende aussteigen
+        if (Lg.lift) {
+          const h = L.named.get(Lg.lift), pm = h.pm;
+          let n = 0;
+          for (; n < 900 && !p.dead; n++) {
+            const dx = pm.pos.x - p.pos.x, dz = pm.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'ground' && p.ground?.mover === h.mover && d < 0.4) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(pm.pos.x, pm.pos.z, h.mover.vx, h.mover.vz, 4, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d)))), run: false });
+          }
+          let started = false, powDone = false, guardT = 0;
+          for (n = 0; n < 120 * 150 && !p.dead && L.runtime.status === 'play'; n++) {
+            if (h.running) started = true;
+            if (started && !h.running) break;
+            const cx = pm.pos.x, cz = pm.pos.z, dc = Math.hypot(cx - p.pos.x, cz - p.pos.z);
+            if (Lg.pow && !powDone && started && pm.pos.z <= Lg.pow.z && p.mode === 'ground') {
+              powDone = true;
+              const pw = L.entities.find((e) => e.kind === 'pow' && !e.removed);
+              if (pw) {
+                const n0 = pw.n;
+                for (let q = 0; q < 200 && !p.dead && pw.n === n0; q++) {
+                  const tx = pw.pos.x, tz = pw.pos.z;
+                  tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, h.mover.vx, h.mover.vz, 5, 6) : this.stick(tx - p.pos.x, tz - p.pos.z, 0.6)), jump: q < 20, run: false });
+                }
+                log.push(['pow', pw.n - n0, L.geisterSchreck ?? 0]);
+                for (let q = 0; q < 240 && p.mode !== 'ground' && !p.dead; q++) tick(this.airSteer(pm.pos.x, pm.pos.z, h.mover.vx, h.mover.vz, 4, 6));
+              }
+              continue;
+            }
+            let tgt = null;
+            if (Lg.guard) {
+              let best = 5.5;
+              for (const e of L.entities) {
+                if (!GHOSTS.includes(e.kind) || !e.alive || e.removed || e.defeated) continue;
+                const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
+                if (d < best && Math.abs(e.pos.y - p.pos.y) < 3) { best = d; tgt = e; }
+              }
+            }
+            if (tgt) guardT++;
+            if (dc > 1.0 || !tgt) tick(p.mode === 'air' ? this.airSteer(cx, cz, h.mover.vx, h.mover.vz, 4, 6) : (dc > 0.08 ? this.stick(cx - p.pos.x, cz - p.pos.z, Math.min(1, dc * 1.5)) : {}));
+            else tick(this.stick(tgt.pos.x - p.pos.x, tgt.pos.z - p.pos.z, 0.14));
+          }
+          mech.lifts++;
+          log.push(['aufzug', Lg.lift, started, +pm.s.toFixed(1), n, guardT, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (Lg.exit) { const j = walk(Lg.exit[0], Lg.exit[1], 0.5, 900); if (j >= 900) log.push(['FEHLER: Ausstieg nicht erreicht', Lg.exit]); }
+          continue;
+        }
+        // ------------------------------------------------ steigende Plattform (pingpong): unten aufsteigen, oben aussteigen bzw. unterwegs abspringen
+        if (Lg.steig) {
+          const h = L.named.get(Lg.steig), sh = h.shape;
+          const top = () => sh.max[1], cx = () => (sh.min[0] + sh.max[0]) / 2, cz = () => (sh.min[2] + sh.max[2]) / 2;
+          const th = sh.max[1] - sh.min[1];
+          const lo = h.pm.pts[0].y + th, hi = h.pm.pts[h.pm.pts.length - 1].y + th;
+          let n = 0;
+          // warten, bis sie unten steht, dann zur Mitte
+          for (; n < 3000 && !(top() < lo + 0.05 && h.pm.pause > 1.0 && Math.hypot(cx() - p.pos.x, cz() + 1.95 - p.pos.z) < 0.5); n++) { const ax = cx() - p.pos.x, az = cz() + 1.95 - p.pos.z; tick(this.stick(ax, az, Math.min(1, Math.hypot(ax, az)))); }
+          for (let q = 0; q < 300 && !p.dead; q++) {
+            const dx = cx() - p.pos.x, dz = cz() - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'ground' && p.ground?.mover === h.mover && d < 0.35) break;
+            tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d * 1.2))), run: false });
+          }
+          const y0 = p.pos.y;
+          const hold = () => { const ax = cx() - p.pos.x, az = cz() - p.pos.z, d = Math.hypot(ax, az); return d > 0.08 ? this.stick(ax, az, Math.min(1, d * 1.5)) : {}; };
+          if (Lg.jumpTo) {
+            for (n = 0; n < 900 && !p.dead && top() < Lg.jumpTo.y; n++) tick(hold());
+            const [tx, tz] = Lg.jumpTo.to;
+            for (let q = 0; q < 300 && !p.dead; q++) { tick({ ...this.airSteer(tx, tz, 0, 0, 3.6, 6), jump: q < 40 }); if (q > 6 && p.mode !== 'air') break; }
+            log.push(['absprung', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          } else {
+            for (n = 0; n < 900 && !p.dead && top() < hi - 0.05; n++) tick(hold());
+            if (Lg.exit) { const j = walk(Lg.exit[0], Lg.exit[1], 0.5, 600); if (j >= 600) log.push(['FEHLER: Ausstieg nicht erreicht', Lg.exit]); }
+          }
+          mech.lifts++;
+          log.push(['steigplattform', Lg.steig, +y0.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Licht-Helm: Geist(er) anleuchten, bis sie verschwinden
+        if (Lg.light || Lg.lightAll) {
+          const list = Lg.light ? [Lg.light] : L.entities.filter((e) => String(e.spec?.id ?? '').startsWith(Lg.lightAll) && e.alive && !e.removed).map((e) => e.spec.id);
+          for (const id of list) {
+            const e = L.entities.find((x) => x.spec?.id === id && !x.removed);
+            let k = 0;
+            for (; k < 1500 && e && e.alive && !e.removed && !e.defeated && !p.dead; k++) {
+              const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (d > (Lg.dist ?? 5.0)) tick({ ...this.stick(dx, dz, Math.min(1, (d - 3) / 1.5 + 0.3)), run: false });
+              else if (d < 2.6) tick({ ...this.stick(-dx, -dz, 1), run: false });
+              else tick(this.stick(dx, dz, 0.12));
+            }
+            log.push(['licht', id, e ? e.vanishedBy ?? e.state : null, k]);
+            if (e && e.alive && !e.removed && !e.defeated) log.push(['FEHLER: Geist nicht besiegt', id]);
+          }
+          continue;
+        }
+        // ------------------------------------------------ Lücke zwischen kreisenden Gegnern (Art gap nahe near) abwarten
+        if (Lg.gap) {
+          const [cx, cz, cr] = Lg.near, [tx, tz] = Lg.to;
+          const foes = () => L.entities.filter((x) => x.kind === Lg.gap && x.alive && !x.removed && !x.defeated && Math.hypot(x.pos.x - cx, x.pos.z - cz) < cr);
+          const prevA = new Map();
+          const safe = () => {
+            const d0 = Math.hypot(tx - p.pos.x, tz - p.pos.z), T = d0 / 6.0 + 0.35;
+            const list = foes().map((m) => {
+              const rx = m.pos.x - cx, rz = m.pos.z - cz, a = Math.atan2(rz, rx);
+              let w = 0;
+              if (prevA.has(m)) { let da = a - prevA.get(m); if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI; w = da * 120; }
+              prevA.set(m, a);
+              return { a, r: Math.hypot(rx, rz), w };
+            });
+            if (!list.length) return true;
+            if (list.some((f) => f.w === 0)) return false;
+            for (let t = 0; t <= T + 0.3; t += 0.05) {
+              const k = Math.min(1, t / T), px = p.pos.x + (tx - p.pos.x) * k, pz = p.pos.z + (tz - p.pos.z) * k;
+              for (const f of list) {
+                const a = f.a + f.w * t;
+                if (Math.hypot(cx + Math.cos(a) * f.r - px, cz + Math.sin(a) * f.r - pz) < (Lg.clear ?? 1.5)) return false;
+              }
+            }
+            return true;
+          };
+          let k = 0;
+          for (; k < 1200 && !safe(); k++) tick({});
+          let j = 0;
+          for (; j < 400 && !p.dead; j++) {
+            const qx = tx - p.pos.x, qz = tz - p.pos.z, d = Math.hypot(qx, qz);
+            if (d < (Lg.within ?? 0.4) && p.mode === 'ground') break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz) : this.stick(qx, qz, 1)), run: true });
+          }
+          log.push(['lücke', Lg.gap, k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
         // ------------------------------------------------ Kristall-Felsklotz: aufsteigen, mitfahren (Mitte halten), stampfen, absteigen
         if (Lg.klotz) {
           const k = L.named.get(Lg.klotz);
@@ -373,6 +601,19 @@ function install() {
       mech.hurts = p.hurtTries ?? 0;
       mech.lives = L.runtime.save?.lives;
       mech.k1 = L.named.get('klotz1')?.state ?? null;
+      mech.lit = [...ghosts].filter((e) => e.vanishedBy === 'light').length;
+      mech.schreck = L.geisterSchreck ?? 0;
+      mech.rotring = L.entities.find((e) => e.kind === 'roter_ring')?.state ?? null;
+      const sp = L.named.get('spiegel');
+      if (sp) {
+        let layer5 = true;
+        sp.star?.model?.root?.traverse((o) => { if (o.isMesh && o.layers.mask !== (1 << 5)) layer5 = false; });
+        mech.spiegel = { layer5: !!sp.star?.model && layer5, renders: sp.renders, active: sp.active };
+      }
+      mech.rbLeft = L.entities.filter((e) => String(e.spec?.id ?? '').startsWith('rbspuk') && e.alive && !e.removed && !e.defeated).length;
+      mech.treppe = L.named.get('stempeltreppe')?.info?.().hidden === false;
+      mech.lift1s = L.named.get('lift1')?.pm?.s ?? null;
+      mech.saaltuer = L.named.get('saaltuer')?.locked === false;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
@@ -547,8 +788,16 @@ async function parcours(id) {
       if (t.expectNot) ok = !ok;
       if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (t.mech && !t.mech(res)) ok = false;
+      let postText = '';
+      if (t.post) {
+        const f0 = await sc(() => window.__course.view.frame);
+        await page.waitForFunction((f) => window.__course.view.frame >= f + 12, f0, { timeout: 90000 });
+        const q = await sc(t.post);
+        if (!t.postOk(q)) ok = false;
+        postText = `, ${t.postText(q)}`;
+      }
       if (!ok || VERBOSE) for (const l of res.log) console.log('      ', JSON.stringify(l));
-      check(`${id}: ${t.name} (${hero}${t.mechText ? `, ${t.mechText(res)}` : ''})`, !!ok);
+      check(`${id}: ${t.name} (${hero}${t.mechText ? `, ${t.mechText(res)}` : ''}${postText})`, !!ok);
       if (t.shot && hero === HEROES[0] && PARTS.has('shots')) await shot(`${id}_${t.shot}`);
     }
   }
@@ -586,7 +835,8 @@ async function parcours(id) {
         p.invuln = 99;
         const k = kid ? L.named.get(kid) : null;
         for (let i = 0; i < n; i++) {
-          if (k) { const dx = k.mb.pos.x - p.pos.x, dz = k.mb.pos.z - p.pos.z, d = Math.hypot(dx, dz); c.setInput(d > 0.08 ? W8.stick(dx, dz, Math.min(1, d * 1.5)) : {}); } else c.setInput(inp ?? {});
+          const q = k?.mb?.pos ?? k?.pm?.pos ?? null;
+          if (q) { const dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz); c.setInput(d > 0.08 ? W8.stick(dx, dz, Math.min(1, d * 1.5)) : {}); } else c.setInput(inp ?? {});
           c.step(1);
         }
         p.invuln = 0; c.setInput(null);

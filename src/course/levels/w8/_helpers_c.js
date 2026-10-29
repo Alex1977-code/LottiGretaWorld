@@ -224,3 +224,116 @@ export function aufzugStart(level, id, o = {}) {
   st.info = () => ({ started: st.started, s: +h.pm.s.toFixed(2), len: +h.pm.length.toFixed(1) });
   return st;
 }
+
+/**
+ * Entität fährt auf einer mover-Plattform mit (8-6: POW-Block auf der runden Aufzugplattform): je Schritt Lage und
+ * Kollisionsform um den Versatz der Plattform verschieben. id = Entitäts-Id (spec.id), moverId = mover-Handle.
+ */
+export function mitfahren(level, id, moverId) {
+  const h = level.named.get(moverId);
+  if (!h) return;
+  const offs = new Map();       // Entität → Versatz zur Plattform (beim ersten Schritt gemessen)
+  level.onStep(() => {
+    const e = level.entities.find((x) => x.spec?.id === id && !x.removed);
+    if (!e) return;
+    const p = h.pm.pos;
+    if (!offs.has(e)) offs.set(e, { x: e.pos.x - p.x, y: e.pos.y - p.y, z: e.pos.z - p.z });
+    const o = offs.get(e);
+    const dx = p.x + o.x - e.pos.x, dy = p.y + o.y - e.pos.y, dz = p.z + o.z - e.pos.z;
+    if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) < 1e-9) return;
+    e.pos.x += dx; e.pos.y += dy; e.pos.z += dz;
+    const s = e.shape;
+    if (s?.min) {
+      s.min = [s.min[0] + dx, s.min[1] + dy, s.min[2] + dz];
+      s.max = [s.max[0] + dx, s.max[1] + dy, s.max[2] + dz];
+      if (s.id) level.world.update(s.id);
+    }
+  });
+}
+
+/** Aktion für POW-Blöcke im Spukhaus: die Erschütterung lässt kleine Geister im Umkreis r verpuffen (Großspuke bleiben). */
+export function geisterSchreck(r = 9) {
+  return {
+    fn: (level, ctx) => {
+      const o = ctx.pos ?? [0, 0, 0];
+      const ox = o.x ?? o[0], oz = o.z ?? o[2];
+      let n = 0;
+      for (const e of level.entities) {
+        if (!e.alive || e.removed || e.defeated || typeof e.vanish !== 'function') continue;
+        if (!['spuk', 'kreisgeist', 'kreisgeist_glied'].includes(e.kind) || (e.size ?? 1) > 1.5) continue;
+        if (Math.hypot(e.pos.x - ox, e.pos.z - oz) > r) continue;
+        e.vanish('pow'); n++;
+      }
+      level.geisterSchreck = (level.geisterSchreck ?? 0) + n;
+    },
+  };
+}
+
+/**
+ * Schmuck der runden Aufzugplattform (läuft mit): goldener Rand, Lämpchen-Kranz (leuchtet), violettes Samtpolster und ein
+ * dunkler Kegel darunter; ein Objekt (Standard- und Glüh-Material). r = Radius, h = Dicke.
+ */
+export function aufzugSchmuck(level, moverId, r = 2.4, h = 0.5) {
+  const hd = level.named.get(moverId);
+  if (!level.view || !hd) return;
+  const parts = [], glow = [];
+  const rim = new THREE.TorusGeometry(r - 0.06, 0.09, 6, 40).toNonIndexed();
+  rim.rotateX(Math.PI / 2); rim.translate(0, h + 0.02, 0);
+  colorize(rim, (p, n, o) => mixc(L(0xb8862a), L(0xffe08a), smooth(-0.2, 0.9, n.y), o));
+  parts.push(rim);
+  parts.push(cyl(r * 0.72, r * 0.72, 0.03, 0, h, 0, 0x5a2a7a, 32, { top: 0x6a3a8a }));
+  parts.push(cyl(r * 0.3, r * 0.3, 0.035, 0, h, 0, 0xc8983a, 24, { top: 0xe8b84a }));
+  parts.push(cyl(r + 0.06, r - 0.3, 0.6, 0, -0.62, 0, 0x2a1a34, 24));
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * TAU;
+    glow.push(sph(0.08, Math.cos(a) * (r - 0.05), h + 0.13, Math.sin(a) * (r - 0.05), i % 2 ? 0xfff0a0 : 0xffb0ff, { ws: 6, hs: 4 }));
+  }
+  const mesh = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.2 }));
+  const lamps = new THREE.Mesh(merge(glow), new THREE.MeshBasicMaterial({ vertexColors: true }));
+  mesh.add(lamps);
+  mesh.name = `aufzug:${moverId}`;
+  const p0 = hd.pm.pos;
+  mesh.position.set(p0.x, p0.y, p0.z);
+  addObject(level, mesh, () => { const p = hd.pm.pos; mesh.position.set(p.x, p.y, p.z); });
+}
+
+/**
+ * Kerzen-Inseln im Dunkel (8-6, Orientierung entlang der Fahrten): kleine schwebende Steinsockel mit dreiarmigem Leuchter;
+ * jede Insel ist ein Laternenlicht-Punkt (Thema darkghost: die nächsten Lichter leuchten wirklich) und ein Leuchtpunkt.
+ * list [[x, y, z, s = 1]] (y = Oberkante des Sockels). Statisch, ohne Kollision.
+ */
+export function kerzenInseln(level, list) {
+  const parts = [], flames = [];
+  for (const [x, y, z, s = 1] of list) {
+    parts.push(cyl(0.55 * s, 0.25 * s, 0.9 * s, x, y - 0.9 * s, z, 0x3a2c44, 8, { top: 0x5a4864 }));
+    parts.push(cone(0.25 * s, 0.7 * s, x, y - 0.9 * s - 0.7 * s, z, 0x2a1e30, 6, { rx: Math.PI }));
+    parts.push(cyl(0.05 * s, 0.08 * s, 0.9 * s, x, y, z, 0xc8983a, 6));
+    parts.push(blk(0.9 * s, 0.05 * s, 0.06 * s, x, y + 0.7 * s, z, 0xc8983a));
+    for (const dx of [-0.42, 0, 0.42]) {
+      const up = dx === 0 ? 0.18 * s : 0;
+      parts.push(cyl(0.05 * s, 0.05 * s, 0.26 * s, x + dx * s, y + 0.75 * s + up, z, 0xfff6e0, 6));
+      flames.push([x + dx * s, y + 1.08 * s + up, z]);
+    }
+    level.view?.addLantern(x, y + 1.3 * s, z);
+  }
+  bakeParts(level, parts, { castShadow: false });
+  glowPoints(level, flames, 0xffc860, 0.55, { opacity: 0.95, name: 'kerzen-flammen' });
+  glowPoints(level, flames.filter((_, i) => i % 3 === 1), 0xff9a40, 2.4, { opacity: 0.35, name: 'kerzen-schein' });
+}
+
+/**
+ * Helmregal (8-6 am Start): Holzregal mit Fächern und Lämpchen (Kulisse, fest); die Helme selbst sind Entitäten davor.
+ * o = { x, y, z, n: 4, gap: 1.2 } (Mitte vor dem Regal).
+ */
+export function helmRegal(level, o) {
+  const parts = [], glow = [];
+  const n = o.n ?? 4, gap = o.gap ?? 1.2, W = n * gap + 0.4;
+  const { x, y, z } = o;
+  parts.push(blk(W, 1.4, 0.4, x, y, z - 0.75, 0x5a3422, { top: 0x6e4228 }));
+  for (let i = 0; i <= n; i++) parts.push(blk(0.08, 1.4, 0.44, x - W / 2 + 0.2 + i * gap, y, z - 0.73, 0x3a2216));
+  parts.push(blk(W + 0.2, 0.1, 0.5, x, y + 1.4, z - 0.75, 0xc8983a));
+  for (let i = 0; i < n; i++) glow.push(sph(0.1, x - W / 2 + 0.2 + (i + 0.5) * gap, y + 1.2, z - 0.52, 0xfff0a0, { ws: 6, hs: 4 }));
+  bakeParts(level, parts, { castShadow: false });
+  bakeParts(level, glow, { material: 'glow', castShadow: false });
+  level.world.add({ type: 'box', min: [x - W / 2, y, z - 0.95], max: [x + W / 2, y + 1.5, z - 0.55], tag: 'helmregal' });
+}
