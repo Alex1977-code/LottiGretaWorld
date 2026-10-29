@@ -839,9 +839,10 @@ if (want('themes') && SHOTS) {
       if (th === 'honeycomb') await T('place', [0, 0, -252], { settle: 30 });
       await shot(k ? `thema_${th}_${w}` : `thema_${th}`, 1700);
     }
-    // Rundblick: flache Kamera hinter der Figur (Kulisse und Himmel), danach wieder die Schiene
+    // Rundblick: flache Kamera neben der Figur, quer zur Werkstatt-Achse (Kulisse und Himmel – nicht die 400 m lange
+    // Test-Werkstatt mit allen 14 Stationen hintereinander, die so kein Spiel-Level zeigt), danach wieder die Schiene
     if (th !== 'honeycomb') {
-      await sc(() => { const c = window.__course, cam = c.view.camera, p = c.player.pos; c.view.rig.custom = () => { cam.position.set(p.x, p.y + 4, p.z + 12); cam.lookAt(p.x, p.y + 6, p.z - 40); return true; }; });
+      await sc(() => { const c = window.__course, cam = c.view.camera, p = c.player.pos; c.view.rig.custom = () => { cam.position.set(p.x - 12, p.y + 4, p.z + 4); cam.lookAt(p.x + 40, p.y + 8, p.z - 14); return true; }; });
       await page.waitForTimeout(1500); await freshFrames(3);
       const s2 = await sc(() => window.__course.stats());
       stats.push([`thema_${th}_rundblick`, s2.calls, s2.triangles]);
