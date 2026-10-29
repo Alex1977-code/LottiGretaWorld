@@ -219,7 +219,8 @@ export function flutMauern(level, list) {
       for (let i = 0; i < nn; i++) {
         const u = (i + 0.5) / nn, side = i % 2 ? 0.28 : -0.28;
         const px = alongX ? m.x0 + w * u : cx + side * Math.min(w, 1.2), pz = alongX ? cz + side * Math.min(d, 1.2) : z0 - d * u;
-        b.sphere(0.42 + (i % 3) * 0.08, px, m.y1 + 0.06, pz, i % 3 ? FLUT.moss : FLUT.mossHi, { s: [1.25, 0.32, 1.0], ws: 7, hs: 4 });
+        const mc = [0x3e8a5a, 0x5aa85a, 0x2e7a6a][i % 3];
+        for (let k = 0; k < 3; k++) b.sphere(0.24 + ((i + k) % 3) * 0.07, px + (k - 1) * 0.3, m.y1 + 0.05, pz + (((k * 7 + i) % 3) - 1) * 0.2, mc, { s: [1.2, 0.4, 1], ws: 8, hs: 4 });
         if (i % 3 === 1) { b.cyl(0.05, 0.08, 0.36, px + 0.3, m.y1, pz - 0.2, FLUT.coral[i % 5], 5); b.sphere(0.12, px + 0.3, m.y1 + 0.38, pz - 0.2, FLUT.coral[i % 5], { ws: 6, hs: 4 }); }
         if (i % 4 === 2) b.cone(0.2, 0.06, px - 0.3, m.y1 + 0.08, pz + 0.25, FLUT.coral[(i + 2) % 5], 5);
       }

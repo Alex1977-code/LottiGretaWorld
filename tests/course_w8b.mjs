@@ -140,7 +140,7 @@ ROUTES['8-Zug'] = {
     { name: 'Becken t2: über die Schwimmkisten', to: [-0.85, ZG.t2.z0 - 3.2], jump: 40, jumpAt: 5.4, within: 0.35, run: false },
     { to: [0.85, ZG.t2.z0 - 7.2], jump: 40, jumpAt: 4.6, within: 0.35, run: false },
     { name: 'zum Salon', to: [0, ZG.t2.z1 - 0.3], jump: 30, jumpAt: 5.2, within: 0.5, run: false },
-    { name: 'Salon', to: [0, -110.0], within: 0.5, run: false }, { to: [0, -126.4], within: 0.5, run: false },
+    { name: 'Salon', to: [0, -110.0], within: 0.5, run: false }, { name: 'Mini-Pilzlinge', stompAll: 'mini' }, { to: [0, -126.4], within: 0.5, run: false },
     { name: 'Kistentreppe', to: [-0.9, -127.3], within: 0.3, run: false }, { to: [-0.9, -128.5], jump: 24, within: 0.35, run: false },
     { to: [-0.9, -130.1], jump: 24, within: 0.35, run: false }, { to: [0.6, -134.8], jump: 40, within: 0.5, run: false },
     { name: 'Gepäckwagen-Dach', to: [0.6, -144.6], within: 0.4, run: false }, { to: [0.6, -146.8], within: 0.4, run: false },
@@ -155,6 +155,7 @@ ROUTES['8-Zug'] = {
   routeChecks: [
     { name: 'Stern 1 auf dem Dach eingesammelt, Bossröhre benutzt, Schattenläuferin mit drei Sprüngen aufs Original besiegt, Warp-Box zum Zielwagen',
       ok: (r) => r.rt.stars?.[0] === true && r.mech.pipes >= 1 && r.mech.bossHits === 3 && r.mech.warps === 1 },
+    { name: 'Mini-Pilzlinge im Salon und Hammer-Werfer besiegt (Draufspringen)', ok: (r) => r.mech.stomped.filter((x) => String(x).startsWith('mini')).length === 5 && r.mech.stomped.includes('hammer') },
   ],
   targets: [
     { name: 'Stern 1: gleich nach dem Einsteigen über den Kofferstapel aufs Dach des Aussichtswagens', star: 0, from: [0.5, ZD, -1.0],
