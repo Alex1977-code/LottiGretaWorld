@@ -14,6 +14,7 @@ import { addObject } from '../../blocks/kit.js';
 import { MovingBox } from '../../blocks/w2kit.js';
 import { visDt, runAction } from '../../entities/gimmick.js';
 import { blockTemplate } from '../../entities/visuals.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { isl, line, ring, arc, column, Bld, litTop, gradY, glowPoints, onRespawn } from '../w5/_helpers_b.js';
 
 export { isl, line, ring, arc, column, Bld, litTop, gradY, glowPoints, onRespawn };
@@ -356,10 +357,23 @@ export function gluehwuermchen(level, boxes, o = {}) {
 // Fenster zurück). So bleiben Wasserbecken, Hebeblock und Gegner auf festem Boden, und Springen auf dem Zug fühlt sich an wie
 // auf dem Boden – das Bildfenster gleitet über die Wagen nach vorn.
 
+// Farben wie der Baron-Express auf der Weltkarte (map/decor_w8.js baronStation): violette Wagen mit Goldkante, rote Lok mit
+// Goldringen, Bärengesicht, Monokel und Zylinder-Schornstein.
 export const ZUGF = {
-  body: 0xa01e36, bodyDk: 0x5e0c20, trim: 0xffc84a, frame: 0x2a2232, roof: 0x4a2e6a, roofHi: 0x6a4a92, wood: 0xc88e52,
-  woodDk: 0x8a5a30, glow: 0xffd27a, steel: 0x7a7e92, tank: 0x2a7ab8, tankHi: 0x5ab4e8, black: 0x1e1a26, cream: 0xfff0d0,
+  body: 0x7e2a6e, bodyHi: 0x9a4a8a, bodyDk: 0x4a1640, trim: 0xffc83a, frame: 0x2a2232, roof: 0x6e2a5e, roofHi: 0x8e3a76,
+  wood: 0xc88e52, woodDk: 0x8a5a30, glow: 0xffd27a, steel: 0x7a7e92, tank: 0x2a7ab8, tankHi: 0x5ab4e8, black: 0x1e1a26,
+  cream: 0xfff0d0, lok: 0xc4304e, lokDk: 0x8a1a2a, bear: 0x8a5a34, snout: 0xe2b585,
 };
+
+/** Geometrie-Sammler mit seitlichem Versatz ox (zweiter Zug auf einem Parallelgleis). */
+class XBld extends Bld {
+  constructor(ox = 0) { super(); this.ox = ox; }
+  box(w, h, d, x, ...r) { return super.box(w, h, d, x + this.ox, ...r); }
+  cyl(a, c, h, x, ...r) { return super.cyl(a, c, h, x + this.ox, ...r); }
+  sphere(q, x, ...r) { return super.sphere(q, x + this.ox, ...r); }
+  cone(q, h, x, ...r) { return super.cone(q, h, x + this.ox, ...r); }
+  torus(R, t, x, ...r) { return super.torus(R, t, x + this.ox, ...r); }
+}
 
 /** Fahrweg S(t) [m] und Tempo v(t) des Zugs: Anfahren in ramp s auf vt m/s, danach gleichmäßig. */
 export function fahrweg(vt = 9, ramp = 3) {
@@ -463,14 +477,15 @@ function expressHorizont(sky, bounds) {
  * 'lok' (Kessel mit Brummbär-Gesicht, Führerhaus-Dach 3,96). Dach und Rückwand von Salon und Gepäckwagen blenden aus, solange
  * die Figur darin ist (Ausschnitt). Rückgabe { wheels: [[x, y, z, r?]], faders: [{ id, box, k }] }.
  */
-export function baronZug(level, cars) {
-  const b = new Bld(), g = new Bld(), fade = new Map();
+export function baronZug(level, cars, opt = {}) {
+  const OX = opt.x ?? 0;
+  const b = new XBld(OX), g = new XBld(OX), fade = new Map();
   const add = (x0, x1, y0, y1, zA, zB, o = {}) => {
     const z0 = Math.min(zA, zB), z1 = Math.max(zA, zB);
-    level.world.add({ type: 'box', min: [x0, y0, z0], max: [x1, y1, z1], camIgnore: true, tag: o.tag ?? 'zug', ...(o.flags ?? {}) });
+    level.world.add({ type: 'box', min: [x0 + OX, y0, z0], max: [x1 + OX, y1, z1], camIgnore: true, tag: o.tag ?? 'zug', ...(o.flags ?? {}) });
   };
   const wheels = [];
-  const fb = (id) => { if (!fade.has(id)) fade.set(id, new Bld()); return fade.get(id); };
+  const fb = (id) => { if (!fade.has(id)) fade.set(id, new XBld(OX)); return fade.get(id); };
   const faders = [];
   const emblem = (bb, x, y, z, side) => {
     // Brummbär-Wappen: Goldscheibe mit Bärenkopf (zur Seite side = ±1)
@@ -486,7 +501,7 @@ export function baronZug(level, cars) {
     if (c.kind !== 'lok') {
       for (const bz of [z0 - 1.7, z1 + 1.7]) {
         b.box(1.9, 0.3, 2.0, 0, 0.32, bz, ZUGF.black, { r: 0.05 });
-        for (const az of [bz - 0.62, bz + 0.62]) for (const sx of [-1, 1]) wheels.push([sx * 0.86, 0.42, az]);
+        for (const az of [bz - 0.62, bz + 0.62]) for (const sx of [-1, 1]) wheels.push([OX + sx * 0.86, 0.42, az]);
       }
     }
     for (const sz of [-1, 1]) {
@@ -503,7 +518,16 @@ export function baronZug(level, cars) {
       add(-hw, hw, 1.0, 1.4, z0, z1);
     }
     if (kind === 'flach' && c.bord) {
-      for (const sx of [-1, 1]) { b.box(0.14, 0.5, L - 0.4, sx * (hw - 0.07), 1.4, cz, ZUGF.body, { r: 0.04 }); add(sx > 0 ? hw - 0.14 : -hw, sx > 0 ? hw : -hw + 0.14, 1.4, 1.9, z0 - 0.2, z1 + 0.2); }
+      // Bordwände (Höhe bord; ab 0,8 m als Gitter mit Goldholm – Gitterwagen)
+      const bh = typeof c.bord === 'number' ? c.bord : 0.5;
+      for (const sx of [-1, 1]) {
+        const xm = sx * (hw - 0.07);
+        add(sx > 0 ? hw - 0.14 : -hw, sx > 0 ? hw : -hw + 0.14, 1.4, 1.4 + bh, z0 - 0.2, z1 + 0.2);
+        if (bh < 0.8) { b.box(0.14, bh, L - 0.4, xm, 1.4, cz, ZUGF.body, { r: 0.04 }); continue; }
+        b.box(0.16, 0.14, L - 0.4, xm, 1.4 + bh - 0.14, cz, ZUGF.trim, { r: 0.04 });
+        b.box(0.14, 0.22, L - 0.4, xm, 1.4, cz, ZUGF.body, { r: 0.03 });
+        for (let i = 0; i <= Math.floor((L - 0.6) / 0.5); i++) b.box(0.07, bh - 0.3, 0.07, xm, 1.56, z0 - 0.3 - i * 0.5, i % 4 === 0 ? ZUGF.bodyDk : ZUGF.bodyHi, { r: 0, seg: 0 });
+      }
     }
     if (kind === 'kasten' || kind === 'aussicht') {
       const zb0 = kind === 'aussicht' ? z0 - 2.2 : z0;
@@ -513,7 +537,11 @@ export function baronZug(level, cars) {
       b.box(w, 2.2, Lb, 0, 1.4, czb, ZUGF.body, { r: 0.1 });
       b.box(w + 0.04, 0.16, Lb + 0.02, 0, 2.5, czb, ZUGF.trim, { r: 0.04 });
       b.box(w + 0.2, 0.18, Lb + 0.2, 0, 3.58, czb, ZUGF.roof, { r: 0.09 });
-      b.box(w - 0.4, 0.06, Lb - 0.4, 0, 3.74, czb, ZUGF.roofHi, { r: 0.03 });
+      b.box(w - 0.4, 0.05, Lb - 0.4, 0, 3.74, czb, ZUGF.roofHi, { r: 0.03 });
+      // Laufsteg aus Holzplanken mit Goldnieten (zeigt den Weg übers Dach)
+      b.box(1.1, 0.04, Lb - 0.7, 0, 3.78, czb, ZUGF.wood, { r: 0, seg: 0 });
+      for (let k = 1; k < Math.floor((Lb - 0.7) / 0.6); k++) b.box(1.1, 0.012, 0.04, 0, 3.82, zb0 - 0.35 - k * 0.6, ZUGF.woodDk, { r: 0, seg: 0 });
+      for (const sx of [-0.62, 0.62]) b.box(0.06, 0.05, Lb - 0.7, sx, 3.78, czb, ZUGF.trim, { r: 0, seg: 0 });
       // Fenster (leuchten) und Wappen
       const n = Math.max(1, Math.floor(Lb / 2.2));
       for (let i = 0; i < n; i++) {
@@ -585,12 +613,13 @@ export function baronZug(level, cars) {
       const K = ha / 2 + 0.5, KH = 2.2;
       for (const [x0, x1, za, zb] of [[hx - K - 0.12, hx - K, hz + K + 0.12, hz - K - 0.12], [hx + K, hx + K + 0.12, hz + K + 0.12, hz - K - 0.12], [hx - K, hx + K, hz + K + 0.12, hz + K], [hx - K, hx + K, hz - K, hz - K - 0.12]]) add(x0, x1, top + 0.2, top + 0.2 + KH, za, zb);
       add(hx - K - 0.12, hx + K + 0.12, top + 0.2 + KH, top + 0.4 + KH, hz + K + 0.12, hz - K - 0.12);
-      faders.push({ id: c.id, box: { x0: -hw + 0.1, x1: hw - 0.1, y0: 1.2, y1: top - 0.1, z0: z1 + 0.1, z1: z0 - 0.1 } });
-      c.dome = { x: hx, z: hz, K, top: top + 0.2, KH };
+      faders.push({ id: c.id, box: { x0: OX - hw + 0.1, x1: OX + hw - 0.1, y0: 1.2, y1: top - 0.1, z0: z1 + 0.1, z1: z0 - 0.1 } });
+      c.dome = { x: OX + hx, z: hz, K, top: top + 0.2, KH, a: ha };
     }
     if (kind === 'gepaeck') {
-      // Gepäckwagen: Innengang (Boden 1,4, Decke 3,6), Dach 3,6 … 3,8 begehbar mit Luke (luke: [x, z, a]); Stirnwände geschlossen
-      const t = 0.2, top = 3.6;
+      // Gepäckwagen: Innengang (Boden 1,4, Decke 4,2), Dach 4,2 … 4,4 begehbar mit Luke (luke: [x, z, a]); Rückwand geschlossen,
+      // vorn eine Tür (door: halbe Breite, doorH: Höhe; ohne door geschlossen)
+      const t = 0.2, top = 4.2, GR = 0x2a6a4a, GD = 0x1e4a2e;
       add(-hw, hw, 1.0, 1.4, z0, z1);
       b.box(w, 0.4, L, 0, 1.0, cz, ZUGF.woodDk, { r: 0.05 });
       b.box(w - 0.4, 0.03, L - 0.4, 0, 1.39, cz, ZUGF.wood, { r: 0, seg: 0 });
@@ -598,15 +627,21 @@ export function baronZug(level, cars) {
       for (const sx of [-1, 1]) {
         const x0 = sx > 0 ? hw - t : -hw, x1 = sx > 0 ? hw : -hw + t;
         add(x0, x1, 1.4, top, z0, z1, { flags: { noWallSlide: true } });
-        b.box(t, 1.0, L, (x0 + x1) / 2, 1.4, cz, 0x2a6a4a, { r: 0.04 });
-        F.box(t, top - 2.4, L, (x0 + x1) / 2, 2.4, cz, 0x2a6a4a, { r: 0.04 });
-        for (let i = 0; i < Math.floor(L / 2); i++) F.box(0.05, top - 1.6, 0.12, sx * (hw + 0.01), 1.5, z0 - 1 - i * 2, 0x5a9a6a, { r: 0, seg: 0 });
-        emblem(F, sx * (hw + 0.01), 2.6, cz, sx);
+        b.box(t, 1.0, L, (x0 + x1) / 2, 1.4, cz, GR, { r: 0.04 });
+        b.box(t + 0.04, 0.12, L, (x0 + x1) / 2, 2.4, cz, ZUGF.trim, { r: 0.02 });
+        F.box(t, top - 2.52, L, (x0 + x1) / 2, 2.52, cz, GR, { r: 0.04 });
+        for (let i = 0; i < Math.floor(L / 2); i++) F.box(0.05, top - 2.7, 0.12, sx * (hw + 0.01), 2.6, z0 - 1 - i * 2, 0x5a9a6a, { r: 0, seg: 0 });
+        emblem(F, sx * (hw + 0.01), 3.3, cz, sx);
       }
       for (const [ez, rear] of [[z0, true], [z1, false]]) {
         const ze = rear ? ez - t / 2 : ez + t / 2;
-        add(-hw, hw, 1.4, top, ze + t / 2, ze - t / 2);
-        (rear ? F : b).box(w, top - 1.4, t, 0, 1.4, ze, 0x1e4a2e, { r: 0.03 });
+        const B = rear ? F : b;
+        const D = rear ? 0 : c.door ?? 0, DH = c.doorH ?? 2.8;
+        if (!D) { add(-hw, hw, 1.4, top, ze + t / 2, ze - t / 2); B.box(w, top - 1.4, t, 0, 1.4, ze, GD, { r: 0.03 }); continue; }
+        for (const sx of [-1, 1]) { const x0 = sx > 0 ? D : -hw, x1 = sx > 0 ? hw : -D; add(x0, x1, 1.4, top, ze + t / 2, ze - t / 2); B.box(x1 - x0, top - 1.4, t, (x0 + x1) / 2, 1.4, ze, GD, { r: 0.03 }); }
+        add(-D, D, DH, top, ze + t / 2, ze - t / 2);
+        B.box(2 * D, top - DH, t, 0, DH, ze, GD, { r: 0.03 });
+        b.box(2 * D + 0.3, 0.14, t + 0.06, 0, DH - 0.07, ze, ZUGF.trim, { r: 0.03 });
       }
       const [lx, lz, la] = c.luke ?? [-0.9, z0 - 1.6, 1.4];
       const rects = [[-hw, hw, z0, lz + la / 2], [-hw, hw, lz - la / 2, z1], [-hw, lx - la / 2, lz + la / 2, lz - la / 2], [lx + la / 2, hw, lz + la / 2, lz - la / 2]];
@@ -617,48 +652,57 @@ export function baronZug(level, cars) {
       }
       // Lukenrahmen (Gold) – verrät das Geheimnis
       for (const [dx, dz, sx, sz] of [[0, la / 2, la + 0.2, 0.1], [0, -la / 2, la + 0.2, 0.1], [la / 2, 0, 0.1, la], [-la / 2, 0, 0.1, la]]) b.box(sx, 0.08, sz, lx + dx, top + 0.2, lz + dz, ZUGF.trim, { r: 0.02 });
-      faders.push({ id: c.id, box: { x0: -hw + 0.1, x1: hw - 0.1, y0: 1.2, y1: top - 0.05, z0: z1 + 0.1, z1: z0 - 0.1 } });
+      faders.push({ id: c.id, box: { x0: OX - hw + 0.1, x1: OX + hw - 0.1, y0: 1.2, y1: top - 0.05, z0: z1 + 0.1, z1: z0 - 0.1 } });
+      c.luke = [OX + lx, lz, la];
+      c.top = top;
     }
     if (kind === 'tender') {
       b.box(w, 1.6, L, 0, 1.4, cz, ZUGF.body, { r: 0.08 });
       b.box(w + 0.04, 0.14, L + 0.04, 0, 2.6, cz, ZUGF.trim, { r: 0.03 });
-      for (let i = 0; i < 18; i++) b.sphere(0.32 + (i % 3) * 0.08, -1.1 + (i % 5) * 0.55, 2.9 + (i % 2) * 0.12, z0 - 0.6 - Math.floor(i / 5) * (L / 4), ZUGF.black);
+      for (let i = 0; i < 20; i++) b.sphere(0.34 + (i % 3) * 0.06, -1.1 + (i % 5) * 0.55, 2.98, z0 - 0.7 - Math.floor(i / 5) * ((L - 1.2) / 3), i % 4 ? ZUGF.black : 0x3a3446, { s: [1, 0.42, 1], ws: 7, hs: 4 });
       add(-hw, hw, 1.0, 3.0, z0, z1);
       for (const sx of [-1, 1]) emblem(b, sx * (hw + 0.01), 2.0, cz, sx);
     }
     if (kind === 'lok') {
-      // Führerhaus hinten (Dach 3,96), Kessel vorn mit Brummbär-Gesicht, Schornstein, Kuhfänger
+      // Führerhaus hinten (Dach 3,96), roter Kessel mit Goldringen vorn, Brummbär-Gesicht mit Monokel, Zylinder-Schornstein,
+      // Kuhfänger
       const cab0 = z0, cab1 = z0 - 3.0;
+      const red = { v: (x, y, z, nx, ny) => (ny > 0.4 ? 0xe0404a : ny < -0.4 ? ZUGF.lokDk : ZUGF.lok) };
       add(-hw, hw, 1.0, 1.4, z0, z1);
       b.box(w, 0.4, L, 0, 1.0, cz, ZUGF.black, { r: 0.05 });
-      b.box(w, 2.3, cab0 - cab1, 0, 1.4, (cab0 + cab1) / 2, ZUGF.body, { r: 0.1 });
-      b.box(w + 0.3, 0.26, cab0 - cab1 + 0.4, 0, 3.7, (cab0 + cab1) / 2, ZUGF.roof, { r: 0.1 });
+      b.box(w, 2.3, cab0 - cab1, 0, 1.4, (cab0 + cab1) / 2, red, { r: 0.1 });
+      b.box(w + 0.3, 0.26, cab0 - cab1 + 0.4, 0, 3.7, (cab0 + cab1) / 2, ZUGF.black, { r: 0.1 });
+      b.box(w + 0.34, 0.08, cab0 - cab1 + 0.44, 0, 3.66, (cab0 + cab1) / 2, ZUGF.trim, { r: 0.02 });
       for (const sx of [-1, 1]) g.box(0.06, 0.8, 1.2, sx * (hw + 0.01), 2.3, (cab0 + cab1) / 2, ZUGF.glow, { r: 0, seg: 0 });
       add(-hw, hw, 1.4, 3.96, cab0, cab1);
       const kz0 = cab1, kz1 = z1 + 0.4, kl = kz0 - kz1;
-      b.cyl(1.25, 1.25, kl, 0, 2.5 - kl / 2, (kz0 + kz1) / 2, ZUGF.black, 18, { rx: Math.PI / 2 });
+      b.cyl(1.25, 1.25, kl, 0, 2.5 - kl / 2, (kz0 + kz1) / 2, red, 18, { rx: Math.PI / 2 });
       for (let i = 0; i < 3; i++) b.cyl(1.3, 1.3, 0.14, 0, 2.5 - 0.07, kz0 - 0.6 - i * (kl - 1) / 2, ZUGF.trim, 18, { rx: Math.PI / 2 });
       add(-1.25, 1.25, 1.4, 3.75, kz0, kz1);
-      // Gesicht (Rauchkammertür): Bärenkopf mit Ohren, Augen, Schnauze
+      // Gesicht (Rauchkammertür): Bärenkopf mit Ohren, Augen, Schnauze, Monokel
       const fz = kz1 - 0.05;
-      b.cyl(1.15, 1.15, 0.2, 0, 2.4, fz, 0x8a5a3a, 18, { rx: Math.PI / 2 });
+      b.cyl(1.15, 1.15, 0.2, 0, 2.4, fz, ZUGF.bear, 18, { rx: Math.PI / 2 });
       for (const sx of [-1, 1]) {
-        b.sphere(0.42, sx * 0.95, 3.55, fz, 0x8a5a3a);
+        b.sphere(0.42, sx * 0.95, 3.55, fz, ZUGF.bear);
         b.sphere(0.22, sx * 0.95, 3.6, fz - 0.15, 0xe8a888);
         b.sphere(0.2, sx * 0.42, 2.85, fz - 0.12, 0xffffff);
         b.sphere(0.1, sx * 0.42, 2.85, fz - 0.28, ZUGF.black);
         b.box(0.42, 0.1, 0.1, sx * 0.42, 3.12, fz - 0.14, ZUGF.black, { r: 0.02, rz: sx * 0.3 });
       }
-      b.sphere(0.38, 0, 2.2, fz - 0.2, 0xe8c8a0, { s: [1.2, 0.8, 0.8] });
+      b.torus(0.27, 0.05, 0.42, 2.85, fz - 0.24, ZUGF.trim, { rs: 4, ts: 14 });
+      b.box(0.03, 0.5, 0.03, 0.66, 2.35, fz - 0.24, ZUGF.trim, { r: 0, seg: 0 });
+      b.sphere(0.38, 0, 2.2, fz - 0.2, ZUGF.snout, { s: [1.2, 0.8, 0.8] });
       b.sphere(0.16, 0, 2.38, fz - 0.5, ZUGF.black);
-      b.cyl(0.32, 0.4, 1.3, 0, 3.6, kz1 + 1.2, ZUGF.black, 12);
-      b.cyl(0.46, 0.34, 0.3, 0, 4.85, kz1 + 1.2, ZUGF.trim, 12);
+      // Zylinder-Schornstein mit rotem Band und Krempe
+      b.cyl(0.42, 0.42, 1.4, 0, 3.6, kz1 + 1.2, ZUGF.black, 14);
+      b.cyl(0.7, 0.7, 0.1, 0, 3.72, kz1 + 1.2, ZUGF.black, 14);
+      b.cyl(0.44, 0.44, 0.22, 0, 3.9, kz1 + 1.2, ZUGF.lok, 14);
       b.sphere(0.5, 0, 3.7, kz0 - 1.8, ZUGF.trim, { s: [1, 0.7, 1] });
       for (let i = 0; i < 5; i++) b.box(0.14, 0.9, 0.12, -1.0 + i * 0.5, 0.25, z1 + 0.15, ZUGF.trim, { r: 0.02, rx: -0.5 });
       g.sphere(0.24, 0, 3.4, fz - 0.15, 0xfff0a0);
-      c.chimney = [0, 5.1, kz1 + 1.2];
+      c.chimney = [OX, 5.0, kz1 + 1.2];
       // große Treibräder
-      for (const az of [kz0 - 0.8, kz0 - 2.3, kz0 - 3.8]) for (const sx of [-1, 1]) wheels.push([sx * 0.95, 0.62, az, 0.62]);
+      for (const az of [kz0 - 0.8, kz0 - 2.3, kz0 - 3.8]) for (const sx of [-1, 1]) wheels.push([OX + sx * 0.95, 0.62, az, 0.62]);
     }
   }
   // Kupplungsbleche zwischen den Wagen (auf Deckhöhe, etwas schmaler)
@@ -666,8 +710,9 @@ export function baronZug(level, cars) {
     const a = cars[i], n = cars[i + 1];
     const gz0 = a.z1, gz1 = n.z0;
     if (gz0 - gz1 < 0.05) continue;
-    b.box(1.8, 0.12, gz0 - gz1 + 0.3, 0, 1.28, (gz0 + gz1) / 2, ZUGF.steel, { r: 0.02 });
-    add(-0.9, 0.9, 1.2, 1.4, gz0 + 0.15, gz1 - 0.15);
+    b.box(2.6, 0.12, gz0 - gz1 + 0.3, 0, 1.28, (gz0 + gz1) / 2, ZUGF.steel, { r: 0.02 });
+    for (let k = 0; k < 4; k++) b.box(2.5, 0.02, 0.05, 0, 1.4, gz0 - (k + 0.5) * (gz0 - gz1) / 4, 0x5a5e72, { r: 0, seg: 0 });
+    add(-1.6, 1.6, 1.2, 1.4, gz0 + 0.15, gz1 - 0.15);
   }
   b.flush(level, { castShadow: true });
   g.flush(level, { material: 'glow', castShadow: false });
@@ -717,10 +762,62 @@ function texture(w, h, draw) {
 }
 const _X = new THREE.Vector3(1, 0, 0), _Y = new THREE.Vector3(0, 1, 0);
 
+/** Einheits-Modelle der Tal-Requisiten (Vertexfarben; Größe 1 ≈ Höhe). */
+function requisitGeo(kind) {
+  const b = new Bld();
+  if (kind === 'baum') {
+    b.cyl(0.07, 0.09, 0.3, 0, 0, 0, 0x6a4a3a, 6);
+    b.cone(0.42, 0.55, 0, 0.22, 0, gradY(0x2a5a3a, 0x4a8a4a, 0.2, 0.8), 7);
+    b.cone(0.32, 0.45, 0, 0.55, 0, gradY(0x3a6a40, 0x6aa85a, 0.5, 1.0), 7);
+  } else if (kind === 'laubbaum') {
+    b.cyl(0.06, 0.08, 0.45, 0, 0, 0, 0x6a4a3a, 6);
+    b.sphere(0.36, 0, 0.7, 0, gradY(0x3a7a3a, 0x8ac85a, 0.4, 1.0), { s: [1, 0.9, 1], ws: 8, hs: 6 });
+    b.sphere(0.12, 0.2, 0.86, 0.18, 0xff6a5a, { ws: 5, hs: 4 });
+  } else if (kind === 'haus') {
+    b.box(1.0, 0.7, 0.8, 0, 0, 0, 0xf6e6d0, { r: 0, seg: 0 });
+    b.cone(0.78, 0.55, 0, 0.7, 0, 0xd04a4a, 4, { yaw: Math.PI / 4, s: [1, 1, 0.82] });
+    for (const sx of [-0.25, 0.25]) b.box(0.18, 0.2, 0.02, sx, 0.32, 0.41, 0xffd25a, { r: 0, seg: 0 });
+    b.box(0.2, 0.34, 0.02, 0, 0, -0.41, 0x7a4a2a, { r: 0, seg: 0 });
+    b.box(0.12, 0.3, 0.12, 0.28, 0.85, 0.1, 0x8a5a4a, { r: 0, seg: 0 });
+  } else if (kind === 'zelt') {
+    b.cyl(0.62, 0.62, 0.45, 0, 0, 0, { v: (x, y, z) => (Math.floor(((Math.atan2(x, z) + Math.PI) / TAU) * 12) % 2 ? 0xffffff : 0xe83a4a) }, 12);
+    b.cone(0.72, 0.6, 0, 0.45, 0, { v: (x, y, z) => (Math.floor(((Math.atan2(x, z) + Math.PI) / TAU) * 12) % 2 ? 0xffe8f0 : 0xe83a4a) }, 12);
+    b.cyl(0.02, 0.02, 0.25, 0, 1.0, 0, 0x3a2a3a, 4);
+    b.box(0.02, 0.1, 0.16, 0, 1.13, 0.08, 0xffc83a, { r: 0, seg: 0 });
+  } else if (kind === 'ballon') {
+    b.sphere(0.5, 0, 1.0, 0, { v: (x, y, z) => (Math.floor(((Math.atan2(x, z) + Math.PI) / TAU) * 8) % 2 ? 0xffffff : 0xffd8e8) }, { s: [1, 1.15, 1], ws: 12, hs: 8 });
+    b.cone(0.22, 0.3, 0, 0.32, 0, 0xffffff, 8, { rx: Math.PI });
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.cyl(0.008, 0.008, 0.36, sx * 0.08, 0.1, sz * 0.08, 0x3a2a2a, 3);
+    b.box(0.2, 0.14, 0.2, 0, 0, 0, 0x9a6a3a, { r: 0.02 });
+  }
+  return b.geometry();
+}
+const REQUISIT = {
+  baum: { size: [3, 8], colors: [0xffffff, 0xd8f0d0, 0xf0e8ff] },
+  laubbaum: { size: [3, 6], colors: [0xffffff, 0xffe8c0, 0xf8d0e8] },
+  haus: { size: [3, 4.4], colors: [0xffffff, 0xffe0f0, 0xe0f0ff, 0xfff0c0] },
+  zelt: { size: [4, 6.5], colors: [0xffffff, 0xd0e0ff, 0xffe8a0] },
+  ballon: { size: [3.5, 5], colors: [0xff6a8a, 0x6ac8ff, 0xffd84a, 0x9a7aff, 0x6ae08a], dy: 16 },
+};
+
+/** Tal-Requisiten: specs = [{ kind, bands: [[x0, x1, n], …], y?, size? }] → [{ kind, geo, list: [{ x, y, z0, s, yaw, color }] }]. */
+function talRequisiten(specs, rnd, zMax, len, talY) {
+  return specs.map((sp) => {
+    const D = REQUISIT[sp.kind] ?? REQUISIT.baum;
+    const [s0, s1] = sp.size ?? D.size;
+    const list = [];
+    for (const [x0, x1, n] of sp.bands) for (let i = 0; i < n; i++) {
+      list.push({ x: x0 + rnd() * (x1 - x0), z0: zMax - rnd() * len, y: (sp.y ?? talY) + (D.dy ? rnd() * D.dy : 0), s: s0 + rnd() * (s1 - s0), yaw: rnd() * TAU, color: D.colors[Math.floor(rnd() * D.colors.length)] });
+    }
+    return { kind: sp.kind, geo: requisitGeo(sp.kind), list };
+  });
+}
+
 /**
  * Fahrt-Illusion: Gleisbett, Viadukt-Seitenwände, Talboden (Texturen laufen mit S(t)), vorbeiziehende Laternen, Fahnen und
  * Bäume (Instanzen, kreisen über das Band zMin … zMax), Dampf der Lok, drehende Räder. Der Startbahnhof (Bahnsteig mit
- * Kollision) fährt mit S(t) nach hinten weg. cfg = { weg (fahrweg), band: [zMin, zMax], talY, wheels (aus baronZug), chimney,
+ * Kollision) fährt mit S(t) nach hinten weg. cfg = { weg (fahrweg), band: [zMin, zMax], gleise: [x, …] (Standard [0]; je Gleis
+ * Gleisbett, Viadukt, Laternen), talY, trees: [[x0, x1, n], …] (Baumstreifen im Tal), wheels (aus baronZug), chimneys,
  * bahnhof: { x0, x1, zA, zB, top }, bahnhofOptik (Gruppe) }. Rückgabe { S(), v(), bahnsteig (MovingBox) }.
  */
 export function fahrtIllusion(level, cfg) {
@@ -748,10 +845,14 @@ export function fahrtIllusion(level, cfg) {
     for (let i = 0; i < 140; i++) { x.fillStyle = ['#5a4a5a', '#7a6a78', '#4e4252'][i % 3]; x.fillRect((i * 37) % w, (i * 53) % h, 3, 3); }
     for (let k = 0; k < 2; k++) { x.fillStyle = '#5a3420'; x.fillRect(4, 20 + k * 64, w - 8, 22); x.fillStyle = '#7a4a2a'; x.fillRect(4, 20 + k * 64, w - 8, 5); }
   });
-  const bedGeo = new THREE.PlaneGeometry(3.6, len, 1, 1); bedGeo.rotateX(-Math.PI / 2);
-  { const uv = bedGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * len / 1.6); }
+  const GL = cfg.gleise ?? [0];
+  const zc = (zMin + zMax) / 2;
+  const bedGeo = mergeGeometries(GL.map((gx) => {
+    const g = new THREE.PlaneGeometry(3.6, len, 1, 1); g.rotateX(-Math.PI / 2);
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * len / 1.6);
+    return g.translate(gx, -0.02, zc);
+  }), false);
   const bed = new THREE.Mesh(bedGeo, new THREE.MeshLambertMaterial({ map: tie }));
-  bed.position.set(0, -0.02, (zMin + zMax) / 2);
   bed.receiveShadow = true;
   bed.name = 'gleisbett';
   // ---- Viadukt-Seitenwände mit Bögen (Textur: Mauer + Bogen je 12 m), Talboden
@@ -763,50 +864,71 @@ export function fahrtIllusion(level, cfg) {
   });
   const WH = 16;
   const wallMat = new THREE.MeshLambertMaterial({ map: arch, side: THREE.DoubleSide });
-  const walls = [];
-  for (const sx of [-1, 1]) {
+  const wallGeo = mergeGeometries(GL.flatMap((gx) => [-1, 1].map((sx) => {
     const gw = new THREE.PlaneGeometry(len, WH, 1, 1);
-    { const uv = gw.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * len / 12); }
-    const m = new THREE.Mesh(gw, wallMat);
-    m.rotation.y = sx * Math.PI / 2;
-    m.position.set(sx * 1.85, -0.25 - WH / 2, (zMin + zMax) / 2);
-    m.name = 'viadukt';
-    walls.push(m);
-  }
-  const tal = texture(256, 256, (x, w, h) => {
-    x.fillStyle = '#3e5a3e'; x.fillRect(0, 0, w, h);
-    const cols = ['#4a6a46', '#56784e', '#34502e', '#6a6a3a', '#5a3e5a'];
-    for (let i = 0; i < 26; i++) { x.fillStyle = cols[i % cols.length]; x.fillRect((i * 71) % w, (i * 113) % h, 50 + (i * 13) % 60, 30 + (i * 29) % 50); }
-    x.strokeStyle = '#9a8a6a'; x.lineWidth = 5; x.beginPath(); x.moveTo(0, 60); x.bezierCurveTo(80, 120, 160, 10, 256, 70); x.stroke();
-    for (let i = 0; i < 40; i++) { x.fillStyle = ['#ffd27a', '#ff8ac8', '#9af0ff'][i % 3]; x.beginPath(); x.arc((i * 97) % w, (i * 61) % h, 2.2, 0, TAU); x.fill(); }
+    const uv = gw.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * len / 12);
+    gw.rotateY(sx * Math.PI / 2);
+    return gw.translate(gx + sx * 1.85, -0.25 - WH / 2, zc);
+  })), false);
+  const walls = [new THREE.Mesh(wallGeo, wallMat)];
+  walls[0].name = 'viadukt';
+  const tal = texture(512, 512, (x, w, h) => {
+    // Abendfelder: Wiesen, goldene Kornfelder, Lavendel, Kürbisäcker mit Furchen; Feldwege, Teiche, Hecken, Lichterpunkte
+    x.fillStyle = '#4a7a4a'; x.fillRect(0, 0, w, h);
+    let q = 5;
+    const r = () => { q = (q * 16807) % 2147483647; return q / 2147483647; };
+    const fields = [['#6a9a4a', '#5a8a42'], ['#e0b04a', '#c8963a'], ['#9a6ad0', '#7e52b8'], ['#e8804a', '#c8643a'], ['#58a05a', '#4a8a4c'], ['#d8c050', '#bca240']];
+    const cell = 128;
+    for (let gy = 0; gy < h / cell; gy++) for (let gx = 0; gx < w / cell; gx++) {
+      const [a, b] = fields[Math.floor(r() * fields.length)];
+      const x0 = gx * cell + 3, y0 = gy * cell + 3, ww = cell - 6, hh = cell - 6;
+      x.fillStyle = a; x.fillRect(x0, y0, ww, hh);
+      x.fillStyle = b;
+      const vert = r() > 0.5;
+      for (let k = 6; k < (vert ? ww : hh); k += 12) { if (vert) x.fillRect(x0 + k, y0, 5, hh); else x.fillRect(x0, y0 + k, ww, 5); }
+    }
+    // Hecken zwischen den Feldern
+    x.fillStyle = '#2e5a36';
+    for (let k = 0; k <= w; k += cell) { x.fillRect(k - 3, 0, 6, h); x.fillRect(0, k - 3, w, 6); }
+    // Feldweg und Bach
+    x.strokeStyle = '#e8d0a0'; x.lineWidth = 9; x.beginPath(); x.moveTo(0, 120); x.bezierCurveTo(160, 240, 340, 20, 512, 140); x.stroke();
+    x.strokeStyle = '#4ab8ff'; x.lineWidth = 12; x.beginPath(); x.moveTo(300, 0); x.bezierCurveTo(200, 160, 420, 330, 260, 512); x.stroke();
+    x.strokeStyle = '#9ae0ff'; x.lineWidth = 3; x.stroke();
+    for (const [cx, cy, rr] of [[90, 380, 34], [430, 300, 26]]) { x.fillStyle = '#3a9ae0'; x.beginPath(); x.ellipse(cx, cy, rr, rr * 0.7, 0.3, 0, TAU); x.fill(); x.fillStyle = '#8ad8ff'; x.beginPath(); x.ellipse(cx - 6, cy - 4, rr * 0.5, rr * 0.25, 0.3, 0, TAU); x.fill(); }
+    // Blumen und Lichterpunkte
+    for (let i = 0; i < 140; i++) { x.fillStyle = ['#ffe08a', '#ff8ac8', '#ffffff', '#ff6a5a'][i % 4]; x.beginPath(); x.arc(r() * w, r() * h, 2 + r() * 2, 0, TAU); x.fill(); }
   });
-  const TW = 360, TL = len + 260;
+  const gx0 = Math.min(...GL), gx1 = Math.max(...GL);
+  const TW = 420 + (gx1 - gx0), TL = len + 300;
   const talGeo = new THREE.PlaneGeometry(TW, TL, 1, 1); talGeo.rotateX(-Math.PI / 2);
-  { const uv = talGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * TW / 60, uv.getY(i) * TL / 60); }
+  { const uv = talGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * TW / 90, uv.getY(i) * TL / 90); }
   const talMesh = new THREE.Mesh(talGeo, new THREE.MeshLambertMaterial({ map: tal }));
-  talMesh.position.set(0, cfg.talY ?? -16, (zMin + zMax) / 2 - 60);
+  talMesh.position.set((gx0 + gx1) / 2, cfg.talY ?? -16, zc - 60);
   talMesh.name = 'talboden';
   for (const m of [bed, ...walls, talMesh]) { m.castShadow = false; m.userData.owned = true; v.add(m); }
   talMesh.receiveShadow = false;
   // ---- Laternen und Fahnen auf dem Viadukt, Bäume im Tal (Instanzen, kreisen über das Band)
   const EVERY = cfg.lampEvery ?? 15;
-  const lamps = [], flags = [], trees = [];
-  for (let z = zMax, i = 0; z > zMin; z -= EVERY, i++) (i % 3 === 2 ? flags : lamps).push({ x: i % 2 ? 2.1 : -2.1, z0: z });
+  const lamps = [], flags = [];
+  const skip = (x, z) => (cfg.skipLamps ?? []).some(([x0, x1, z0, z1]) => x > x0 && x < x1 && z > z0 && z < z1);
+  for (const gx of cfg.lampGleise ?? GL) for (let z = zMax, i = 0; z > zMin; z -= EVERY, i++) { const x = gx + (i % 2 ? 2.1 : -2.1); if (!skip(x, z)) (i % 3 === 2 ? flags : lamps).push({ x, z0: z }); }
   let s = 9;
   const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-  for (let i = 0; i < 46; i++) { const side = i % 2 ? 1 : -1; trees.push({ x: side * (8 + rnd() * 70), z0: zMax - rnd() * len, h: 3 + rnd() * 5 }); }
+  // Requisiten im Tal (je Art eine Instanz-Gruppe): Bäume, Häuschen mit Lichtfenstern, Rummelzelte, Heißluftballons
+  const props = talRequisiten(cfg.props ?? [{ kind: 'baum', bands: [[-78, -8, 23], [8, 78, 23]] }], rnd, zMax, len, cfg.talY ?? -16);
   const poleGeo = new THREE.CylinderGeometry(0.07, 0.09, 2.6, 6); poleGeo.translate(0, 1.3, 0);
   const headGeo = new THREE.BoxGeometry(0.34, 0.42, 0.34); headGeo.translate(0, 2.75, 0);
   const flagGeo = new THREE.BoxGeometry(0.06, 1.0, 0.8); flagGeo.translate(0, 2.0, 0.42);
-  const treeGeo = new THREE.ConeGeometry(1, 1, 7); treeGeo.translate(0, 0.5, 0);
   const mk = (geo, mat, n, name) => { const m = new THREE.InstancedMesh(geo, mat, Math.max(1, n)); m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false; m.name = name; m.userData.owned = true; v.add(m); return m; };
   const poles = mk(poleGeo, new THREE.MeshLambertMaterial({ color: 0x2a2236 }), lamps.length + flags.length, 'masten');
   const heads = mk(headGeo, new THREE.MeshBasicMaterial({ color: 0xffd27a }), lamps.length, 'laternen');
   const flagM = mk(flagGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), flags.length, 'fahnen');
-  const treeM = mk(treeGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), trees.length, 'baeume');
   const col = new THREE.Color();
+  for (const pr of props) {
+    pr.mesh = mk(pr.geo, new THREE.MeshLambertMaterial({ vertexColors: true }), pr.list.length, `tal:${pr.kind}`);
+    pr.list.forEach((q, i) => { if (q.color !== undefined) pr.mesh.setColorAt(i, col.set(q.color)); });
+  }
   flags.forEach((q, i) => flagM.setColorAt(i, col.set([0xe83a5a, 0xffc84a, 0x8a5ae8][i % 3])));
-  trees.forEach((q, i) => treeM.setColorAt(i, col.set([0x2e5a3a, 0x3a6a3a, 0x4a3a5a][i % 3])));
   const glow = glowPoints(level, lamps.map((q) => [q.x, 2.8, q.z0, 2.6]), { color: 0xffc86a, opacity: 0.75 });
   const m4 = new THREE.Matrix4(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), qt = new THREE.Quaternion(), q0 = new THREE.Quaternion();
   const wrap = (z) => zMin + ((((z - zMin) % len) + len) % len);
@@ -824,7 +946,7 @@ export function fahrtIllusion(level, cfg) {
   wheelGeo.setAttribute('color', new THREE.BufferAttribute(wc, 3));
   const wheelMesh = mk(wheelGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0.3 }), wl.length, 'raeder');
   const steamN = 18;
-  const steam = mk(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshLambertMaterial({ color: 0xf6f0ff, transparent: true, opacity: 0.7, depthWrite: false }), steamN, 'dampf');
+  const steam = mk(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshLambertMaterial({ color: 0xfff4ff, emissive: 0x3a2a40, transparent: true, opacity: 0.5, depthWrite: false }), steamN, 'dampf');
   const station = cfg.bahnhofOptik ?? null;
   if (station) v.add(station);
   v.onFrame((dt) => {
@@ -832,7 +954,7 @@ export function fahrtIllusion(level, cfg) {
     const t = T(), S = W.S(t), vv = W.v(t);
     tie.offset.y = S / 1.6;
     arch.offset.x = S / 12;
-    tal.offset.y = S / 60;
+    tal.offset.y = S / 90;
     lamps.forEach((q, i) => {
       const z = wrap(q.z0 + S);
       ps.set(q.x, 0, z); sc.set(1, 1, 1); m4.compose(ps, q0, sc);
@@ -846,18 +968,26 @@ export function fahrtIllusion(level, cfg) {
       qt.setFromAxisAngle(_Y, Math.sin(vis * 7 + q.z0) * 0.15 * Math.sign(q.x)); m4.compose(ps, qt, sc);
       flagM.setMatrixAt(i, m4);
     });
-    trees.forEach((q, i) => { ps.set(q.x, cfg.talY ?? -16, wrap(q.z0 + S)); sc.set(q.h * 0.45, q.h, q.h * 0.45); m4.compose(ps, q0, sc); treeM.setMatrixAt(i, m4); });
-    poles.instanceMatrix.needsUpdate = true; heads.instanceMatrix.needsUpdate = true; flagM.instanceMatrix.needsUpdate = true; treeM.instanceMatrix.needsUpdate = true;
+    for (const pr of props) {
+      pr.list.forEach((q, i) => {
+        const bob = pr.kind === 'ballon' ? Math.sin(vis * 0.6 + q.z0) * 0.8 : 0;
+        ps.set(q.x, q.y + bob, wrap(q.z0 + S)); sc.set(q.s, q.s, q.s); qt.setFromAxisAngle(_Y, q.yaw); m4.compose(ps, qt, sc);
+        pr.mesh.setMatrixAt(i, m4);
+      });
+      pr.mesh.instanceMatrix.needsUpdate = true;
+    }
+    poles.instanceMatrix.needsUpdate = true; heads.instanceMatrix.needsUpdate = true; flagM.instanceMatrix.needsUpdate = true;
     if (glow) glow.field.geo.attributes.position.needsUpdate = true;
     // Räder drehen (Abrollen: Winkel = S / r)
     wl.forEach(([x, y, z, r = 0.42], i) => { qt.setFromAxisAngle(_X, -S / r); ps.set(x, y, z); sc.set(r, r, r); m4.compose(ps, qt, sc); wheelMesh.setMatrixAt(i, m4); });
     wheelMesh.instanceMatrix.needsUpdate = true;
-    // Dampfwolken aus dem Schornstein: steigen auf und ziehen mit dem Fahrtwind nach hinten
-    const ch = cfg.chimney ?? [0, 5, 0];
+    // Dampfwolken aus den Schornsteinen: steigen auf und ziehen mit dem Fahrtwind nach hinten
+    const chs = cfg.chimneys ?? [[0, 5, 0]], per = Math.ceil(steamN / chs.length);
     for (let i = 0; i < steamN; i++) {
-      const life = 1.6, u = ((vis * 1.1 + (i / steamN) * life) % life) / life;
-      ps.set(ch[0] + Math.sin(i * 1.7) * 0.3 * u, ch[1] + u * 2.4, ch[2] + u * (1.5 + vv * 0.9));
-      const r = 0.3 + u * 1.1;
+      const ch = chs[Math.min(chs.length - 1, Math.floor(i / per))];
+      const life = 1.6, u = ((vis * 1.1 + ((i % per) / per) * life) % life) / life;
+      ps.set(ch[0] + Math.sin(i * 1.7) * 0.5 * u, ch[1] + u * 3.4, ch[2] + u * (1.2 + vv * 0.8));
+      const r = 0.22 + u * 0.75;
       sc.set(r, r * 0.8, r); m4.compose(ps, q0, sc);
       steam.setMatrixAt(i, m4);
     }
@@ -875,9 +1005,11 @@ export function bahnhofOptik(level, bh) {
   b.box(w, y + 6, L, cx, -6, cz, gradY(0x6a4a5a, 0xd8c0d0, -6, y), { r: 0.08 });
   b.box(w + 0.1, 0.12, L + 0.1, cx, y - 0.1, cz, 0xf0e0f0, { r: 0.03 });
   b.box(0.3, 0.02, L, bh.x0 + 0.25, y + 0.01, cz, 0xffd23a, { r: 0, seg: 0 });
-  for (let z = z0 - 2; z > z1 + 1; z -= 4) b.cyl(0.12, 0.14, 3.2, cx + 0.8, y, z, ZUGF.body, 8);
-  b.box(2.6, 0.2, L - 1, cx + 0.8, y + 3.2, cz, ZUGF.roof, { r: 0.08 });
-  for (let i = 0; i * 1.2 < L - 2; i++) b.box(2.7, 0.08, 0.5, cx + 0.8, y + 3.12, z0 - 1 - i * 1.2, i % 2 ? 0xffffff : 0xe83a5a, { r: 0, seg: 0 });
+  // Blumenkästen an der Bahnsteigkante (rechts, außerhalb des Wegs)
+  for (let z = z0 - 1.5; z > z1 + 1; z -= 3.2) {
+    b.box(0.5, 0.35, 1.2, bh.x1 - 0.3, y, z, 0x8a5a30, { r: 0.04 });
+    for (let k = 0; k < 4; k++) b.sphere(0.13, bh.x1 - 0.3, y + 0.42, z - 0.45 + k * 0.3, [0xff6a8a, 0xffd84a, 0xffffff, 0x9a7aff][(k + Math.round(z)) & 3], { ws: 6, hs: 4 });
+  }
   // Häuschen mit Uhr
   b.box(3.4, 3.2 + y, 5, bh.x1 + 2.2, -0.5, cz + 3, 0xf0d8c0, { r: 0.1 });
   b.box(3.8, 0.4, 5.4, bh.x1 + 2.2, y + 2.7, cz + 3, ZUGF.body, { r: 0.1 });
@@ -905,18 +1037,36 @@ export function bahnhofOptik(level, bh) {
 
 /**
  * Hebeblock (Bauplan 8-Zug „zweiter ?-Block im Mini-Pilzling-Raum ist ein Hebeblock – Stampfen fährt ihn zur Decke“): ?-Block,
- * der beim Stampfen von oben durch die Luke in die Glaskuppel hinauffährt (trägt die Figur), dort hold s wartet und wieder
- * hinabfährt. Kopfstoß von unten gibt einmal content. { pos: [x, y, z] (Mitte Unterseite), rise: 1.4, speed: 1.6, hold: 3.0,
- * content: 'coins:3', id } → level.named { state ('unten'|'hoch'|'oben'|'runter'), lifts, h, y, info() }.
+ * der beim Stampfen von oben hinauffährt (trägt die Figur), oben hold s wartet und wieder hinabfährt. Kopfstoß von unten gibt
+ * einmal content. Mit luke: { a, y, t } liegt über ihm eine Deckenluke (a × a, Unterkante y, Dicke t): geschlossen fest (von
+ * unten kommt niemand hindurch), der fahrende Block stößt sie auf; sie schließt erst wieder, wenn der Block unten ist und
+ * niemand mehr darüber bzw. im Lukenloch steckt. { pos: [x, y, z] (Mitte Unterseite), rise: 1.4, speed: 1.6, hold: 3.0,
+ * content: 'coins:3', id, luke } → level.named { state ('unten'|'hoch'|'oben'|'runter'), lifts, h, y, lukeOpen, info() }.
  */
 export function hebeblock(level, spec) {
   const p = { x: spec.pos[0], y: spec.pos[1], z: spec.pos[2] };
   const S = 1, rise = spec.rise ?? 1.4, speed = spec.speed ?? 1.6, hold = spec.hold ?? 3.0;
-  const st = { state: 'unten', h: 0, t: 0, lifts: 0, used: false, bumpT: 0 };
+  const st = { state: 'unten', h: 0, t: 0, lifts: 0, used: false, bumpT: 0, open: false, k: 0 };
   const blk = new MovingBox(level, p.x, p.y, p.z, S, S, S, { tag: 'hebeblock' });
+  const LK = spec.luke ?? null;
+  const lukeShape = LK ? { type: 'box', min: [p.x - LK.a / 2, LK.y, p.z - LK.a / 2], max: [p.x + LK.a / 2, LK.y + (LK.t ?? 0.2), p.z + LK.a / 2], camIgnore: true, tag: 'luke' } : null;
+  const lukeId = lukeShape ? level.world.add(lukeShape) : null;
+  const setOpen = (open) => {
+    if (!LK || open === st.open) return;
+    st.open = open;
+    level.world.update(lukeId, { solid: !open });
+    level.sfx('door');
+  };
+  // steckt eine Figur über der Luke (Kuppel) oder im Lukenloch?
+  const blocked = () => (level.players ?? [level.player]).some((f) => {
+    if (!f || f.dead) return false;
+    const dx = Math.abs(f.pos.x - p.x), dz = Math.abs(f.pos.z - p.z), r = LK.a / 2 + 0.6;
+    return dx < r && dz < r && f.pos.y + 0.95 > LK.y - 0.05;
+  });
   const handle = {
     get state() { return st.state; }, get lifts() { return st.lifts; }, get y() { return p.y + st.h; }, get h() { return st.h; },
-    info: () => ({ state: st.state, h: +st.h.toFixed(2), lifts: st.lifts, used: st.used }),
+    get lukeOpen() { return st.open; },
+    info: () => ({ state: st.state, h: +st.h.toFixed(2), lifts: st.lifts, used: st.used, open: st.open }),
     onBump() {
       st.bumpT = 0.25;
       level.sfx('blockhit');
@@ -925,6 +1075,7 @@ export function hebeblock(level, spec) {
     onPound() {
       if (st.state !== 'unten') return;
       st.state = 'hoch'; st.t = 0; st.lifts++;
+      setOpen(true);
       level.sfx('rumble'); level.shake?.(0.15);
     },
   };
@@ -936,23 +1087,230 @@ export function hebeblock(level, spec) {
     else if (st.state === 'oben') { if (st.t >= hold) { st.state = 'runter'; st.t = 0; } }
     else if (st.state === 'runter') { st.h = Math.max(0, st.h - speed * 0.7 * dt); if (st.h <= 0) { st.state = 'unten'; st.t = 0; } }
     if (st.state === 'unten' || st.state === 'oben') blk.still(); else blk.moveTo(p.x, p.y + st.h, p.z, dt);
+    if (LK) setOpen(st.state !== 'unten' || blocked());
   });
-  onRespawn(level, () => { st.state = 'unten'; st.h = 0; blk.moveTo(p.x, p.y, p.z, 1 / 120); blk.still(); });
+  onRespawn(level, () => { st.state = 'unten'; st.h = 0; blk.moveTo(p.x, p.y, p.z, 1 / 120); blk.still(); if (LK) setOpen(false); });
   if (!level.view) return handle;
   const pool = level.view.pool('block:question', () => blockTemplate('question'), { castShadow: true, capacity: 32 });
   const idx = pool.alloc();
-  // Säule unter dem Block (wächst beim Heben)
-  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1, 10), new THREE.MeshStandardMaterial({ color: 0xc8a050, roughness: 0.5, metalness: 0.3 }));
-  col.castShadow = true; col.visible = false;
+  // Lukenklappen (zwei Flügel, schwingen nach oben auf)
+  const root = new THREE.Group();
+  root.name = 'hebeblock';
+  const flaps = [];
+  if (LK) {
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 });
+    for (const sx of [-1, 1]) {
+      const hinge = new THREE.Group();
+      hinge.position.set(p.x + sx * LK.a / 2, LK.y + (LK.t ?? 0.2), p.z);
+      const fb = new Bld();
+      fb.box(LK.a / 2 - 0.02, 0.1, LK.a - 0.04, -sx * (LK.a / 4), -0.11, 0, 0x8a5a30, { r: 0.02 });
+      fb.box(0.12, 0.12, LK.a - 0.1, -sx * (LK.a / 2 - 0.08), -0.1, 0, ZUGF.trim, { r: 0.02 });
+      for (let k = 1; k < 4; k++) fb.box(LK.a / 2 - 0.1, 0.02, 0.04, -sx * (LK.a / 4), -0.02, -LK.a / 2 + k * LK.a / 4, 0x6a4020, { r: 0, seg: 0 });
+      hinge.add(new THREE.Mesh(fb.geometry(), mat));
+      hinge.userData.sx = sx;
+      root.add(hinge);
+      flaps.push(hinge);
+    }
+  }
   const holder = {};
-  addObject(level, col, (dt) => {
+  addObject(level, root, (dt) => {
     const d = visDt(level, holder, dt);
     if (st.bumpT > 0) st.bumpT = Math.max(0, st.bumpT - d);
     const by = p.y + st.h + Math.sin((st.bumpT / 0.25) * Math.PI) * 0.2;
     pool.set(idx, p.x, by, p.z, 0, S);
-    col.visible = st.h > 0.02;
-    col.scale.y = Math.max(0.01, st.h);
-    col.position.set(p.x, p.y + st.h / 2, p.z);
+    st.k = clamp(st.k + (st.open ? 1 : -1) * d * 3, 0, 1);
+    const pl = level.player;
+    root.visible = !pl || Math.abs(pl.pos.z - p.z) < 30;
+    for (const f of flaps) f.rotation.z = -f.userData.sx * st.k * 1.9;
+  });
+  return handle;
+}
+
+// ------------------------------------------------------------------ Wagenreihe, Möbel, Kuppel, Bühne, Röhrendeckel
+
+/**
+ * Wagenreihe: list = [{ id, kind, len, … }] hintereinander ab z0 nach −Z mit Kupplungsabstand gap → dieselben Objekte mit z0/z1
+ * und Mitte cz; byId.
+ */
+export function wagenreihe(list, z0 = 0, gap = 0.6) {
+  let z = z0;
+  const byId = {};
+  for (const c of list) {
+    c.z0 = z; c.z1 = z - c.len; c.cz = (c.z0 + c.z1) / 2;
+    byId[c.id] = c;
+    z = c.z1 - gap;
+  }
+  return { list, byId };
+}
+
+/**
+ * Feste Kisten, Koffer, Möbel mit Kollision (Kamera darf hindurch): list = [{ pos: [x, y, z] (Mitte unten), size: [w, h, d],
+ * kind: 'kiste'|'koffer'|'fass'|'sofa'|'klavier'|'sack', color, solid }].
+ */
+export function moebel(level, list) {
+  const b = new Bld();
+  for (const m of list) {
+    const [x, y, z] = m.pos, [w, h, d] = m.size ?? [1, 1, 1];
+    if (m.solid !== false) level.world.add({ type: 'box', min: [x - w / 2, y, z - d / 2], max: [x + w / 2, y + h, z + d / 2], camIgnore: true, tag: m.kind ?? 'kiste' });
+    const kind = m.kind ?? 'kiste';
+    if (kind === 'kiste') {
+      b.box(w, h, d, x, y, z, m.color ?? 0xc8904a, { r: 0.05 });
+      for (const sy of [0.08, h - 0.16]) b.box(w + 0.04, 0.08, d + 0.04, x, y + sy, z, 0x8a5a30, { r: 0.02 });
+      b.box(w * 0.98, 0.07, 0.07, x, y + h / 2 - 0.035, z + d / 2 + 0.01, 0x8a5a30, { r: 0, seg: 0, rz: Math.atan2(h, w) });
+    } else if (kind === 'koffer') {
+      b.box(w, h, d, x, y, z, m.color ?? 0x8a4a2a, { r: 0.08 });
+      b.box(w + 0.02, 0.06, d + 0.02, x, y + h * 0.5, z, ZUGF.trim, { r: 0.02 });
+      b.box(w * 0.3, 0.1, 0.06, x, y + h, z, 0x3a2a20, { r: 0.02 });
+    } else if (kind === 'fass') {
+      b.cyl(w / 2, w / 2 * 0.9, h, x, y, z, m.color ?? 0x9a5a2e, 12);
+      for (const sy of [0.15, h - 0.2]) b.cyl(w / 2 + 0.03, w / 2 + 0.03, 0.06, x, y + sy, z, 0x3a3040, 12);
+    } else if (kind === 'sofa') {
+      const c = m.color ?? 0xc83a5a, sx = Math.sign(m.back ?? -1);
+      b.box(w, 0.45, d, x, y, z, 0x5a2a1a, { r: 0.05 });
+      b.box(w * 0.92, 0.18, d * 0.94, x, y + 0.45, z, c, { r: 0.08 });
+      b.box(0.22, 0.6, d, x + sx * (w / 2 - 0.11), y + 0.45, z, c, { r: 0.08 });
+      for (const sz of [-1, 1]) b.box(w, 0.3, 0.2, x, y + 0.45, z + sz * (d / 2 - 0.1), c, { r: 0.08 });
+    } else if (kind === 'klavier') {
+      b.box(w, h, d, x, y, z, 0x1e1a26, { r: 0.06 });
+      b.box(w + 0.04, 0.06, d + 0.04, x, y + h - 0.06, z, ZUGF.trim, { r: 0.02 });
+      const ks = Math.sign(m.keys ?? 1), kx = x + ks * (w / 2 + 0.12);
+      b.box(0.3, 0.1, d * 0.9, kx, y + h * 0.62, z, 0xffffff, { r: 0.02 });
+      for (let i = 0; i < 7; i++) b.box(0.18, 0.06, 0.06, kx - ks * 0.05, y + h * 0.62 + 0.08, z - d * 0.4 + i * d * 0.13, 0x1e1a26, { r: 0, seg: 0 });
+      b.box(0.06, 0.5, d * 0.5, x + ks * (w / 2 - 0.05), y + h, z, ZUGF.cream, { r: 0.02 });
+    } else if (kind === 'sack') {
+      b.sphere(w / 2, x, y + h * 0.45, z, m.color ?? 0xd8c8a0, { s: [1, h / w * 1.1, d / w] });
+      b.cyl(0.08, 0.12, 0.25, x, y + h * 0.82, z, 0x8a6a4a, 6);
+    }
+  }
+  b.flush(level, { castShadow: true });
+}
+
+/**
+ * Glaskuppel über einer Dachluke (dome aus baronZug: { x, z, K, top, KH }): Goldrahmen, Glasscheiben (durchscheinend, ein Mesh),
+ * Spitze mit Goldknauf. Die Kollision der Kuppel legt baronZug an.
+ */
+export function glasKuppel(level, dome) {
+  if (!level.view || !dome) return;
+  const b = new Bld();
+  const { x, z, K, top, KH } = dome;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.box(0.14, KH, 0.14, x + sx * (K + 0.06), top, z + sz * (K + 0.06), ZUGF.trim, { r: 0.03 });
+  for (const sy of [0, KH - 0.1]) for (const [w, d, dx, dz] of [[2 * K + 0.3, 0.12, 0, K + 0.06], [2 * K + 0.3, 0.12, 0, -K - 0.06], [0.12, 2 * K + 0.3, K + 0.06, 0], [0.12, 2 * K + 0.3, -K - 0.06, 0]]) b.box(w, 0.1, d, x + dx, top + sy, z + dz, ZUGF.trim, { r: 0.02 });
+  b.cone(K * 1.15, 1.1, x, top + KH, z, ZUGF.roofHi, 4, { yaw: Math.PI / 4 });
+  b.sphere(0.28, x, top + KH + 1.2, z, ZUGF.trim);
+  b.flush(level, { castShadow: true });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(2 * K + 0.1, KH - 0.1, 2 * K + 0.1), new THREE.MeshStandardMaterial({ color: 0xbfe8ff, transparent: true, opacity: 0.22, roughness: 0.1, metalness: 0.2, depthWrite: false }));
+  glass.position.set(x, top + KH / 2, z);
+  glass.renderOrder = 3;
+  glass.name = 'glaskuppel';
+  glass.userData.owned = true;
+  level.view.add(glass);
+}
+
+/** Wimpelketten: list = [{ a: [x, y, z], b: [x, y, z], n, sag: 0.4 }] – bunte Dreiecke an einer Schnur (statisch). */
+export function wimpel(level, list) {
+  const b = new Bld();
+  const cols = [0xe83a5a, 0xffc83a, 0x4ab8ff, 0x8a5ae8, 0x5ad86a, 0xff8a3a];
+  let k = 0;
+  const at = (w, t) => [w.a[0] + (w.b[0] - w.a[0]) * t, w.a[1] + (w.b[1] - w.a[1]) * t - (w.sag ?? 0.4) * 4 * t * (1 - t), w.a[2] + (w.b[2] - w.a[2]) * t];
+  for (const w of list) {
+    const n = w.n ?? Math.max(4, Math.round(Math.hypot(w.b[0] - w.a[0], w.b[2] - w.a[2]) / 0.7));
+    const yaw = Math.atan2(w.b[0] - w.a[0], w.b[2] - w.a[2]);
+    for (let i = 0; i < n; i++) {
+      const [x, y, z] = at(w, i / n), [x2, y2, z2] = at(w, (i + 1) / n);
+      const L = Math.hypot(x2 - x, y2 - y, z2 - z);
+      b.box(0.03, 0.03, L, (x + x2) / 2, (y + y2) / 2 - 0.015, (z + z2) / 2, 0x3a3040, { r: 0, seg: 0, yaw, rx: -Math.atan2(y2 - y, Math.hypot(x2 - x, z2 - z)) });
+      b.cone(0.17, 0.42, (x + x2) / 2, (y + y2) / 2 - 0.44, (z + z2) / 2, cols[k++ % cols.length], 3, { rx: Math.PI, yaw: yaw + Math.PI / 2 });
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Drehbühne auf dem Schwerlastwagen (Bossarena 8-Zug): runde Bühne (Oberseite y, Radius r) mit Gold-Geländer, Glühbirnen-
+ * masten und Wimpelketten; Kollision: Boden (cyl), Ring aus Stäben bis y + 5 (camIgnore), Decke y + 6,4. Fahrgestell darunter.
+ * Rückgabe { wheels } (für die Fahrt-Illusion).
+ */
+export function buehne(level, { x, y, z, r }) {
+  level.world.add({ type: 'cyl', x, z, r: r + 0.5, y0: y - 0.6, y1: y, tag: 'buehne' });
+  const N = Math.ceil((TAU * r) / 0.9);
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * TAU;
+    level.world.add({ type: 'cyl', x: x + Math.sin(a) * (r + 0.2), z: z + Math.cos(a) * (r + 0.2), r: 0.3, y0: y, y1: y + 5, camIgnore: true, noWallSlide: true, tag: 'buehne-rand' });
+  }
+  level.world.add({ type: 'box', min: [x - r - 1, y + 6.4, z - r - 1], max: [x + r + 1, y + 6.9, z + r + 1], camIgnore: true, tag: 'buehne-decke' });
+  const wheels = [];
+  const b = new Bld(), g = new Bld();
+  // Fahrgestell, Drehgestelle, Säule unter der Scheibe
+  b.box(3.1, 0.5, 2 * r + 0.8, x, 0.55, z, ZUGF.frame, { r: 0.06 });
+  for (const bz of [z + r - 1.2, z + r - 3.6, z - r + 3.6, z - r + 1.2]) {
+    b.box(1.9, 0.3, 2.0, x, 0.32, bz, ZUGF.black, { r: 0.05 });
+    for (const az of [bz - 0.62, bz + 0.62]) for (const sx of [-1, 1]) wheels.push([x + sx * 0.86, 0.42, az]);
+  }
+  b.cyl(1.2, 1.6, y - 1.65, x, 1.05, z, ZUGF.frame, 16);
+  // Bühnenscheibe: Holzrand mit Goldkante, Ringe, Stern in der Mitte
+  b.cyl(r + 0.5, r + 0.3, 0.6, x, y - 0.6, z, { v: (px, py) => (py > y - 0.1 ? 0x8a5a30 : 0x6a3e22) }, 48);
+  b.cyl(r + 0.56, r + 0.56, 0.1, x, y - 0.12, z, ZUGF.trim, 48);
+  const rings = [[r + 0.45, 0xf3e6c8], [r - 0.6, 0xc83a5a], [r - 2.6, 0xf3e6c8], [4.4, 0x8a5ae8], [2.4, 0xffd85a]];
+  rings.forEach(([rr, c], i) => b.cyl(rr, rr, 0.02, x, y + 0.004 * i, z, c, 48));
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * TAU;
+    b.box(0.5, 0.02, 2.0, x + Math.sin(a) * 1.0, y + 0.03, z + Math.cos(a) * 1.0, 0xff9a3a, { r: 0, seg: 0, yaw: a });
+  }
+  // Geländer: niedrige Pfosten und Goldreif; hohe Glühbirnenmasten mit Wimpeln dazwischen
+  for (let i = 0; i < 36; i++) { const a = (i / 36) * TAU; b.cyl(0.05, 0.05, 1.0, x + Math.sin(a) * (r + 0.2), y, z + Math.cos(a) * (r + 0.2), ZUGF.trim, 6); }
+  b.torus(r + 0.2, 0.07, x, y + 1.0, z, ZUGF.trim, { rx: Math.PI / 2, rs: 5, ts: 64 });
+  const masts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * TAU + 0.31;
+    const mx = x + Math.sin(a) * (r + 0.35), mz = z + Math.cos(a) * (r + 0.35);
+    b.cyl(0.09, 0.12, 4.6, mx, y, mz, 0x3a2a4a, 8);
+    b.sphere(0.2, mx, y + 4.7, mz, ZUGF.trim);
+    for (let k = 1; k <= 4; k++) g.sphere(0.11, mx + Math.sin(a) * 0.1, y + k * 1.0, mz + Math.cos(a) * 0.1, k % 2 ? 0xffe08a : 0xff8ac8);
+    masts.push([mx, y + 4.5, mz]);
+  }
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow', castShadow: false });
+  wimpel(level, masts.map((m, i) => ({ a: m, b: masts[(i + 1) % masts.length], sag: 0.6 })));
+  glowPoints(level, masts.map((m) => [m[0], m[1] - 1.5, m[2], 1.6]), { color: 0xffc8a0, opacity: 0.4, pulse: 0.6 });
+  return { wheels };
+}
+
+/**
+ * Röhrendeckel: die Röhre pipeId nimmt erst nach dem Signal reveal (Autoscroller reveal: [{ id: deckelId, at: 'done' }]) auf;
+ * bis dahin liegt ein roter Deckel mit Goldstern darauf (springt beim Öffnen hoch und kippt weg). → level.named deckelId
+ * { open, reveal() }.
+ */
+export function roehrenDeckel(level, pipeId, deckelId, o = {}) {
+  const info = level.named.get(pipeId);
+  if (!info) return null;
+  const st = { open: false, t: 0 };
+  const enter = info.enter;
+  info.enter = (player) => { if (!st.open) { level.sfx('bump'); return; } enter(player); };
+  const handle = {
+    get open() { return st.open; },
+    reveal() { if (st.open) return; st.open = true; st.t = 0; level.sfx('door'); level.effects?.sparks({ x: info.x, y: info.top + 0.4, z: info.z }, 14); },
+  };
+  level.named.set(deckelId, handle);
+  onRespawn(level, () => { if (level.scroll && level.scroll.state !== 'done') { st.open = false; st.t = 0; } });
+  if (!level.view) return handle;
+  const R = o.radius ?? 0.9;
+  const lb = new Bld();
+  lb.cyl(R * 0.98, R * 0.98, 0.16, 0, 0, 0, 0xc4304e, 24);
+  lb.cyl(R * 0.42, R * 0.42, 0.04, 0, 0.16, 0, ZUGF.trim, 5);
+  lb.sphere(0.12, 0, 0.24, 0, ZUGF.trim, { ws: 6, hs: 4 });
+  const lid = new THREE.Mesh(lb.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 }));
+  lid.castShadow = true;
+  lid.position.set(info.x, info.top, info.z);
+  lid.name = 'roehrendeckel';
+  const holder = {};
+  addObject(level, lid, (dt) => {
+    const d = visDt(level, holder, dt);
+    if (!st.open) { lid.visible = true; lid.position.set(info.x, info.top, info.z); lid.rotation.set(0, 0, 0); return; }
+    st.t += d;
+    const t = st.t;
+    lid.visible = t < 1.6;
+    lid.position.set(info.x + t * 1.6, info.top + 3.2 * t - 4.5 * t * t, info.z);
+    lid.rotation.z = -t * 3;
   });
   return handle;
 }

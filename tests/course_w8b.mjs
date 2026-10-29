@@ -102,6 +102,43 @@ const ROUTES = {
   },
 };
 
+// 8-Zug: Wagen wie im Level (wagenreihe ab z 0 nach −Z, Kupplung 0,6 m), Drehbühne des Parallelzugs
+const ZG = (() => {
+  let z = 0;
+  const o = {};
+  for (const [id, len] of [['aussicht', 10], ['k1', 10], ['f1', 10], ['k2', 10], ['f2', 10], ['k3', 10], ['f3', 10], ['t1', 12], ['f4', 8], ['t2', 12],
+    ['salon', 18], ['f5', 6], ['gepaeck', 12], ['f6', 10], ['tender', 6.5], ['lok', 8.6]]) { o[id] = { z0: z, z1: z - len, cz: z - len / 2 }; z -= len + 0.6; }
+  return o;
+})();
+const ZD = 1.4, ZR = 3.75, ZGD = 4.4, BX = 120, BY = 1.6, BZ = -150, BR = 9.2;
+const HZ8 = ZG.salon.z0 - 11, LZ8 = ZG.gepaeck.z0 - 1.8, PZ8 = ZG.f6.z1 + 1.6;
+ROUTES['8-Zug'] = {
+  start: [3.4, 1.1, 2.0],
+  meta: { stars: 3, time: 400, theme: 'train', music: 'course_baronexpress', archetype: 'autoscroller' },
+  enemies: { hackvogel: 4, schubser: 3, wutkaulquappe: 4, pilzling: 5, feuer_werfer: 2, schattenlaeuferin: 1 },
+  named: ['hebeblock', 'deckel', 'p_boss', 'p_buehne', 'schatten', 'warp_sieg'],
+  shotWin: true,
+  main: [],
+  shots: [
+    ['start', [3.4, 1.1, 2.0]],
+    ['balkon', [0.4, ZD, -1.0]],
+    ['k1', [1.1, ZR, ZG.k1.z0 - 2]],
+    ['f1', [1.0, ZD, ZG.f1.z0 - 1]],
+    ['f2', [0, ZR, ZG.k2.z1 + 1.5]],
+    ['k3', [0, ZR, ZG.k3.z0 - 2]],
+    ['becken', [0, 3.4, ZG.t1.z0 - 0.15]],
+    ['cp', [0.9, ZD, ZG.f4.z0 - 3]],
+    ['salon', [0, ZD, ZG.salon.z0 - 2]],
+    ['hebeblock', [-1.1, 2.6, HZ8 + 1.9]],
+    ['gepaeck', [-0.9, ZGD, ZG.gepaeck.z0 - 0.8]],
+    ['gang', [0, ZD, LZ8 - 2]],
+    ['roehre', [0, ZD, ZG.f6.z0 - 2]],
+    ['lok', [0, 3.0, ZG.tender.cz]],
+    ['buehne', [BX, BY, BZ + BR - 3]],
+    ['ziel', [BX, ZD, -163]],
+  ],
+};
+
 const FL5 = 1.0, HX5 = 40;
 ROUTES['8-5'] = {
   start: [0, 0, 6],
@@ -228,11 +265,37 @@ function install() {
     rotHalle: () => at(-6, 6, 0.6, -168, -201),
     seeufer: () => at(-7, 7, 0.6, -265, -301),
     himmel: () => P().pos.x > 30 && P().pos.y > 40,
+    // 8-Zug
+    abfahrt: () => !!L.scroll && L.scroll.state !== 'wait',
+    halt: () => !!L.scroll && L.scroll.state === 'done',
+    aufDach: () => P().pos.y > 3.6 && P().mode === 'ground',
+    buehne: () => P().pos.x > 105 && P().pos.x < 135 && P().pos.y > 1.2,
+    zielwagen: () => P().pos.x > 115 && P().pos.z < -160 && P().pos.y > 1.2,
+    gang: () => P().pos.y < 2.2 && P().pos.y > 1.2 && P().pos.z < -133.4 && P().pos.z > -145,
+    lukeZu: () => { const h = L.named.get('hebeblock'); return !!h && !h.lukeOpen; },
+    deckelZu: () => { const h = L.named.get('deckel'); return !!h && !h.open; },
+    krallen8: () => P().power === 'krallen',
   };
   const W = {
+    /** Autoscroller (8-Zug): Bildfenster auf Pfadlänge s stellen ('auto': Figur bei pos knapp vor der Mitte); Fahrt läuft. */
+    win(pos, o = {}) {
+      const w = L.scroll;
+      if (!w) return null;
+      let s = o.win === 'auto' ? 10 - pos[2] - 1.5 : o.win;
+      s = Math.max(w.s0, Math.min(w.s1, s));
+      w.s = s; w.travel = s - w.s0; w.triggered = true; w.waitT = 99;
+      w.state = s >= w.s1 - 1e-6 ? 'done' : 'run';
+      w.speed = w.state === 'run' ? w.speedAt(s) : 0;
+      w.clock = o.clock ?? Math.max(4, s * 0.6);
+      w.refresh();
+      const a = c.arch;
+      if (a && 'camK' in a) { a.ended = w.state === 'done'; a.camK = a.ended ? 0 : 1; a.snap = w.snapshot(); }
+      return w.info();
+    },
     place(pos, o = {}) {
       const p = P();
       c.setInput(null);
+      if (o.win !== undefined) this.win(pos, o);
       p.setHero(o.hero ?? 'lotti');
       p.dead = false;
       p.big = true;
@@ -545,6 +608,50 @@ function install() {
           log.push(['Nische', k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ 8-Zug: zum Ziel, dabei über einen Schubser in Zielrichtung springen
+        if (Lg.dodge) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.dodge);
+          const [tx, tz] = Lg.to;
+          let k = 0, jumps = 0, hold = 0;
+          for (; k < (Lg.max ?? 2400) && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < (Lg.within ?? 0.5) && p.mode === 'ground') break;
+            if (p.mode === 'ground' && e && !e.defeated && !e.removed) {
+              const ex = e.pos.x - p.pos.x, ez = e.pos.z - p.pos.z, ed = Math.hypot(ex, ez);
+              const ahead = (ex * dx + ez * dz) / (d || 1) > 0;
+              if (ahead && ed < (Lg.at ?? 2.6) && Math.abs(e.pos.y - p.pos.y) < 1) { hold = 36; jumps++; }
+            }
+            const jump = hold > 0;
+            if (hold > 0) hold--;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 2.6, 6.5) : this.stick(dx, dz, Math.max(0.3, Math.min(1, d / 1.2)))), jump, run: false });
+          }
+          log.push(['ausgewichen', Lg.dodge, k, jumps, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (k >= (Lg.max ?? 2400)) { log.push(['FEHLER: Schubser-Wagen nicht durchquert', Lg.dodge]); break; }
+          continue;
+        }
+        // ------------------------------------------------ 8-Zug: Kampf gegen die Schattenläuferin (echte Eingaben: aufs Original springen)
+        if (Lg.boss) {
+          const b = L.named.get(Lg.boss);
+          const [cx, cz] = Lg.center;
+          let k = 0, jumps = 0, hold = 0;
+          const hp0 = b.hp;
+          for (; k < (Lg.max ?? 120 * 180) && !p.dead && b.state !== 'gone'; k++) {
+            let tx = cx, tz = cz;
+            const vul = b.vulnerable && b.state !== 'appear';
+            if (vul) { tx = b.pos.x; tz = b.pos.z; }
+            const d = Math.hypot(tx - p.pos.x, tz - p.pos.z);
+            if (vul && p.mode === 'ground' && d < (Lg.at ?? 2.2)) { hold = 30; jumps++; }
+            const jump = hold > 0;
+            if (hold > 0) hold--;
+            const ev = b.vel ?? { x: 0, z: 0 };
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx + ev.x * 0.15, tz + ev.z * 0.15, vul ? ev.x : 0, vul ? ev.z : 0, 3.6, 7) : this.stick(tx - p.pos.x, tz - p.pos.z, d > 0.4 ? 1 : 0.3)), jump, run: false });
+          }
+          mech.bossHits = hp0 - b.hp;
+          log.push(['Endgegner', k, jumps, b.state, b.hp, +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (b.state !== 'gone' && b.state !== 'flee' && b.state !== 'defeated') { log.push(['FEHLER: Endgegner nicht besiegt', b.state, b.hp]); break; }
+          for (let q = 0; q < 120 * 4 && b.state !== 'gone'; q++) tick({});
+          continue;
+        }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
@@ -788,7 +895,7 @@ for (const id of LEVELS) {
   await load(id);
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots ?? []) {
     if (SHOTS && !SHOTS.has(name)) continue;
-    await W('place', pos, { settle: 10, yaw });
+    await W('place', pos, { settle: 10, yaw, ...(R.shotWin && name !== 'start' ? { win: pos[0] > 50 ? 1e9 : 'auto' } : {}) });
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }
