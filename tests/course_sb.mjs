@@ -86,12 +86,12 @@ const ROUTES = {
       { name: 'Stern 1 nicht ohne Kurbelwalze (keine Bühne, Absturz)', star: 1, expectNot: true, from: [-8, Y8, -403.2], heroes: ['lotti'], invuln: false,
         legs: [{ to: [-8, -398], within: 0.5, max: 200 }, { wait: 200 }] },
       { name: 'Stern 2: Spiegelfrucht aus dem ?-Block, beide Figuren auf den Doppel-Lift, oben auf der Endwand', star: 2, from: [0, Y8, -405],
-        legs: [{ grab: [-2, -409], back: [-2, -406.4] }, { expect: '=L.players.length >= 2' }, { lift: 'doppellift', board: [6.4, -417], exit: [5.6, -421.4] },
+        legs: [{ grab: [-2, -409], back: [-2, -406.4] }, { expect: '=L.players.length >= 2' }, { lift: 'doppellift', board: [7, -416.9], gather: [1, -0.3], exit: [6, -421.4] },
           { star: 2 }], shot: 'stern2' },
       { name: 'Stern 2 mit dem Krallen-Anzug die Endwand hinauf', star: 2, from: [0, Y8, -406], place: { power: 'krallen' },
         legs: [{ to: [1, -417.6], within: 0.3, run: false }, { climb: [1, -420], top: Y8 + 10, then: [1.6, -421.2] }, { star: 2 }] },
       { name: 'Doppel-Lift fährt nicht mit einer Figur', star: 2, expectNot: true, from: [0, Y8, -412], heroes: ['lotti'],
-        legs: [{ to: [6.4, -417], within: 0.3, run: false }, { wait: 360 }], mech: (r) => r.pos[1] < Y8 + 1, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
+        legs: [{ to: [7, -415.2], within: 0.3, run: false }, { to: [7, -416.9], jump: 16, jumpAt: 9, within: 0.3, run: false }, { wait: 360 }], mech: (r) => r.pos[1] < Y8 + 1, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
       { name: 'Stempel: Seitenweg der großen Walze, mit Greta auf den Figurenschalter, Blocktreppe zum Stempel', stamp: true, from: [9.6, Y8, -321], heroes: ['greta'],
         legs: [{ to: [10.4, -323.2], within: 0.3, run: false }, { to: [10.8, -330], jump: 24, jumpAt: 9, within: 0.5 }, { to: [10.8, -332.6], within: 0.3, run: false },
           { to: [11, -339.6], jump: 24, jumpAt: 9, within: 0.5 }, { to: [11, -343.6], within: 0.3, run: false }, { to: [11, -350], jump: 24, jumpAt: 9, within: 0.5 },
@@ -120,7 +120,8 @@ const ROUTES = {
         legs: [{ to: [6, -421.4], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Wurfsichel aus dem ?-Block, Bitcoins neben der zweiten Trio-Walze angeln', from: [0, 0, -95], heroes: ['lotti'], expectCoins: 3,
         legs: [{ grab: [0, -96], back: [0, -93.6] }, { expect: 'sichel' }, { to: [0, -99.4], within: 0.4, run: false }, { walze: 'trio1', board: [0, -99.4], lane: 0, off: [0, -119.9] },
-          { to: [0, -121.4], within: 0.4, run: false }, { walze: 'trio2', board: [0, -121.4], lane: 0, off: [0, -141.9], act: { at: -125.6, dir: [1, -0.25] } }] },
+          { to: [0, -121.4], within: 0.4, run: false }, { walze: 'trio2', board: [0, -121.4], lane: 0, off: [0, -141.9], act: { at: -128.8, dir: [1, -0.03] } }],
+        mech: (r) => r.mech.side === 0, mechText: (r) => `neben der Walze übrig ${r.mech.side}` },
       { name: 'Schienenwalze: wer stehen bleibt, rutscht nach hinten herunter', from: [0, 0, -10.8], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
         legs: [{ walze: 'walze1', board: [0, -10.8], lane: 0, off: null, idle: true, max: 900 }, { wait: 200 }],
         mech: (r) => r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : `z ${r.pos[2].toFixed(1)}`) },
@@ -128,8 +129,8 @@ const ROUTES = {
         legs: [{ walze: 'walze1', board: [0, -10.8], lane: 0, off: null, noJump: true, max: 3600 }, { wait: 200 }],
         mech: (r) => r.dead, mechText: (r) => (r.dead ? 'von der Hürde abgestreift' : `z ${r.pos[2].toFixed(1)}`) },
       { name: 'Hackvogel hackt in die Randspur der zweiten Walze', from: [0, 0, -171.6], heroes: ['lotti'], invuln: false, allowFail: true, expectAlive: false,
-        legs: [{ walze: 'walze2', board: [0, -171.6], lane: -2.6, off: null, stopAt: 'z<-221', max: 3000 }],
-        mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+        legs: [{ walze: 'walze2', board: [0, -171.6], lane: -2.1, off: null, stopAt: 'z<-221', max: 3000 }],
+        mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}, Hiebe ${r.mech.pecks}` },
       { name: 'Zeit-Uhren am Seitenweg: +10 Sekunden', from: [9.6, Y8, -321], heroes: ['lotti'],
         legs: [{ to: [10.4, -323.2], within: 0.3, run: false }, { to: [10.8, -330], jump: 24, jumpAt: 9, within: 0.5 }],
         mech: (r) => r.mech.clocks >= 1 && r.rt.time > 400, mechText: (r) => `Uhren ${r.mech.clocks}` },
@@ -254,7 +255,7 @@ function install() {
           if (!t || Math.hypot(q.pos.x - t[0], q.pos.z - t[2]) > 7 || Math.abs(q.pos.y - t[1]) > 2) track.push([+q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2)]);
         }
         if (steps % 6 === 0) { hist.push([+q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), q.mode, q.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
-        if (window.__trace && steps % 10 === 0) log.push(['spur', +q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), q.mode, q.state, q.power, q.ground?.tag ?? '']);
+        if (window.__trace && steps % 10 === 0) log.push(['spur', +q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), q.mode, q.state, q.power, q.ground?.tag ?? '', ...(L.players ?? []).slice(1).map((f) => `${f.pos.x.toFixed(1)},${f.pos.y.toFixed(1)},${f.pos.z.toFixed(1)},${f.mode},${f.ground?.tag ?? ''}`)]);
         if (q.dead && !deadLogged) { deadLogged = true; log.push(['TOD', q.deathCause, JSON.stringify(hist)]); }
         if (q.mode === 'script' && L.runtime.status === 'play' && !q.dead && !o.keepScript) {
           let n = 0;
@@ -385,11 +386,15 @@ function install() {
           const h = ent(Lg.lift);
           const [bx, bz] = Lg.board, [ex, ez] = Lg.exit;
           let k = 0;
-          for (; k < 900 && !P().dead; k++) {
-            const q = P();
-            const dx = bx - q.pos.x, dz = bz - q.pos.z, d = Math.hypot(dx, dz);
+          for (; k < 1200 && !P().dead; k++) {
             if (h.count >= h.need && h.state !== 'wait') break;
-            tick(q.mode === 'ground' && q.pos.y < h.shape.max[1] - 0.2 && d < 2.4 ? { ...this.stick(dx, dz, 0.6), jump: true } : { ...(d > 0.15 ? this.stick(dx, dz, Math.min(1, Math.max(0.2, d / 1.2))) : {}), run: false });
+            // Bezug: eine Figur, die noch nicht auf dem Lift steht (alle bekommen dieselbe Eingabe; die Ecke hält die anderen fest)
+            const figs = (L.players ?? [P()]).filter((f) => !f.dead && !f.hidden);
+            const q = figs.find((f) => f.ground?.owner !== h) ?? P();
+            const dx = bx - q.pos.x, dz = bz - q.pos.z, d = Math.hypot(dx, dz);
+            if (q.ground?.owner === h && Lg.gather) { tick({ ...this.stick(Lg.gather[0], Lg.gather[1], 0.7), run: false }); continue; }
+            const hopNow = q.mode === 'ground' && q.pos.y < h.shape.max[1] - 0.2 && d < 2.6;
+            tick(hopNow ? { ...this.stick(dx, dz, 0.7), jump: true } : q.mode === 'air' ? { ...this.stick(dx, dz, 0.8), jump: q.vel.y > 0 } : { ...(d > 0.15 ? this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2))) : {}), run: false });
           }
           for (let n = 0; n < 2400 && h.state !== 'top' && !P().dead; n++, k++) tick({});
           for (let n = 0; n < 400 && !P().dead; n++, k++) {
@@ -397,7 +402,7 @@ function install() {
             if (d < 0.4 && q.mode === 'ground') break;
             tick({ ...this.stick(dx, dz, 1), run: false, jump: n < 16 });
           }
-          log.push(['lift', Lg.lift, h.state, h.count, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          log.push(['lift', Lg.lift, h.state, h.count, k, JSON.stringify(L.squad?.log?.slice(-4) ?? []), +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
           continue;
         }
         // ------------------------------------------------ Power-up aus einem ?-Block holen: darunter hüpfen, zurücktreten, auf den Block springen
@@ -423,7 +428,7 @@ function install() {
             for (let k = 0; k < 30; k++) tick({});
             if (!got()) { const pu = L.entities.find((e) => e.kind === 'powerup' && e.alive && !e.removed); if (pu) this.chase('powerup', { max: 600 }); }
           }
-          log.push(['power', Lg.grab.join(','), P().power, (L.players ?? []).length, tries]);
+          log.push(['power', Lg.grab.join(','), P().power, (L.players ?? []).length, tries, JSON.stringify(L.squad?.log?.slice(-4) ?? [])]);
           if (!got()) log.push(['FEHLER: Power-up nicht geholt', Lg.grab]);
           goTo(back[0], back[1], 0.4);
           continue;
@@ -582,6 +587,8 @@ function install() {
       mech.revealed = L.revealedCoins ?? 0;
       mech.clocks = (ent('uhren')?.got ?? 0) - mech.clocks0;
       mech.figures = (L.players ?? []).length;
+      mech.side = L.entities.filter((e) => e.kind === 'coin' && e.alive && !e.removed && e.pos.x > 4 && e.pos.x < 6.5 && Math.abs(e.pos.z + 130) < 0.3).length;
+      mech.pecks = L.entities.filter((e) => e.kind === 'hackvogel').map((e) => `${e.spec?.id}:${e.pecks ?? 0}`).join(' ');
       return { log, autoJumps, steps, time: steps / 120, pos: [q.pos.x, q.pos.y, q.pos.z], dead: q.dead, status: L.runtime.status, info: q.info(), rt: L.runtime.info(), mech, power: q.power, track };
     },
     chase(kind, o = {}) {

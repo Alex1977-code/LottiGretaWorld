@@ -117,7 +117,7 @@ export const LEVEL = {
     deck(-7, 7, -234, -256, 0, 2),
     sign(-5.4, 0, -236.2, 'Kurbelwalze', { yaw: 0.35 }),
     { type: 'schienenwalze', id: 'kurbel', path: [[-9.8, -0.8, -240.6], [-9.8, -0.8, -248.6]], radius: 0.8, length: 2.4, speed: 1.5, roll: 0.5, end: 'halt', respawn: 2 },
-    deck(-11.4, -8.2, -250.2, -253, 0, 1),
+    deck(-11.4, -7, -250.2, -253.4, 0, 1),
 
     // ================================================================ 6 Walzenaufstieg (8 m)
     { type: 'schienenwalze', id: 'auf1', path: [[0, -WT.R, -257.6], [0, 1.4, -266]], radius: WT.R, length: WT.LEN, speed: 2.6, roll: 0.9, respawn: 2.5 },
@@ -138,7 +138,7 @@ export const LEVEL = {
     deck(8.2, 12.2, -380.6, -386.4, Y8, 1.2),
     deck(6, 12, -390.4, -401, Y8, 1.4),
     sign(10.6, Y8, -319.4, 'Seitenweg', { yaw: -0.2 }),
-    { type: 'zeituhren', id: 'uhren', list: [[10.4, Y8 + 1.3, -325.8], [11, Y8 + 1.3, -334.9], [11, Y8 + 1.3, -345.7], [11, Y8 + 1.3, -369]], sec: 10 },
+    { type: 'zeituhren', id: 'uhren', list: [[10.5, Y8 + 2.4, -325.8], [10.9, Y8 + 2.4, -334.8], [11, Y8 + 2.4, -345.7], [11, Y8 + 2.4, -369]], sec: 10 },
     { type: 'appear', id: 'stempeltreppe', style: 'block', delay: 0.18,
       parts: [{ pos: [13.4, Y8, -349.6], size: [2, 1.6, 2], color: 'orange' }, { pos: [13.4, Y8, -352.4], size: [2, 3.2, 2], color: 'pink' },
         { pos: [11.4, Y8, -355.2], size: [2, 4.8, 2], color: 'blue' }] },
@@ -150,8 +150,9 @@ export const LEVEL = {
     // ================================================================ 8 Endwand mit Doppel-Lift
     deck(-12, 12, -401, -424, Y8, 2.2),
     { type: 'wall', id: 'endwand', pos: [2, Y8, -421], size: [12, 10, 4], climbable: true },
-    { type: 'multilift', id: 'doppellift', pos: [6.4, Y8, -417], rise: 9.6, need: 2, speed: 2.4, wait: 1.2, color: 'purple' },
-    sign(9.6, Y8, -411.6, 'Doppel-Lift\nnur zu zweit!', { size: [2.6, 1.1], yaw: -0.25 }),
+    deck(8.55, 10.8, -413.4, -423, Y8 + 10, 10, { under: 0 }),   // Holzturm rechts: in die Ecke laufen sammelt beide Figuren auf dem Lift
+    { type: 'multilift', id: 'doppellift', pos: [7, Y8, -416.9], rise: 9.6, need: 2, speed: 2.4, wait: 1.2, color: 'purple' },
+    sign(6.4, Y8, -410.6, 'Doppel-Lift\nnur zu zweit!', { size: [2.6, 1.1], yaw: -0.25 }),
 
     // ================================================================ Walzenraum (Rätselbox)
     deck(RX - 7, RX + 7, -134.4, -147, 0.5, 1.6),
@@ -177,7 +178,7 @@ export const LEVEL = {
       { kind: 'holzkiste', pos: [-5, 0, -169.6], solid: true }, { kind: 'holzbalken', pos: [-3.4, 0, -165], length: 3, yaw: -0.4 },
       { kind: 'holzkiste', pos: [5.4, 0, -252.6], solid: true }, { kind: 'holzkiste', pos: [5.6, 1.2, -252.6], size: 0.9, yaw: 0.6 },
       { kind: 'walzenstapel', pos: [-4.6, Y8, -299.2], yaw: 0.2 }, { kind: 'holzkiste', pos: [-10.4, Y8, -406], solid: true },
-      { kind: 'holzbalken', pos: [-6, Y8, -422], length: 4, yaw: 0.2 }, { kind: 'walzenstapel', pos: [10.6, Y8, -421.6], yaw: -0.6 },
+      { kind: 'holzbalken', pos: [-6, Y8, -422], length: 4, yaw: 0.2 }, { kind: 'walzenstapel', pos: [-10.6, Y8, -421.6], yaw: -0.6 },
       { kind: 'stern', pos: [-11, Y8, -414], pole: 3, size: 1.1 }, { kind: 'stern', pos: [-5, Y8, -403], pole: 2.2, size: 0.8 },
       { kind: 'stern', pos: [6.2, 0, -236], pole: 2.4, size: 0.9 }, { kind: 'kristall', pos: [-5.6, 0, -255], n: 4, color: 'lila' },
       // Walzenraum: Holzkisten, Planeten
@@ -194,14 +195,14 @@ export const LEVEL = {
     { kind: 'question', pos: [4.6, 1.3, -152.6], content: 'coins:5' },         // neben der dritten (nur Wurfsichel)
     { kind: 'question', pos: [3, 1.9, -245], content: 'krallen' },             // Krallen-Anzug am Kontrollpunkt
     { kind: 'coinblock', pos: [-2.4, 2.4, -243], count: 6 },
-    { kind: 'question', pos: [-2, Y8 + 1.9, -409], content: 'spiegel' },       // Spiegelfrucht vor der Endwand
+    { kind: 'question', pos: [-2, Y8 + 1.7, -409], content: 'spiegel' },       // Spiegelfrucht vor der Endwand
     { kind: 'hidden', pos: [6, Y8 + 12.4, -421.4], content: 'oneup' },        // Extraleben oben auf der Endwand
     { kind: 'hidden', pos: [RX + 4.4, 2.9, -140.4], content: 'oneup' },       // Extraleben im Vorraum des Walzenraums
   ],
   enemies: [
-    { kind: 'hackvogel', id: 'hv1', pos: [-3.35, 0, -189], dir: [1, 0], period: 2.1, sight: 10, phase: 0 },
-    { kind: 'hackvogel', id: 'hv2', pos: [3.35, 0, -202], dir: [-1, 0], period: 2.1, sight: 10, phase: 0.4 },
-    { kind: 'hackvogel', id: 'hv3', pos: [-3.35, 0, -215], dir: [1, 0], period: 2.1, sight: 10, phase: 0.7 },
+    { kind: 'hackvogel', id: 'hv1', sight: 1.9, pos: [-3.35, 0, -189], dir: [1, 0], period: 2.1 },
+    { kind: 'hackvogel', id: 'hv2', sight: 1.9, pos: [3.35, 0, -202], dir: [-1, 0], period: 2.1 },
+    { kind: 'hackvogel', id: 'hv3', sight: 1.9, pos: [-3.35, 0, -215], dir: [1, 0], period: 2.1 },
     { kind: 'hackvogel', id: 'hv4', pos: [-2.6, 0, -237.6], dir: [0, 1], period: 2.4, sight: 9, track: true },
   ],
   items: [
@@ -217,7 +218,7 @@ export const LEVEL = {
     ring([0, 2.6, -46], 1.2, 6),
     // Walzentrio: Mitte zu Fuß, neben den Walzen im All (Wurfsichel)
     line([0, 0.6, -104], [0, 0.6, -114], 4), line([0, 0.6, -126], [0, 0.6, -136], 4), line([0, 0.6, -148], [0, 0.6, -158], 4),
-    line([-4.8, 0.9, -104], [-4.8, 0.9, -112], 3), line([4.8, 0.9, -126], [4.8, 0.9, -134], 3), line([-4.8, 0.9, -148], [-4.8, 0.9, -156], 3),
+    line([-4.1, 0.9, -108], [-6.1, 0.9, -108], 3), line([4.1, 0.9, -130], [6.1, 0.9, -130], 3), line([-4.1, 0.9, -152], [-6.1, 0.9, -152], 3),
     // zweite Walze: Randspuren locken an die Hackvögel
     line([-2.1, 0.6, -184], [-2.1, 0.6, -194], 4), line([2.1, 0.6, -197], [2.1, 0.6, -207], 4), line([-2.1, 0.6, -210], [-2.1, 0.6, -220], 4),
     line([0, 0.6, -177], [0, 0.6, -182], 2), line([0, 0.6, -223], [0, 0.6, -230], 3),
@@ -233,7 +234,7 @@ export const LEVEL = {
     line([11, Y8 + 0.6, -363], [11, Y8 + 0.6, -366], 2), line([10.4, Y8 + 0.6, -382], [10.4, Y8 + 0.6, -385.6], 2),
     // Sternbühne, Endwand
     ring([-7.6, 3.6, -395.4], 1.2, 5, { hidden: false }),
-    line([-6, Y8 + 0.6, -404], [-6, Y8 + 0.6, -412], 4), ring([2, Y8 + 10.6, -421], 1.6, 6), column(6.4, -417, Y8 + 2, Y8 + 9, 4),
+    line([-6, Y8 + 0.6, -404], [-6, Y8 + 0.6, -412], 4), ring([2, Y8 + 10.6, -421], 1.6, 6), column(7, -416.9, Y8 + 2, Y8 + 9, 4),
     // Walzenraum: Vorraum
     line([RX, 1.1, -137], [RX, 1.1, -144], 4),
     // Rätselbox (Hin- und Rückweg)
