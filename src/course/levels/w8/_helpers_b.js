@@ -4,10 +4,11 @@
 //
 //   Daten-Helfer     isl, line, ring, arc, column (Welt 5), stege (Leuchtsteg aus Rechtecken), plate (unsichtbare Kollision)
 //   8-4 Nachtburg    burgZinnen (Zinnen-Ränder um feste Plattformen), laternen (Laternenpfähle mit Glühlicht), teppich,
-//                    feuerschalen, himmelslaternen (aufsteigende Papierlaternen), mond, gluehwuermchen
+//                    feuerschalen, himmelslaternen (aufsteigende Papierlaternen), mond, gluehwuermchen, sternenAbgrund
 //   8-5 Flutverlies  flutMauern (Bogenmauern mit Gitterfenstern), korallen, fischSchwaerme
-//   8-Zug            fahrweg, abendExpressThema (Themen-Variante), baronZug (Wagen), fahrtIllusion (vorbeiziehende
-//                    Landschaft, Räder, Dampf, Startbahnhof), bahnhofOptik, hebeblock
+//   8-Zug            fahrweg, abendExpressThema (Themen-Variante), wagenreihe, baronZug (Wagen; Aufbauten blenden gerastert
+//                    aus), fahrtIllusion (vorbeiziehende Landschaft, Requisiten, Räder, Dampf, Startbahnhof), bahnhofOptik,
+//                    hebeblock (mit Deckenluke), moebel, glasKuppel, wimpel, buehne, roehrenDeckel, nahGruppe, feuerwerk
 
 import * as THREE from 'three';
 import { addObject } from '../../blocks/kit.js';
@@ -488,9 +489,11 @@ function expressHorizont(sky, bounds) {
  * … }] (z0 hinten > z1 vorn). kind: 'aussicht' (Schlusswagen mit Balkon, Dach 3,75), 'flach' (Holzdeck 1,4; bord: Bordwände),
  * 'kasten' (Güterwagen, Dach 3,75), 'tank' (offenes Wasserbecken, Rand 3,4; das Wasser legt das Level als Baustein water an),
  * 'salon' (Doppelstock-Salon mit Innenraum: Boden 1,4, Decke 6,0, Dach 6,2; Türen hinten/vorn; Luke hole: [x, z, a] mit
- * Glaskuppel), 'gepaeck' (Gepäckwagen mit Innengang: Boden 1,4, Dach 3,8, Dachluke luke: [x, z, a]), 'tender' (Kohle 3,0),
- * 'lok' (Kessel mit Brummbär-Gesicht, Führerhaus-Dach 3,96). Dach und Rückwand von Salon und Gepäckwagen blenden aus, solange
- * die Figur darin ist (Ausschnitt). Rückgabe { wheels: [[x, y, z, r?]], faders: [{ id, box, k }] }.
+ * Glaskuppel), 'gepaeck' (Gepäckwagen mit Innengang: Boden 1,4, Decke 4,2, Dach 4,4, Dachluke luke: [x, z, a], Vordertür
+ * door), 'tender' (Kohle 3,0), 'lok' (Kessel mit Brummbär-Gesicht, Führerhaus-Dach 3,96). Die oberen Aufbauten (Güterwagen,
+ * Beckenwände, Salon, Gepäckwagen) liegen in einem Mesh und blenden je Wagen gerastert aus, solange die Figur darin ist
+ * (Ausschnitt) oder der Wagen zwischen Kamera und Figur steht. opt = { x (Gleis-Versatz), near (nahGruppe), name }.
+ * Rückgabe { wheels: [[x, y, z, r?]], faders: [{ id, box, occ, vis }] }.
  */
 export function baronZug(level, cars, opt = {}) {
   const OX = opt.x ?? 0;
