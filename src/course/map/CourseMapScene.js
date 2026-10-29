@@ -30,6 +30,8 @@
 // Welt 6 (Präzisierung Mehrwelten-Karte, Welt-6-Notiz): Gegnergruppen mit memberOpts (Modell-Optionen je Mitglied, z. B.
 // Feuer-/Hammer-/Bumerang-Werfer), Stellvertreter STAND_INS_W6; Beschriftung/Nähe einer Gruppe nur über ihre eigenen
 // Mitglieder; state().decor enthält zusätzlich die lebendige Kulisse der Karte (built.life.liveInfo(), Windräder …).
+// Welt Krone (Präzisierung Mehrwelten-Karte, Notiz Welt Krone): Regel-Feld collection (Sammel-Schranke, unlock.collection) –
+// status(id).collection = Stand der Sammlung, Hinweis collectionHint(st) in Hinweis-Leiste und Meldung.
 
 import Phaser from 'phaser';
 import * as THREE from 'three';
@@ -438,7 +440,15 @@ export class CourseMapScene extends Phaser.Scene {
       pathOpen: unlock.pathOpen(map, courseSave, id), done: prog.done, stars: prog.stars,
       starsMax: lvl && Array.isArray(lvl.stars) && !this.alias[id] ? lvl.stars.length : (rule.stars ?? 0),
       hasStamp: lvl && !this.alias[id] ? !!lvl.stamp : !!rule.stamp, stamp: prog.stamp, minStars: rule.minStars ?? 0, roamer,
+      collection: rule.collection ? unlock.collection(unlock.mapSource(), courseSave, map.world) : null,
     };
+  }
+
+  /** Hinweis an der Sammel-Schranke (Welt Krone, K-1): Fortschritt der Sterne und Stempel aller anderen Welten. */
+  collectionHint(st) {
+    const c = st?.collection;
+    if (!c) return 'Noch nicht frei';
+    return `Alle Sterne und Stempel nötig (★ ${c.stars}/${c.starsMax} · Stempel ${c.stamps}/${c.stampsMax})`;
   }
 
   status(id) { return this.statuses.get(id) ?? null; }
@@ -627,7 +637,7 @@ export class CourseMapScene extends Phaser.Scene {
     if (this.onPad && !busy && (use.jumpPressed || enter)) {
       const st = this.status(this.onPad.id);
       if (st?.enterable) { this.enterLevel(this.onPad.id); return; }
-      if (enter) { sfx('bump'); this.hud?.toast(st?.reason === 'stars' ? `Benötigt ${st.minStars} Sterne` : st?.soon ? (st.next ? `${this.worldNameOf(unlock.levelRule(this.map, st.id))} kommt bald!` : 'Bald!') : 'Noch nicht frei', 1.4); }
+      if (enter) { sfx('bump'); this.hud?.toast(st?.reason === 'stars' ? `Benötigt ${st.minStars} Sterne` : st?.reason === 'collection' ? this.collectionHint(st) : st?.soon ? (st.next ? `${this.worldNameOf(unlock.levelRule(this.map, st.id))} kommt bald!` : 'Bald!') : 'Noch nicht frei', 1.4); }
     }
     this.level.controlYaw = rig.controlYaw(this.player.pos);
     this.level.step(DT, use);
@@ -783,7 +793,7 @@ export class CourseMapScene extends Phaser.Scene {
     for (const g of this.built.gates) gates[g.for] = g.state;
     for (const gt of this.map.gates ?? []) if (!gates[gt.for]) gates[gt.for] = 'open';
     const entrances = {};
-    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title, hidden: !!this.built.entrances.get(id)?.hidden, ...(st.next ? { discovered: courseSave.worldOpened(st.next) } : {}) };
+    for (const [id, st] of this.statuses) entrances[id] = { locked: st.locked, reason: st.reason, enterable: st.enterable, exists: st.exists, soon: st.soon, done: st.done, stars: st.stars, starsMax: st.starsMax, stamp: st.stamp, title: st.title, hidden: !!this.built.entrances.get(id)?.hidden, ...(st.next ? { discovered: courseSave.worldOpened(st.next) } : {}), ...(st.collection ? { collection: { ...st.collection, missing: st.collection.missing.slice() } } : {}) };
     return {
       world: this.map.world, title: this.map.title, worlds: (courseSave.data.worlds ?? [1]).slice(),
       travel: this.travel && !this.travel.done ? this.travel.info() : null,

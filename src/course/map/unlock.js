@@ -11,6 +11,10 @@
 //   - reason(id):    null | 'locked' (Weg zu) | 'stars' (zu wenig Sterne) – für Hinweise.
 //   - worldOpen(getMap, save, n): Welt n betretbar (Welt 1 immer; sonst schon offen oder die Glasröhre der Welt n−1
 //                    dorthin ist frei). Sonderwelten mit MAP.alwaysOpen (Halloween-Welt 31) sind immer offen.
+//   Sammel-Schranke (Welt Krone, K-1): { id: 'K-1', collection: true } – frei erst mit der vollständigen Sammlung: alle Sterne
+//   und Stempel aller anderen Welten (laut deren Weltdaten: levels[].stars / levels[].stamp, ohne Glasröhren). reason →
+//   'collection'; collection(maps, save, exclude) → { stars, starsMax, stamps, stampsMax, levels, levelsMax, complete, missing }.
+//   Die Karten der anderen Welten kommen aus setMapSource(() => [MAP, …]) (worlds/index.js) bzw. als Argument (Node-Tests).
 // `save` ist ein CourseSave (oder eine Attrappe mit peek(id), starsInWorld(world), totalStars(), worldOpened(n)).
 
 const asList = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
@@ -51,14 +55,48 @@ export function unlocked(worldDef, save, id) {
   return reason(worldDef, save, id) === null;
 }
 
-/** Warum gesperrt? null = frei, 'locked' = Vorgänger fehlen, 'stars' = zu wenig Sterne. */
-export function reason(worldDef, save, id) {
+/** Warum gesperrt? null = frei, 'locked' = Vorgänger fehlen, 'stars' = zu wenig Sterne, 'collection' = Sammlung unvollständig. */
+export function reason(worldDef, save, id, maps = null) {
   const rule = levelRule(worldDef, id);
   if (!rule) return 'locked';
   if (!pathOpen(worldDef, save, id)) return 'locked';
   if (rule.next && save.worldOpened?.(rule.next)) return null;
   if (rule.minStars && gateStars(worldDef, save) < rule.minStars) return 'stars';
+  if (rule.collection && !collection(maps ?? mapSource(), save, worldDef.world).complete) return 'collection';
   return null;
+}
+
+// ------------------------------------------------------------------ vollständige Sammlung (Welt Krone, K-1)
+
+let MAP_SOURCE = null;
+/** Quelle aller Weltkarten für die Sammel-Schranke: () => [MAP, …] (worlds/index.js meldet sie an). */
+export function setMapSource(fn) { MAP_SOURCE = fn; }
+export function mapSource() { try { return MAP_SOURCE?.() ?? []; } catch { return []; } }
+
+/**
+ * Stand der Sammlung: alle Sterne und Stempel aller Welten außer `exclude` (der Welt mit der Sammel-Schranke) und Welt 0
+ * (Werkstatt). Je Level zählen höchstens so viele Sterne, wie seine Regel verspricht (rule.stars); Stempel nur bei
+ * rule.stamp. missing = bis zu zwölf Level-Ids, denen noch etwas fehlt (Reihenfolge der Weltkarten).
+ */
+export function collection(maps, save, exclude = null) {
+  const out = { stars: 0, starsMax: 0, stamps: 0, stampsMax: 0, levels: 0, levelsMax: 0, complete: false, missing: [] };
+  const list = (maps ?? []).filter((m) => m && m.world !== exclude && m.world !== 0).sort((a, b) => a.world - b.world);
+  for (const m of list) {
+    for (const rule of m.levels ?? []) {
+      if (rule.next || (rule.world ?? m.world) !== m.world) continue;
+      const max = rule.stars ?? 0;
+      const prog = levelProgress(save, rule.id);
+      const got = Math.min(max, prog.stars);
+      out.stars += got; out.starsMax += max;
+      if (rule.stamp) { out.stampsMax++; if (prog.stamp) out.stamps++; }
+      out.levelsMax++;
+      const full = got >= max && (!rule.stamp || prog.stamp);
+      if (full) out.levels++;
+      else if (out.missing.length < 12) out.missing.push(rule.id);
+    }
+  }
+  out.complete = out.levelsMax > 0 && out.levels === out.levelsMax;
+  return out;
 }
 
 /**

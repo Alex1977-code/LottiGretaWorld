@@ -142,6 +142,18 @@
 //  - Pflaume: Streifen-Halstuch (Geometrie-/Materialtausch), Fledermausflügelchen (Fell-Material unter body, gebündelt).
 //  - Krallen-Anzug und Gleitblatt ersetzen Kopfschmuck und Schwanz; unter einem Trage-Helm (fremdes Kind am Kopf) ruht der
 //    Kopfschmuck; Stern-Glanz und Stein-Haut erfassen später angelegtes Zubehör (refreshSkins).
+//
+// Sternenglanz-Kostüm (Bonuswelt Stern, Belohnung aus S-2; Vertrag „Präzisierung (Figuren Bonuswelten): Sternenglanz-Kostüm“,
+// Bausteine ../lib/heroStern.js): Verkleidung 'stern' wie oben (currentOutfit(): Szene, sonst das Wunsch-Kostüm aus dem
+// Spielstand; avatar.setOutfit('stern')). Lotti tiefblaues Sternenkleid mit Goldsternen, Goldstaub und Goldborte, Sternen-
+// Haarspange auf dem Knoten ihrer roten Schleife; Greta pastell-lila Sternenkleid mit rosa Schürze, Silbersternen und Silberborte,
+// Sternen-Diadem auf dem rosa Haarreif (ruht unter einem Trage-Helm). Kleid per Geometrie-Tausch der Stoff-Meshes, Haarschmuck im
+// Haar-Mesh (0 Aufrufe). Im Kurs-Modus (nicht bei Klonen): Funkeln – Glitzer (unbeleuchtet weiß wie die Augen-Glanzpunkte →
+// Figur-Bündel) blitzen auf den aufgedruckten Sternen auf (Stand selten, Lauf nach Tempo, Absprung-Stoß) – und Sternenschweif
+// beim Weitsprung (gepolsterte Sternchen in der Glanz-Oberfläche → Figur-Bündel). Power-up-Kostüme sitzen darüber: Krallen-Anzug
+// in den Kleidfarben (Kapuze, Tatzen, Ringelschweif), Feuer-Kleid ersetzt das Kleid (Spange/Diadem bleiben), Gleitblatt
+// (Blatt-Reif statt Diadem), Wurfsichel (Mütze statt Haarschmuck, Kordel auf dem Sternenkleid). Pflaume: goldene Sternchen rund
+// um das Halstuch und eine Sternbrosche auf dem Knoten (im Fell-Mesh des Kopfes, 0 Aufrufe; die Kraftfarbe bleibt).
 
 import * as THREE from 'three';
 import { Avatar3D } from '../Avatar3D.js';
@@ -156,9 +168,10 @@ import {
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { leafSolidGeo, bushyTailGeo, skinChain, StoneSkin, PuffFx } from '../lib/heroWorld3.js';
 import { applyToyLook } from '../lib/toyLook.js';
-import { currentOutfit } from '../lib/outfit.js';
+import { currentOutfit, OUTFITS } from '../lib/outfit.js';
 import { witchHatGeo, catEarGeo, catTailGeo, CAT_TAIL, whiskerGeos, stripedBandanaGeo, batWingGeo, HW_COLORS } from '../lib/heroHalloween.js';
 import { sichelBladeGeo, sichelCapGeo, sichelCapeGeo, sichelCordGeos, CAP, CAPE, SICHEL_GRIP } from '../lib/heroSichel.js';
+import { sternStyle, STAR_PRINTS, starPrintGeos, dustSpots, starClipGeos, tiaraGeos, glintGeo, trailStarGeo, collarGeos, SPARKLE } from '../lib/heroStern.js';
 
 const U = 1 / GAME.tile;             // Weltpixel → Einheiten
 const BIAS = 0.42;                   // Drehung zur Kamera (3/4-Ansicht), für Heldin und Pflaume gleich
@@ -1151,6 +1164,107 @@ function crestGeo() {
   return g;
 }
 
+// ================================================================== Bonuswelt Stern: Sternenglanz-Kostüm (Bausteine in ../lib/heroStern.js)
+// Kleid (Mieder und Rock: Farben, Saumborte) per Geometrie-Tausch der Stoff-Meshes; aufgedruckte Sterne mit Sternenstaub als eigene
+// Teile auf Mieder und Rock (Stoff-Oberfläche, ohne Schattenwurf), Haarschmuck (Lottis Sternen-Haarspange auf dem Schleifen-
+// Knoten, Gretas Sternen-Diadem auf dem Haarreif) als eigenes Teil am Kopf (Haar-Oberfläche, ohne Schattenwurf) – Figur-Bündel:
+// 0 zusätzliche Zeichenaufrufe, der Schattenpass bleibt wie ohne Kostüm. Funkeln und Sternenschweif siehe HeroAvatar.updateStern.
+/** Rock im Sternenkleid: Glocke wie skirtGeo, zum Saum hin Lotti nachtviolett bzw. Greta rosa-lila, gerollter Saum als Borte. */
+function sternSkirtGeo(st) {
+  const c = st.sc, dress = col3(st.dress), low = col3(c.dressLow), lining = dress.clone().multiplyScalar(0.7);
+  const trim = col3(c.trim), trimHi = col3(c.trimHi), trimLow = col3(c.trimLow);
+  return latheGeo(SKIRT_PROF, {
+    segs: 26, smooth: false, radius: (phi, y, r) => r * skirtPleat(phi, y),
+    color: (phi, y, p, k) => {
+      if (k < SKIRT_IN) return lining;
+      const fold = 0.95 + 0.05 * Math.cos(6 * phi);
+      if (y < -0.104) return trimLow.clone().lerp(trimHi, 0.25 + 0.6 * smoothstep((y + 0.142) / 0.03)).lerp(trim, 0.3).multiplyScalar(fold);
+      return dress.clone().lerp(low, 0.85 * smoothstep((0.1 - y) / 0.2)).multiplyScalar(fold);
+    },
+  });
+}
+/** Sternenstaub auf dem Rock (Flächenkoordinaten; nicht auf den Sternen, Greta nicht auf der Schürze). */
+function sternDust(st) {
+  const stars = STAR_PRINTS[st.stern].skirt;
+  return dustSpots({ n: 46, t0: -0.1, t1: 0.14, seed: st.stern === 'lotti' ? 11 : 23 })
+    .map(([f, t, R]) => [f * Math.PI * skirtR(t) * 0.97, t, R])
+    .filter(([s, t]) => !stars.some(([ss, tt, rr]) => Math.hypot(s - ss, t - tt) < rr + 0.025) && !(st.apron && Math.abs(s) < 0.24 && t < 0.18));
+}
+/** Aufdruck-Abbildungen um eine Sternmitte (s0 = Bogenlänge quer in Höhe t0): Winkel der Mitte fest, Versätze als Bogenlänge –
+ *  so verziehen sich die Sterne auf den schrägen Drehkörpern (Mieder, Rock) nicht. */
+const bodiceAt = (s0, t0) => {
+  const phi0 = s0 / Math.max(0.05, bodiceR(t0));
+  return (ds, dt, lift, out) => { const t = t0 + dt, r = bodiceR(t), phi = phi0 + ds / Math.max(0.05, r); return out.set(Math.cos(phi) * (r + lift) * BODICE_SX, t, Math.sin(phi) * (r + lift)); };
+};
+const skirtAt = (s0, t0) => {
+  const phi0 = s0 / Math.max(0.1, skirtR(t0));
+  return (ds, dt, lift, out) => {
+    const t = t0 + dt, r = skirtR(t), phi = phi0 + ds / Math.max(0.1, r), R = r * skirtPleat(phi, t) + lift;
+    return out.set(Math.cos(phi) * R, t, Math.sin(phi) * R);
+  };
+};
+/** Rock im Sternenkleid: Glocke, Greta mit rosa Schürze (ohne Aufdruck – der ist ein eigenes Teil). */
+function sternSkirtParts(st) {
+  const parts = skirtParts(st);
+  parts[0][0].dispose();
+  parts[0] = [sternSkirtGeo(st), null, null];
+  return parts;
+}
+/** Aufgedruckte Sterne (Mieder bzw. Rock mit Sternenstaub) – eine Geometrie je Heldin und Fläche, Koordinaten wie das Teil darunter. */
+function sternPrintGeo(st, where) {
+  return geo(`hero:stern:print:${st.stern}:${where}`, () => {
+    const P = STAR_PRINTS[st.stern];
+    const gs = where === 'bodice'
+      ? starPrintGeos(bodiceAt, P.bodice, { colors: st.sc, lift: 0.009, puff: 0.005 })
+      : starPrintGeos(skirtAt, P.skirt.map(([s, t, R, lf]) => [s, t, R, lf ?? (st.apron && Math.abs(s) < 0.22 && t < 0.17 ? 0.013 : 0.006)]), { colors: st.sc, lift: 0.006, puff: 0.006, dust: sternDust(st) });
+    const m = mergeColored(own(gs));
+    for (const g of gs) g.dispose();
+    return m;
+  });
+}
+/** Lottis Sternen-Haarspange auf dem Knoten der Schleife (Lage wie bowGeos; cap: an der Schleife der Wurfsichel-Mütze). */
+function sternClipGeos(st, cap = false) {
+  let c, n0, T0, out;
+  if (cap) {
+    // wie sichelCapGeo: Schleife seitlich am Mützenband (Größe 0,9)
+    const az = 2.05, el = CAP.rimEl(az) + 0.08, d = dirAE(az, el);
+    c = HEAD.point(d, CAP.lift(az, el) + 0.034).addScaledVector(HEAD.normal(d), 0.045);
+    n0 = HEAD.normal(d); T0 = new THREE.Vector3().crossVectors(n0, UP).normalize(); out = dirAE(az, 0.1);
+  } else {
+    const d = dirAE(2.35, 0.98).normalize(), f = HEAD.frame(2.35, 0.98);
+    c = onHair(st, d, 0.03).addScaledVector(f.n, 0.052);
+    n0 = f.n; T0 = f.T.clone().negate(); out = dirAE(2.35, 0.15);
+  }
+  // etwas aufgestellt (zeigt mehr nach hinten-außen als die Schleife): von hinten (Kurs-Kamera) gut zu sehen
+  const n = n0.clone().lerp(out, 0.4).normalize(), T = T0.clone();
+  T.addScaledVector(n, -T.dot(n)).normalize();
+  const B = new THREE.Vector3().crossVectors(n, T).normalize();
+  return starClipGeos(c, n, T, B, { R: cap ? 0.072 : 0.08, colors: { star: '#ffbf1f', starHi: '#fff2a0', starLow: '#e0780a' } });
+}
+/** Gretas Sternen-Diadem auf dem Haarreif (Lage wie headbandGeos: Reif über den Kopf, um beta nach hinten gekippt). */
+function sternTiaraGeos(st) {
+  const beta = 0.3;
+  const dAt = (ph) => V(-Math.sin(beta) * Math.cos(ph), Math.cos(beta) * Math.cos(ph), Math.sin(ph)).normalize();
+  const band = (ph) => {
+    const d = dAt(ph), p = onHair(st, d, 0.046);
+    const t = onHair(st, dAt(ph + 1e-3), 0.046).sub(onHair(st, dAt(ph - 1e-3), 0.046)).normalize();
+    const n = HEAD.normal(d);
+    return { p, n: n.addScaledVector(t, -n.dot(t)).normalize(), t };
+  };
+  return tiaraGeos(band, { span: 0.62 });
+}
+/** Haarschmuck des Sternenkleids (kopf-lokal): Lotti die Spange (an der Schleife bzw. an der Mütze: 'cap'), Greta das Diadem. */
+function sternJewelGeo(st, where = 'hair') {
+  return geo(`hero:stern:jewel:${st.braids ? 'lotti' : 'greta'}:${where}`, () => {
+    const gs = st.braids ? sternClipGeos(st, where === 'cap') : sternTiaraGeos(st);
+    const m = mergeColored(own(gs));
+    for (const g of gs) g.dispose();
+    return m;
+  });
+}
+/** Zustände mit Absprung-Funkeln. */
+const STERN_JUMPS = new Set(['jump', 'jump2', 'jump3', 'backflip', 'sideflip', 'longjump', 'walljump']);
+
 // ================================================================== Heldin
 export class HeroAvatar extends Avatar3D {
   buildModel() {
@@ -1306,6 +1420,9 @@ export class HeroAvatar extends Avatar3D {
     this.look0 = { hair: this.hairMesh.geometry, hairMat: this.hairMesh.material, head: this.headMesh.geometry };
     this.headOwn = new Set(this.head.children);
     this.outfit = null; this.outfitPin = undefined; this.hw = null;
+    // Sternenglanz: Kleid der Klassik-Ansicht (ohne Kurs-Teile) zum Zurücktauschen; Funkeln/Schweif erst beim ersten Anziehen
+    this.look0.torso = this.torsoMesh.geometry; this.look0.skirt = this.skirtMesh.geometry;
+    this.sg = null; this.lookStern = false; this.lookHelm = null;
   }
 
   /** Zielpose aus dem Zustand des Sprites berechnen (lebende Pose, ohne Überblendung). */
@@ -1694,6 +1811,7 @@ export class HeroAvatar extends Avatar3D {
       this.hairMesh.material = this.look0.hairMat;
       if (g) { this.torsoMesh.geometry = g.torso; this.skirtMesh.geometry = g.skirt; }
     }
+    this.updateSternLook(kind);
     this.headMesh.geometry = hw && st.mane ? headHwGeo(st) : this.look0.head;
     this.lookHead = head;
     if (this.w3) {
@@ -1876,13 +1994,191 @@ export class HeroAvatar extends Avatar3D {
     S.cape.rotation.z = -S.capeA;
   }
 
+  // ================================================================ Bonuswelt Stern: Sternenglanz-Kostüm
+  /**
+   * Sternenkleid nach dem Kostüm des Bildes (Power-up) anlegen (aus updateLook): Mieder/Rock in den Kleidfarben, Aufdruck und
+   * Haarschmuck als eigene Teile (updateSternParts). Krallen-Anzug in den Kleidfarben, Feuer-Kleid ersetzt das Kleid samt Aufdruck
+   * (Haarschmuck bleibt), Gleitblatt mit Blatt-Reif statt Diadem, Wurfsichel mit Mütze (Kordel auf dem Sternenkleid, Lottis Spange
+   * an der Mützen-Schleife). Ohne Sternenkleid: Klassik-Ansicht tauscht das Kleid zurück.
+   */
+  updateSternLook(kind) {
+    const st0 = STYLES[this.variant], key = (k) => `hero:${this.variant}:${k}`;
+    if (this.outfit !== 'stern') {
+      if (this.lookStern && !this.cGeo) { this.torsoMesh.geometry = this.look0.torso; this.skirtMesh.geometry = this.look0.skirt; }
+      this.lookStern = false; this.lookHelm = null;
+      this.updateSternParts(kind);
+      return;
+    }
+    const ss = this.sternSt ??= sternStyle(st0);
+    this.lookStern = true; this.lookHelm = this.foreignHeadgear();
+    const torso = (s, tag = '', more = []) => geo(key(`torso:stern${tag}`), () => mergeColored([...torsoParts(s), ...more]));
+    const skirt = (tag = '', more = []) => geo(key(`skirt:stern${tag}`), () => mergeColored([...sternSkirtParts(ss), ...more]));
+    switch (kind) {
+      case 'krallen':
+        this.hairMesh.geometry = geo(key('hood:stern'), () => mergeColored(hoodParts(ss)));
+        this.torsoMesh.geometry = torso(ss);
+        this.skirtMesh.geometry = skirt(':krallen', tailParts(ss));
+        break;
+      case 'funken': break;   // Feuer-Kleid bleibt (ohne Aufdruck), Haarschmuck bleibt
+      case 'gleitblatt':
+        this.torsoMesh.geometry = torso(leafStyle(ss), ':gleitblatt');
+        this.skirtMesh.geometry = skirt();
+        break;
+      case 'sichel':
+        this.torsoMesh.geometry = torso(ss, ':sichel', own(sichelCordGeos()));
+        this.skirtMesh.geometry = skirt();
+        break;
+      default:
+        this.torsoMesh.geometry = torso(ss);
+        this.skirtMesh.geometry = skirt();
+    }
+    this.updateSternParts(kind);
+  }
+
+  /**
+   * Teile des Sternenkleids an-/abhängen: Aufdruck auf Mieder und Rock (Stoff-Oberfläche, Kinder von Oberkörper- und Rock-Mesh),
+   * Haarschmuck am Kopf (Haar-Oberfläche; Lotti: Spange an der Schleife bzw. an der Mützen-Schleife der Wurfsichel, nicht unter der
+   * Kapuze; Greta: Diadem auf dem Reif, nicht unter Kapuze/Blatt-Reif/Mütze/Trage-Helm). Ohne Schattenwurf (der Schattenpass bleibt
+   * wie ohne Kostüm); nur Getragenes hängt im Szenengraphen.
+   */
+  updateSternParts(kind) {
+    const on = this.outfit === 'stern';
+    if (!on && !this.sp) return;
+    const st0 = STYLES[this.variant], ss = this.sternSt ??= sternStyle(st0);
+    const P = this.sp ??= (() => {
+      const cloth = SURF.cloth();
+      const bodice = new THREE.Mesh(sternPrintGeo(ss, 'bodice'), cloth); bodice.name = 'sternaufdruck-mieder';
+      const skirt = new THREE.Mesh(sternPrintGeo(ss, 'skirt'), cloth); skirt.name = 'sternaufdruck-rock';
+      const jewel = new THREE.Mesh(sternJewelGeo(st0), this.look0.hairMat); jewel.name = st0.braids ? 'sternen-haarspange' : 'sternen-diadem';
+      this.headOwn.add(jewel);
+      return { bodice, skirt, jewel, printOn: false, jewelOn: false, where: 'hair' };
+    })();
+    const helm = this.foreignHeadgear();
+    const printOn = on && kind !== 'funken';
+    const where = kind === 'sichel' ? 'cap' : 'hair';
+    const jewelOn = on && (st0.braids ? kind !== 'krallen' && !(kind === 'sichel' && helm) : !helm && kind !== 'krallen' && kind !== 'gleitblatt' && kind !== 'sichel');
+    let changed = false;
+    if (printOn !== P.printOn) { P.printOn = printOn; this.attachPart(this.torsoMesh, P.bodice, printOn, false); this.attachPart(this.skirtMesh, P.skirt, printOn, false); changed = true; }
+    if (jewelOn && where !== P.where) { P.where = where; P.jewel.geometry = sternJewelGeo(st0, where); }
+    if (jewelOn !== P.jewelOn) { P.jewelOn = jewelOn; this.attachPart(this.head, P.jewel, jewelOn, false); changed = true; }
+    if (changed) this.refreshSkins();
+  }
+
+  /** Funkeln und Sternenschweif: Teile (geteilte Materialien → Figur-Bündel) und Lagen auf den aufgedruckten Sternen. */
+  buildSternFx() {
+    const st = this.sternSt ??= sternStyle(STYLES[this.variant]);
+    const P = STAR_PRINTS[st.stern];
+    const lift = 0.018;
+    const spots = {
+      torso: P.bodice.map(([s, t]) => onBodice(s, t, lift, V())),
+      skirt: P.skirt.map(([s, t]) => onSkirt(s, t, lift, V())),
+    };
+    const glintMat = basicMat('white', { color: 0xffffff }), gloss = SURF.gloss();
+    const glint = (where) => {
+      const m = new THREE.Mesh(geo('hero:stern:glint', () => glintGeo(1)), glintMat);
+      m.name = 'sternglitzer'; m.visible = false;
+      return { mesh: m, where, t: 9, dur: SPARKLE.life, size: SPARKLE.size, spin: 0 };
+    };
+    // Schweif: gepolsterte Sternchen (Glanz) im Wechsel mit weißen Glitzern (wie die Augen-Glanzpunkte); jedes vierte ein Glitzer
+    const kinds = st.stern === 'lotti' ? ['gold', 'gold', 'silber', 'glitzer'] : ['silber', 'rosa', 'silber', 'glitzer'];
+    const trail = Array.from({ length: SPARKLE.trailN }, (_, i) => {
+      const k = kinds[i % kinds.length], g = k === 'glitzer';
+      const m = new THREE.Mesh(g ? geo('hero:stern:glint', () => glintGeo(1)) : geo(`hero:stern:trail:${k}`, () => trailStarGeo(k)), g ? glintMat : gloss);
+      m.name = 'sternschweif'; m.visible = false;
+      return { mesh: m, glint: g, t: 9, pos: new THREE.Vector3(), vel: new THREE.Vector3(), size: SPARKLE.trailSize, spin: 0, w: 0 };
+    });
+    return { on: false, glints: [glint('skirt'), glint('skirt'), glint('torso')], trail, spots, next: 0.8, wasJump: false, trailT: 0, ring: 0, k: 0 };
+  }
+
+  /**
+   * Je Bild nach der Pose (Kurs-Modus): Funkeln – Glitzer blitzen auf zufälligen aufgedruckten Sternen auf (Stand alle 1,4–2,6 s,
+   * Lauf nach Tempo bis alle 0,11 s, beim Absprung zwei) – und Sternenschweif beim Weitsprung (Sternchen bleiben in Weltlage
+   * zurück, wachsen kurz, drehen sich, sinken und vergehen). Nur mit Sternenkleid, nicht bei Klonen (lite); kein Glitzer als
+   * Statue, im Feuer-Kleid (ohne Sterne) und in der Röhre. Alle Teile hängen, solange das Kleid getragen wird.
+   */
+  updateStern(c, state, dt) {
+    const on = this.outfit === 'stern' && !this.liteLook;
+    if (!on && !this.sg) return;
+    const F = this.sg ??= this.buildSternFx();
+    if (on !== F.on) {
+      F.on = on;
+      for (const g of F.glints) { g.t = 9; g.mesh.visible = false; this.attachPart(g.where === 'torso' ? this.torsoMesh : this.skirtMesh, g.mesh, on, false); }
+      for (const p of F.trail) { p.t = 9; p.mesh.visible = false; this.attachPart(this.model, p.mesh, on, false); }
+      F.next = 0.8; F.trailT = 0; F.wasJump = false;
+      this.refreshSkins();
+    }
+    if (!on) return;
+    // ---- Funkeln
+    const sparkle = !this.w3.statue && this.costume !== 'funken' && state !== 'pipe' && state !== 'dead';
+    const jumpy = STERN_JUMPS.has(state);
+    let burst = jumpy && !F.wasJump ? SPARKLE.jumpBurst : 0;
+    F.wasJump = jumpy;
+    F.next -= dt;
+    const sp = Math.max(0, c.speed ?? 0), moving = (state === 'walk' || state === 'run' || state === 'skate') && sp > 0.3;
+    if (sparkle && (F.next <= 0 || burst > 0)) {
+      do {
+        const g = F.glints.reduce((a, b) => (b.t > a.t ? b : a));   // freiester (ältester) Glitzer
+        const list = F.spots[g.where];
+        g.mesh.position.copy(list[Math.floor(Math.random() * list.length) % list.length]);
+        g.t = 0; g.dur = SPARKLE.life * (0.8 + 0.4 * Math.random()); g.size = SPARKLE.size * (0.75 + 0.5 * Math.random()); g.spin = Math.random() * TAU;
+        g.mesh.rotation.set(0.4 * Math.random(), g.spin, 0.3 * Math.random());
+      } while (--burst > 0);
+      F.next = moving ? SPARKLE.runGap * clamp(7 / sp, 1, 4) : jumpy ? 0.22 : lerp(SPARKLE.idleGap[0], SPARKLE.idleGap[1], Math.random());
+    }
+    for (const g of F.glints) {
+      if (g.t >= g.dur) { g.mesh.visible = false; continue; }
+      g.t += dt;
+      const k = clamp(g.t / g.dur, 0, 1), pop = Math.pow(Math.sin(Math.PI * k), 1.4);
+      g.mesh.visible = sparkle && k < 1 && pop > 0.02;
+      g.mesh.scale.setScalar(Math.max(1e-3, g.size * pop));
+      g.mesh.rotation.y = g.spin + 1.6 * k;
+    }
+    // ---- Sternenschweif (Weitsprung): Sternchen in Weltlage
+    const trailing = state === 'longjump' && !this.w3.statue;
+    const active = trailing || F.trail.some((p) => p.t < SPARKLE.trailLife);
+    if (!active) return;
+    this.model.updateWorldMatrix(true, false);
+    this.root.getWorldScale(_s);
+    const ws = _s.y || 1;
+    if (trailing) {
+      F.trailT -= dt;
+      while (F.trailT <= 0) {
+        F.trailT += SPARKLE.trailGap;
+        const p = F.trail[F.ring++ % F.trail.length];
+        this.pelvis.updateWorldMatrix(true, false);
+        p.pos.set(-0.16 - 0.1 * Math.random(), -0.16 + 0.34 * (Math.random() - 0.5), 0.36 * (Math.random() - 0.5)).applyMatrix4(this.pelvis.matrixWorld);
+        p.vel.set(-0.3 * Math.random(), 0.5 * (Math.random() - 0.5), 0.7 * (Math.random() - 0.5)).transformDirection(this.model.matrixWorld).multiplyScalar(ws * (0.4 + 0.6 * Math.random()));
+        p.t = 0; p.size = SPARKLE.trailSize * (0.7 + 0.6 * Math.random()) * (p.glint ? 1.1 : 1); p.spin = Math.random() * TAU; p.w = (Math.random() < 0.5 ? -1 : 1) * (2 + 3 * Math.random());
+      }
+    } else F.trailT = 0;
+    _mi.copy(this.model.matrixWorld).invert();
+    // Sternchen zeigen zur Kamera (die Kurs-Ansicht kennt sie; sonst blicken sie nach hinten, −X)
+    const cam = this.view?.camera;
+    this.model.getWorldQuaternion(_qi).invert();
+    if (cam?.isCamera) _qt.copy(_qi).multiply(cam.quaternion); else _qt.setFromAxisAngle(UP, -Math.PI / 2);
+    for (const p of F.trail) {
+      const life = p.glint ? SPARKLE.trailLife * 0.6 : SPARKLE.trailLife;
+      if (p.t >= life) { p.mesh.visible = false; continue; }
+      p.t += dt;
+      const k = clamp(p.t / life, 0, 1);
+      p.vel.multiplyScalar(Math.exp(-2.5 * dt));
+      p.pos.addScaledVector(p.vel, dt);
+      p.pos.y -= 0.3 * ws * dt * k;
+      const pop = p.glint ? Math.pow(Math.sin(Math.PI * k), 1.3) : smoothstep(k / 0.1) * (1 - smoothstep((k - 0.35) / 0.65));
+      p.mesh.visible = k < 1 && pop > 0.02;
+      p.mesh.position.copy(p.pos).applyMatrix4(_mi);
+      p.mesh.scale.setScalar(Math.max(1e-3, p.size * pop));
+      p.mesh.quaternion.copy(_qt).multiply(_q.setFromAxisAngle(_v.set(0, 0, 1), p.spin + p.w * p.t));
+    }
+  }
+
   // ================================================================ Verkleidung (Halloween)
   /**
    * Verkleidung festlegen: 'halloween' | null hat Vorrang vor der Szene, 'auto' (Standard) folgt wieder der Szene
    * (lib/outfit.js: setOutfit der Kurs-/Karten-Szene, URL ?outfit=halloween). Wirkt im Kurs- und im Klassik-Modus.
    */
   setOutfit(kind = 'auto') {
-    this.outfitPin = kind === 'auto' ? undefined : kind === 'halloween' ? 'halloween' : null;
+    this.outfitPin = kind === 'auto' ? undefined : OUTFITS.has(kind) ? kind : null;
     this.syncOutfit();
     return this;
   }
@@ -1890,8 +2186,10 @@ export class HeroAvatar extends Avatar3D {
   /** Je Bild: gewünschte Verkleidung (Festlegung bzw. Szene) übernehmen; Kopfschmuck nach Helm umstellen. */
   syncOutfit() {
     const want = this.outfitPin !== undefined ? this.outfitPin : currentOutfit();
-    const kind = want === 'halloween' ? 'halloween' : null;
-    if (kind !== this.outfit) { this.outfit = kind; this.updateLook(); } else if (kind && this.outfitHead() !== this.lookHead) this.updateLook();
+    const kind = OUTFITS.has(want) ? want : null;
+    if (kind !== this.outfit) { this.outfit = kind; this.updateLook(); }
+    else if (kind === 'halloween' && this.outfitHead() !== this.lookHead) this.updateLook();
+    else if (kind === 'stern' && this.foreignHeadgear() !== this.lookHelm) this.updateLook();   // Diadem ruht unter dem Helm
   }
 
   /** Trägt der Kopf fremden Schmuck (Trage-Helm von HeroRig)? Dann ruht der Kopfschmuck der Verkleidung. */
@@ -2046,9 +2344,9 @@ export class HeroAvatar extends Avatar3D {
 
   /** Hand-Varianten der Kurs-Arme: 'bare' | 'peace' | 'glove'. */
   setArmKinds(n, f) {
-    const st = STYLES[this.variant];
-    if (n !== this.armN.kind) { this.armN.kind = n; this.armN.carm.geometry = courseArmGeo(st, n); }
-    if (f !== this.armF.kind) { this.armF.kind = f; this.armF.carm.geometry = courseArmGeo(st, f); }
+    const st = this.outfit === 'stern' ? (this.sternSt ??= sternStyle(STYLES[this.variant])) : STYLES[this.variant];   // Tatzen im Kleid
+    if (n !== this.armN.kind || st.dress !== this.armN.dress) { this.armN.kind = n; this.armN.dress = st.dress; this.armN.carm.geometry = courseArmGeo(st, n); }
+    if (f !== this.armF.kind || st.dress !== this.armF.dress) { this.armF.kind = f; this.armF.dress = st.dress; this.armF.carm.geometry = courseArmGeo(st, f); }
   }
 
   animateCourse(dt, t) {
@@ -2072,6 +2370,7 @@ export class HeroAvatar extends Avatar3D {
     this.setArmKinds(glove ? 'glove' : this.peace ? 'peace' : 'bare', glove ? 'glove' : 'bare');
     this.applyTail(dt, c, this.cState);
     this.updateSichel(c, dt, t);
+    this.updateStern(c, this.cState ?? 'idle', dt);
     if (this.w3.statue) this.freezeHair();
     else {
       if (this.w3.frozen) this.thawHair();
@@ -3140,6 +3439,8 @@ function rabbitEyeGeos() {
 }
 
 /** Halstuch: Band um den Hals, Zipfel vor der Brust, Knoten – ein Mesh in Kraftfarbe. */
+/** Halstuch-Ring (kopf-lokal, wie rabbitBandanaGeo) für Pflaumes Sternenhalsband. */
+const RABBIT_COLLAR = { center: V(0.03, 0.0, 0), axis: V(0.45, 0.89, 0).normalize(), R: 0.225, tube: 0.05, knot: V(0.24, -0.03, 0.07) };
 function rabbitBandanaGeo() {
   return geo('rabbit:bandana2', () => {
     const neckAxis = V(0.45, 0.89, 0).normalize();
@@ -3312,7 +3613,8 @@ export class PflaumeAvatar extends Avatar3D {
     // Kopf (Drehpunkt am Halsansatz): Fell+Schnäuzchen, Nase (wackelt), Augen (offen/zu, Glanzpunkte), offener Mund
     this.head = new THREE.Group(); this.head.position.copy(HEAD_PIV);
     this.torso.add(this.head);
-    this.head.add(smesh(rabbitHeadGeo(), fur));
+    this.headFur = smesh(rabbitHeadGeo(), fur);   // Sternenglanz: Sternchen und Brosche am Halstuch im selben Mesh
+    this.head.add(this.headFur);
     this.noseY = RNOSE.y;
     this.nose = mesh(sphere(0.05, 12, 8), mat('fur-pink', { color: PINK_C, roughness: 0.45 }), { x: RNOSE.x, y: RNOSE.y, sx: 0.7, sy: 0.62, sz: 0.85 });
     this.head.add(this.nose);
@@ -3366,16 +3668,16 @@ export class PflaumeAvatar extends Avatar3D {
   }
 
   // ================================================================ Verkleidung (Halloween)
-  /** Wie HeroAvatar.setOutfit: 'halloween' | null (Vorrang vor der Szene), 'auto' = der Szene folgen. */
+  /** Wie HeroAvatar.setOutfit: 'halloween' | 'stern' | null (Vorrang vor der Szene), 'auto' = der Szene folgen. */
   setOutfit(kind = 'auto') {
-    this.outfitPin = kind === 'auto' ? undefined : kind === 'halloween' ? 'halloween' : null;
+    this.outfitPin = kind === 'auto' ? undefined : OUTFITS.has(kind) ? kind : null;
     this.syncOutfit();
     return this;
   }
 
   syncOutfit() {
     const want = this.outfitPin !== undefined ? this.outfitPin : currentOutfit();
-    const kind = want === 'halloween' ? 'halloween' : null;
+    const kind = OUTFITS.has(want) ? want : null;
     if (kind !== this.outfit) { this.outfit = kind; this.applyOutfit(); }
   }
 
@@ -3390,6 +3692,8 @@ export class PflaumeAvatar extends Avatar3D {
     this.bandana.geometry = hw ? geo('rabbit:bandana:hw', stripedBandanaGeo) : rabbitBandanaGeo();
     this.bandana.material = hw ? this.hw.bandanaMat : this.bandanaMat;
     this.setBandanaColor(this.powerKey ?? 'none');
+    // Sternenglanz: goldene Sternchen rund um das Halstuch und eine Sternbrosche auf dem Knoten (Fell-Mesh des Kopfes: 0 Aufrufe)
+    this.headFur.geometry = this.outfit === 'stern' ? geo('rabbit:head2:stern', () => mergeColored([[rabbitHeadGeo(), null, null], ...own(collarGeos(RABBIT_COLLAR))])) : rabbitHeadGeo();
     if (!this.hw) return;
     this.hw.on = hw;
     if (hw) this.body.add(this.hw.root); else this.hw.root.parent?.remove(this.hw.root);

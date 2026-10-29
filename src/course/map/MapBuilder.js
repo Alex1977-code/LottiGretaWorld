@@ -40,6 +40,9 @@
 // Kristallen), Ränder ('starhedge', 'starrail', an Inselrändern zum All Sternengeländer), Brücken (segments 'rainbowway',
 // 'starbridge'), Requisiten (starPropGeo/starPropModel) und die lebendige Kulisse (StarLife: funkelnde Sterne im Takt,
 // Planeten, Spielzeugraketen, Sternschnuppen).
+// Bonuswelten Pilz (10), Blume (11), Krone (12): map.kit = 'pilz' | 'blume' | 'krone' – das Kit aus bonuskit.BONUS_KITS
+// (pilz10.js, blume11.js, krone12.js) liefert Gelände, Brücken, Streudeko, Ränder, Requisiten und die lebendige Kulisse; das
+// Puls-Material 'bglow' (Leuchtendes im Takt) wird vor dem ersten addStatic eingerichtet.
 // Reihenfolge wichtig: Höhen für Hecken/Platten werden vom Gelände abgefragt, bevor Wände/Schranken entstehen;
 // erst am Ende wird die statische Geometrie verschmolzen (view.finalize).
 
@@ -64,6 +67,7 @@ import { skyGround, skyEdgeGeo, scatterSky, skyPropGeo, skyPropGlow, skyPropShap
 import { lavaGround, lavaEdgeGeo, scatterLava, lavaPropGeo, lavaPropGlow, lavaPropShape, lavaPropModel, buildLavaSegment, LavaLife } from './lava7.js';
 import { rummelGround, rummelEdgeGeo, scatterRummel, rummelPropGeo, rummelPropGlow, rummelPropShape, rummelPropExtraShapes, rummelPropModel, buildRummelSegment, RummelLife } from './rummel8.js';
 import { starGround, starEdgeGeo, scatterStar, starPropGeo, starPropGlow, starPropShape, starPropModel, buildStarSegment, StarLife, GLOW_TILE9 } from './sterne9.js';
+import { bonusKit, bonusEdgeGeo } from './bonus_kits.js';
 
 const DESERT_STYLES = new Set(['desert', 'sandstone', 'dune', 'pink', 'lavarock', 'basin']);
 
@@ -82,6 +86,8 @@ export function buildMap(level, map, host) {
   const theme = level.view?.theme;
   if (map.kit === 'halloween') hwGlow(level.view);   // Material hwglow (Lichter im Takt) vor dem ersten addStatic
   if (map.kit === 'sky' || map.kit === 'lava' || map.kit === 'rummel') skyMats(level.view);   // Welt 6 (Welt 7: Glasröhren): Materialien w6glass, w6rainbow vor dem ersten addStatic
+  const BK = bonusKit(map);   // Bonuswelten Pilz/Blume/Krone
+  if (BK && level.view) BK.mats?.(level.view);   // Puls-Material 'bglow' vor dem ersten addStatic
 
   // 1) Gelände
   map.ground.forEach((b, i) => buildGround(level, b, base, theme, i, map));
@@ -97,6 +103,7 @@ export function buildMap(level, map, host) {
     if (map.kit === 'lava' && (buildLavaSegment(level, seg) || buildSkySegment(level, seg))) continue;   // Welt 7: Basaltbrücke, Kettensteg, Damm …
     if (map.kit === 'rummel' && (buildRummelSegment(level, seg) || buildLavaSegment(level, seg) || buildSkySegment(level, seg))) continue;   // Welt 8: Rummelsteg, Welt-7-Brücken, Glasröhre
     if (map.kit === 'star' && buildStarSegment(level, seg)) continue;            // Welt Stern: Regenbogenweg, Sternenbrücke
+    if (BK?.segment?.(level, seg)) continue;                                      // Bonuswelten: Stiel-/Ranken-/Gießkannenbrücken …
     const build = getBlockType(seg.type);
     if (!build) { console.warn(`[Weltkarte] unbekannter Baustein: ${seg.type}`); continue; }
     try { build(level, seg); } catch (err) { console.error(`[Weltkarte] Baustein ${seg.type} fehlgeschlagen:`, err); }
@@ -112,6 +119,7 @@ export function buildMap(level, map, host) {
   else if (map.kit === 'lava') scatterLava(level, map, grid);
   else if (map.kit === 'rummel') scatterRummel(level, map, grid);
   else if (map.kit === 'star') scatterStar(level, map, grid);
+  else if (BK?.scatter) BK.scatter(level, map, grid);
   else scatterDeco(level, map, base, grid);
   buildProps(level, map, grid);
   const bounds = level.computeBounds();
@@ -123,7 +131,7 @@ export function buildMap(level, map, host) {
   const edgeParts = { hedge: [], fence: [] };
   for (const w of walls) borderDeco(w, ground, sea, edgeParts, groundBlock, map.edges);
   // Welt 3: niedrige Schneewälle/Zäune ohne Sonnenschatten (spart den Schattenpass auf der dichten Schneeinsel)
-  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila' && map.kit !== 'halloween' && map.kit !== 'sky' && map.kit !== 'lava' && map.kit !== 'rummel' && map.kit !== 'star';   // Welt 4, 5, 6, 7, 8, 9, 31 ebenso
+  const edgeShadow = map.kit !== 'snow' && map.kit !== 'canyon' && map.kit !== 'lila' && map.kit !== 'halloween' && map.kit !== 'sky' && map.kit !== 'lava' && map.kit !== 'rummel' && map.kit !== 'star' && !BK;   // Welt 4, 5, 6, 7, 8, 9, 31, Bonuswelten ebenso
   for (const g of edgeParts.hedge) level.view?.addStatic(g, { castShadow: edgeShadow });
   for (const g of edgeParts.fence) level.view?.addStatic(g, { castShadow: edgeShadow });
   out.hedges = edgeParts.hedge.length;
@@ -153,6 +161,14 @@ export function buildMap(level, map, host) {
   // 5a'''') Welt Stern: funkelnde Sterne im Takt, Planeten, Spielzeugraketen, Sternschnuppen
   if (map.kit === 'star' && level.view) {
     const life = new StarLife(level, map);
+    out.updaters.push((dt, t) => life.update(dt, t));
+    out.own.push(life);
+    out.life = life;
+  }
+
+  // 5a''''') Bonuswelten: Leuchtendes im Takt (Puls-Material), Glühwürmchen, Schmetterlinge, Konfetti …
+  if (BK?.Life && level.view) {
+    const life = new BK.Life(level, map);
     out.updaters.push((dt, t) => life.update(dt, t));
     out.own.push(life);
     out.life = life;
@@ -255,6 +271,15 @@ function buildGround(level, b, base, theme, index, map) {
   const rnd = new Rnd(0x51ab + index * 977);
   level.world.add({ type: 'box', min: [x0, base, z0], max: [x1, top, z1], tag: b.walk ? 'karte' : 'gelaende', mapBlock: b, ice: !!b.ice });
   if (!theme) return;
+  const BK = bonusKit(map);
+  if (BK) {
+    // Bonuswelten: Pilzhüte, Blütenblätter, Gipfel-Terrassen (Deckschichten ohne Schattenwurf, Leuchtendes im Puls-Material)
+    for (const g of BK.ground({ ...b }, base, theme, rnd, map)) {
+      const mat = g.userData?.material, ns = g.userData?.noShadow, tile = g.userData?.tile;
+      level.view.addStatic(g, mat || ns || tile ? { material: mat, castShadow: !ns, tile } : undefined);
+    }
+    return;
+  }
   if (map.kit === 'star') {
     // Welt Stern: schwebende Inseln im All (Deckschichten ohne Schattenwurf, Kristalle und Neonfugen leuchtend)
     for (const g of starGround({ ...b, style: b.style ?? 'starplaza' }, base, theme, rnd, map)) {
@@ -443,10 +468,11 @@ function scatterDesert(level, map, grid) {
 /** Requisiten aus map.props: { kind, pos, yaw?, size?, … } (desert.js propGeo); auf begehbarem Gelände mit Kollision. */
 function buildProps(level, map, grid) {
   const add = (g, o) => level.view.addStatic(g, o);
+  const BK = bonusKit(map);
   (map.props ?? []).forEach((it, i) => {
     if (map.kit === 'halloween') { buildHwProp(level, map, grid, it, i); return; }   // Halloween: halloween.js
     // Modell aus der Registry (gleiche Optik wie in den Leveln), sonst eigene sparsame Geometrie
-    const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : map.kit === 'sky' ? skyPropModel(it) : map.kit === 'lava' ? lavaPropModel(it) : map.kit === 'rummel' ? (rummelPropModel(it) ?? lavaPropModel(it)) : map.kit === 'star' ? starPropModel(it) : null)) : null;
+    const pm = level.view && it.model !== false ? (propModel(it) ?? (map.kit === 'lila' ? lilaPropModel(it) : map.kit === 'sky' ? skyPropModel(it) : map.kit === 'lava' ? lavaPropModel(it) : map.kit === 'rummel' ? (rummelPropModel(it) ?? lavaPropModel(it)) : map.kit === 'star' ? starPropModel(it) : BK ? BK.propModel?.(it) ?? null : null)) : null;
     // Welt 6: eingebackene Registry-Requisiten in kompakte Kacheln je 16-m-Feld mit Fern-Ausblendung (wie Halloween)
     // (Welt 7: die leichten Basalt-/Felsmodelle gehen in die Kachel ihrer Insel – keine eigenen Zeichenaufrufe je Feld)
     const addPm = map.kit === 'sky' ? (g, o) => add(g, { ...o, tile: `w6p:${Math.floor(it.pos[0] / 16)}|${Math.floor(it.pos[2] / 16)}`, lod: true })
@@ -457,7 +483,10 @@ function buildProps(level, map, grid) {
           : { ...o, tile: `w8p:${Math.floor(it.pos[0] / 24)}|${Math.floor(it.pos[2] / 24)}:${o.material ?? 'world'}`, lod: true })
           // Welt Stern: wie Welt 8 (Kacheln je 24-m-Feld mit Fern-Ausblendung, Leuchtteile in die Leucht-Kachel)
           : map.kit === 'star' ? (g, o) => add(g, o?.material === 'glow' ? { ...o, castShadow: false, tile: GLOW_TILE9 } : o?.castShadow === false ? o
-            : { ...o, tile: `w9p:${Math.floor(it.pos[0] / 24)}|${Math.floor(it.pos[2] / 24)}:${o.material ?? 'world'}`, lod: true }) : add;
+            : { ...o, tile: `w9p:${Math.floor(it.pos[0] / 24)}|${Math.floor(it.pos[2] / 24)}:${o.material ?? 'world'}`, lod: true })
+            // Bonuswelten: wie Welt Stern (Kacheln je 24-m-Feld '<tag>p:x|z' mit Fern-Ausblendung, Leuchtteile in die Leucht-Kachel)
+            : BK ? (g, o) => add(g, o?.material === 'glow' ? { ...o, castShadow: false, tile: BK.glowTile } : o?.castShadow === false ? o
+              : { ...o, tile: `${BK.tag}p:${Math.floor(it.pos[0] / 24)}|${Math.floor(it.pos[2] / 24)}:${o.material ?? 'world'}`, lod: true }) : add;
     const baked = pm ? bakeModel(addPm, pm[0], pm[1], it.pos, (it.yaw ?? 0) + pm[2], pm[3]) : null;
     if (baked && it.kind === 'tank') add(place(turretGeo(it.size ?? 1, (it.color ?? 'oliv') === 'oliv'), it.pos[0], it.pos[1] + 1.6 * (it.size ?? 1), it.pos[2], it.yaw ?? 0), { castShadow: true });
     if (it.kind === 'sandstack') {
@@ -469,16 +498,16 @@ function buildProps(level, map, grid) {
     }
     if (!baked && level.view && it.kind === 'sandblocks') bakeSandblocks(add, it);
     else if (!baked) {
-      const g = level.view ? ((map.kit === 'lava' ? lavaPropGeo(it, 0x7a11 + i * 37) : map.kit === 'rummel' ? rummelPropGeo(it, 0x7a11 + i * 37) : map.kit === 'star' ? starPropGeo(it, 0x7a11 + i * 37) : null) ?? propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37) ?? lilaPropGeo(it, 0x7a11 + i * 37) ?? skyPropGeo(it, 0x7a11 + i * 37)) : null;
+      const g = level.view ? ((BK ? BK.propGeo?.(it, 0x7a11 + i * 37) ?? null : map.kit === 'lava' ? lavaPropGeo(it, 0x7a11 + i * 37) : map.kit === 'rummel' ? rummelPropGeo(it, 0x7a11 + i * 37) : map.kit === 'star' ? starPropGeo(it, 0x7a11 + i * 37) : null) ?? propGeo(it, 0x7a11 + i * 37) ?? snowPropGeo(it, 0x7a11 + i * 37) ?? canyonPropGeo(it, 0x7a11 + i * 37) ?? lilaPropGeo(it, 0x7a11 + i * 37) ?? skyPropGeo(it, 0x7a11 + i * 37)) : null;
       if (g) level.view.addStatic(place(g, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), { castShadow: it.shadow !== false, material: it.material });
       // Welt 3: Fenster, Laternen, Lichterkugeln (helle Teile ohne Schattenwurf; teilen die Kachel der Wegplatten)
-      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : map.kit === 'lila' ? lilaPropGlow(it) : map.kit === 'sky' ? skyPropGlow(it) : map.kit === 'lava' ? lavaPropGlow(it) : map.kit === 'rummel' ? rummelPropGlow(it) : map.kit === 'star' ? starPropGlow(it) : null)) : null;
-      if (gl) level.view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), map.kit === 'lava' ? { material: 'glow', castShadow: false, tile: 'w7:leuchten' } : map.kit === 'rummel' ? { material: 'glow', castShadow: false, tile: 'w8:leuchten' } : map.kit === 'star' ? { material: 'glow', castShadow: false, tile: GLOW_TILE9 } : { castShadow: false });
+      const gl = level.view ? (snowPropGlow(it) ?? (map.kit === 'canyon' ? canyonPropGlow(it) : map.kit === 'lila' ? lilaPropGlow(it) : map.kit === 'sky' ? skyPropGlow(it) : map.kit === 'lava' ? lavaPropGlow(it) : map.kit === 'rummel' ? rummelPropGlow(it) : map.kit === 'star' ? starPropGlow(it) : BK ? BK.propGlow?.(it) ?? null : null)) : null;
+      if (gl) level.view.addStatic(place(gl, it.pos[0], it.pos[1], it.pos[2], it.yaw ?? 0), map.kit === 'lava' ? { material: 'glow', castShadow: false, tile: 'w7:leuchten' } : map.kit === 'rummel' ? { material: 'glow', castShadow: false, tile: 'w8:leuchten' } : map.kit === 'star' ? { material: 'glow', castShadow: false, tile: GLOW_TILE9 } : BK ? { material: 'bglow', castShadow: false, tile: BK.glowTile } : { castShadow: false });
     }
     if (it.solid === false) return;
     if (map.kit === 'rummel') for (const sh of rummelPropExtraShapes(it)) level.world.add(sh);   // Welt 8: Säulen des Rummel-Tors
     if (it.solid || grid.isWalk(it.pos[0], it.pos[2])) {
-      const sh = (map.kit === 'lava' ? lavaPropShape(it) : map.kit === 'rummel' ? rummelPropShape(it) : map.kit === 'star' ? starPropShape(it) : null) ?? propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it) ?? lilaPropShape(it) ?? skyPropShape(it);
+      const sh = (BK ? BK.propShape?.(it) ?? null : map.kit === 'lava' ? lavaPropShape(it) : map.kit === 'rummel' ? rummelPropShape(it) : map.kit === 'star' ? starPropShape(it) : null) ?? propShape(it) ?? snowPropShape(it) ?? canyonPropShape(it) ?? lilaPropShape(it) ?? skyPropShape(it);
       if (sh) level.world.add(sh);
     }
   });
@@ -564,12 +593,12 @@ function borderDeco(w, ground, sea, out, groundBlock, edges = {}) {
       let g;
       if (c === 'hedge') {
         const seed = Math.floor(mid * 7 + 13) >>> 0;
-        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hwEdgeGeo(st, L, seed) ?? skyEdgeGeo(st, L, seed) ?? lavaEdgeGeo(st, L, seed) ?? rummelEdgeGeo(st, L, seed) ?? starEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
+        g = st === 'adobe' ? adobeWallGeo(L + 0.1, seed) : st === 'pink' ? tintHedgeGeo(L + 0.2, PINK_HEDGE, seed) : snowEdgeGeo(st, L, seed) ?? canyonEdgeGeo(st, L, seed) ?? lilaEdgeGeo(st, L, seed) ?? hwEdgeGeo(st, L, seed) ?? skyEdgeGeo(st, L, seed) ?? lavaEdgeGeo(st, L, seed) ?? rummelEdgeGeo(st, L, seed) ?? starEdgeGeo(st, L, seed) ?? bonusEdgeGeo(st, L, seed) ?? hedgeGeo(L + 0.2, 1.1, 0.9, seed);
         const off = w.side * (st === 'adobe' ? 0.35 : 0.45);
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
       } else {
-        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? hwEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? skyEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? lavaEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? rummelEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? starEdgeGeo(st, L, 1) ?? fenceGeo(L);
+        g = st === 'rope' || st === 'chain' ? ropeFenceGeo(L, st === 'chain') : snowEdgeGeo(st, L, 1) ?? lilaEdgeGeo(st, L, 1) ?? hwEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? skyEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? lavaEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? rummelEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? starEdgeGeo(st, L, 1) ?? bonusEdgeGeo(st, L, Math.floor(mid * 7 + 13) >>> 0) ?? fenceGeo(L);
         const off = w.side * 0.12;
         if (w.axis === 'x') { g.rotateY(Math.PI / 2); g.translate(w.x + off, y, mid); }
         else g.translate(mid, y, w.z + off);
@@ -616,7 +645,7 @@ function buildPaths(level, map, grid, ground, sea) {
     if (hs.some((h) => h === null || Math.abs(h - hit.y) > 0.02)) continue;
     const base = mixc(a, b2, rnd.frac(), [0, 0, 0]);
     const box = new THREE.BoxGeometry(0.9, 0.1, 0.9);
-    if (map.kit === 'snow' || map.kit === 'lila' || map.kit === 'halloween' || map.kit === 'sky' || map.kit === 'lava' || map.kit === 'rummel' || map.kit === 'star') box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
+    if (map.kit === 'snow' || map.kit === 'lila' || map.kit === 'halloween' || map.kit === 'sky' || map.kit === 'lava' || map.kit === 'rummel' || map.kit === 'star' || bonusKit(map)) box.setIndex([...box.index.array.slice(0, 18), ...box.index.array.slice(24)]);   // Welt 3/5: ohne Unterseite
     const g = colorize(box, (p, n, o) => { if (n.y > 0.6) { o[0] = base[0]; o[1] = base[1]; o[2] = base[2]; } else mixc(base, edge, 0.7, o); });
     g.translate(cx, hit.y + 0.01, cz);
     parts.push(g);

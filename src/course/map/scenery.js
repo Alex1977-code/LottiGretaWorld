@@ -25,6 +25,10 @@
 // Welt Stern (map.kit 'star'): Thema 'map_star' (sterne9.js); statt Meer, Schaum, Glitzern und Wolken das Sternenmeer (StarSea:
 // tiefe Sternenschichten und Nebel unter den schwebenden Inseln), kleine schwebende Asteroiden mit Kristallen oder Raketen in
 // einer Kachel; Nachbarwelt-Stil 'rummelfern' (Welt 8 tief unten – Ziel der Rückweg-Röhre).
+// Bonuswelten Pilz/Blume/Krone (map.kit 'pilz' | 'blume' | 'krone', bonuskit.BONUS_KITS): das Kit wählt Meer ('meer', ohne
+// Schaumkanten, wenn kit.foam false – die Inseln stehen auf Stielen) oder Wolkenmeer ('wolken', CloudSea wie Welt 6), Inselchen
+// (kit.isletParts, eine Kachel '<tag>:inselchen'), Wolken ohne Schattenpass; Nachbarwelt-Stile über bonusNeighborParts
+// ('sternfern', 'pilzfern', 'blumenfern', 'kronefern').
 
 import * as THREE from 'three';
 import { THEMES } from '../view/themes.js';
@@ -39,6 +43,7 @@ import { CloudSea, skyIsletParts, skyNeighborParts } from './sky6.js';
 import { lavaIsletParts, lavaNeighborParts } from './lava7.js';
 import { rummelIsletParts, rummelNeighborParts } from './rummel8.js';
 import { StarSea, starIsletParts, starNeighborParts } from './sterne9.js';
+import { bonusKit, bonusNeighborParts } from './bonus_kits.js';
 import { canvasTexture } from '../../three/lib/itemMaterials.js';
 
 // Thema der Wüsteninsel (Welt 2): warmes Sonnenlicht, blasser, sandiger Horizont, Nebel ins Goldene.
@@ -93,17 +98,19 @@ export class MapScenery {
     this.sea = map.sea ?? 0;
     this.seaColors = map.seaColors ?? null;
     this.kit = map.kit ?? 'grass';
-    if (this.kit === 'sky') this.cloudSea = new CloudSea(view, map, bounds, this);   // Welt 6: Wolkenmeer statt Meer
+    const BK = bonusKit(map);
+    this.bonus = BK;
+    if (this.kit === 'sky' || BK?.sea === 'wolken') this.cloudSea = new CloudSea(view, map, bounds, this);   // Welt 6, Welt Krone: Wolkenmeer statt Meer
     else if (this.kit === 'star') this.starSea = new StarSea(view, map, bounds, this);   // Welt Stern: Sternenmeer statt Meer
     else {
       this.buildSea(bounds);
-      this.buildFoam();
+      if (BK?.foam !== false) this.buildFoam();   // Bonuswelt Pilz: Hüte auf Stielen – Schaumringe zeichnet das Kit
       this.buildGlints(bounds);
     }
     if (this.kit !== 'star') this.buildClouds(bounds);   // Welt Stern: keine Wolken im All
     this.buildIslets(bounds);
     if (this.kit === 'desert') this.buildMesas(bounds);
-    if ((this.kit === 'sky' || this.kit === 'lava' || this.kit === 'rummel') && this.clouds) this.clouds.castShadow = false;   // Welt 6/7/8: Wolken ohne Schattenpass
+    if ((this.kit === 'sky' || this.kit === 'lava' || this.kit === 'rummel' || BK) && this.clouds) this.clouds.castShadow = false;   // Welt 6/7/8: Wolken ohne Schattenpass
     if (this.kit === 'snow') {
       this.buildFloes(bounds);
       this.buildSnowfall(map.snowfall ?? {});
@@ -271,12 +278,13 @@ export class MapScenery {
         n++;
         continue;
       }
-      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween' || this.kit === 'sky' || this.kit === 'lava' || this.kit === 'rummel' || this.kit === 'star') {
+      if (this.kit === 'canyon' || this.kit === 'lila' || this.kit === 'halloween' || this.kit === 'sky' || this.kit === 'lava' || this.kit === 'rummel' || this.kit === 'star' || this.bonus?.isletParts) {
         // Canyon-/Lila-/Halloween-Inselchen (Welt 6: schwebende Inselchen): ohne Schattenwurf, je Meeressektor ein Mesh
-        const sea = { castShadow: false, tile: this.kit === 'sky' ? 'w6:inselchen' : this.kit === 'lava' ? 'w7:inselchen' : this.kit === 'rummel' ? 'w8:inselchen' : this.kit === 'star' ? 'w9:inselchen' : this.seaSector(x, z) };   // Welt 6/7/8/9: alle in einer Kachel
-        const make = this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : this.kit === 'sky' ? skyIsletParts : this.kit === 'lava' ? lavaIsletParts : this.kit === 'rummel' ? rummelIsletParts : this.kit === 'star' ? starIsletParts : canyonIsletParts;
+        const BK = this.bonus;
+        const sea = { castShadow: false, tile: this.kit === 'sky' ? 'w6:inselchen' : this.kit === 'lava' ? 'w7:inselchen' : this.kit === 'rummel' ? 'w8:inselchen' : this.kit === 'star' ? 'w9:inselchen' : BK ? `${BK.tag}:inselchen` : this.seaSector(x, z) };   // Welt 6/7/8/9, Bonuswelten: alle in einer Kachel
+        const make = BK?.isletParts ?? (this.kit === 'lila' ? lilaIsletParts : this.kit === 'halloween' ? hwIsletParts : this.kit === 'sky' ? skyIsletParts : this.kit === 'lava' ? lavaIsletParts : this.kit === 'rummel' ? rummelIsletParts : this.kit === 'star' ? starIsletParts : canyonIsletParts);
         for (const g of make(x, z, w, d, top, rnd)) {
-          if (g.userData?.material) this.view.addStatic(g, { ...sea, material: g.userData.material, ...(this.kit === 'star' && g.userData.material === 'glow' ? { tile: 'w9:leuchten' } : {}) });
+          if (g.userData?.material) this.view.addStatic(g, { ...sea, material: g.userData.material, ...(this.kit === 'star' && g.userData.material === 'glow' ? { tile: 'w9:leuchten' } : BK && (g.userData.material === 'glow' || g.userData.material === 'bglow') ? { tile: BK.glowTile } : {}) });
           else this.view.addStatic(g, sea);
         }
         this.rects.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
@@ -352,7 +360,9 @@ export class MapScenery {
     if (nb.style === 'erzpark') parts.push(...lavaNeighborParts(nb, rnd));
     if (nb.style === 'vulkan') parts.push(...rummelNeighborParts(nb, rnd));
     if (nb.style === 'rummelfern') parts.push(...starNeighborParts(nb, rnd));
-    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween' || nb.style === 'sky' || nb.style === 'lavafort' || nb.style === 'erzpark' || nb.style === 'vulkan' || nb.style === 'rummelfern';
+    const bonusParts = bonusNeighborParts(nb, rnd);   // Bonuswelten: 'sternfern', 'pilzfern', 'blumenfern', 'kronefern'
+    parts.push(...bonusParts);
+    const own = nb.style === 'snow' || nb.style === 'canyon' || nb.style === 'lila' || nb.style === 'halloween' || nb.style === 'sky' || nb.style === 'lavafort' || nb.style === 'erzpark' || nb.style === 'vulkan' || nb.style === 'rummelfern' || bonusParts.length > 0;
     const blocks = own ? [] : [[-0.5, -0.5, 0.5, 0.5, 2.5], [-0.35, -0.42, 0.1, 0.1, 6], [0.05, -0.3, 0.38, 0.2, 4.5]];
     for (const [a, c, e, f, top] of blocks) {
       const g = islandParts(x + a * w, -3, z + c * d, x + e * w, top, z + f * d, desert ? { ...theme, dirt: 0xd9a060, dirtDeep: 0xa86a3a } : THEMES.grass, { under: 0, rnd, top: desert ? 'sand' : 'grass', cell: 4 });
