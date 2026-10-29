@@ -168,6 +168,9 @@ function scene(level) {
   zahnradGeo(b, { x: W.x1 - 2, y: 1.6, z: W.z1 - 0.18, r: 1.0, color: 0xffa8d8 });
   zahnradGeo(b, { x: N.x1 + 0.18, y: 1.8, z: -9, r: 1.1, axis: 'x', color: 0x9ad8ff });
   zahnradGeo(b, { x: S.x0 - 0.18, y: 2.0, z: 9, r: 0.9, axis: 'x', color: C.messing });
+  zahnradGeo(b, { x: BASE.x1 + 0.35, y: -1.0, z: 8, r: 1.4, axis: 'x', color: C.messing });
+  zahnradGeo(b, { x: BASE.x0 - 0.35, y: -1.0, z: -10, r: 1.2, axis: 'x', color: 0x9ad8ff, angle: 0.3 });
+  zahnradGeo(b, { x: -4, y: -1.0, z: BASE.z0 + 0.35, r: 1.3, color: C.messing, angle: 0.2 });
   for (const [x, z, c] of [[13.6, 17.6, 0xb8e8ff], [-14, -17.6, 0xffb0e0], [13.8, -17.4, 0xc8b0ff], [-5.6, 18.2, 0xfff0a0]]) for (let k = 0; k < 3; k++) g.cone(0.26 - k * 0.05, 1.2 - k * 0.3, x + (k - 1) * 0.35, FLOOR, z + (k % 2) * 0.3, c, 5);
   // Spiralfedern (Spielzeug-Mechanik) an den Ecken
   for (const [x, z] of [[-14, 17.8], [14, 0.5], [-14, -6], [8, -17.8]]) {
@@ -216,9 +219,6 @@ function setup(level) {
   zahnraeder(level, [
     { pos: [GLOCKE.x1 + 0.2, T - 1.2, -14.2], r: 1.0, axis: 'x', speed: 0.8, color: C.messing },
     { pos: [GLOCKE.x1 + 0.2, T - 2.6, -12.9], r: 0.7, axis: 'x', speed: -1.15, color: 0xffa8d8 },
-    { pos: [14.4, -1.0, 8], r: 1.4, axis: 'x', speed: 0.5, color: C.messing },
-    { pos: [-14.4, -1.0, -10], r: 1.2, axis: 'x', speed: -0.6, color: 0x9ad8ff },
-    { pos: [-4, -1.0, 19.8], r: 1.3, speed: 0.55, color: C.messing },
   ]);
   // Tänzerin auf der Spieluhr-Dose (dreht sich)
   if (level.view) {
@@ -279,9 +279,7 @@ export const LEVEL = {
     // Drehtür der Spieluhr-Dose (Wand quer in der Tür; eine Vierteldrehung öffnet sie)
     { type: 'drehdiorama', id: 'drehtuer', pos: [DOSE.x1 - 0.15, FLOOR, DOSE.door], time: 0.9, dir: 1,
       parts: [{ pos: [0, 0, 0], size: [0.3, 2.5, 2.4], color: 0xff8ac8, top: 0xfff07a }] },
-    sign(8.4, FLOOR, 18.2, 'Kurbel-Karussell\nKrümel, los geht\'s!', { size: [2.6, 1.0], yaw: -0.3 }),
     sign(-2.6, U, 7.4, 'Tritt auf die Kurbel –\ndas Karussell dreht sich!', { size: [2.6, 1.0], yaw: 0.2 }),
-    sign(-4.4, FLOOR, 15.4, 'Trittschalter:\nDrehtür!', { size: [1.9, 0.8], yaw: 0.5 }),
     sign(-12.6, FLOOR, -16.2, 'Dreh die Kamera –\nwas glitzert da?', { size: [2.4, 0.9], yaw: 0.9 }),
   ],
   items: [
@@ -300,22 +298,22 @@ export const LEVEL = {
   ],
   enemies: [
     // Funkenflämmchen (9): hüpfen auf festen Bahnen neben den Wegen
-    { kind: 'funkenflaemmchen', id: 'ff_ost', pos: [8.2, U, -2.5], path: [[8.2, U, -2.5], [12.6, U, -2.5]] },
-    { kind: 'funkenflaemmchen', id: 'ff_west1', pos: [-12.6, U, 2.5], path: [[-12.6, U, 2.5], [-8.2, U, 2.5]] },
-    { kind: 'funkenflaemmchen', id: 'ff_west2', pos: [-8.2, U, -2.6], path: [[-8.2, U, -2.6], [-12.6, U, -2.6]], phase: 0.5 },
-    { kind: 'funkenflaemmchen', id: 'ff_nord', pos: [3.4, U, -8.2], path: [[3.4, U, -8.2], [3.4, U, -12]] },
-    { kind: 'funkenflaemmchen', id: 'ff_glocke', pos: [2.2, T, -14.9], path: [[1.6, T, -14.9], [2.6, T, -13.4]], color: 'blau' },
-    { kind: 'funkenflaemmchen', id: 'ff_hof1', pos: [-7, G, -18.3], path: [[-7, G, -18.3], [-2.4, G, -18.3]] },
-    { kind: 'funkenflaemmchen', id: 'ff_hof2', pos: [7, G, -18.3], path: [[7, G, -18.3], [2.4, G, -18.3]], phase: 0.4 },
-    { kind: 'funkenflaemmchen', id: 'ff_rechts', pos: [14.1, G, -7], path: [[14.1, G, -7], [14.1, G, -13]], color: 'blau' },
-    { kind: 'funkenflaemmchen', id: 'ff_vorn', pos: [10.6, G, 13.4], path: [[9.2, G, 13.4], [13.6, G, 13.4]] },
+    { kind: 'funkenflaemmchen', id: 'ff_ost', instancing: 'all', pos: [8.2, U, -2.5], path: [[8.2, U, -2.5], [12.6, U, -2.5]] },
+    { kind: 'funkenflaemmchen', id: 'ff_west1', instancing: 'all', pos: [-12.6, U, 2.5], path: [[-12.6, U, 2.5], [-8.2, U, 2.5]] },
+    { kind: 'funkenflaemmchen', id: 'ff_west2', instancing: 'all', pos: [-8.2, U, -2.6], path: [[-8.2, U, -2.6], [-12.6, U, -2.6]], phase: 0.5 },
+    { kind: 'funkenflaemmchen', id: 'ff_nord', instancing: 'all', pos: [3.4, U, -8.2], path: [[3.4, U, -8.2], [3.4, U, -12]] },
+    { kind: 'funkenflaemmchen', id: 'ff_glocke', instancing: 'all', pos: [2.2, T, -14.9], path: [[1.6, T, -14.9], [2.6, T, -13.4]], color: 'blau' },
+    { kind: 'funkenflaemmchen', id: 'ff_hof1', instancing: 'all', pos: [-7, G, -18.3], path: [[-7, G, -18.3], [-2.4, G, -18.3]] },
+    { kind: 'funkenflaemmchen', id: 'ff_hof2', instancing: 'all', pos: [7, G, -18.3], path: [[7, G, -18.3], [2.4, G, -18.3]], phase: 0.4 },
+    { kind: 'funkenflaemmchen', id: 'ff_rechts', instancing: 'all', pos: [14.1, G, -7], path: [[14.1, G, -7], [14.1, G, -13]], color: 'blau' },
+    { kind: 'funkenflaemmchen', id: 'ff_vorn', instancing: 'all', pos: [10.6, G, 13.4], path: [[9.2, G, 13.4], [13.6, G, 13.4]] },
   ],
   stars: [
-    { pos: [10.6, U, 0.4], id: 'stern_ost' },                    // 1: Ostturm
-    { pos: [-10.6, U, 0.4], id: 'stern_west' },                  // 2: Westturm (drei Drehungen)
-    { pos: [-10.6, FLOOR, 11], id: 'stern_dose' },               // 3: Spieluhr-Dose (Drehtür)
-    { pos: [0, FLOOR, -17.4], id: 'stern_hof' },                 // 4: Uhrwerk-Hof – nur mit gedrehter Kamera
-    { pos: [-1.6, T, -14.2], id: 'stern_glocke' },               // 5: Glockenstube
+    { pos: [10.6, U, 0.4], id: 'stern_ost', instancing: 'all' },                    // 1: Ostturm
+    { pos: [-10.6, U, 0.4], id: 'stern_west', instancing: 'all' },                  // 2: Westturm (drei Drehungen)
+    { pos: [-10.6, FLOOR, 11], id: 'stern_dose', instancing: 'all' },               // 3: Spieluhr-Dose (Drehtür)
+    { pos: [0, FLOOR, -17.4], id: 'stern_hof', instancing: 'all' },                 // 4: Uhrwerk-Hof – nur mit gedrehter Kamera
+    { pos: [-1.6, T, -14.2], id: 'stern_glocke', instancing: 'all' },               // 5: Glockenstube
   ],
   marks: {
     start: [6, FLOOR, 17], treppe: [0, FLOOR, 17.2], sued: [0, U, 8.6], mitte: [0, U, 0], ost: [10.6, U, 0], west: [-10.6, U, 0],

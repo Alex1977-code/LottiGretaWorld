@@ -623,11 +623,10 @@ class Trittschalter extends CourseEntity {
 
   buildLook(spec) {
     const b = new Bld(), R = this.R;
-    b.cyl(R + 0.08, R + 0.12, 0.08, 0, 0, 0, litTop(0xc89a3a), 24);
+    // Messingring fest (statisch verschmolzen), nur die Platte ist ein eigenes Mesh
+    b.cyl(R + 0.08, R + 0.12, 0.08, this.pos.x, this.pos.y, this.pos.z, litTop(0xc89a3a), 24);
+    b.flush(this.level, { castShadow: false });
     const root = new THREE.Group();
-    const base = b.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.35 }));
-    base.receiveShadow = true;
-    root.add(base);
     const t = new Bld();
     t.cyl(R - 0.05, R - 0.02, 0.1, 0, 0, 0, litTop(spec.color ?? 0x3a9aff), 24);
     // Drehpfeil (Bogen mit Spitze) oben auf der Platte
@@ -637,7 +636,7 @@ class Trittschalter extends CourseEntity {
     topM.receiveShadow = true;
     this.top = topM;
     root.add(topM);
-    this.setModel({ root, update: () => {}, dispose() { base.geometry.dispose(); topM.geometry.dispose(); } });
+    this.setModel({ root, update: () => {}, dispose() { topM.geometry.dispose(); } });
   }
 
   update(dt) {
