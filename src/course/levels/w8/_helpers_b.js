@@ -15,7 +15,7 @@ import { MovingBox } from '../../blocks/w2kit.js';
 import { visDt, runAction } from '../../entities/gimmick.js';
 import { blockTemplate } from '../../entities/visuals.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { isl, line, ring, arc, column, Bld, litTop, gradY, glowPoints, onRespawn } from '../w5/_helpers_b.js';
+import { isl, line, ring, arc, column, Bld, litTop, gradY, glowPoints, glowField, onRespawn } from '../w5/_helpers_b.js';
 
 export { isl, line, ring, arc, column, Bld, litTop, gradY, glowPoints, onRespawn };
 
@@ -211,7 +211,19 @@ export function flutMauern(level, list) {
     const z0 = Math.max(m.zA, m.zB), z1 = Math.min(m.zA, m.zB), w = m.x1 - m.x0, d = z0 - z1, h = m.y1 - m.y0;
     const cx = (m.x0 + m.x1) / 2, cz = (z0 + z1) / 2;
     b.box(w, h, d, cx, m.y0, cz, litTop(FLUT.stone, 0.62), { r: 0.08 });
-    b.box(w + 0.12, 0.28, d + 0.12, cx, m.y1 - 0.2, cz, FLUT.moss, { r: 0.1 });
+    // Mauerkrone: heller Deckstein mit Goldband, darauf Moospolster, Korallen und Seesterne (statt einer Moosplatte)
+    b.box(w + 0.12, 0.28, d + 0.12, cx, m.y1 - 0.2, cz, litTop(FLUT.stoneHi, 0.66), { r: 0.1 });
+    b.box(w + 0.16, 0.07, d + 0.16, cx, m.y1 - 0.26, cz, FLUT.gold, { r: 0.02 });
+    {
+      const along = Math.max(w, d), nn = Math.max(1, Math.floor(along / 2.1)), alongX = w >= d;
+      for (let i = 0; i < nn; i++) {
+        const u = (i + 0.5) / nn, side = i % 2 ? 0.28 : -0.28;
+        const px = alongX ? m.x0 + w * u : cx + side * Math.min(w, 1.2), pz = alongX ? cz + side * Math.min(d, 1.2) : z0 - d * u;
+        b.sphere(0.42 + (i % 3) * 0.08, px, m.y1 + 0.06, pz, i % 3 ? FLUT.moss : FLUT.mossHi, { s: [1.25, 0.32, 1.0], ws: 7, hs: 4 });
+        if (i % 3 === 1) { b.cyl(0.05, 0.08, 0.36, px + 0.3, m.y1, pz - 0.2, FLUT.coral[i % 5], 5); b.sphere(0.12, px + 0.3, m.y1 + 0.38, pz - 0.2, FLUT.coral[i % 5], { ws: 6, hs: 4 }); }
+        if (i % 4 === 2) b.cone(0.2, 0.06, px - 0.3, m.y1 + 0.08, pz + 0.25, FLUT.coral[(i + 2) % 5], 5);
+      }
+    }
     level.world.add({ type: 'box', min: [m.x0, m.y0, z1], max: [m.x1, m.y1, z0], camIgnore: m.camIgnore ?? true, tag: 'flutmauer', ...(m.climbable ? { climbable: true } : {}) });
     if (!m.arches) continue;
     const along = m.arches === 'z' ? d : w;
@@ -570,14 +582,18 @@ export function baronZug(level, cars, opt = {}) {
     }
     if (kind === 'tank') {
       // offenes Becken: Wände 0,3 dick bis 3,4 (Wasser 1,4 … 3,1 legt das Level als Baustein water an)
-      const t = 0.3, top = 3.4;
+      // unten fest, ab 2,4 m blendet die Beckenwand aus, wenn sie die Figur verdeckt
+      const t = 0.3, top = 3.4, F = fb(c.id);
       for (const [x0, x1, za, zb] of [[-hw, -hw + t, z0, z1], [hw - t, hw, z0, z1], [-hw + t, hw - t, z0, z0 - t], [-hw + t, hw - t, z1 + t, z1]]) {
-        b.box(x1 - x0, top - 1.4, za - zb, (x0 + x1) / 2, 1.4, (za + zb) / 2, ZUGF.tank, { r: 0.05 });
-        b.box(x1 - x0 + 0.06, 0.1, za - zb + 0.06, (x0 + x1) / 2, top - 0.05, (za + zb) / 2, ZUGF.trim, { r: 0.03 });
+        b.box(x1 - x0, 1.0, za - zb, (x0 + x1) / 2, 1.4, (za + zb) / 2, ZUGF.tank, { r: 0.05 });
+        F.box(x1 - x0, top - 2.4, za - zb, (x0 + x1) / 2, 2.4, (za + zb) / 2, ZUGF.tank, { r: 0.05 });
+        F.box(x1 - x0 + 0.06, 0.1, za - zb + 0.06, (x0 + x1) / 2, top - 0.05, (za + zb) / 2, ZUGF.trim, { r: 0.03 });
         add(x0, x1, 1.4, top, za, zb);
       }
-      for (let i = 1; i < Math.floor(L / 3); i++) for (const sx of [-1, 1]) b.box(0.05, top - 1.5, 0.16, sx * (hw + 0.01), 1.45, z0 - i * 3, ZUGF.tankHi, { r: 0, seg: 0 });
-      for (const sx of [-1, 1]) emblem(b, sx * (hw + 0.01), 2.4, cz, sx);
+      for (let i = 1; i < Math.floor(L / 3); i++) for (const sx of [-1, 1]) { b.box(0.05, 0.95, 0.16, sx * (hw + 0.01), 1.45, z0 - i * 3, ZUGF.tankHi, { r: 0, seg: 0 }); F.box(0.05, top - 2.5, 0.16, sx * (hw + 0.01), 2.4, z0 - i * 3, ZUGF.tankHi, { r: 0, seg: 0 }); }
+      for (const sx of [-1, 1]) emblem(F, sx * (hw + 0.01), 2.75, cz, sx);
+      faders.push({ id: c.id, insideVis: 0.4, box: { x0: OX - hw + 0.25, x1: OX + hw - 0.25, y0: 1.2, y1: top + 0.3, z0: z1 + 0.25, z1: z0 - 0.25 },
+        occ: { x0: OX - hw - 0.1, x1: OX + hw + 0.1, y0: 2.4, y1: top + 0.1, z0: z1, z1: z0 } });
     }
     if (kind === 'salon') {
       // Doppelstock-Salon: Wände (0,2) bis 6,0, Dach 6,0 … 6,2 mit Luke; Türen hinten/vorn (x ±D, bis 4,0)
@@ -722,11 +738,13 @@ export function baronZug(level, cars, opt = {}) {
     for (let k = 0; k < 4; k++) b.box(2.5, 0.02, 0.05, 0, 1.4, gz0 - (k + 0.5) * (gz0 - gz1) / 4, 0x5a5e72, { r: 0, seg: 0 });
     add(-1.6, 1.6, 1.2, 1.4, gz0 + 0.15, gz1 - 0.15);
   }
-  b.flush(level, { castShadow: true });
-  g.flush(level, { material: 'glow', castShadow: false });
+  if (opt.near) { opt.near.put(b); opt.near.put(g, 'glow'); } else {
+    b.flush(level, { castShadow: true });
+    g.flush(level, { material: 'glow', castShadow: false });
+  }
   // Ausblend-Teile aller Wagen in einem Mesh: je Wagen blendet der Aufbau gerastert aus (Bayer-Muster, deckendes Zeichnen
   // ohne Sortierprobleme), solange die Figur darin ist (Ausschnitt) oder der Wagen zwischen Kamera und Figur steht
-  if (level.view && faders.length) aufbauMesh(level, faders, fade, opt.name ?? 'zug-aufbau');
+  if (level.view && faders.length) aufbauMesh(level, faders, fade, opt.name ?? 'zug-aufbau', opt.near?.group);
   return { wheels, faders };
 }
 
@@ -737,7 +755,7 @@ const BAYER = '0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.';
 const _zr = new THREE.Ray(), _zh = new THREE.Vector3(), _zp = new THREE.Vector3();
 
 /** Ein Mesh für die Ausblend-Teile aller Wagen (Attribut aCar je Wagen, Uniform uFade[N] = sichtbarer Anteil 0..1). */
-function aufbauMesh(level, faders, fade, name) {
+function aufbauMesh(level, faders, fade, name, parent = null) {
   const geos = [], used = [];
   faders.forEach((f) => {
     const geo = fade.get(f.id)?.geometry();
@@ -771,7 +789,7 @@ function aufbauMesh(level, faders, fade, name) {
   mesh.name = name;
   mesh.castShadow = true; mesh.receiveShadow = true;
   mesh.userData.owned = true;
-  level.view.add(mesh);
+  if (parent) parent.add(mesh); else level.view.add(mesh);
   for (const f of used) {
     f.vis = 1;
     if (f.occ) f.occBox = new THREE.Box3(new THREE.Vector3(f.occ.x0, f.occ.y0, f.occ.z0), new THREE.Vector3(f.occ.x1, f.occ.y1, f.occ.z1));
@@ -791,7 +809,7 @@ function aufbauMesh(level, faders, fade, name) {
     for (const f of used) {
       const inside = !!p && imWagen(f, p);
       const blocks = ray && !inside && f.occBox && !f.occBox.containsPoint(_zh) && !!_zr.intersectBox(f.occBox, _zp) && _zp.distanceTo(cam) < len - 0.3;
-      const want = inside ? 0.1 : blocks ? 0.35 : 1;
+      const want = inside ? f.insideVis ?? 0.1 : blocks ? 0.35 : 1;
       f.vis += clamp(want - f.vis, -step, step);
       uFade.value[f.slot] = f.vis;
     }
@@ -984,6 +1002,8 @@ export function fahrtIllusion(level, cfg) {
   const glow = glowPoints(level, lamps.map((q) => [q.x, 2.8, q.z0, 2.6]), { color: 0xffc86a, opacity: 0.75 });
   const m4 = new THREE.Matrix4(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), qt = new THREE.Quaternion(), q0 = new THREE.Quaternion();
   const wrap = (z) => zMin + ((((z - zMin) % len) + len) % len);
+  // Laternen/Fahnen in diesen z-Bereichen (z. B. unter einem breiten Bühnenwagen) nicht zeigen
+  const hidden = (z) => (cfg.lampHide ?? []).some(([a, b]) => z <= Math.max(a, b) && z >= Math.min(a, b));
   // ---- Räder (alle Wagen eine Instanz-Gruppe), Dampf
   const wl = cfg.wheels ?? [];
   const wheelGeo = new THREE.CylinderGeometry(1, 1, 0.16, 14).toNonIndexed(); wheelGeo.rotateZ(Math.PI / 2);
@@ -1009,13 +1029,13 @@ export function fahrtIllusion(level, cfg) {
     tal.offset.y = S / 90;
     lamps.forEach((q, i) => {
       const z = wrap(q.z0 + S);
-      ps.set(q.x, 0, z); sc.set(1, 1, 1); m4.compose(ps, q0, sc);
+      ps.set(q.x, hidden(z) ? -60 : 0, z); sc.set(1, 1, 1); m4.compose(ps, q0, sc);
       poles.setMatrixAt(i, m4); heads.setMatrixAt(i, m4);
-      if (glow) { const k = (glow.i0 + i) * 3; glow.field.pos[k] = q.x; glow.field.pos[k + 1] = 2.8; glow.field.pos[k + 2] = z; }
+      if (glow) { const k = (glow.i0 + i) * 3; glow.field.pos[k] = q.x; glow.field.pos[k + 1] = hidden(z) ? -999 : 2.8; glow.field.pos[k + 2] = z; }
     });
     flags.forEach((q, i) => {
       const z = wrap(q.z0 + S);
-      ps.set(q.x, 0, z); sc.set(1, 1, 1); m4.compose(ps, q0, sc);
+      ps.set(q.x, hidden(z) ? -60 : 0, z); sc.set(1, 1, 1); m4.compose(ps, q0, sc);
       poles.setMatrixAt(lamps.length + i, m4);
       qt.setFromAxisAngle(_Y, Math.sin(vis * 7 + q.z0) * 0.15 * Math.sign(q.x)); m4.compose(ps, qt, sc);
       flagM.setMatrixAt(i, m4);
@@ -1207,7 +1227,7 @@ export function wagenreihe(list, z0 = 0, gap = 0.6) {
  * Feste Kisten, Koffer, Möbel mit Kollision (Kamera darf hindurch): list = [{ pos: [x, y, z] (Mitte unten), size: [w, h, d],
  * kind: 'kiste'|'koffer'|'fass'|'sofa'|'klavier'|'sack', color, solid }].
  */
-export function moebel(level, list) {
+export function moebel(level, list, near = null) {
   const b = new Bld();
   for (const m of list) {
     const [x, y, z] = m.pos, [w, h, d] = m.size ?? [1, 1, 1];
@@ -1242,7 +1262,7 @@ export function moebel(level, list) {
       b.cyl(0.08, 0.12, 0.25, x, y + h * 0.82, z, 0x8a6a4a, 6);
     }
   }
-  b.flush(level, { castShadow: true });
+  if (near) near.put(b); else b.flush(level, { castShadow: true });
 }
 
 /**
@@ -1267,7 +1287,7 @@ export function glasKuppel(level, dome) {
 }
 
 /** Wimpelketten: list = [{ a: [x, y, z], b: [x, y, z], n, sag: 0.4 }] – bunte Dreiecke an einer Schnur (statisch). */
-export function wimpel(level, list) {
+export function wimpel(level, list, near = null) {
   const b = new Bld();
   const cols = [0xe83a5a, 0xffc83a, 0x4ab8ff, 0x8a5ae8, 0x5ad86a, 0xff8a3a];
   let k = 0;
@@ -1282,7 +1302,7 @@ export function wimpel(level, list) {
       b.cone(0.17, 0.42, (x + x2) / 2, (y + y2) / 2 - 0.44, (z + z2) / 2, cols[k++ % cols.length], 3, { rx: Math.PI, yaw: yaw + Math.PI / 2 });
     }
   }
-  b.flush(level, { castShadow: false });
+  if (near) near.put(b, 'world', false); else b.flush(level, { castShadow: false });
 }
 
 /**
@@ -1290,7 +1310,7 @@ export function wimpel(level, list) {
  * masten und Wimpelketten; Kollision: Boden (cyl), Ring aus Stäben bis y + 5 (camIgnore), Decke y + 6,4. Fahrgestell darunter.
  * Rückgabe { wheels } (für die Fahrt-Illusion).
  */
-export function buehne(level, { x, y, z, r }) {
+export function buehne(level, { x, y, z, r, near = null }) {
   level.world.add({ type: 'cyl', x, z, r: r + 0.5, y0: y - 0.6, y1: y, tag: 'buehne' });
   const N = Math.ceil((TAU * r) / 0.9);
   for (let i = 0; i < N; i++) {
@@ -1328,9 +1348,11 @@ export function buehne(level, { x, y, z, r }) {
     for (let k = 1; k <= 4; k++) g.sphere(0.11, mx + Math.sin(a) * 0.1, y + k * 1.0, mz + Math.cos(a) * 0.1, k % 2 ? 0xffe08a : 0xff8ac8);
     masts.push([mx, y + 4.5, mz]);
   }
-  b.flush(level, { castShadow: true });
-  g.flush(level, { material: 'glow', castShadow: false });
-  wimpel(level, masts.map((m, i) => ({ a: m, b: masts[(i + 1) % masts.length], sag: 0.6 })));
+  if (near) { near.put(b); near.put(g, 'glow'); } else {
+    b.flush(level, { castShadow: true });
+    g.flush(level, { material: 'glow', castShadow: false });
+  }
+  wimpel(level, masts.map((m, i) => ({ a: m, b: masts[(i + 1) % masts.length], sag: 0.6 })), near);
   glowPoints(level, masts.map((m) => [m[0], m[1] - 1.5, m[2], 1.6]), { color: 0xffc8a0, opacity: 0.4, pulse: 0.6 });
   return { wheels };
 }
@@ -1373,4 +1395,74 @@ export function roehrenDeckel(level, pipeId, deckelId, o = {}) {
     lid.rotation.z = -t * 3;
   });
   return handle;
+}
+
+/**
+ * Feuerwerk am Abendhimmel (nur Darstellung, im gemeinsamen Leuchtfeld – 0 zusätzliche Zeichenaufrufe): slots Raketen steigen
+ * abwechselnd seitlich vor der Figur auf und zerplatzen in sparks Funken (je Rakete eine Farbe), die auseinanderfliegen,
+ * sinken und verglühen. o = { slots: 5, sparks: 20, size: 3.2, colors }.
+ */
+export function feuerwerk(level, o = {}) {
+  const field = glowField(level);
+  if (!field) return;
+  const K = o.slots ?? 5, per = o.sparks ?? 20, RISE = 1.0, BURST = 1.8;
+  const cols = o.colors ?? [0xff6a9a, 0xffd84a, 0x6ad8ff, 0xb48aff, 0x7aff9a];
+  let seed = 11;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let k = 0; k < K; k++) {
+    const st = { t: -0.4 - k * 1.1, x: 0, y: 30, z: -60, dirs: [] };
+    const aim = () => {
+      const p = level.player?.pos ?? { x: 0, z: 0 };
+      st.x = p.x + (rnd() < 0.5 ? -1 : 1) * (16 + rnd() * 46);
+      st.z = p.z - 30 - rnd() * 70;
+      st.y = 20 + rnd() * 16;
+    };
+    aim();
+    for (let i = 0; i < per; i++) {
+      const a = rnd() * TAU, e = (rnd() - 0.35) * 1.4;
+      st.dirs.push([Math.cos(a) * Math.cos(e), Math.sin(e), Math.sin(a) * Math.cos(e)]);
+    }
+    const d = field.alloc(per + 1, { color: cols[k % cols.length], size: o.size ?? 3.2, opacity: 0.95 }, (dt) => {
+      st.t += Math.min(0.1, dt || 0);
+      if (st.t < 0) { for (let i = 0; i <= per; i++) d.hide(i); return; }
+      if (st.t >= RISE + BURST) { st.t = -(0.8 + rnd() * 2.4); aim(); for (let i = 0; i <= per; i++) d.hide(i); return; }
+      if (st.t < RISE) {
+        const u = st.t / RISE;
+        d.set(0, st.x, -14 + (st.y + 14) * (1 - (1 - u) * (1 - u)), st.z);
+        for (let i = 1; i <= per; i++) d.hide(i);
+        return;
+      }
+      d.hide(0);
+      const u = (st.t - RISE) / BURST, r = 8 * (1 - Math.pow(1 - u, 2.4)), fall = 5 * u * u;
+      for (let i = 0; i < per; i++) {
+        if (u > 0.7 + (i % 4) * 0.08) { d.hide(i + 1); continue; }
+        const q = st.dirs[i];
+        d.set(i + 1, st.x + q[0] * r, st.y + q[1] * r - fall, st.z + q[2] * r);
+      }
+    });
+  }
+}
+
+/**
+ * Gruppe für einen weit voraus liegenden Bereich (z. B. die Arena 250 m vor dem Zug): wird nur gezeichnet, solange die Figur
+ * näher als r m (in z) ist – statt im statischen Verschmelzen, das nach Entfernung nicht ausblendet. put(bld, 'world'|'glow',
+ * castShadow) legt die Geometrie eines Sammlers als eigenes Mesh hinein.
+ */
+export function nahGruppe(level, z0, r) {
+  if (!level.view) return null;
+  const group = new THREE.Group();
+  group.name = 'nahgruppe';
+  level.view.add(group);
+  level.view.onFrame(() => { const p = level.player; group.visible = !p || Math.abs(p.pos.z - z0) < r; });
+  const put = (bld, mat = 'world', cast = true) => {
+    const geo = bld.geometry();
+    if (!geo) return null;
+    const m = new THREE.Mesh(geo, mat === 'glow' ? level.view.mats.glow : level.view.mats.world);
+    m.castShadow = cast && mat !== 'glow';
+    m.receiveShadow = mat !== 'glow';
+    m.userData.owned = true;
+    group.add(m);
+    return m;
+  };
+  return { group, put };
 }

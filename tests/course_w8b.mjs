@@ -110,7 +110,7 @@ const ZG = (() => {
     ['salon', 18], ['f5', 6], ['gepaeck', 12], ['f6', 10], ['tender', 6.5], ['lok', 8.6]]) { o[id] = { z0: z, z1: z - len, cz: z - len / 2 }; z -= len + 0.6; }
   return o;
 })();
-const ZD = 1.4, ZR = 3.75, ZGD = 4.4, BX = 120, BY = 1.6, BZ = -150, BR = 9.2;
+const ZD = 1.4, ZR = 3.75, ZGD = 4.4, BX = 0, BY = 1.6, BZ = -400, BR = 9.2;
 const HZ8 = ZG.salon.z0 - 11, LZ8 = ZG.gepaeck.z0 - 1.8, PZ8 = ZG.f6.z1 + 1.6;
 ROUTES['8-Zug'] = {
   start: [3.6, 1.4, -1.0],
@@ -150,7 +150,7 @@ ROUTES['8-Zug'] = {
     { name: 'Drehbühne', to: [BX, BZ + 3], within: 0.6, run: false },
     { name: 'Schattenläuferin 2', boss: 'schatten', center: [BX, BZ + 2] },
     { name: 'Warp-Box zum Zielwagen', warp: [BX, BZ] }, { expect: 'zielwagen' },
-    { name: 'Zielmast', to: [BX, -167.2], within: 0.2 },
+    { name: 'Zielmast', to: [BX, BZ - BR - 1.6 - 6.4], within: 0.2 },
   ],
   routeChecks: [
     { name: 'Stern 1 auf dem Dach eingesammelt, Bossröhre benutzt, Schattenläuferin mit drei Sprüngen aufs Original besiegt, Warp-Box zum Zielwagen',
@@ -216,8 +216,9 @@ ROUTES['8-Zug'] = {
     ['gang', [0, ZD, LZ8 - 2]],
     ['roehre', [0, ZD, ZG.f6.z0 - 2]],
     ['lok', [0, 3.0, ZG.tender.cz]],
-    ['buehne', [BX, BY, BZ + BR - 3]],
-    ['ziel', [BX, ZD, -163]],
+    ['buehne', [BX + 1.6, BY, BZ + BR - 2.4]],
+    ['kampf', [BX, BY, BZ + 3.5], 420],
+    ['ziel', [BX, ZD, BZ - BR - 3]],
   ],
 };
 
@@ -351,8 +352,8 @@ function install() {
     abfahrt: () => !!L.scroll && L.scroll.state !== 'wait',
     halt: () => !!L.scroll && L.scroll.state === 'done',
     aufDach: () => P().pos.y > 3.6 && P().mode === 'ground',
-    buehne: () => P().pos.x > 105 && P().pos.x < 135 && P().pos.y > 1.2,
-    zielwagen: () => P().pos.x > 115 && P().pos.z < -160 && P().pos.y > 1.2,
+    buehne: () => P().pos.z < -385 && P().pos.z > -412 && P().pos.y > 1.2,
+    zielwagen: () => P().pos.z < -410 && P().pos.z > -424 && P().pos.y > 1.2,
     gang: () => P().pos.y < 2.2 && P().pos.y > 1.2 && P().pos.z < -133.4 && P().pos.z > -145,
     lukeZu: () => { const h = L.named.get('hebeblock'); return !!h && !h.lukeOpen; },
     deckelZu: () => { const h = L.named.get('deckel'); return !!h && !h.open; },
@@ -928,7 +929,7 @@ for (const id of LEVELS) {
     let worst = { calls: 0, tris: 0, at: null, atT: null };
     const per = [];
     for (const pt of sweepTrack) {
-      await W('place', pt, { settle: 6, ...(R.shotWin ? { win: pt[0] > 50 ? 1e9 : 'auto' } : {}) });
+      await W('place', pt, { settle: 6, ...(R.shotWin ? { win: pt[2] < -300 ? 1e9 : 'auto' } : {}) });
       const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
       await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
       const st = await sc(() => window.__course.stats());
@@ -986,7 +987,7 @@ for (const id of LEVELS) {
   await load(id);
   for (const [name, pos, steps = 0, input = null, yaw = Math.PI / 2] of R.shots ?? []) {
     if (SHOTS && !SHOTS.has(name)) continue;
-    await W('place', pos, { settle: 10, yaw, ...(R.shotWin && name !== 'start' ? { win: pos[0] > 50 ? 1e9 : 'auto' } : {}) });
+    await W('place', pos, { settle: 10, yaw, ...(R.shotWin && name !== 'start' ? { win: pos[2] < -300 ? 1e9 : 'auto' } : {}) });
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
   }

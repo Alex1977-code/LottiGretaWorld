@@ -2,8 +2,8 @@
 // Baron Brummbärs Express unter Dampf – violette Wagen mit Goldkante, die rote Lok mit Bärengesicht und Monokel. Wer auf den
 // Aussichtswagen steigt, fährt ab: der Zug braust im Abendrot über ein Viadukt durchs Rummeltal, das Bildfenster gleitet dabei
 // über die Wagen nach vorn. Hackvögel und Schubser auf Güterwagen, offene Wasserbecken mit Wutkaulquappen, der Salonwagen
-// voller Mini-Pilzlinge, ein Hammer-Werfer vor der Bossröhre – und auf der Drehbühne des Parallelzugs wartet die
-// Schattenläuferin zum zweiten Kampf. Nach dem Sieg trägt die Warp-Box zum Zielwagen.
+// voller Mini-Pilzlinge, ein Hammer-Werfer vor der Bossröhre – und auf der Drehbühne des vorausfahrenden Bühnenzugs wartet
+// die Schattenläuferin zum zweiten Kampf. Nach dem Sieg trägt die Warp-Box zum Zielwagen.
 //
 // Fahrt-Illusion (Entscheidung wie die Laufband-Illusion der Bossstraße): Der Zug steht in Weltkoordinaten still, Gleisbett,
 // Viadukt, Talboden, Laternen, Fahnen, Bäume und der Startbahnhof ziehen mit dem Fahrweg S(t) vorbei (Uhr = Fahrt-Uhr des
@@ -17,19 +17,20 @@
 //                                 Deckenluke in die Glaskuppel (Stempel)
 //   5 Gepäckwagen, Röhre (30 m)   übers Dach (Kistentreppe) – oder durch die goldene Luke in den Gang mit dem Feuer-Werfer
 //                                 (Stern 3); der Hammer-Werfer bewacht die Bossröhre, deren Deckel erst beim Halt aufspringt
-//   6 Drehbühne (Arena 25 m)      Schattenläuferin 2 auf dem Bühnenwagen des Parallelzugs, danach Warp-Box zum Zielwagen
+//   6 Drehbühne (Arena 25 m)      Schattenläuferin 2 auf dem Bühnenwagen des vorausfahrenden Zugs (z −400), danach Warp-Box
+//                                 zum Zielwagen
 // Geheimnisse: Hebeblock (Stempel), Gang im Gepäckwagen (Stern 3), unsichtbarer Block über dem Tender (Extraleben, nach dem
 // Halt), Münzspuren unter Wasser.
 
 import {
   abendExpressThema, baronZug, fahrweg, fahrtIllusion, bahnhofOptik, hebeblock, wagenreihe, moebel, glasKuppel, wimpel,
-  buehne, roehrenDeckel, line, arc, ring, glowPoints, ZUGF,
+  buehne, roehrenDeckel, feuerwerk, nahGruppe, line, arc, ring, glowPoints, Bld, TAU, ZUGF,
 } from './_helpers_b.js';
 
 const D = 1.4;              // Deck
 const R = 3.75;             // Dach der Güterwagen
 const G = 4.4;              // Dach des Gepäckwagens
-const AX = 120, AY = 1.6, AZ = -150, AR = 9.2;   // Drehbühne des Parallelzugs
+const AX = 0, AY = 1.6, AZ = -400, AR = 9.2;     // Drehbühne des vorausfahrenden Bühnenzugs (gleiches Gleis, weit voraus)
 
 // ---------------------------------------------------------------------- Wagen
 const ZUG = wagenreihe([
@@ -145,6 +146,7 @@ export const LEVEL = {
   start: { pos: [3.6, BAHNSTEIG.top, -1.0], yaw: Math.PI },
   // Gegner und Münzen weit voraus (außerhalb des Bildfensters) nicht zeichnen bzw. ohne Sonnenschatten (Budget)
   instances: {
+    schattenlaeuferin: { farHide: 120 }, goal: { farHide: 120 }, warpbox: { farHide: 120 },
     coin: { farHide: 34, shadow: false }, hackvogel: { farHide: 28, shadowDist: 14 }, schubser: { farHide: 28, shadowDist: 14 },
     wutkaulquappe: { farHide: 24, shadow: false }, pilzling: { farHide: 24, shadowDist: 12 }, feuer_werfer: { farHide: 26, shadowDist: 14 },
     star: { farHide: 40 }, starring: { farHide: 30 }, checkpoint: { farHide: 30 },
@@ -162,8 +164,8 @@ export const LEVEL = {
     startBanner: 'Einsteigen bitte!', endBanner: 'Halt: Bühnenwagen!',
   },
   camera: [
-    { from: 40, to: -230, pitch: 21, dist: 14.5, yaw: 30, fov: 46, height: 1.3, area: [-40, 40] },
-    { from: AZ + 30, to: AZ - 50, pitch: 44, dist: 17, x: AX, xLock: 0.3, ahead: 1.0, lead: 0.5, area: [80, 170] },
+    { from: 40, to: -240, pitch: 21, dist: 14.5, yaw: 30, fov: 46, height: 1.3, area: [-40, 40] },
+    { from: AZ + 40, to: AZ - 50, pitch: 44, dist: 17, x: AX, xLock: 0.3, ahead: 1.0, lead: 0.5, area: [-40, 40] },
   ],
   boss: {
     id: 'schatten', name: 'Schattenläuferin', speed: 0,
@@ -207,23 +209,25 @@ export const LEVEL = {
 
 // ---------------------------------------------------------------------- Aufbau
 function build(level) {
+  // Bühnenzug weit voraus: eigene Gruppe, nur in der Nähe gezeichnet (Budget an Zeichenaufrufen)
+  const near = nahGruppe(level, AZ, 190);
   const a = baronZug(level, ZUG.list);
-  const b = baronZug(level, ZUG2.list, { x: AX });
-  const c = baronZug(level, ZUG3.list, { x: AX });
-  const bu = buehne(level, { x: AX, y: AY, z: AZ, r: AR });
+  const b = baronZug(level, ZUG2.list, { x: AX, near, name: 'buehnenzug-aufbau' });
+  const c = baronZug(level, ZUG3.list, { x: AX, near, name: 'buehnenzug-aufbau2' });
+  const bu = buehne(level, { x: AX, y: AY, z: AZ, r: AR, near });
   // Hebeblock unter der Deckenluke des Salons; Glaskuppel darüber
   hebeblock(level, { id: 'hebeblock', pos: [0, 3.2, HZ], rise: 2.0, speed: 1.6, hold: 3.2, content: 'coins:3', luke: { a: 2.0, y: 6.0, t: 0.2 } });
   glasKuppel(level, M.salon.dome);
   roehrenDeckel(level, 'p_boss', 'deckel');
   // Fahrt-Illusion: Landschaft, Laternen, Räder, Dampf, Startbahnhof
   fahrtIllusion(level, {
-    weg: fahrweg(9, 3), band: [-430, 80], gleise: [0, AX], lampGleise: [0], talY: -16,
+    weg: fahrweg(9, 3), band: [-480, 80], talY: -16, lampHide: [[BUEHNE_Z0 + 18, ZUG3.byId.b_lok.z1 - 2]],
     props: [
-      { kind: 'baum', bands: [[-110, -9, 40], [9, AX - 9, 48], [AX + 9, AX + 90, 24]] },
-      { kind: 'laubbaum', bands: [[-90, -12, 22], [12, AX - 12, 26], [AX + 12, AX + 70, 12]] },
-      { kind: 'haus', bands: [[-80, -14, 14], [14, AX - 14, 18], [AX + 14, AX + 70, 8]] },
-      { kind: 'zelt', bands: [[-70, -16, 7], [16, AX - 16, 9], [AX + 16, AX + 60, 4]] },
-      { kind: 'ballon', y: 3, bands: [[-70, -14, 5], [14, AX - 14, 7], [AX + 14, AX + 60, 3]] },
+      { kind: 'baum', bands: [[-110, -9, 48], [9, 110, 48]] },
+      { kind: 'laubbaum', bands: [[-90, -12, 26], [12, 90, 26]] },
+      { kind: 'haus', bands: [[-80, -14, 17], [14, 80, 17]] },
+      { kind: 'zelt', bands: [[-70, -16, 8], [16, 70, 8]] },
+      { kind: 'ballon', y: 3, bands: [[-70, -14, 6], [14, 70, 6]] },
     ],
     wheels: [...a.wheels, ...b.wheels, ...c.wheels, ...bu.wheels],
     chimneys: [M.lok.chimney, ZUG3.byId.b_lok.chimney],
@@ -263,19 +267,36 @@ function build(level) {
     // f6: Fässer neben der Röhre
     { kind: 'fass', pos: [-1.15, D, M.f6.z0 - 1.2], size: [0.7, 0.9, 0.7] },
     { kind: 'fass', pos: [1.15, D, PZ], size: [0.7, 0.9, 0.7], color: 0x3a8a5a },
-    // Zielwagen: Geschenkkisten
+  ]);
+  // Zielwagen: Geschenkkisten und Wimpel (in der Nah-Gruppe)
+  moebel(level, [
     { kind: 'kiste', pos: [AX - 1.0, D, ZW.z1 + 1.2], size: [0.9, 0.9, 0.9], color: 0xe85a8a },
     { kind: 'kiste', pos: [AX + 1.0, D, ZW.z1 + 1.2], size: [0.9, 0.9, 0.9], color: 0x5ab4e8 },
-  ]);
+  ], near);
+  wimpel(level, [{ a: [AX - 1.6, 4.6, ZW.z0 - 0.5], b: [AX + 1.6, 4.6, ZW.z0 - 0.5], sag: 0.3 }], near);
   // Wimpelketten über den Gitterwagen und dem Zielwagen, Lampions am Salon
   wimpel(level, [
     { a: [-1.6, R + 0.2, M.k2.z1 + 0.1], b: [-1.6, R + 0.2, M.k3.z0 - 0.1], sag: 0.9 },
     { a: [1.6, R + 0.2, M.k2.z1 + 0.1], b: [1.6, R + 0.2, M.k3.z0 - 0.1], sag: 0.9 },
     { a: [-1.6, R + 0.2, M.k3.z1 + 0.1], b: [-1.6, 3.4, M.t1.z0 - 0.1], sag: 0.9 },
     { a: [1.6, R + 0.2, M.k3.z1 + 0.1], b: [1.6, 3.4, M.t1.z0 - 0.1], sag: 0.9 },
-    { a: [AX - 1.6, 4.6, ZW.z0 - 0.5], b: [AX + 1.6, 4.6, ZW.z0 - 0.5], sag: 0.3 },
   ]);
   glowPoints(level, [[0, 5.2, M.salon.z0 - 5.0, 2.2], [0, 5.2, M.salon.z1 + 4.0, 2.2]], { color: 0xffd8a0, opacity: 0.6, pulse: 0.3 });
+  // Kronleuchter im Salon (goldener Reif mit Kerzen)
+  const kb = new Bld(), kg = new Bld();
+  for (const z of [M.salon.z0 - 5.0, M.salon.z1 + 4.0]) {
+    kb.cyl(0.02, 0.02, 0.85, 0, 5.15, z, ZUGF.trim, 4);
+    kb.torus(0.55, 0.05, 0, 5.15, z, ZUGF.trim, { rx: Math.PI / 2, rs: 4, ts: 18 });
+    kb.sphere(0.16, 0, 4.98, z, ZUGF.trim, { ws: 8, hs: 6 });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU, x = Math.cos(a) * 0.55, dz = Math.sin(a) * 0.55;
+      kb.cyl(0.035, 0.035, 0.16, x, 5.15, z + dz, ZUGF.cream, 5);
+      kg.sphere(0.065, x, 5.37, z + dz, 0xffe08a, { ws: 5, hs: 3 });
+    }
+  }
+  kb.flush(level, { castShadow: false });
+  kg.flush(level, { material: 'glow', castShadow: false });
+  // Feuerwerk über dem Rummeltal
+  feuerwerk(level, { slots: 5, sparks: 22 });
   level._zugWheels = a.wheels.length + b.wheels.length + c.wheels.length + bu.wheels.length;
-  void ZUGF;
 }
