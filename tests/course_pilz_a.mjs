@@ -199,10 +199,43 @@ ROUTES['P-2'] = {
     { name: 'Zielmast', to: [0, -211.9], within: 0.2 },
   ],
   routeChecks: [
-    { name: 'alle fünf Schlüsselmünzen, drei Glockenbäume geklettert, Warp-Box geöffnet', ok: (r) => r.mech.climbs === 3 && r.mech.warps === 1 },
+    { name: 'alle fünf Schlüsselmünzen, drei Glockenbäume geklettert (Glocken geläutet), Warp-Box geöffnet', ok: (r) => r.mech.climbs === 3 && r.mech.warps === 1 && r.mech.bells?.every((n) => n >= 1) },
+    { name: 'an den Ranken Stachelringe abgewartet (eingefahren vorbei)', ok: (r) => r.mech.ringWaits > 0 && !r.mech.hurtList.some((h) => h.startsWith('stachelring')) },
   ],
-  targets: [],
-  extra: [],
+  targets: [
+    { name: 'Stern 0: dritte Ranke ganz hinauf (Stachelringe abwarten), hinter der Spitze abspringen', star: 0, from: [2.5, 25, -169.4],
+      legs: [{ stalk: [2.5, -171.05] }, { climbStalk: true }, { jumpOff: [2.5, -172.6], hold: 40 }, { wait: 30 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht vom Rankenplateau aus (Sprung zu niedrig)', star: 0, expectNot: true, from: [2.5, YP2, -172.4], heroes: ['lotti'],
+      legs: [{ hop: 40 }, { wait: 20 }] },
+    { name: 'Stern 1: hinter Stern 0 die Ziegel der Nische zerkratzen (Krallen-Anzug), Röhre → P-Schalter-Raum, alle blauen Münzen', star: 1, from: [2.5, YP2, -175.4], place: { power: 'krallen' },
+      legs: [{ to: [2.5, -176.5], within: 0.2, run: false }, { swipe: [0, -1], n: 2 }, { expect: '=!L.entities.some((e) => e.kind === \'brick\' && e.alive && Math.abs(e.pos.x - 2.5) < 0.1 && Math.abs(e.pos.y - 30) < 0.1 && Math.abs(e.pos.z + 177.7) < 0.1)' },
+        { to: [2.5, -178.1], within: 0.25, run: false }, { to: [2.5, -179.2], jump: 20, within: 0.2, run: false }, { wait: 10 }, { crouch: 6 }, { until: '=P().pos.x > 55 && P().mode === \'ground\'', max: 900 },
+        { to: [68.4, -66.2], within: 0.3, run: false }, { to: [70, -67], jump: 24, within: 0.3, run: false }, { wait: 10 },
+        { to: [70, -63.1], within: 0.35 }, { to: [70, -61.8], jump: 24, within: 0.4, run: false },
+        { to: [73.5, -61], within: 0.4 }, { to: [74, -63.9], within: 0.3 }, { to: [74, -66], jump: 24, within: 0.4, run: false },
+        { to: [76.5, -70], within: 0.4 }, { to: [71.9, -74.2], within: 0.3 }, { to: [70, -75.5], jump: 24, within: 0.4, run: false },
+        { to: [67.9, -74], within: 0.3 }, { to: [66, -72], jump: 24, within: 0.4, run: false },
+        { to: [63.5, -66], within: 0.4 }, { to: [66, -63.5], within: 0.4 }, { star: 1 }], shot: 'stern1' },
+    { name: 'Stern 2: letzte Ranke hinauf, auf die Wolke, über ihr springen', star: 2, from: [-10.5, YG2, -195.4],
+      legs: [{ stalk: [-10.5, -193.6] }, { climbStalk: true }, { jumpOff: [-12, -194.6] }, { hop: 40 }, { star: 2 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht vom Glockenplatz aus (ohne Ranke)', star: 2, expectNot: true, from: [-12, YG2, -195.4], heroes: ['lotti'],
+      legs: [{ to: [-12, -194.6], within: 0.2, run: false }, { hop: 40 }, { wait: 30 }] },
+  ],
+  extra: [
+    { name: 'Geheimnis: ohne Tatzenhieb versperren die Ziegel die Röhre (die Figur kommt nicht in die Nische)', from: [2.5, YP2, -175.4], heroes: ['lotti'],
+      legs: [{ to: [2.5, -179.2], within: 0.2, run: false, max: 300, autoJump: false }, { crouch: 6 }, { wait: 30 }], allowFail: true,
+      mech: (r) => r.pos[0] < 10 && r.pos[2] > -178.3, mechText: (r) => `z ${r.pos[2].toFixed(1)}` },
+    { name: 'Schlüsselmünze 3 nicht ohne die unsichtbaren Blöcke (Sprung vom Boden aufs Nischendach zu hoch)', from: [-8.5, 17, -145.6], heroes: ['lotti', 'greta'],
+      legs: [{ to: [-8.5, -148.4], jump: 40, within: 0.3, max: 240, land: false }, { wait: 60 }], mech: (r) => r.keys === 0 && r.pos[1] < 18, mechText: (r) => `Schlüssel ${r.keys}, y ${r.pos[1].toFixed(1)}` },
+    { name: 'Ziel-Warp-Box bleibt mit vier Schlüsseln zu (Ansage), mit dem fünften springt das Schloss auf', from: [1.6, YG2, -199.6], heroes: ['lotti'], probe: 'box' },
+    { name: 'Glockenbaum ohne Krallen-Anzug: nur Wandrutschen, die Figur landet auf dem Wurzelboden', from: [-3.5, YP2, -180.1], heroes: ['lotti'],
+      legs: [{ climb: [-3.5, -184.2], top: YP2 + 4.5, jumpAt: 4.4 }, { wait: 60 }], allowFail: true, mech: (r) => r.pos[1] < YW2 + 0.5 && r.pos[1] > YW2 - 0.5, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
+    { name: 'Stachelring: wer ohne Abwarten an ihm vorbeiklettert, wird getroffen', from: [-3, 9, -77.8], heroes: ['lotti'], invuln: false, allowFail: true, expectAlive: true,
+      legs: [{ stalk: [-3, -80.45] }, { until: '=ent(\'ring_fels\').state === \'warn\'', max: 900 }, { climbStalk: true, noWait: true, max: 240 }, { wait: 60 }],
+      mech: (r) => r.mech.hurts >= 1 && r.ring?.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}`, named: 'ring_fels' },
+    { name: 'Stachelkugler rollen den POW-Hang hinab', from: [7, 3, -50], heroes: ['lotti'], probe: 'kuglerHang' },
+    { name: 'Walzenwerfer oben am POW-Hang wirft Stachelwalzen', from: [-2, 9, -74], heroes: ['lotti'], probe: 'werfer' },
+  ],
   shots: [
     ['start', [0, 0, 6]],
     ['hang', [3, 3, -50]],
@@ -555,7 +588,7 @@ function install() {
           let k = 0;
           for (; k < (Lg.max ?? 400) && p.mode !== 'stalk' && !p.dead; k++) {
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
-            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 5) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2)))), run: false, jump: !!Lg.jump && p.mode === 'ground' && d < 1.4 });
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 5) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2)))), run: false, jump: p.mode === 'ground' && d < 1.3 && (!!Lg.jump || (dz > 0.3 && k > 30)) });
           }
           log.push(['ranke', `${Lg.stalk}`, p.mode === 'stalk', k, +p.pos.y.toFixed(2)]);
           if (p.mode !== 'stalk') { log.push(['FEHLER: Ranke nicht gegriffen', Lg.stalk]); break; }
@@ -573,7 +606,7 @@ function install() {
             if (r) {
               const t = r.phaseT(), left = r.state === 'ein' ? (r.period - r.warn) - t : -1;
               const inside = r.pos.y - head < 0.05;
-              if (!inside && left < 0.75) go = false;           // noch unter dem Ring: warten, bis er lange genug eingefahren bleibt
+              if (!inside && left < 0.75 && !Lg.noWait) go = false;   // noch unter dem Ring: warten, bis er lange genug eingefahren bleibt
             }
             if (go) tick({ x: 0, y: 1 }); else { waits++; tick({}); }
             if (go) { if (p.pos.y <= lastY + 1e-4) still++; else still = 0; }
@@ -675,8 +708,9 @@ function install() {
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
       mech.clocks = this.clocksTaken() - clocks0;
+      mech.bells = ['baum1', 'baum2', 'baum3'].map((id) => L.named.get(id)?.rung ?? null).filter((v) => v !== null);
       mech.lives = L.runtime.save?.lives;
-      return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
+      return { log, autoJumps, steps, time: steps / 120, keys: L.keys?.schluessel?.n ?? 0, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
       const p = P();
@@ -836,8 +870,87 @@ const RULES = {
   },
 };
 
+RULES['P-2'] = async () => {
+  const r = await sc(() => {
+    const c = window.__course, L = c.level, CL = window.__courseLevels;
+    const base = CL.get('1-3'), raw = CL.raw('P-2');
+    const calls = window.__audio?.music?.__calls ?? [];
+    const ents = (k) => L.entities.filter((e) => e.kind === k && !e.removed);
+    const stalk3 = L.data.segments.find((s) => s.type === 'beanstalk' && Math.abs(s.pos[2] + 171.05) < 0.01);
+    const summit = L.world.raycastDown(0, 70, -211, 40);
+    const climbs = []; L.world.forEach?.((s) => { if (s.tag === 'glockenbaum' && s.climbable) climbs.push(s.id); });
+    return {
+      stub: CL.isRemix(raw) && raw.remix.base === '1-3' && !raw.segments, theme: L.data.theme, light: c.view.theme.light, sunDisc: c.view.theme.sunDisc,
+      music: L.data.music, variant: L.data.musicVariant, call: calls.filter((x) => x[0] === 'course_grass').slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
+      limit: L.runtime.timeLimit, boss: ents('riesenschnappblume').length, task: ents('task').length, bridge: L.data.segments.some((s) => s.type === 'bridge' && Math.abs(s.from?.[1] - 30) < 0.1),
+      kugler: ents('stachelkugler').length, werfer: ents('walzenwerfer').length, keys: ents('schluesselmuenze').length, box: L.named.get('zielbox')?.locked, rings: ents('stachelring').length,
+      trees: ['baum1', 'baum2', 'baum3'].map((id) => L.named.get(id)?.top), climbs: climbs.length, stalk3: stalk3?.height, summitY: summit?.y, goalY: L.entities.find((e) => e.kind === 'goal')?.pos.y,
+      oldPipe: !!L.named.get('zuPRaum'), newPipe: L.named.get('zuPRaum2') ? L.data.segments.find((x) => x.id === 'zuPRaum2')?.target : null, stamp: ents('stamp').length, claw: L.data.blocks.find((b) => b.kind === 'question' && Math.abs(b.pos[2] + 173.6) < 0.1)?.content,
+      baseTheme: base.theme, baseVariant: base.musicVariant ?? null, baseBoss: base.enemies.some((e) => e.kind === 'riesenschnappblume'), baseBridge: base.segments.some((s) => s.type === 'bridge' && s.from?.[1] === 30),
+      baseStalk3: base.segments.find((s) => s.type === 'beanstalk' && Math.abs(s.pos[2] + 171.05) < 0.01)?.height, baseGoalY: base.goal.pos[1], baseStamp: !!base.stamp, baseRemix: base.remix ?? null,
+      baseKeys: base.items.filter((i) => i.kind === 'schluesselmuenze').length, baseFunken: base.blocks.find((b) => b.kind === 'question' && Math.abs(b.pos[2] + 173.8) < 0.1)?.content, baseTitle: base.title,
+    };
+  });
+  console.log(`  Remix: ${JSON.stringify({ theme: r.theme, call: r.call, trees: r.trees, summitY: r.summitY, goalY: r.goalY, climbs: r.climbs, stalk3: r.stalk3, oldPipe: r.oldPipe, newPipe: r.newPipe, claw: r.claw })}`);
+  check('P-2: Remix-Platzhalter (Basis 1-3), eigener Titel; Sonnenuntergang (grass@abend, Sonnenscheibe)', r.stub && r.theme === 'grass@abend' && r.light === 'abend' && r.sunDisc);
+  check('P-2: Musik der Basis mit Klang-Variante abend → music.play(\'course_grass\', { variant: \'abend\' })', r.music === 'course_grass' && r.variant === 'abend' && r.call?.[1]?.variant === 'abend' && r.mVariant === 'abend');
+  check(`P-2: Gipfelbrücke und Riesenschnappblume ersetzt durch 3 Glockenbäume (Kletterstämme ${r.climbs}, Kronen ${r.trees.join('/')})`, !r.bridge && r.boss === 0 && r.task === 0 && r.trees.every((t) => t > 30) && r.climbs === 3);
+  check(`P-2: neu ${r.kugler} Stachelkugler, ${r.werfer} Walzenwerfer, ${r.rings} Stachelringe, 5 Schlüsselmünzen, Ziel-Warp-Box verschlossen, 500 s, kein Stempel`, r.kugler === 4 && r.werfer === 2 && r.rings === 5 && r.keys === 5 && r.box === true && r.limit === 500 && r.stamp === 0);
+  check(`P-2: Gipfel 10 m höher (y ${r.summitY}), dritte Ranke ${r.stalk3} m, Röhre zum P-Schalter-Raum in der Rankennische statt in der POW-Nische, Krallen-Anzug vor dem Glockenhain`, Math.abs(r.summitY - 50) < 0.05 && Math.abs(r.goalY - 50) < 0.05 && r.stalk3 === 11.6 && !r.oldPipe && r.newPipe === 'pRaumEin' && r.claw === 'krallenAnzug');
+  check('P-2: Gegenprobe Basis 1-3 unverändert (Thema grass, Riesenschnappblume, Gipfelbrücke, Ranke 6,6 m, Gipfel y 40, Stempel, Funkenblüte, ohne Schlüssel/Remix-Feld)',
+    r.baseTheme === 'grass' && r.baseVariant === null && r.baseBoss && r.baseBridge && r.baseStalk3 === 6.6 && r.baseGoalY === 40 && r.baseStamp && r.baseRemix === null && r.baseKeys === 0 && r.baseFunken === 'funken' && r.baseTitle === 'Kraxelei am Klötzchenberg');
+};
+
 // ------------------------------------------------------------------ Sonder-Proben (extra[].probe)
 const PROBES = {
+  box: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa, p = c.player;
+      const coins = L.entities.filter((e) => e.kind === 'schluesselmuenze');
+      W.place([1.6, 42.5, -199.6], { settle: 10 });
+      for (const k of coins.filter((e) => e.spec.id !== 'key5')) k.onPlayer?.(p, {});
+      c.step(5);
+      const box = L.named.get('zielbox');
+      const n4 = L.keys?.schluessel?.n, locked4 = box.locked;
+      const d4 = W.drive([{ warp: [1.6, -201.4] }], {});
+      const stayed = p.pos.y < 44 && p.pos.y > 42 && d4.mech.warps === 0;
+      const banner = c.level.hudBanner ?? null;
+      const k5 = coins.find((e) => e.spec.id === 'key5');
+      k5.onPlayer?.(p, {});
+      c.step(200);
+      const locked5 = box.locked, done = L.keys?.schluessel?.done;
+      W.place([1.6, 42.5, -199.6], { settle: 10 });
+      const d5 = W.drive([{ warp: [1.6, -201.4] }], {});
+      return { n4, locked4, stayed, locked5, done, warped: d5.mech.warps === 1 && p.pos.y > 49, y: +p.pos.y.toFixed(1) };
+    });
+    console.log(`     Box: ${JSON.stringify(r)}`);
+    return r.n4 === 4 && r.locked4 && r.stayed && !r.locked5 && r.done && r.warped;
+  },
+  kuglerHang: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa;
+      W.place([7, 3, -50], { settle: 2, invuln: 99 });
+      const es = ['sk_hang1', 'sk_hang2'].map((id) => L.entities.find((x) => x.spec?.id === id));
+      const z0 = es.map((e) => e.pos.z), y0 = es.map((e) => e.pos.y);
+      let down = 0, vmax = 0;
+      for (let i = 0; i < 360; i++) { c.step(1); for (const e of es) { if (e.downhill) down++; vmax = Math.max(vmax, e.speedNow ?? 0); } }
+      return { dz: es.map((e, i) => +(e.pos.z - z0[i]).toFixed(1)), dy: es.map((e, i) => +(e.pos.y - y0[i]).toFixed(1)), down, vmax: +vmax.toFixed(1) };
+    });
+    console.log(`     Kugler am Hang: ${JSON.stringify(r)}`);
+    return r.down > 30 && r.dy.every((d) => d < -1.5) && r.dz.every((d) => d > 4) && r.vmax > 4;
+  },
+  werfer: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa;
+      W.place([-2, 9, -74], { settle: 2, invuln: 99 });
+      const e = L.entities.find((x) => x.spec?.id === 'ww_hang');
+      let walzen = 0;
+      for (let i = 0; i < 720; i++) { c.step(1); walzen = Math.max(walzen, L.entities.filter((x) => x.kind === 'stachelwalze' && x.alive && !x.removed).length); }
+      return { throws: e.throws ?? e.info?.().throws, walzen };
+    });
+    console.log(`     Walzenwerfer: ${JSON.stringify(r)}`);
+    return r.throws >= 1 && r.walzen >= 1;
+  },
   clock: async () => {
     const r = await sc(() => {
       const c = window.__course, L = c.level, W = window.__pa, p = c.player;
@@ -974,6 +1087,7 @@ for (const id of LEVELS) {
       if (t.noClocks) await W('noClocks');
       const legs = t.legsFrom ? R[t.legsFrom] : t.legs;
       const res = await W('drive', legs, { invuln: t.invuln });
+      if (t.named) res.ring = await W('named', t.named);
       const lives1 = await W('lives');
       let ok = true;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
