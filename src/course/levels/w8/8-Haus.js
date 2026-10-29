@@ -234,6 +234,7 @@ export const LEVEL = {
     // ---------------- 1 Bauklotzturm: Vorplatz, Grube hinter dem Turm
     floor(0, -7, 7, -1, R1.turm[0], Y),
     floor(0, -7, 7, R1.turm[1], 18, R1.grube, 1.2, 0x3a6ab8),
+    { type: 'sign', pos: P(0, 1.8, 9.4, R1.top), text: 'Stern unten ↓', size: [1.9, 0.75], post: 0.5 },
     // ---------------- 2 Kristallhöhle
     floor(1, -7, 7, -1, R2.s1[0], Y),
     // ---------------- 3 Piep-Wand: rote Blöcke unten, blaue oben (kletterbar, nur fest im Takt)
