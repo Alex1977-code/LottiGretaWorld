@@ -24,10 +24,12 @@
 //                                  Stufe, dahinter die Rätselbox → Stampfstein-Kammer, Stern 3).
 //   Kanonengasse 2 (−200 … −232):  zwei Kanonen auf Pfeilern schießen Suchköpfe; die stürzen ab und erhellen den Steg.
 //   Warp-Box (−235) → Zielturm (z −260 … −286) mit Zielmast, Laternen und Feuerwerk-Glühen.
-// Extraleben: unsichtbarer Block hinten am Burgbalkon, Münzhaufen-Block in der Stampfstein-Kammer.
+// Extraleben: unsichtbarer Block hinten am Burgbalkon. Münzblock (8 Bitcoins) in der Stampfstein-Kammer, Himmelslaternen
+// steigen aus dem Abgrund, Lampionketten und Feuerschalen auf den Balkonen.
 
 import {
-  isl, line, ring, arc, stege, burgZinnen, laternen, mond, gluehwuermchen, glowPoints, Bld, NACHT,
+  isl, line, ring, arc, stege, burgZinnen, laternen, mond, gluehwuermchen, glowPoints, Bld, NACHT, teppich, feuerschalen,
+  himmelslaternen,
 } from './_helpers_b.js';
 
 const RX = 80;                 // Stampfstein-Kammer (Rätselbox-Raum), x
@@ -41,7 +43,7 @@ const STEG_A = stege('steg_a', [
 const STEG_B = stege('steg_b', [
   [-1.5, 1.5, -58, -70], [-6.5, 1.5, -70, -73.6], [-6.5, -3.5, -73.6, -84], [-6.5, 3.5, -84, -87.6], [0.5, 3.5, -87.6, -98],
 ], { color: 'tuerkis' });
-const STEG_ISO = stege('steg_iso', [[-12.6, -9.8, -77.6, -82.4]], { color: 'rosa' });
+const STEG_ISO = stege('steg_iso', [[-11.8, -9, -77.6, -82.4]], { color: 'rosa' });
 const STEG_RING = stege('steg_ring', [[4, 7.6, -99.5, -101.5], [5.6, 7.6, -101.5, -106.5], [4, 7.6, -106.5, -108.5]], { color: 'tuerkis' });
 const STEG_C = stege('steg_c', [
   [-1.6, 1.6, -110, -129.4], [-1.6, 4.6, -129.4, -133], [1.4, 4.6, -133, -158.4], [-1.6, 4.6, -158.4, -162],
@@ -80,6 +82,14 @@ function build(level) {
   // Wegweiser-Funkeln an den Ecken der Stege (schwach, nur als Hinweis über dem Abgrund)
   glowPoints(level, [[6, 0.2, -16.8, 1.4], [-3, 0.2, -32.8, 1.4], [-5, 0.2, -71.8, 1.4], [2, 0.2, -85.8, 1.4], [3, 0.2, -131.2, 1.4], [4.6, 0.2, -212.8, 1.4]],
     { color: 0xffe8a0, opacity: 0.35, pulse: 0.6 });
+  teppich(level, [
+    [-1.6, 1.6, 8.4, -3, 0], [-2.4, 2.4, -98, -110, 0, 0x2a4ab0], [-1.6, 1.6, -190, -200, 0, 0x6a2ab0],
+    [-1.8, 1.8, -260, -286, 0], [RX - 1.4, RX + 1.4, -183, -190, 0, 0x2a8a6a],
+  ]);
+  feuerschalen(level, [[-3.4, 0, -105.5], [3.4, 0, -105.5, 0x6ad0ff], [-4, 0, -195], [-5.6, 0, -280], [5.6, 0, -280, 0xff6ad8], [RX + 3, 0, -188.6]]);
+  himmelslaternen(level, [-28, 28, -12, 12, 6, -290], 80, {
+    avoid: [[-5, 8, 9, -60], [-7, 4, -58, -112], [-2, 5, -110, -200], [-3, 7, -200, -238], [-7, 7, -258, -286]],
+  });
   mond(level, [-70, 70, -330], 11);
   gluehwuermchen(level, [[-6, 6, 0.6, 3.5, 8, -3, 10], [-5, 5, 0.6, 3, -98, -110, 8], [-7, 7, 0.6, 3.5, -260, -286, 14], [RX - 4, RX + 9, 0.6, 3, -184, -212, 8]]);
   // Burgbalkon: Baron-Wappen und Fahnenstangen hinten
@@ -124,24 +134,28 @@ export const LEVEL = {
     WALZE('walze1', 0, -118), WALZE('walze2', 0, -125, -1.3), WALZE('walze3', 3, -141), WALZE('walze4', 3, -151, -1.3),
     // Kulisse: Türme, Fahnen, Fackeln (Optik)
     { type: 'deco_w7', shadow: false, items: [
-      { kind: 'burgturm', pos: [-9, -12, 4], height: 18, radius: 2.2 }, { kind: 'burgturm', pos: [9, -12, 4], height: 17, radius: 2 },
-      { kind: 'burgturm', pos: [12, -14, -40], height: 20, radius: 2.4 }, { kind: 'burgturm', pos: [-12, -14, -60], height: 19, radius: 2.2 },
-      { kind: 'burgturm', pos: [-8.5, -12, -104], height: 17, radius: 2.4 }, { kind: 'burgturm', pos: [11, -14, -125], height: 20, radius: 2.2 },
-      { kind: 'burgturm', pos: [-10, -14, -150], height: 19, radius: 2.3 }, { kind: 'burgturm', pos: [-9.5, -12, -195], height: 18, radius: 2.4 },
-      { kind: 'burgturm', pos: [13, -14, -230], height: 20, radius: 2.3 }, { kind: 'burgturm', pos: [-11, -12, -273], height: 21, radius: 2.6 },
-      { kind: 'burgturm', pos: [11, -12, -279], height: 19, radius: 2.4 },
+      { kind: 'burgturm', pos: [-30, -18, -40], height: 26, radius: 3 }, { kind: 'burgturm', pos: [32, -18, -110], height: 27, radius: 3 },
+      { kind: 'burgturm', pos: [-31, -18, -190], height: 26, radius: 3 }, { kind: 'burgturm', pos: [-15, -14, -276], height: 22, radius: 2.8 },
+      { kind: 'burgturm', pos: [15, -14, -282], height: 20, radius: 2.6 },
       { kind: 'fahne', pos: [-3.6, 0, 7.6], height: 4.4 }, { kind: 'fahne', pos: [3.6, 0, 7.6], height: 4.4, color: 'lila' },
       { kind: 'fahne', pos: [-3, 0, -108.8], height: 4 }, { kind: 'fahne', pos: [-4.4, 0, -198.8], height: 4, color: 'lila' },
       { kind: 'fahne', pos: [-5, 0, -284.6], height: 5 }, { kind: 'fahne', pos: [5, 0, -284.6], height: 5, color: 'lila' },
       { kind: 'kette', pos: [-3.6, 7, -40], length: 5 }, { kind: 'kette', pos: [4, 7, -150], length: 5 },
       { kind: 'knochen', pos: [3.2, 0, -105], n: 3 }, { kind: 'wappen', pos: [0, 2.6, -285.6], size: 1.8, yaw: 0 },
     ] },
+    // bunte Lampionketten über den festen Balkonen (Rummel-Nacht in der Festung)
+    { type: 'deco_w8', shadow: false, items: [
+      { kind: 'lampions', from: [-4.6, 3.8, -2.8], to: [4.6, 3.8, -2.8], sag: 0.6 },
+      { kind: 'lampions', from: [-3.6, 3.6, -98.8], to: [3.6, 3.6, -98.8], sag: 0.6 }, { kind: 'lampions', from: [-4.6, 3.6, -199.6], to: [4.6, 3.6, -199.6], sag: 0.6 },
+      { kind: 'lampions', from: [-6.4, 4.4, -261], to: [6.4, 4.4, -261], sag: 0.9 }, { kind: 'lampions', from: [-6.4, 4.4, -273], to: [6.4, 4.4, -273], sag: 0.9 },
+      { kind: 'lampions', from: [RX - 3.6, 3.6, -183.8], to: [RX + 3.6, 3.6, -183.8], sag: 0.6 },
+    ] },
     { type: 'sign', pos: [-3.2, 0, 7], text: 'Mitternachtsfestung', size: [3.2, 0.9], yaw: 0 },
     { type: 'sign', pos: [-3.4, 0, -109], text: 'Glimmstege!', size: [2.4, 0.8], yaw: 0 },
     { type: 'sign', pos: [RX - 2.8, 0, -184.2], text: 'Stampfstein-Kammer', size: [3.2, 0.8], yaw: 0 },
   ],
   blocks: [
-    { kind: 'question', pos: [2.4, 2.4, 2.5], content: 'funken' },
+    { kind: 'question', pos: [2.4, 1.8, 2.5], content: 'funken' },
     { kind: 'hidden', pos: [3.6, 2.6, 7.4], content: 'oneup' },
     { kind: 'coinblock', pos: [RX - 2.4, 2.4, -186], count: 8 },
   ],
@@ -193,7 +207,7 @@ export const LEVEL = {
   ],
   checkpoint: [{ pos: [0, 0, -103.5], yaw: Math.PI / 2 }],
   stars: [
-    { pos: [-11.2, 0.9, -80], id: 'stern_iso' },
+    { pos: [-10.4, 0.9, -80], id: 'stern_iso' },
     { pos: [-2, 0.6, -101], hidden: true, id: 'stern_ring' },
     { pos: [RX + 5, 0.9, -210.4], id: 'stern_kammer' },
   ],

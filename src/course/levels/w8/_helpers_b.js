@@ -100,6 +100,93 @@ export function laternen(level, pts, o = {}) {
   glowPoints(level, glow, { color: o.color ?? 0xffc86a, opacity: 0.8, pulse: 0.35 });
 }
 
+/**
+ * Teppich mit Goldkante und Rautenmuster auf einem Balkon: list = [[x0, x1, zA, zB, y, farbe?, muster?], …] (nur Optik,
+ * ins statische Mesh verschmolzen).
+ */
+export function teppich(level, list) {
+  const b = new Bld();
+  for (const [x0, x1, zA, zB, y = 0, col = 0xb0204a, pat = 0xffc84a] of list) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    b.box(w, 0.03, d, cx, y, cz, pat, { r: 0, seg: 0 });
+    b.box(w - 0.3, 0.035, d - 0.3, cx, y + 0.002, cz, col, { r: 0, seg: 0 });
+    // Rauten entlang der Mitte
+    const n = Math.max(1, Math.floor((w > d ? w : d) / 1.6));
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.5) / n;
+      const px = w > d ? x0 + w * u : cx, pz = w > d ? cz : z0 - d * u;
+      b.box(0.5, 0.04, 0.5, px, y + 0.004, pz, pat, { r: 0, seg: 0, yaw: Math.PI / 4 });
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/** Feuerschalen (Eisenschale auf Dreibein, Flammen im Glüh-Material + Glühen): pts = [[x, y, z, farbe?], …]. */
+export function feuerschalen(level, pts) {
+  const b = new Bld(), g = new Bld(), glow = [];
+  for (const [x, y, z, col = 0xff8a2a] of pts) {
+    for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU; b.cyl(0.05, 0.06, 1.05, x + Math.cos(a) * 0.28, y, z + Math.sin(a) * 0.28, 0x2a2e44, 6, { rz: Math.cos(a) * 0.25, rx: -Math.sin(a) * 0.25 }); }
+    b.cyl(0.5, 0.28, 0.32, x, y + 0.95, z, 0x3a3e58, 12);
+    b.cyl(0.52, 0.5, 0.06, x, y + 1.25, z, NACHT.gold, 14);
+    g.cone(0.36, 0.7, x, y + 1.22, z, col, 7);
+    g.cone(0.2, 0.5, x + 0.12, y + 1.25, z - 0.08, 0xffe07a, 6);
+    glow.push([x, y + 1.6, z, 3.4]);
+    if (level.view) level.view.addLantern(x, y + 1.6, z);
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+  glowPoints(level, glow, { color: 0xff9a4a, opacity: 0.85, pulse: 1.1 });
+}
+
+/**
+ * Himmelslaternen: bunte Papierlaternen steigen langsam aus dem Abgrund auf (eine Instanz-Gruppe ohne Schatten + Leuchtfeld).
+ * box = [x0, x1, y0, y1, zA, zB], n Laternen; o.avoid = [[x0, x1, zA, zB], …] (dort keine – über den Wegen).
+ */
+export function himmelslaternen(level, box, n = 40, o = {}) {
+  if (!level.view) return null;
+  const [x0, x1, y0, y1, zA, zB] = box;
+  const zMax = Math.max(zA, zB), zMin = Math.min(zA, zB);
+  let s = o.seed ?? 11;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const COLS = o.colors ?? [0xff6a8a, 0xffb84a, 0x8ae0ff, 0xc08aff, 0x9aff8a, 0xffe06a];
+  const L = [];
+  for (let tries = 0; L.length < n && tries < n * 40; tries++) {
+    const x = x0 + (x1 - x0) * rnd(), z = zMin + (zMax - zMin) * rnd();
+    if ((o.avoid ?? []).some(([a0, a1, b0, b1]) => x > Math.min(a0, a1) - 2.5 && x < Math.max(a0, a1) + 2.5 && z > Math.min(b0, b1) - 2.5 && z < Math.max(b0, b1) + 2.5)) continue;
+    L.push({ x, z, y: y0 + (y1 - y0) * rnd(), v: 0.35 + rnd() * 0.35, p: rnd() * TAU, c: COLS[L.length % COLS.length], s: (o.size ?? 1.3) * (0.8 + rnd() * 0.5) });
+  }
+  const geo = new THREE.CylinderGeometry(0.26, 0.2, 0.5, 8);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: true });
+  const mesh = new THREE.InstancedMesh(geo, mat, L.length);
+  mesh.name = 'himmelslaternen';
+  mesh.castShadow = false; mesh.receiveShadow = false;
+  mesh.frustumCulled = false;
+  const col = new THREE.Color();
+  L.forEach((q, i) => mesh.setColorAt(i, col.set(q.c)));
+  const g = glowPoints(level, L.map((q) => [q.x, q.y, q.z, 2.4 * q.s]), { color: 0xffc88a, opacity: 0.6, pulse: 0.8 });
+  const m4 = new THREE.Matrix4(), qt = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
+  const holder = {};
+  let t = 0;
+  const update = (dt) => {
+    t += visDt(level, holder, dt);
+    for (let i = 0; i < L.length; i++) {
+      const q = L[i];
+      const h = y1 - y0, y = y0 + ((q.y - y0 + t * q.v) % h + h) % h;
+      const x = q.x + Math.sin(t * 0.3 + q.p) * 0.8, z = q.z + Math.cos(t * 0.25 + q.p) * 0.6;
+      const fade = Math.min(1, (y - y0) / 2, (y1 - y) / 2);
+      ps.set(x, y, z); sc.setScalar(q.s * Math.max(0.01, fade));
+      m4.compose(ps, qt, sc);
+      mesh.setMatrixAt(i, m4);
+      if (g) { const k = (g.i0 + i) * 3; g.field.pos[k] = x; g.field.pos[k + 1] = fade > 0.05 ? y : -999; g.field.pos[k + 2] = z; }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (g) g.field.geo.attributes.position.needsUpdate = true;
+  };
+  update(0);
+  addObject(level, mesh, update);
+  return mesh;
+}
+
 /** Großer Mond mit Hof (nur Optik, folgt nicht der Kamera; sehr weit hinten). */
 export function mond(level, pos, r = 9) {
   if (!level.view) return;

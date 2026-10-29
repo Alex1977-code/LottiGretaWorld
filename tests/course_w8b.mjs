@@ -59,7 +59,7 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 1: Sprung vom türkisen Steg zum Stern über dem Abgrund – isolierter Steg trägt', star: 0, from: [-5, 0, -76],
-        legs: [{ to: [-5.9, -80], within: 0.3, run: false }, { to: [-11.2, -80], jump: 40, within: 0.4, run: false }, { wait: 20 }, { star: 0 }, { expect: 'aufIso' }], shot: 'stern1' },
+        legs: [{ to: [-3.8, -80], within: 0.3, run: false }, { to: [-10.4, -80], jump: 40, jumpAt: 4.0, within: 0.4, run: true }, { wait: 20 }, { expect: 'aufIso' }, { star: 0 }], shot: 'stern1' },
       { name: 'Stern 2: Sternring am Laternenhof – acht Sternmünzen, ein Teil auf der unsichtbaren Schleife', star: 1, from: [0, 0, -103.5],
         legs: [{ to: [-2, -98.8], within: 0.4, run: false }, { to: [-2, -102.6], within: 0.4, run: false },
           { coins: [[-2.6, -106], [0, -104, 30], [2.6, -101], [5, -100.5], [6.6, -102.6], [6.6, -105.6], [5, -107.5], [2.6, -108]] }, { wait: 40 }, { star: 1 }], shot: 'stern2' },
@@ -74,7 +74,7 @@ const ROUTES = {
     ],
     extra: [
       { name: 'Leuchtsteg: unsichtbar abseits der Figur, Stampfstein-Aufschlag lässt ihn weit voraus aufleuchten', from: [-1, 0, -3], heroes: ['lotti'],
-        legs: [{ probe: 'vorher' }, { to: [-1, -8.8], within: 0.3, run: false }, { wait: 60 }, { probe: 'nachher' }],
+        legs: [{ probe: 'vorher' }, { to: [-1, -8.8], within: 0.3, run: false }, { wait: 130 }, { probe: 'nachher' }],
         mech: (r) => r.mech.probe.vorher < 0.1 && r.mech.probe.nachher > 0.5, mechText: (r) => `Steg 7 m voraus: vorher ${r.mech.probe.vorher}, nach dem Aufschlag ${r.mech.probe.nachher}` },
       { name: 'Leuchtsteg: Stampfattacke lässt ihn aufleuchten', from: [0, 0, -60], heroes: ['lotti'],
         legs: [{ probe2: 'vorher' }, { pound: [0, -60.5] }, { wait: 10 }, { probe2: 'nachher' }],
@@ -82,7 +82,7 @@ const ROUTES = {
       { name: 'Extraleben: unsichtbarer Block hinten am Burgbalkon', from: [3.6, 0, 5.6], heroes: ['lotti'], expectLives: 1,
         legs: [{ to: [3.6, 7.4], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Funkenblüte aus dem ?-Block am Start', from: [2.4, 0, 4.5], heroes: ['lotti'],
-        legs: [{ to: [2.4, 2.5], within: 0.2, run: false }, { hop: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'funken' }] },
+        legs: [{ to: [2.4, 2.5], within: 0.2, run: false }, { hop: 20 }, { to: [2.4, 4.8], within: 0.3, run: false }, { to: [2.4, 2.5], jump: 40, jumpAt: 1.6, within: 0.3, run: false }, { wait: 30 }, { expect: 'funken' }] },
     ],
     shots: [
       ['start', [0, 0, 5]],
@@ -138,7 +138,7 @@ function install() {
     // 8-4
     zielturm: () => at(-7, 7, -0.5, -258, -288),
     kammer: () => at(70, 92, -0.5, -180, -214),
-    aufIso: () => P().pos.x < -9.5 && P().pos.y > -0.2 && P().mode === 'ground',
+    aufIso: () => P().pos.x < -8.9 && P().pos.y > -0.2 && P().mode === 'ground',
     funken: () => P().power === 'funken',
   };
   const W = {
@@ -221,7 +221,7 @@ function install() {
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
         // ------------------------------------------------ Messpunkte (8-4): Steg 7 m voraus bzw. 6 m neben der Figur
         if (Lg.probe) { mech.probe[Lg.probe] = this.stegVis('steg_a', -1, 0, p.pos.z - 7); continue; }
-        if (Lg.probe2) { mech.probe[Lg.probe2] = this.stegVis('steg_b', -5, 0, -71.8); continue; }
+        if (Lg.probe2) { mech.probe[Lg.probe2] = this.stegVis('steg_b', 0, 0, -66.5); continue; }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
