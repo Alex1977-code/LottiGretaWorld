@@ -1446,7 +1446,7 @@ export function neonBoden(level, list) {
         const cx = x + ux * i * 0.9, cz = z + uz * i * 0.9;
         for (const sd of [-1, 1]) {
           const ox = Math.cos(yaw) * sd * 0.32, oz = -Math.sin(yaw) * sd * 0.32;
-          g.box(0.16, 0.03, 0.8, cx + ox - ux * 0.2, y, cz + oz - uz * 0.2, i === 1 ? 0xffffff : col, { yaw: yaw + sd * 0.8, r: 0 });
+          g.box(0.16, 0.03, 0.8, cx + ox - ux * 0.2, y, cz + oz - uz * 0.2, i === 1 ? 0xffffff : col, { yaw: yaw - sd * 0.8, r: 0 });
         }
       }
     } else {
