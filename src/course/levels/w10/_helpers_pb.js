@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { addObject } from '../../blocks/kit.js';
 import { playerOn, visDt } from '../../entities/gimmick.js';
 import { Bld, litTop, isl, line, ring, arc } from '../w5/_helpers_b.js';
+import { glowPoints } from '../w4/_helpers_d.js';
 
 export { Bld, litTop, isl, line, ring, arc };
 
@@ -314,5 +315,69 @@ export function geheimPlatte(level, o) {
       mat.opacity = 0.75 * st.k;
     });
   }
+  return st;
+}
+
+// =====================================================================================================================
+// P-Haus: Kraftkapseln der Kampf-Räume
+// =====================================================================================================================
+
+const KRAFT_FARBE = { riese: 0xc04cff, funken: 0xff7a2a, krallen: 0xffb02a, stern: 0xfff04a, maske: 0x7ad84a };
+
+/**
+ * Kraftkapsel je Kampf-Raum (P-Haus): beim Start jedes Raums (Phase play) bekommt die Figur das Werkzeug des Raums –
+ * ein Power-up (`power`: 'riese' | 'funken' | 'krallen' | 'stern') oder einen Helm (`helmet`: 'maske') – bzw. legt ein
+ * mitgebrachtes ab (Räume ohne Kapsel: nur Springen, Stampfen, Rennen, POW-Block). Geht ein dauerhaftes Werkzeug
+ * (Funkenblüte, Krallen-Anzug, Pilz-Maske) durch einen Treffer verloren, kommt nach `every` s ein neues aus der Kapsel.
+ * rooms: [{ pos: [x, y, z] (Kapsel), power?, helmet? }] je Raum (Index = Raumnummer). Darstellung: goldener Sockel mit
+ * Leuchtkugel in der Farbe des Werkzeugs (eine Geometrie + eine Leuchtgeometrie + ein Schein-Mesh für alle Räume).
+ * Liefert { given, refills, off, info() } (off: Gegenprobe ohne Kapseln).
+ */
+export function kraftKapsel(level, rooms, o = {}) {
+  const st = { given: 0, refills: 0, t: 0, lastRoom: -1, off: false };
+  const has = (p, r) => (r.power ? p.power === r.power : true) && (r.helmet ? p.helmet === r.helmet : true);
+  const give = (p, r) => {
+    if (r.power) { if (p.power !== r.power) p.setPower(r.power); } else if (p.power !== 'none') p.setPower('none');
+    if (r.helmet) { if (p.helmet !== r.helmet) p.wearHelmet(r.helmet); } else if (p.helmet) p.dropHelmet?.('gone');
+  };
+  level.onStep((dt) => {
+    const h = level.house, p = level.player;
+    if (!h || !p || p.dead) return;
+    const r = rooms[h.room];
+    if (!r) return;
+    if (h.phase === 'play' && h.room !== st.lastRoom) {
+      st.lastRoom = h.room; st.t = 0;
+      if (st.off) { if (p.power !== 'none') p.setPower('none'); if (p.helmet) p.dropHelmet?.('gone'); return; }
+      give(p, r); st.given++;
+      if (r.power || r.helmet) level.sfx('powerup');
+      return;
+    }
+    if (st.off || h.phase !== 'play' || has(p, r) || r.power === 'riese' || r.power === 'stern' || (!r.power && !r.helmet)) { st.t = 0; return; }
+    st.t += dt;
+    if (st.t < (o.every ?? 1.2)) return;
+    st.t = 0; st.refills++;
+    give(p, r);
+    level.sfx('powerup_appear');
+    level.effects?.sparks({ x: r.pos[0], y: r.pos[1] + 1.2, z: r.pos[2] }, 12);
+  });
+  // nach einem Tod (Raum von vorn) gibt die Kapsel beim Neustart wieder aus
+  const rt = level.runtime, prev = rt.respawn.bind(rt);
+  rt.respawn = () => { prev(); st.lastRoom = -1; };
+  if (level.view) {
+    const b = new Bld(), g = new Bld(), glow = [];
+    for (const r of rooms) {
+      if (!r || (!r.power && !r.helmet)) continue;
+      const [x, y, z] = r.pos, c = KRAFT_FARBE[r.power ?? r.helmet] ?? 0xffffff;
+      b.cyl(0.5, 0.58, 0.18, x, y, z, litTop(0xc8901a), 16);
+      b.cyl(0.36, 0.44, 0.5, x, y + 0.18, z, litTop(0x5a4a6a), 12);
+      b.torus(0.36, 0.05, x, y + 0.7, z, 0xffd860, { rx: Math.PI / 2 });
+      g.sphere(0.24, x, y + 0.96, z, c, { ws: 12, hs: 8 });
+      glow.push([x, y + 0.96, z]);
+    }
+    b.flush(level, { castShadow: false });
+    g.flush(level, { material: 'glow', castShadow: false });
+    if (glow.length) glowPoints(level, glow, 0xfff0c0, 1.2, { opacity: 0.5, name: 'kraftkapsel-schein' });
+  }
+  st.info = () => ({ given: st.given, refills: st.refills, off: st.off });
   return st;
 }

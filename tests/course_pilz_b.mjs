@@ -429,7 +429,33 @@ const ROUTES = {
       ['ziel', [60, Y7, -222]],
     ],
   },
+  'P-Haus': {
+    house: true,
+    meta: { title: 'Haus Zehnkampf', stars: 10, theme: 'house', music: 'course_house', variant: null, archetype: 'house' },
+    enemies: { rammbock_bulle: 3, schneesaeule: 3, flatterkaefer: 1, brummer: 1, feuer_werfer: 6, muenzmarder: 1, pilzlingsturm: 3, funkenflaemmchen: 3, zauberkroete: 3, rankenschnapper: 3, pow: 1, stamp: 0 },
+  },
 };
+
+/** Kampf-Haus P-Haus: Beine je Raum (i = Raum 0…9, z0 = Raumanfang), R(x, u) = Punkt u m in den Raum hinein. */
+const KAPSELN = ['Riesentrank', 'Funkenblüte', 'keins', 'Krallen-Anzug', 'keins', 'POW-Block', 'Funkelstern', 'Funkenblüte', 'keins', 'Pilz-Maske'];
+const HAUS_NAMEN = ['Bullenstall', 'Eisstube', 'Flugstube', 'Bumerangbahn', 'Münzflur', 'Turmzimmer', 'Glutküche', 'Zauberzimmer', 'Rankengarten', 'Hammerhalle'];
+function hausLegs(i, z0) {
+  const R = (x, u) => [x, z0 - u];
+  const L = [
+    [{ name: 'als Riese die Bullen umrennen', chaseKind: 'rammbock_bulle', run: true, max: 1150 }],
+    [{ name: 'Schneesäulen mit Feuerbällen schmelzen', shootR: ['r2_s2', 'r2_s1', 'r2_s3'], dist: 4.2, min: 1, gap: 24 }],
+    [{ name: 'auf Flatterkäfer und Brummer springen', stompAll: ['r3_kaefer', 'r3_brummer'], max: 1150 }],
+    [{ name: 'Tatzenhieb gegen die Bumerang-Werfer', shootR: ['r4_w1', 'r4_w2', 'r4_w3'], dist: 1.1, slack: 0.35, gap: 18 }],
+    [{ name: 'den Münzmarder rennend einholen', chaseKind: 'muenzmarder', run: true, jump: false, max: 1150 }],
+    [{ to: R(0, 5.4), within: 0.4, run: false }, { name: 'Türme herankommen lassen', until: 'tuermeAmPow', max: 540 },
+      { name: 'auf den POW-Block', to: R(0, 7.5), jump: 22, within: 0.4, run: false }, { wait: 24 }, { name: 'Reste abtragen', stompAll: 'r6_t', partial: true }],
+    [{ name: 'mit dem Funkelstern durch die Flämmchen', chaseKind: 'funkenflaemmchen', run: true, max: 1150 }],
+    [{ to: R(0, 4.4), within: 0.4, run: false }, { name: 'Kröten treffen, solange sie sichtbar sind', shootR: ['r8_k2', 'r8_k1', 'r8_k3'], dist: 4, slack: 2.5, min: 1, visible: true, gap: 20 }],
+    [{ name: 'Stampfattacke auf die Rankenköpfe', poundOn: ['r9_r1', 'r9_r2', 'r9_r3'], back: 1.4 }],
+    [{ name: 'mit der Pilz-Maske die Hammer-Werfer anspringen', stompAll: ['r10_w2', 'r10_w1', 'r10_w3'], lineUp: true }],
+  ];
+  return L[i];
+}
 
 // ====================================================================================================================
 // Prüfstand
@@ -536,6 +562,13 @@ function install() {
     riese: () => P().power === 'riese',
     wandSteht: () => L.entities.filter((e) => e.kind === 'steinblock' && !e.removed && !e.broken && e.alive !== false).length === 30,
     zweiS4Weg: () => ['s4_1', 's4_2'].every((id) => { const e = L.entities.find((x) => x.spec?.id === id); return !e || e.defeated || e.removed || !e.alive; }),
+    // P-Haus
+    tuermeAmPow: () => {
+      const pw = L.entities.find((e) => e.kind === 'pow' && e.spec?.id === 'r6_pow' && !e.removed);
+      if (!pw) return true;
+      const ts = L.entities.filter((e) => e.kind === 'pilzlingsturm' && e.spec?.roomId === 'r6' && e.alive && !e.defeated && !e.removed);
+      return ts.every((t) => Math.hypot(t.pos.x - pw.pos.x, t.pos.z - pw.pos.z) < 5.4);
+    },
     // P-7
     onFinale7: () => at(53, 67, 1, -175, -191),
     onStartYard: () => onGround() && at(-6, 6, 1.2, 10, -7),
@@ -625,6 +658,7 @@ function install() {
       const settle = () => { for (let k = 0; k < 300 && p.mode !== 'ground' && !p.dead; k++) tick({}); };
       for (let li = 0; li < legs.length; li++) {
         const Lg = legs[li];
+        if (o.house && L.house && L.house.phase !== 'play') { log.push(['Raum vorbei', L.house.phase]); break; }
         if (p.dead || L.runtime.status !== 'play') {
           if (Lg.until && COND[Lg.until]?.()) { log.push(['bis', Lg.until, 0]); continue; }
           if (!(Lg.wait || Lg.expect || Lg.until)) break;
@@ -648,6 +682,67 @@ function install() {
         if (Lg.power) { p.setPower(Lg.power); log.push(['power', Lg.power]); continue; }
         if (Lg.dump) { log.push(['übrig', Lg.dump, L.entities.filter((e) => e.kind === Lg.dump && e.alive && !e.removed && !e.hidden).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)])]); continue; }
         if (Lg.unmask) { p.dropHelmet?.('gone'); log.push(['Maske ab', p.helmet ?? null]); continue; }
+        // ------------------------------------------------ Kampf-Raum: Gegner der Reihe nach auf Abstand dist anvisieren (radial heran bzw. zurück), zu ihm
+        // drehen, Aktion (Feuerball mit der Funkenblüte, Tatzenhieb mit dem Krallen-Anzug); visible: nur solange er verwundbar ist
+        if (Lg.shootR) {
+          const ids = Lg.shootR, done = [];
+          const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+          const alive = (e) => e && e.alive && !e.defeated && !e.removed;
+          for (const id of ids) {
+            const e = ent(id);
+            if (!alive(e)) { if (e) done.push(id); continue; }
+            let k = 0, shots = 0, cool = 0;
+            const want = Lg.dist ?? 4.5;
+            for (; k < (Lg.max ?? 1100) && alive(e) && !p.dead && !(o.house && L.house?.phase !== 'play'); k++) {
+              if (cool > 0) cool--;
+              const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (p.mode !== 'ground') { tick({}); continue; }
+              const tooFar = d > want + (Lg.slack ?? 0.6), tooNear = d < (Lg.min ?? want - (Lg.slack ?? 0.6));
+              if (tooFar || tooNear) { const s = tooFar ? 1 : -1; tick({ ...this.stick(dx * s, dz * s, Math.max(0.3, Math.min(1, Math.abs(d - want) / 1.2))), run: !!Lg.run }); continue; }
+              const yawWant = Math.atan2(-dz, dx);
+              if (Math.abs(wrap(yawWant - p.yaw)) > (Lg.aim ?? 0.08)) { tick({ ...this.stick(dx, dz, 0.12) }); continue; }
+              if (Lg.visible && !e.vulnerable) { tick({}); continue; }
+              if (cool <= 0) { tick({ action: true }); shots++; cool = Lg.gap ?? 30; continue; }
+              tick({});
+            }
+            if (!alive(e)) { done.push(id); mech.stomped.push(id); }
+            log.push(['anvisiert', id, !alive(e), shots, k]);
+          }
+          for (let i = 0; i < 20; i++) tick({});
+          if (done.length < ids.length && !Lg.partial) log.push(['FEHLER: nicht alle besiegt', ids.filter((x) => !done.includes(x)).join(' ')]);
+          continue;
+        }
+        // ------------------------------------------------ Stampfattacke auf Köpfe (Rankenschnapper: e.head) bzw. Gegner der Reihe nach
+        if (Lg.poundOn) {
+          const done = [];
+          for (const id of Lg.poundOn) {
+            const e = ent(id);
+            let tries = 0;
+            while (e && e.alive && !e.defeated && !e.removed && tries++ < (Lg.tries ?? 4) && !p.dead && !(o.house && L.house?.phase !== 'play')) {
+              const tgt = () => e.head ?? e.pos;
+              // Anlauf: in back m Abstand vor dem Kopf stehen (auf der Seite der Figur)
+              for (let k = 0; k < 400; k++) {
+                const h = tgt(), dx = h.x - p.pos.x, dz = h.z - p.pos.z, d = Math.hypot(dx, dz);
+                if (p.mode === 'ground' && d < (Lg.back ?? 1.6) + 0.3 && d > (Lg.back ?? 1.6) - 0.5) break;
+                if (p.mode !== 'ground') { tick({}); continue; }
+                const s = d > (Lg.back ?? 1.6) ? 1 : -1;
+                tick({ ...this.stick(dx * s, dz * s, Math.max(0.3, Math.min(1, Math.abs(d - (Lg.back ?? 1.6))))), run: false });
+              }
+              let k = 0, pounding = false;
+              for (; k < 400; k++) {
+                const h = tgt(), dx = h.x - p.pos.x, dz = h.z - p.pos.z, d = Math.hypot(dx, dz);
+                if (k > 5 && p.mode === 'ground') break;
+                if (!pounding && k > 8 && d < 0.35 && p.vel.y < 3 && p.pos.y > h.y + 0.2) pounding = true;
+                tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(h.x, h.z, 0, 0, 3, 6) : this.stick(dx, dz, 1)), jump: k < 34, run: false });
+              }
+              for (let q = 0; q < 30; q++) tick({});
+            }
+            if (!e || !e.alive || e.defeated || e.removed) { done.push(id); mech.stomped.push(id); }
+            log.push(['stampfattacke', id, !e || !e.alive || e.defeated || e.removed, tries]);
+          }
+          if (done.length < Lg.poundOn.length && !Lg.partial) log.push(['FEHLER: nicht alle besiegt', Lg.poundOn.filter((x) => !done.includes(x)).join(' ')]);
+          continue;
+        }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
@@ -1042,6 +1137,7 @@ function install() {
         let e = null, best = Infinity;
         for (const x of L.entities) { if (!match(x)) continue; const d = Math.hypot(x.pos.x - p.pos.x, x.pos.z - p.pos.z) + Math.abs(x.pos.y - p.pos.y) * 0.5; if (d < best) { best = d; e = x; } }
         if (!e || best > (o.range ?? 40)) break;
+        if (window.__trace && n % 30 === 0) (window.__clog ??= []).push([n, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1), p.state, +e.pos.x.toFixed(1), +e.pos.z.toFixed(1), e.state ?? '']);
         if (e.touch === false && kind === 'star') { p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); continue; }
         const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
         const dy = e.pos.y - p.pos.y;
@@ -1097,9 +1193,9 @@ function install() {
         stamp: !!d.stamp, stars: (d.stars ?? []).length, world: d.world, title: d.title, timeLimit: d.timeLimit, rtLimit: L.runtime.timeLimit,
         schollen: [...L.named.values()].filter((h) => h?.shape?.tag === 'sinkscholle').length,
         pfeil: (w7.arrows ?? []).length,
-        qGleit: d.blocks.filter((b) => b.kind === 'question' && b.content === 'gleitblatt').length,
-        qSichel: d.blocks.filter((b) => b.kind === 'question' && b.content === 'sichel').length,
-        rbTask: !!d.items.find((i) => i.id === 'rb2')?.task,
+        qGleit: (d.blocks ?? []).filter((b) => b.kind === 'question' && b.content === 'gleitblatt').length,
+        qSichel: (d.blocks ?? []).filter((b) => b.kind === 'question' && b.content === 'sichel').length,
+        rbTask: !!(d.items ?? []).find((i) => i.id === 'rb2')?.task,
         house: L.house ? { rooms: L.house.rooms } : null,
         p6: d.id === 'P-6' ? {
           chain: ['w_lr', 'w2_aus', 'lr_out', 'w_ziel', 'w4_aus'].map((id) => `${id}>${d.items.find((i) => i.id === id)?.target}`).join(','),
@@ -1122,13 +1218,19 @@ function install() {
 
 const allErrors = [];
 let loaded = null;
-async function load(id) {
+const SAVE = 'lotti-greta-course-v1';
+async function load(id, o = {}) {
   allErrors.push(...errors);
   errors.length = 0;
-  if (loaded === id) {
+  if (loaded === id && !o.fresh) {
     await sc(() => { window.__oldLevel = window.__course.level; window.__course.restartLevel(); });
     await page.waitForFunction(() => window.__course && window.__course.level && window.__course.level !== window.__oldLevel && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
   } else {
+    if (o.fresh) {
+      // frischer Spielstand (Kampf-Haus: Ergebnis wird gespeichert)
+      await page.goto(`http://localhost:${port}/?course=0-0&scale=2&adapt=0`, { waitUntil: 'load', timeout: 120000 });
+      await page.evaluate((k) => localStorage.removeItem(k), SAVE);
+    }
     await page.goto(`http://localhost:${port}/?course=${encodeURIComponent(id)}&scale=2&adapt=0`, { waitUntil: 'load', timeout: 120000 });
     try {
       await page.waitForFunction(() => window.__course && window.__course.level && window.__game.scene.isActive('CourseUI'), null, { timeout: 90000 });
@@ -1141,8 +1243,135 @@ async function load(id) {
   }
   await page.waitForTimeout(300);
   await sc(install);
+  if (o.hero) await sc((h) => { const c = window.__course; c.player.setHero(h); c.level.runtime.save.lives = 9; }, o.hero);
   if (process.env.TRACE) await sc(() => { window.__trace = true; });
   return true;
+}
+
+// ====================================================================================================================
+// Kampf-Haus P-Haus: zehn Räume nacheinander (echte Eingaben), Gegenproben, Bilder
+// ====================================================================================================================
+function installHaus() {
+  const c = window.__course, L = c.level, PB = window.__pb;
+  const A = () => c.arch.info();
+  const waitPlay = (i, max = 1500) => { let n = 0; while (!(A().room === i && A().phase === 'play') && n++ < max) { c.setInput({}); c.step(1); } return A().room === i && A().phase === 'play'; };
+  const waitClear = (i, max = 1600) => { let n = 0; while (A().room === i && A().phase === 'play' && !L.player.dead && n++ < max) { c.setInput({}); c.step(1); } for (let k = 0; k < 240 && A().flying; k++) c.step(1); return n; };
+  window.__haus = {
+    A, waitPlay, waitClear,
+    solve(i, legs, o = {}) {
+      if (!waitPlay(i)) return { error: 'kein Start', a: A() };
+      const p = L.player, t0 = L.time, h0 = p.hurtTries ?? 0;
+      const power0 = p.power, helmet0 = p.helmet ?? null;
+      const res = PB.drive(legs, { house: true, invuln: o.invuln });
+      const t = +(L.time - t0).toFixed(2);
+      waitClear(i);
+      const got = !!L.runtime.stars[i];
+      return { t, got, clog: window.__clog?.splice(0), log: res.log.filter((l) => l[0] !== 'spur'), hurts: (p.hurtTries ?? 0) - h0, a: A(), dead: p.dead, power0, helmet0, defeated: res.mech.stomped };
+    },
+  };
+  return true;
+}
+
+async function hausRun(id) {
+  const RAUM = process.env.RAUM ? Number(process.env.RAUM) - 1 : null;
+  for (const hero of HEROES) {
+    if (!(await load(id, { fresh: true, hero }))) { check(`${id} lädt`, false); return; }
+    await sc(installHaus);
+    const Z0 = await sc(() => window.__course.level.data._haus.Z0);
+    let all = true;
+    for (let i = 0; i < 10; i++) {
+      if (RAUM !== null && i !== RAUM) continue;
+      const r = await sc(([k, legs, Rm]) => {
+        const c = window.__course;
+        if (Rm !== null && c.arch.info().room !== k) c.arch.enterRoom(k);
+        return window.__haus.solve(k, legs);
+      }, [i, hausLegs(i, Z0[i]), RAUM]);
+      const ok = r.got && !r.error && r.t < 10;
+      all = all && ok;
+      check(`${id}: ${hero} Raum ${i + 1} ${HAUS_NAMEN[i]} in ${r.t} s (< 10 s; Werkzeug ${KAPSELN[i]}, Treffer-Versuche ${r.hurts})`, ok);
+      if (process.env.VERBOSE || !ok) { console.log(`       ${JSON.stringify(r.a)} tot ${r.dead}`); for (const l of r.log ?? []) console.log('      ', JSON.stringify(l)); for (const l of r.clog ?? []) console.log('       jagd', JSON.stringify(l)); }
+      if (!ok) break;
+    }
+    if (RAUM === null && all) {
+      const fin = await sc((k) => {
+        const c = window.__course;
+        for (let q = 0; q < 2400 && !c.finished; q++) c.step(1);
+        const save = JSON.parse(localStorage.getItem(k) ?? '{}');
+        return { finished: c.finished, res: c.lastResult ?? null, a: c.arch.info(), save: save.levels?.['P-Haus'] ?? null };
+      }, SAVE);
+      check(`${id}: ${hero} Ergebnis 10/10 Sterne gespeichert (${(fin.res?.stars ?? []).map(Number).join('')})`,
+        fin.finished && fin.res?.stars?.filter(Boolean).length === 10 && fin.save?.stars?.filter(Boolean).length === 10 && !fin.a.exited);
+    }
+  }
+}
+
+/** Gegenproben: ohne Werkzeug der Kraftkapsel halten Flämmchen, Schneesäulen und Bullen stand; Zeitablauf verlässt das Haus. */
+async function hausExtra(id) {
+  if (!(await load(id, { fresh: true, hero: 'lotti' }))) { check(`${id} lädt`, false); return; }
+  await sc(installHaus);
+  const Z0 = await sc(() => window.__course.level.data._haus.Z0);
+  const run = (i, legs, o = {}) => sc(([k, lg, oo]) => {
+    const c = window.__course, L = c.level, H = window.__haus, p = L.player;
+    for (let q = 0; q < 900 && (p.dead || L.runtime.status !== 'play' || c.arch.info().phase !== 'play'); q++) { c.setInput({}); c.step(1); }
+    if (c.arch.info().room !== k) c.arch.enterRoom(k);
+    const kap = L.named.get('kapseln');
+    kap.off = !!oo.ohne;
+    H.waitPlay(k);
+    const res = window.__pb.drive(lg, { house: true });
+    const foes = L.entities.filter((e) => e.enemy && e.spec?.roomId === `r${k + 1}` && !e.removed);
+    const out = { power: p.power, helmet: p.helmet ?? null, alive: foes.filter((e) => e.alive && !e.defeated).length, hp: foes.map((e) => e.hp ?? e.segments ?? e.count ?? null),
+      hurts: res.mech.hurts, star: !!L.runtime.stars[k], log: res.log.filter((l) => l[0] !== 'spur').slice(-6) };
+    kap.off = false;
+    return out;
+  }, [i, legs, o]);
+  const R = (i, x, u) => [x, Z0[i] - u];
+  const g = {};
+  g.flamme = await run(6, [{ stompAll: ['r7_f1'], max: 480, partial: true }], { ohne: true });
+  g.saeule = await run(1, [{ stompAll: ['r2_s2'], max: 200, partial: true }, { to: R(1, 0, 4), within: 0.5, run: false, max: 200, partial: true }], { ohne: true });
+  g.bulle = await run(0, [{ stompAll: ['r1_b2'], max: 180, partial: true }, { to: R(0, 0, 4), within: 0.5, run: false, max: 200, partial: true }], { ohne: true });
+  for (const [k, v] of Object.entries(g)) console.log(`       ${k}: ${JSON.stringify(v)}`);
+  check(`${id}: ohne Funkelstern sind die Funkenflämmchen heiß – Draufspringen besiegt keins (${g.flamme.alive} übrig, Treffer-Versuche ${g.flamme.hurts})`, g.flamme.power === 'none' && g.flamme.alive === 3 && g.flamme.hurts > 0 && !g.flamme.star);
+  check(`${id}: ohne Funkenblüte nimmt Draufspringen nur Segmente ab (Säulen ${g.saeule.hp.join('/')}, alle stehen)`, g.saeule.power === 'none' && g.saeule.alive === 3 && g.saeule.hp.some((n) => n < 4));
+  check(`${id}: ohne Riesentrank kostet ein Sprung den Bullen nur 1 hp (hp ${g.bulle.hp.join('/')})`, g.bulle.power === 'none' && g.bulle.alive === 3 && g.bulle.hp.some((n) => n === 2));
+
+  // Zeitablauf: zwei Räume lösen, im dritten nichts tun → Haus verlassen, Ergebnis 2 von 10 Sternen gespeichert
+  if (!(await load(id, { fresh: true, hero: 'greta' }))) return;
+  await sc(installHaus);
+  const z = await sc(([l0, l1, k]) => {
+    const c = window.__course, H = window.__haus;
+    const r = [H.solve(0, l0), H.solve(1, l1)].map((o) => [o.t, o.got]);
+    H.waitPlay(2);
+    let n = 0;
+    for (; n < 2400 && !c.finished; n++) { c.setInput({}); c.step(1); }
+    const save = JSON.parse(localStorage.getItem(k) ?? '{}');
+    return { r, n, a: c.arch.info(), res: c.lastResult ?? null, save: save.levels?.['P-Haus'] ?? null, finished: c.finished };
+  }, [hausLegs(0, Z0[0]), hausLegs(1, Z0[1]), SAVE]);
+  console.log('      ', JSON.stringify({ r: z.r, n: z.n, exited: z.a.exited, timeouts: z.a.timeouts, stars: z.res?.stars, save: z.save?.stars }));
+  check(`${id}: Zeitablauf in Raum 3 → Haus verlassen, Ergebnis 2 von 10 Sternen gespeichert`, z.finished && z.a.exited && z.a.timeouts === 1 && z.res?.stars?.filter(Boolean).length === 2 && z.save?.stars?.filter(Boolean).length === 2);
+}
+
+/** Bilder je Raum: nach der Überblendung und mitten im Kampf (nach 2,5 s der Raum-Beine). */
+async function hausShots(id) {
+  if (!(await load(id, { fresh: true, hero: 'lotti' }))) return;
+  await sc(installHaus);
+  const Z0 = await sc(() => window.__course.level.data._haus.Z0);
+  for (let i = 0; i < 10; i++) {
+    if (SHOTS && !SHOTS.has(`raum${i + 1}`) && !SHOTS.has(`kampf${i + 1}`)) continue;
+    await sc((k) => { const c = window.__course; if (c.arch.info().room !== k) c.arch.enterRoom(k); window.__haus.waitPlay(k); for (let q = 0; q < 6; q++) c.step(1); }, i);
+    if (!SHOTS || SHOTS.has(`raum${i + 1}`)) await shot(`${id}_raum${i + 1}`);
+    if (!SHOTS || SHOTS.has(`kampf${i + 1}`)) {
+      await sc(([legs]) => {
+        const c = window.__course, L = c.level, t0 = L.time;
+        const lg = legs.map((x) => ({ ...x }));
+        // nur die ersten 2,5 s des Kampfes
+        const stopAt = t0 + 2.5;
+        const orig = c.step.bind(c);
+        c.step = (n) => { if (L.time < stopAt) orig(n); };
+        try { window.__pb.drive(lg, { house: true }); } finally { c.step = orig; }
+      }, [hausLegs(i, Z0[i])]);
+      await shot(`${id}_kampf${i + 1}`);
+    }
+  }
 }
 
 const W = (name, ...args) => sc(([n, a]) => window.__pb[n](...a), [name, args]);
@@ -1188,6 +1417,24 @@ for (const id of LEVELS) {
     }
     for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${r.kinds[kind] ?? 0})`, (r.kinds[kind] ?? 0) === n);
     for (const m of R.remixChecks ?? []) check(`${id}: ${m.name}`, m.ok(r));
+    if (R.house) {
+      const d = await sc(() => {
+        const L = window.__course.level, D = L.data, H = D.house;
+        const per = H.rooms.map((rm) => L.entities.filter((e) => e.enemy && e.spec?.roomId === rm.id && !e.removed).length);
+        return { goals: H.rooms.map((rm) => rm.goal), times: H.rooms.map((rm) => rm.time), fail: H.fail, starCount: L.runtime.starCount, per, kapseln: D._haus.kapseln.map((k) => k.power ?? k.helmet ?? '-'), arch: D.archetype };
+      });
+      console.log(`  Räume: ${d.goals.join(', ')} · Gegner je Raum ${d.per.join('/')} · Kraftkapseln ${d.kapseln.join(', ')}`);
+      check(`${id}: Archetyp house, 10 Kampf-Räume (defeatAll) à 10 s, 10 Sterne, fail 'exit'`, d.arch === 'house' && d.goals.length === 10 && d.goals.every((g) => g === 'defeatAll') && d.times.every((t) => t === 10) && d.fail === 'exit' && d.starCount === 10);
+      check(`${id}: Gegner je Raum wie im Bauplan 3/3/2/3/1/3/3/3/3/3 (${d.per.join('/')})`, d.per.join('/') === '3/3/2/3/1/3/3/3/3/3');
+    }
+  }
+
+  // ------------------------------------------------ Kampf-Haus (eigener Ablauf)
+  if (R.house) {
+    if (PARTS.has('haus')) await hausRun(id);
+    if (PARTS.has('haus-extra')) await hausExtra(id);
+    if (PARTS.has('shots') && !ONLY) await hausShots(id);
+    continue;
   }
 
   // ------------------------------------------------ Gegenprobe: das Basislevel bleibt unverändert
