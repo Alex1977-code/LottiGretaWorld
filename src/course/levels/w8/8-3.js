@@ -64,11 +64,14 @@ export const LEVEL = {
 
     // ================================================================ 2 Zahnradwand
     isl(-12, 12, -92, -98, T, T + 6, { top: 'grass' }),                                   // die Wand (Oberkante y 16)
-    isl(-8.4, -0.4, -90, -92, Y + 5.8, 1.2, { top: 'grass' }),                             // Sims 1 (links)
-    isl(-1.4, 3.6, -90, -92, Y + 11.6, 1.2, { top: 'grass' }),                             // Sims 2 (Mitte)
-    { type: 'keks_zahnrad', id: 'wand1', axis: 'z', pos: [4, Y + 3.6, -90.4], radius: 3, teeth: 8, thick: 1.6, speed: 0.4 },
-    { type: 'keks_zahnrad', id: 'wand2', axis: 'z', pos: [-6, Y + 11, -90.4], radius: 3, teeth: 8, thick: 1.6, speed: 0.4 },
-    { type: 'keks_zahnrad', id: 'wand3', axis: 'z', pos: [8, Y + 12.6, -90.4], radius: 3, teeth: 8, thick: 1.6, speed: 0.4 },
+    isl(-8.4, -0.4, -90, -92, Y + 5.8, 1.2, { top: 'grass' }),                             // Sims (links)
+    { type: 'keks_zahnrad', id: 'wand1', axis: 'z', pos: [4, Y + 3.6, -90.4], radius: 3, teeth: 8, thick: 1.6, speed: 0.4 },   // Paternoster
+    { type: 'keks_zahnrad', id: 'stufe1', pos: [-6, Y + 7.7, -90.2], radius: 1.8, teeth: 8, speed: 0.5, icing: 'rosa', post: false },
+    { type: 'keks_zahnrad', id: 'stufe2', pos: [-1.2, Y + 10.2, -90.2], radius: 1.8, teeth: 8, speed: -0.5, icing: 'gruen', post: false },
+    { type: 'keks_zahnrad', id: 'stufe3', pos: [3.6, Y + 12.7, -90.2], radius: 1.8, teeth: 8, speed: 0.5, icing: 'weiss', post: false },
+    // Zier: große Zahnräder halb in der Wand (drehen sich, unerreichbar)
+    { type: 'keks_zahnrad', id: 'zier1', axis: 'z', pos: [-9.6, Y + 12.2, -92.9], radius: 2.6, teeth: 8, thick: 1.2, speed: -0.3, icing: 'schoko' },
+    { type: 'keks_zahnrad', id: 'zier2', axis: 'z', pos: [10.2, Y + 9.6, -92.9], radius: 2.2, teeth: 8, thick: 1.2, speed: 0.35, icing: 'rosa' },
 
     // ================================================================ 3 Ameisenstraße (oben)
     isl(-8, 8, -98, -196, T, 6, { top: 'grass' }),

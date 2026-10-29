@@ -50,21 +50,23 @@ const ROUTES = {
       { to: [2.5, -75], within: 0.4 },
       { name: 'Platz 3', to: [2.5, -80], jump: 24, jumpAt: 9, within: 0.6 },
       { to: [-0.2, -90.4], within: 0.4 },
-      { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8 },
-      { to: [-7.8, -91], within: 0.3, run: false },
-      { name: 'Zahnradwand 2', gear: 'wand2', board: [-7.8, -91], off: Y + 13.4, to: [0.4, -91], min: 0.9, max: 2.4 },
-      { to: [3, -91], within: 0.3, run: false },
-      { name: 'Zahnradwand 3', gear: 'wand3', board: [3, -91], off: Y + 15.4, to: [5, -95], min: 0.9, max: 2.4 },
+      { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8, hold: 6 },
+      { to: [-2.9, -90.6], within: 0.3, run: false },
+      { name: 'Zahnrad-Stufe 1', cog: 'stufe1', to: [-6, -90.2] },
+      { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.2, -90.2] },
+      { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3.6, -90.2] },
+      { name: 'auf die Wand', cog: null, to: [3.6, -94.5], top: 16 },
       { expect: '=P().pos.y > 15.5' },
     ],
     targets: [
       { name: 'WANDTEST', from: [0, Y, -84], star: 0, legs: [
         { to: [-0.2, -90.4], within: 0.4 },
-        { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8 },
-        { to: [-7.8, -91], within: 0.3, run: false },
-        { name: 'Zahnradwand 2', gear: 'wand2', board: [-7.8, -91], off: Y + 13.4, to: [0.4, -91], min: 0.9, max: 2.4 },
-        { to: [3, -91], within: 0.3, run: false },
-        { name: 'Zahnradwand 3', gear: 'wand3', board: [3, -91], off: Y + 15.4, to: [5, -95], min: 0.9, max: 2.4 },
+        { name: 'Zahnradwand 1 (Paternoster)', gear: 'wand1', board: [-0.2, -90.4], off: Y + 5.6, to: [-1.8, -91], max: 2.2, reach: 1.8, hold: 6 },
+        { to: [-2.9, -90.6], within: 0.3, run: false },
+        { name: 'Zahnrad-Stufe 1', cog: 'stufe1', to: [-6, -90.2] },
+        { name: 'Zahnrad-Stufe 2', cog: 'stufe2', to: [-1.2, -90.2] },
+        { name: 'Zahnrad-Stufe 3', cog: 'stufe3', to: [3.6, -90.2] },
+        { name: 'auf die Wand', cog: null, to: [3.6, -94.5], top: 16 },
       ] },
     ],
     extra: [],
@@ -662,6 +664,23 @@ function install() {
           log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ liegendes Zahnrad als Stufe: von der aktuellen Stelle hinauf springen, dann zur Mitte
+        if (Lg.cog !== undefined) {
+          const h = Lg.cog ? L.named.get(Lg.cog) : null;
+          const [tx, tz] = Lg.to;
+          const top0 = p.pos.y;
+          let k = 0, landed = false;
+          for (; k < 300 && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z;
+            if (k > 12 && p.mode === 'ground') { landed = p.pos.y > top0 + 0.8; break; }
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 7) : this.stick(dx, dz, 1)), run: false, jump: k < 40 });
+          }
+          // auf dem Drehteller zur Mitte (Drehung nimmt mit)
+          for (let n = 0; n < 120 && !p.dead && h; n++, k++) { const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.4) break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d))), run: false }); }
+          log.push(['stufe', Lg.cog, landed, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!landed || (Lg.top && p.pos.y < Lg.top - 0.2)) log.push(['FEHLER: Stufe nicht erreicht', Lg.cog]);
+          continue;
+        }
         // ------------------------------------------------ stehendes Keks-Zahnrad (Paternoster): auf einen steigenden Zahn springen, mitfahren, oben abspringen
         if (Lg.gear) {
           const h = L.named.get(Lg.gear);
@@ -685,7 +704,7 @@ function install() {
             const dx = t.x - p.pos.x, dz = t.z - p.pos.z, d = Math.hypot(dx, dz);
             if (!on && p.mode === 'ground' && Math.abs(p.pos.y - t.y) < 0.15 && d < 0.7) on = true;
             if (on && t.y >= (Lg.off ?? 99)) break;
-            if (!on) tick({ ...(p.mode === 'air' ? this.airSteer(t.x, t.z, 0, 0, 4, 6) : this.stick(dx, dz, 1)), run: false, jump: n < 40 });
+            if (!on) tick({ ...(p.mode === 'air' ? this.airSteer(t.x, t.z, 0, 0, 4, 6) : this.stick(dx, dz, 1)), run: false, jump: n < (Lg.hold ?? 40) });
             else tick(d > 0.12 ? { ...this.stick(dx, dz, Math.min(1, d * 1.5)), run: false } : {});
           }
           // abspringen zum Ziel: erst auf dem Zahn Anlauf nehmen (Richtung Ziel), dann springen
