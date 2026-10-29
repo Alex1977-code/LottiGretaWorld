@@ -724,24 +724,31 @@ function cannonStation(ev, x, y, z) {
     brett.root.rotation.y = bv <= 0 ? PI / 2 : -PI / 2;
   });
   if (brett) cullByView(ev, brett.root, rx, ry + 1, rz0 - rl / 2, rl / 2 + 2, 60);
-  // Sternkanone (eigene Geometrie) schießt eine Kanonenkugel mit Gesicht im Bogen hinaus ins All
+  // Sternkanone (eigene Geometrie, schräg nach Osten gerichtet) schießt eine Kanonenkugel mit Gesicht im Bogen hinaus ins All
   const cpos = [x + 11, y, z + 2];
+  const TILT = 0.85, dirX = Math.sin(TILT), dirY = Math.cos(TILT);
   addGeo(ev, 'w9m:cannon', () => {
     const b = new Build();
-    b.cyl(1.0, 1.2, 0.8, 0x5a6488, { p: [0, 0.4, 0] }, 12);
-    b.cyl(0.62, 0.7, 2.8, { v: (px, py) => mix(0x2a2e4a, 0x6a7090, py / 2.8 + 0.5) }, { p: [0, 1.9, -0.6], r: [-0.6, 0, 0] }, 12);
-    b.torus(0.66, 0.12, 0xffc83a, { p: [0, 2.9, -1.25], r: [PI / 2 - 0.6, 0, 0] }, 4, 14);
+    b.cyl(1.0, 1.25, 0.7, { v: (px, py) => mix(0x4a5478, 0x8a96b8, py / 0.7 + 0.5) }, { p: [0, 0.35, 0] }, 14);
+    b.cyl(0.62, 0.72, 2.8, { v: (px, py) => (Math.abs(py) > 1.05 ? 0xffc83a : mix(0x2a3a8a, 0x5a7ad8, py / 2.8 + 0.5)) }, { p: [0.25 + dirX * 0.9, 1.25 + dirY * 0.9, 0], r: [0, 0, -TILT] }, 14);
+    b.cyl(0.78, 0.78, 0.22, 0xff5a7a, { p: [0.25 + dirX * 2.2, 1.25 + dirY * 2.2, 0], r: [0, 0, -TILT] }, 14);
+    for (const s2 of [-1, 1]) {
+      b.cyl(0.62, 0.62, 0.22, 0xffc83a, { p: [0.1, 0.75, s2 * 0.9], r: [PI / 2, 0, 0] }, 14);
+      b.cyl(0.2, 0.2, 0.3, 0x2a2a3a, { p: [0.1, 0.75, s2 * 0.95], r: [PI / 2, 0, 0] }, 8);
+    }
+    b.extrude(new THREE.Shape().moveTo(0, 0.42).lineTo(0.12, 0.13).lineTo(0.4, 0.13).lineTo(0.18, -0.05).lineTo(0.26, -0.34).lineTo(0, -0.16).lineTo(-0.26, -0.34).lineTo(-0.18, -0.05).lineTo(-0.4, 0.13).lineTo(-0.12, 0.13).lineTo(0, 0.42),
+      0.04, 0xfff0a0, { p: [0.25 + dirX * 0.6 - 0.3, 1.25 + dirY * 0.6 + 0.2, 0.7], r: [0, 0, -TILT] }, 0, 1);
     return b.geometry();
   }, ...cpos, 0, true);
-  solidCyl(ev, cpos[0], cpos[2], 1.2, y, y + 3, 'sternkanone');
+  solidCyl(ev, cpos[0], cpos[2], 1.3, y, y + 3, 'sternkanone');
   let bu = 0;
-  const ball = live9(ev, 'kanonenkugel_tritt', { size: 1.6 }, [cpos[0], y + 3.2, cpos[2] - 1.5], FRONT, 1, () => ({ anim: 'fly' }), false, 8000, 70, true);
+  const mx = cpos[0] + 0.25 + dirX * 2.6, my = y + 1.25 + dirY * 2.6, mz = cpos[2];
+  const ball = live9(ev, 'kanonenkugel_tritt', { size: 1.6 }, [mx, my, mz], 0, 1, () => ({ anim: 'fly' }), false, 8000, 70, true);
   if (ball) {
     ev.updaters.push((dt, t) => {
       bu = (t % 4.2) / 4.2;
-      const sx = cpos[0], sy = y + 3.2, sz = cpos[2] - 1.5, dx = 0, dz = -26;
-      ball.root.position.set(sx + dx * bu, sy + 12 * Math.sin(bu * PI) - bu * 8, sz + dz * bu);
-      ball.root.rotation.y = PI / 2;
+      ball.root.position.set(mx + 26 * bu, my + 9 * Math.sin(bu * PI) - bu * 7, mz);
+      ball.root.rotation.y = 0;
       ball.root.scale.setScalar(bu < 0.06 ? bu / 0.06 : bu > 0.9 ? Math.max(0.001, (1 - bu) / 0.1) : 1);
     });
   }
