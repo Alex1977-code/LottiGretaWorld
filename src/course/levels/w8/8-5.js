@@ -99,6 +99,20 @@ function build(level) {
     { color: 0x7af0ff, opacity: 0.45, pulse: 0.4 });
   // Schatztruhen-Glitzern im Münzhimmel (Zier) und Wolken-Kulisse folgen über die Bausteine
   const b = new Bld();
+  // Seeufer: Sandflecken, Seesterne und Muscheln auf dem Steinboden (flach, nur Zier)
+  for (const [x, z, r, c] of [[-3.6, -270.5, 2.2, 0xe8d8a8], [3.8, -279, 2.6, 0xdcc894], [-3.2, -287.5, 2.0, 0xe8d8a8], [3.4, -294.5, 1.8, 0xf0e0b8],
+    [-4.6, -61.8, 1.2, 0xdcc894], [4.4, -171.5, 1.3, 0xe8d8a8]]) {
+    b.cyl(r, r * 1.05, 0.03, x, FL + 0.005, z, c, 18);
+    b.cyl(r * 0.55, r * 0.6, 0.03, x + r * 0.2, FL + 0.012, z - r * 0.15, 0xf6ead0, 14);
+  }
+  for (const [x, z, c, yaw] of [[-2.2, -271.6, 0xff7a4a, 0.3], [4.6, -280.2, 0xff5a8a, 1.1], [-4.2, -288.4, 0xffb84a, 2.0], [2.2, -295.2, 0xc07aff, 0.7], [-3.8, -62.6, 0xff7a4a, 0.5]]) {
+    b.cone(0.42, 0.1, x, FL + 0.02, z, c, 5, { yaw });
+    b.sphere(0.07, x, FL + 0.12, z, 0xfff0d0, { ws: 5, hs: 3 });
+  }
+  for (const [x, z, c] of [[-4.8, -269, 0xffe0f0], [2.6, -277.4, 0xfff0d0], [4.6, -293.2, 0xffd0e0], [-2.8, -296.4, 0xfff0d0]]) {
+    b.sphere(0.24, x, FL + 0.05, z, c, { s: [1, 0.45, 0.8], ws: 8, hs: 4 });
+    for (let k = -1; k <= 1; k++) b.box(0.03, 0.03, 0.36, x + k * 0.1, FL + 0.12, z, 0xe8b8c8, { r: 0, seg: 0, yaw: k * 0.3 });
+  }
   // Steg am Kanal (Holzplanken über dem Wasser bis zu Pflaume)
   for (let i = 0; i < 6; i++) b.box(3.2, 0.12, 0.42, 0, FL - 0.12, -100.4 - i * 0.5, i % 2 ? 0x8a6a3a : 0x9a7a46, { r: 0.02, seg: 0 });
   b.flush(level, { castShadow: false });
