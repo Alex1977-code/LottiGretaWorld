@@ -105,7 +105,7 @@ function build(level) {
   ]);
   leuchtsterne(level, [
     [-9, 5, 4, 1.2], [10, 6, -10, 1.1], [-10, 7, -44, 1.3], [11, 6, -70, 1], [-12, 8, -100, 1.2], [12, 9, -130, 1.4],
-    [-11, 10, -165, 1.1], [12, 13, -186, 1.2], [-12, 18, -200, 1.3], [11, 22, -216, 1.2], [0, 27, -238, 1.8],
+    [-11, 10, -165, 1.1], [12, 13, -186, 1.2], [-21, 20, -196, 1.3], [11, 22, -216, 1.2], [0, 27, -238, 1.8],
   ]);
   funkeln(level, { center: [0, 4, -50], size: [14, 4, 40], n: 34, seed: 4 });
   funkeln(level, { center: [0, 14, -200], size: [12, 8, 24], n: 30, seed: 9, color: 0xffe8b0 });
@@ -199,7 +199,7 @@ export const LEVEL = {
       // Absätze
       { kind: 'kristall', pos: [-6.4, YC + 4.4, -186.4], n: 3, color: 'rosa', size: 0.7 }, { kind: 'kristall', pos: [6.4, YC + 8.8, -195.4], n: 3, color: 'mint', size: 0.7 },
       // unten (Gabelung) und Ziel
-      { kind: 'kristall', pos: [-15.2, YU, -214.2], n: 4, color: 'gold', size: 0.8 }, { kind: 'stern', pos: [-15.2, YU, -204.8], pole: 1.4, size: 0.7 },
+      { kind: 'kristall', pos: [-15.2, YU, -214.2], n: 4, color: 'gold', size: 0.8 }, { kind: 'stern', pos: [-15.4, YU, -210.4], pole: 1.4, size: 0.6 },
       { kind: 'regenbogen', pos: [0, YG, -232.4], width: 7, height: 4.2, yaw: 0 },
       { kind: 'kristall', pos: [3.6, YG, -231.8], n: 4, color: 'lila' }, { kind: 'stern', pos: [-3.8, YG, -222.4], pole: 1.6, size: 0.7 },
     ] },
