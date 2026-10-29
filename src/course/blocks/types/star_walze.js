@@ -23,7 +23,7 @@
 //     x/y) | 'x', thick: 0.5 (Mantel), parts: [{ u, v, w, h, color }] (Kästen im Querschnitt: Mitte u quer, v hoch relativ zur
 //     Achse; ganze Länge, sonst a: [a0, a1] entlang der Achse), turn: 0 (Startstellung 0..3), time: 0.9 (s je Viertel-
 //     drehung), items: [{ kind: 'coin' | …, u, v, a } | { star: id | Index, u, v, a } (Stern aus LEVEL.stars)] (drehen mit), schalter: { pos, id } (Druckknopf
-//     außen, löst eine Vierteldrehung aus), onTurn: Aktion, ends: 'offen' | 'zu' (Stirnwände; offen = Eingänge),
+//     außen, löst eine Vierteldrehung aus), onTurn: Aktion (Stirnseiten bleiben offen = Eingänge),
 //     color: 'holz' | 'birke' }
 //   level.named.get(id) = { turn (0..3), turning, turns, toggle() (= start(), eine Vierteldrehung), info() }; star(level).drums.
 //   Beispiel: { type: 'walzenraum', id: 'raum', pos: [0, 4.5, -90], radius: 4, length: 8,
