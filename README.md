@@ -234,6 +234,25 @@ Welt 5):
 | 7-7 | Ebbe und Glut im Brodelkrater | Vulkan-Lavasee mit steigender und sinkender Lava, Lavadrachen |
 | 7-Burg | Kampfwagen-Duell in der Glutfeste | Lava-Burg, Zugbrücke, Boss Baron Brummbär im Kampfwagen |
 
+**Welt 8 „Brummbär-Rummelplatz“** – das Finale (frei nach 7-Burg über die Röhre „W8“; 8-Burg nach 8-A, 8-B und ab 190 ★).
+Nach dem Sieg in 8-Burg werden die Freunde befreit, es folgt ein eigener **Abspann** (Festwiese mit allen Freunden,
+Musik `course_abspann`); danach zeigt die Karte den befreiten Turm und einen Pokal:
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| 8-1 | Stachelstege der Regenfestung | Regenfestung: Stachelfallen im Takt, Feuer-Werfer, Knochenflieger-Schwärme |
+| 8-2 | Pflaumes Dünenrutsche | Ritt auf Pflaume: Schubfelder, Sandflosser, Sandskulpturen, Baron-Statuen |
+| 8-3 | Keksräder in der Zuckerfabrik | Drehende Kekse und Zahnräder, Zahnradwand, Ameisenstraße |
+| 8-Zug | Brummbär-Express im Abendrot | Zug-Autoscroller, Wutkaulquappen-Becken, zweiter Kampf gegen die Schattenläuferin |
+| 8-4 | Glimmstege der Mitternachtsfestung | Unsichtbare Leuchtstege, die beim Stampfen aufleuchten, Kanonengasse |
+| 8-5 | Flutverlies der Brummbär-Festung | Steigbecken, schwebende Wasserwürfel, Stachelblöcke, kurzer Pflaume-Ritt |
+| 8-Haus | Haus Krallenkraxel | Prüfungs-Haus: 10 Kletterräume à 10 s mit dem Krallen-Anzug |
+| 8-6 | Finsterfahrt im Spiegelspukhaus | Stockdunkel mit Licht-Helm, Kreisgeister, Spiegelbild-Stern, Großspuk-Jagd |
+| 8-7 | Kullerklotz-Ritt durchs Glutinferno | Kristall-Felsklötze rollen über Lava, Stampfen gibt Schwung |
+| 8-A | Goldglibber-Zugabe im Brummbär-Zirkus | Rummel, Hau den Lukas, Seilbahn, Boss goldene Würfelblase |
+| 8-B | Heiße Manege für den rosa Schlangenkönig | Glutgasse mit Lavabrocken-Regen, Riesenrad, Boss rosa Schlangenkönig |
+| 8-Burg | Gipfelsturm am Brummbär-Turm | Dächer, Riesenrad, Turm hinauf; Endboss Baron Brummbär im Krallen-Anzug, Super-POW-Block |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 
