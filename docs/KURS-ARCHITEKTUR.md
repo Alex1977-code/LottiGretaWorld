@@ -8365,3 +8365,27 @@ und Stempel mit beiden Figuren und Gegenproben (Sternringe nicht ohne alle Münz
 Funkenblüte, Krallen-Anzug, Hackvogel hackt Steinblöcke auf, Bossröhre vor dem Halt zu, Leuchtsteg-Proben, je ein Extraleben).
 Gemessen (scale 2, inkl. Schattenpass): 8-Zug Messgang Ø 83, ≤ 101 Zeichenaufrufe / ≤ 199 k Dreiecke, Bilder 44–95 / ≤ 211 k;
 8-4 Messgang Ø 27, ≤ 46 / ≤ 144 k, Bilder 22–47 / ≤ 134 k; 8-5 Messgang Ø 57, ≤ 82 / ≤ 208 k, Bilder 34–84 / ≤ 217 k.
+
+## Präzisierung (Modelle Bonuswelten) (Hauptsitzung)
+
+Kurzübersicht; exakte `opts`/`state` in den Kopfkommentaren von `src/course/models/kinds/gimmicks_star.js`,
+`bahnen_star.js`, `props_weltraum_star.js`, `props_retro_star.js`, `krone_bonus.js`, `src/course/models/lib/starGeos.js`
+und `instanced_star.js`. Test `tests/course_models_star.mjs`.
+
+- **Gimmicks (Spielzeug-Look):** `drehplatte` (`size`, `thick`, `axis 'z'|'x'`, `color`, `back`; `state.tilt`, `shake`),
+  `farbplatte` (`colors [a,b]`; `state.color 0..1`, `flash`), `plattenwand` (eine Platte, fährt nach +X; `state.out`,
+  `warn`), `zielmast_fluegel` (`height` 8; `state.fly`, `flap`, `flagY`), `riesen_frageblock_turm` (`part
+  'segment'|'kopf'`; `state.out`, `anim 'idle'|'bump'`), `wabe` (`kind 'normal'|'lava'|'eis'`, `size` = Umkreisradius,
+  Rasterabstand √3·size; `state.press`, `flash`), `nebelplattform` (`state.fade`), `kanonenkugel_tritt` (Ursprung
+  Kugelmitte; `anim 'idle'|'fly'|'step'`), `diorama_drehscheibe` (`radius`, `height`, `teeth`; `angle|speed`),
+  `laufbombe` (`anim 'idle'|'walk'|'fuse'|'boom'|'carried'|'thrown'`), `felsblock_riss` (`state.break 0..1`),
+  `schienenwalze` (Achse X, Ursprung Laufkante; `radius`, `length`; `angle|speed`, `userData.axleY`),
+  `schienenbrett` (Deck y 0,62; `speed`, `anim 'idle'|'fall'`), `weiche` (`state.dir`, `hit`, `userData.target`).
+- **Kulisse (backbar, ohne Spielzeug-Look):** `walzen_schiene`, `brett_schiene` (`kind 'gerade'|'bogen'`), `planet`
+  (neu additiv `opts.kind 'ring'|'pilz'|'blume'|'eis'`; ohne `kind` unverändert wie Welt 2), `sternschnuppe`,
+  `spielzeugrakete`, `regenbogenweg` (`length`, `width`, `bend`, `rise`; `userData.end`), `wabensaeule`,
+  `weltraum_antenne`, `weltraum_kuppel`, `sternen_torbogen`, `retro_block` (`kind 'gras'|'erde'|'ziegel'|'frage'|'hart'`),
+  `retro_wolke`, `retro_busch`, `riesenpflanze` (`kind 'blume'|'pilz'|'blatt'`), `schneegrab`, `nebelbank`
+  (durchsichtig, nicht backen; für S-8 statt `nebelschwaden` empfohlen); Krone: `krone_podest`, `pokal_gross`.
+- **Instanz-Varianten:** `wabe`, `farbplatte`, `drehplatte`, `retro_block` (je ≤ 900 Dreiecke).
+- **Nicht vorhanden:** `krakenpilz`, `tintling` (Gegner – gehören zum Gegner-Agenten der Bonuswelten).
