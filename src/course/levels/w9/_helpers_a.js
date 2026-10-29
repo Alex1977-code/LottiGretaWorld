@@ -683,6 +683,97 @@ export function trittschalter(level, list) {
   });
 }
 
+/**
+ * Sternblock-Mauer (Bauplan S-1 „Riesentrank-Strecke“): Mauer aus pastellbunten Sternblöcken (ein Mesh, sparsam), fest;
+ * nur der Riesentrank (onHit 'mega'), Bomben und Kanonenkugeln zertrümmern sie (Stampfen, Tatze, Feuer prallen ab –
+ * Kollisionsflag breakable 'bomb'). Beim Zertrümmern: Trümmer, Funken, Münzen (coins), Aktion onBreak.
+ *   { id, x0, x1, z0, z1 (Grundfläche), y (Unterkante), h: 3, block: 1 (Kantenlänge), coins: 3, onBreak }
+ * Laufzeit: broken (0 | 1), by, info(); level.named.get(id).
+ */
+const MAUER_COLS = [0xffd0ec, 0xd8ccff, 0xc8f4e4, 0xfff0b8, 0xc8e4ff];
+const STAR_COLS = [0xff5a9a, 0x8a6aff, 0x2ac890, 0xffb020, 0x3a9aff];
+class Sternmauer extends CourseEntity {
+  constructor(level, spec) {
+    const x0 = Math.min(spec.x0, spec.x1), x1 = Math.max(spec.x0, spec.x1), z0 = Math.min(spec.z0, spec.z1), z1 = Math.max(spec.z0, spec.z1);
+    super(level, { ...spec, pos: [(x0 + x1) / 2, spec.y, (z0 + z1) / 2] }, 'sternmauer');
+    this.touch = false;
+    this.broken = 0;
+    this.by = null;
+    this.box = { x0, x1, z0, z1, y0: spec.y, y1: spec.y + (spec.h ?? 3) };
+    this.half.set((x1 - x0) / 2, (spec.h ?? 3) / 2, (z1 - z0) / 2);
+    this.addShape({ type: 'box', min: [x0, this.box.y0, z0], max: [x1, this.box.y1, z1], breakable: 'bomb', tag: 'sternmauer' });
+    if (level.view) this.buildLook(spec);
+  }
+
+  buildLook(spec) {
+    const { x0, x1, z0, z1, y0, y1 } = this.box;
+    const s = spec.block ?? 1;
+    const nx = Math.max(1, Math.round((x1 - x0) / s)), nz = Math.max(1, Math.round((z1 - z0) / s)), ny = Math.max(1, Math.round((y1 - y0) / s));
+    const sx = (x1 - x0) / nx, sz = (z1 - z0) / nz, sy = (y1 - y0) / ny;
+    const b = new Bld(), g = new Bld();
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, cy = y0;
+    let k = 0;
+    for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++) for (let iz = 0; iz < nz; iz++) {
+      // nur Außenhaut zeichnen
+      if (ix > 0 && ix < nx - 1 && iz > 0 && iz < nz - 1 && iy < ny - 1) continue;
+      const x = x0 + (ix + 0.5) * sx - cx, z = z0 + (iz + 0.5) * sz - cz, y = iy * sy;
+      const ci = (ix * 7 + iy * 3 + iz * 5 + k) % MAUER_COLS.length;
+      b.box(sx - 0.06, sy - 0.06, sz - 0.06, x, y + 0.03, z, litTop(MAUER_COLS[ci], 0.8), { r: 0.1 });
+      // Stern vorn (+z) bzw. seitlich (+x/−x), je nach Lage
+      if (iz === nz - 1) g.star(0.27 * s, 0.12 * s, 0.06, x, y + sy / 2, z + sz / 2 - 0.01, STAR_COLS[ci]);
+      if (nz > nx && ix === 0) g.star(0.27 * s, 0.12 * s, 0.06, x - sx / 2 + 0.01, y + sy / 2, z, STAR_COLS[ci], { yaw: -Math.PI / 2 });
+      if (nz > nx && ix === nx - 1) g.star(0.27 * s, 0.12 * s, 0.06, x + sx / 2 - 0.01, y + sy / 2, z, STAR_COLS[ci], { yaw: Math.PI / 2 });
+    }
+    k++;
+    const root = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45 });
+    const body = b.mesh(mat);
+    body.castShadow = true; body.receiveShadow = true;
+    root.add(body);
+    const starM = g.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, emissive: 0x332200, emissiveIntensity: 0.5 }));
+    if (starM) root.add(starM);
+    root.position.set(cx, cy, cz);
+    this.root = root;
+    this.setModel({ root, update: () => {}, dispose() { body.geometry.dispose(); mat.dispose(); starM?.geometry.dispose(); } });
+  }
+
+  syncModel() { if (this.model) this.model.root.position.set(this.pos.x, this.pos.y, this.pos.z); }
+
+  onHit(kind, source) {
+    if (this.broken) return;
+    if (kind !== 'mega' && kind !== 'bomb' && kind !== 'cannon') return;
+    this.broken = 1;
+    this.by = kind;
+    this.removeShapes();
+    const L = this.level, { x0, x1, z0, z1, y0, y1 } = this.box;
+    L.sfx('brickbreak');
+    L.shake?.(0.25);
+    for (let i = 0; i < 4; i++) L.effects?.debris({ x: x0 + (x1 - x0) * (i + 0.5) / 4, y: y0 + 0.8, z: (z0 + z1) / 2 + (z1 - z0) * ((i % 2) - 0.5) * 0.5 }, MAUER_COLS[i % MAUER_COLS.length], 8);
+    L.effects?.sparks({ x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: (z0 + z1) / 2 }, 20);
+    if (this.spec.coins !== 0) runAction(L, { coins: this.spec.coins ?? 3 }, { pos: [(x0 + x1) / 2, y0 + 1, (z0 + z1) / 2] });
+    if (this.spec.onBreak) runAction(L, this.spec.onBreak, { pos: [(x0 + x1) / 2, y0 + 1, (z0 + z1) / 2], source: this });
+    L.signal?.('sternmauer', { id: this.spec.id ?? null, by: kind });
+    void source;
+  }
+
+  render() {
+    if (!this.model) return;
+    this.model.root.visible = !this.broken;
+  }
+
+  info() { return { broken: this.broken, by: this.by }; }
+}
+
+/** Sternblock-Mauern anlegen: list [{ id, x0, x1, z0, z1, y, h, coins, onBreak }]. */
+export function sternmauern(level, list) {
+  return list.map((q) => {
+    const e = new Sternmauer(level, q);
+    level.entities.push(e);
+    if (q.id) level.named.set(q.id, e);
+    return e;
+  });
+}
+
 // =====================================================================================================================
 // 5) Kulisse
 // =====================================================================================================================

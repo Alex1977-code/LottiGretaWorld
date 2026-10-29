@@ -25,7 +25,7 @@
 import { RiverChannel } from '../../archetypes/RiverNet.js';
 import {
   line, arc, ring, column, sign, regenbogenPlatten, regenbogenBogen, sternenbachThema, sternfackeln, wolkenkanoneSpaeter,
-  flussbloecke, kugeltore, muenzregen, leuchtsterne, planetchen, funkeln, Bld, litTop, gradY,
+  flussbloecke, kugeltore, muenzregen, sternmauern, leuchtsterne, planetchen, funkeln, Bld, litTop, gradY,
 } from './_helpers_a.js';
 
 const Y = 0;          // Plattformen
@@ -151,6 +151,12 @@ function build(level) {
     id: 'kugeltore', balls: ['kugel_rosa', 'kugel_blau'], onAll: { star: 0 },
     goals: [{ pos: [KUGEL.x0 + 4, Y, KUGEL.z1 + 3.2], dir: [0, -1], width: 3, depth: 1.8, color: 0xff7ac8 }, { pos: [KUGEL.x1 - 4, Y, KUGEL.z1 + 3.2], dir: [0, -1], width: 3, depth: 1.8, color: 0x5ab8ff }],
   });
+  // ---------------- Riesentrank-Strecke: Sternblock-Mauern (nur als Riese); links bleibt ein schmaler Pfad
+  sternmauern(level, [
+    ...WALLS.map((z, i) => ({ id: `mauer${i + 1}`, x0: -5, x1: 7, z0: z + 0.5, z1: z - 0.5, y: FY, h: 3, coins: 3 })),
+    { id: 'mauer_nische', x0: 7, x1: 8, z0: NISCHE.z0, z1: NISCHE.z1, y: FY, h: 3, coins: 0 },
+    { id: 'mauer_kaefig', x0: 7, x1: 8, z0: KAEFIG.z0, z1: KAEFIG.z1, y: FY, h: 3, coins: 0 },
+  ]);
   // ---------------- Finale: Münzregen über der Treppe
   muenzregen(level, { id: 'regen', area: [-6, -306, 6, -330], n: 46, height: 11, signal: 'muenzregen', top: 6 });
   // ---------------- Kulisse
@@ -244,13 +250,8 @@ export const LEVEL = {
 
     // =============================================================== 5  Riesentrank-Strecke
     // Sternblock-Mauern: Mitte und rechts nur als Riese; links bleibt ein schmaler Pfad
-    { type: 'megawall', id: 'mauer1', pos: [1, FY, WALLS[0]], size: [12, 3, 1] },
-    { type: 'megawall', id: 'mauer2', pos: [1, FY, WALLS[1]], size: [12, 3, 1] },
-    { type: 'megawall', id: 'mauer3', pos: [1, FY, WALLS[2]], size: [12, 3, 1] },
     // Wolkenhimmel: Wolkenpfad vom Landeplatz zur kleinen Regenbogeninsel über der Strecke
     ...WOLKEN.map(([x, z]) => ({ type: 'cloud', pos: [x, HY - 0.6, z], size: [4, 0.6, 4] })),
-    { type: 'megawall', id: 'mauer_nische', pos: [7.5, FY, (NISCHE.z0 + NISCHE.z1) / 2], size: [1, 3, 12] },
-    { type: 'megawall', id: 'mauer_kaefig', pos: [7.5, FY, (KAEFIG.z0 + KAEFIG.z1) / 2], size: [1, 3, 8] },
     { type: 'pipe', id: 'p_riese', pos: [9.6, FY, -277], height: 1.1, target: 'p_farb' },
     sign(-5.2, FY, -243, 'Als Riese\ndurch die Mauern!', { size: [2.6, 0.9], yaw: 0.2 }),
     // Farbfeld-Raum (abseits)
