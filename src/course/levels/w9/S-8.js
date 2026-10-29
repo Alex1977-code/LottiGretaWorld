@@ -23,7 +23,7 @@
 
 import { PI, line, ring, arc, column, sign, isl, Bld, litTop, grablicht, kruemelAngst, unsichtbareWolke, sternlaterne,
   friedhofstor, schneebaelle, eisenzaun, gruft, kapelle, schneemann, baenke, kerzen, steg, graeber, wege, tannen, laternen,
-  eisteiche, irrlichter, lichterkette, winterbeete, eiszapfen } from './_helpers_d.js';
+  eisteiche, irrlichter, lichterkette, winterbeete, eiszapfen, sumpfZier } from './_helpers_d.js';
 
 const XK = 100;           // Kerzenkammer (Nebenbereich hinter der Kapellentür)
 const XR = -100;          // Nebelkammer (Rätselbox)
@@ -145,6 +145,14 @@ function build(level) {
   winterbeete(level, BEETE);
   eiszapfen(level, [
     { from: [-29.8, 3.62, -83.32], to: [-4.2, 3.62, -83.32], len: 0.55 }, { from: [4.2, 3.62, -83.32], to: [29.8, 3.62, -83.32], len: 0.55 },
+  ]);
+  // ------------------------------------------------ Giftsumpf: leuchtende Pilze auf den Grabinseln, Schilf am Ufer
+  sumpfZier(level, [
+    { pos: [-13.2, 0.4, -114.8] }, { pos: [-9.8, 0.4, -121.2], n: 4 }, { pos: [8.8, 0.4, -150.2] }, { pos: [12.2, 0.4, -144.8], n: 4 },
+    { pos: [13.2, 0.3, -110.8], n: 4 }, { pos: [9.8, 0.3, -115.2] }, { pos: [-12.2, 0.3, -152.8] }, { pos: [-8.8, 0.3, -157.2], n: 4 },
+    { pos: [-5.4, 0, -92.6], n: 4, r: 0.5 }, { pos: [5.6, 0, -173.8], n: 4, r: 0.5 },
+    ...[[-7.4, -95.2], [7.2, -95.6], [-11, -95], [-9.4, -171.6], [9.4, -171.8], [-14.6, -118], [13.6, -147.6], [14.6, -113], [-13.6, -155], [-15, -134], [14.4, -130]]
+      .map(([x, z]) => ({ pos: [x, -0.6, z], kind: 'schilf', n: 6, r: 0.8 })),
   ]);
   // ------------------------------------------------ Nebelfeld: Gräber, Laternen und Tannen ragen aus dem Nebel
   graeber(level, [

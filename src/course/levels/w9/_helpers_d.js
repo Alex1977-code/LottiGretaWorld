@@ -980,6 +980,66 @@ function starGeo(r, depth) {
   return g;
 }
 
+/**
+ * Sumpf-Zier (Kulisse ohne Kollision): list [{ pos, kind: 'pilze' (leuchtende Giftpilze) | 'schilf' (Rohrkolben), n: 5,
+ * r: 0.7 }].
+ */
+const PILZ = [0xc86aff, 0x7affb0, 0xff6ad8, 0x8ad8ff];
+export function sumpfZier(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, n = s.n ?? 5, r = s.r ?? 0.7;
+    for (let i = 0; i < n; i++) {
+      const a = i * 2.39996 + idx, rr = r * Math.sqrt((i + 0.4) / n), px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr;
+      if ((s.kind ?? 'pilze') === 'pilze') {
+        const h = 0.22 + ((i * 7 + idx) % 4) * 0.1, cr = 0.14 + ((i * 3) % 3) * 0.06;
+        b.cyl(0.04, 0.06, h, px, y, pz, 0xf4f0ff, 6);
+        g.sphere(cr, px, y + h, pz, PILZ[(i + idx) % PILZ.length], { s: [1, 0.6, 1], ws: 8, hs: 5 });
+        b.sphere(cr * 0.25, px + cr * 0.4, y + h + cr * 0.4, pz, 0xffffff, { ws: 5, hs: 3 });
+      } else {
+        const h = 0.9 + ((i * 5 + idx) % 4) * 0.25;
+        b.cyl(0.025, 0.035, h, px, y, pz, 0x6a8a4a, 4, { rz: Math.sin(a) * 0.12 });
+        b.cyl(0.07, 0.07, 0.26, px + Math.sin(a) * 0.12 * h * -0.9, y + h - 0.32, pz, 0x7a4a2a, 6);
+        b.box(0.05, 0.5, 0.01, px + 0.06, y, pz, 0x8aaa5a, { yaw: a, rz: 0.3, r: 0 });
+      }
+    }
+  });
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/** Schwebende Asteroiden (Kulisse, ohne Kollision und Schatten): list [{ pos, r: 1.2, color }] – mit Kratern. */
+export function asteroiden(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, r = s.r ?? 1.2, col = s.color ?? [0x8a7aa8, 0x7a8098, 0x9a8a7a][idx % 3];
+    b.add(new THREE.IcosahedronGeometry(r, 1), litTop(col, 0.6), { p: [x, y, z], r: [idx * 0.7, idx * 1.3, 0], s: [1, 0.78, 0.9] });
+    for (let i = 0; i < 4; i++) {
+      const a = i * 1.7 + idx, e = 0.4 - i * 0.25;
+      b.sphere(r * 0.24, x + Math.cos(a) * Math.cos(e) * r * 0.86, y + Math.sin(e) * r * 0.7, z + Math.sin(a) * Math.cos(e) * r * 0.8, new THREE.Color(col).multiplyScalar(0.62).getHex(), { s: [1, 0.45, 1], ws: 7, hs: 4 });
+    }
+  });
+  b.flush(level, { castShadow: false });
+}
+
+/** Leucht-Bojen neben den Gleisen (schweben, Kulisse): list [{ pos, color }] – Scheibe mit Neonring und Lichtkuppel. */
+export function bojen(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, col = NEON[s.color ?? ['cyan', 'pink', 'gold', 'gruen'][idx % 4]] ?? s.color;
+    b.cyl(0.55, 0.4, 0.22, x, y, z, 0xd8e0f4, 12);
+    g.torus(0.56, 0.05, x, y + 0.14, z, col, { rx: PI / 2, ts: 18, rs: 4 });
+    b.cyl(0.08, 0.08, 0.5, x, y + 0.22, z, 0x5a6080, 6);
+    g.sphere(0.16, x, y + 0.8, z, col, { ws: 8, hs: 6 });
+    g.cone(0.22, 0.4, x, y - 0.4, z, 0x8af4ff, 8, { rx: PI });
+  });
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
 /** Weicher Leuchtpunkt (Textur für Irrlichter): heller Kern, sanfter Hof. */
 function softDot() {
   const c = document.createElement('canvas');

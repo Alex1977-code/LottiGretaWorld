@@ -16,7 +16,7 @@
 //    Brett unter das Zieldeck – man steigt dabei aufs Deck → Zielmast.
 // Gegner: Kanonentürme 3 (Projektilköpfe), Krakenpilze 3, Tintlinge 3.
 
-import { PI, line, ring, arc, column, sign, isl, Bld, litTop, sternkapsel, kanonenFrageBloecke, glasdecke, deckZier, signalLampen, tunnelZier, fernSicht, neonBoden, weltraumPflanzen, riffZier, irrlichter, klaresWasser } from './_helpers_d.js';
+import { PI, line, ring, arc, column, sign, isl, Bld, litTop, sternkapsel, kanonenFrageBloecke, glasdecke, deckZier, signalLampen, tunnelZier, fernSicht, neonBoden, weltraumPflanzen, riffZier, irrlichter, klaresWasser, asteroiden, bojen } from './_helpers_d.js';
 
 const Y = -0.62;          // Knotenhöhe für Decks mit Oberseite 0 (Brett-Deck 0,62 m über der Schiene)
 const Y6 = -0.02;         // Knotenhöhe für Decks mit Oberseite 0,6
@@ -126,6 +126,17 @@ function build(level) {
   riffZier(level, RIFF);
   irrlichter(level, [[-8.6, -3.4, -158, 0xff8ad8], [-3.4, -3, -169, 0x8af4ff], [-8.4, -2.8, -186, 0xc8ff6a], [-3.4, -3.6, -197, 0xffb0e8], [-8.6, -3.2, -204, 0x8af4ff],
     [-4, -6, -142, 0xffe27a]].map(([x, y, z, color]) => ({ pos: [x, y, z], color })), { size: 1.6 });
+  // Schwebende Asteroiden unter den Gleisen, Leucht-Bojen neben den Gleisen
+  asteroiden(level, [
+    { pos: [-20, -4, -250], r: 2 }, { pos: [12, -6, -240], r: 1.4 }, { pos: [14, -3, -300], r: 1.8 }, { pos: [-22, -2, -290], r: 1.2 },
+    { pos: [-26, -6, -330], r: 2.4 }, { pos: [10, -8, -335], r: 1.6 }, { pos: [18, 2, -60], r: 1.5 }, { pos: [-20, -5, -45], r: 2 },
+    { pos: [-24, 3, -100], r: 1.4 }, { pos: [14, -5, -100], r: 1.8 }, { pos: [12, -4, -14], r: 1.3 }, { pos: [-18, -7, -200], r: 2.2 },
+  ]);
+  bojen(level, [
+    { pos: [2.6, 0, -16] }, { pos: [-2.6, 0, -42] }, { pos: [-11, 0, -56] }, { pos: [-10.8, 0, -84] }, { pos: [-1.6, 0, -106] },
+    { pos: [-3, 0.6, -238] }, { pos: [-12.6, 0.6, -246] }, { pos: [1.2, 0.6, -262] }, { pos: [-8.4, 0.6, -268] }, { pos: [-13.2, 0.6, -296] },
+    { pos: [0.8, 0.6, -312] }, { pos: [-12.6, 0.6, -324] }, { pos: [-2.6, 0.6, -336] },
+  ]);
   // Sternkapsel am Ende des Sternwegs (Stern 2): Kanonenkugel trifft → der Stern fliegt zur Schützin
   sternkapsel(level, { id: 'kapsel', pos: [-2.4, 1.5, -321], star: 2, r: 0.9 });
 }
