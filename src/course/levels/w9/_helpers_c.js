@@ -1,4 +1,4 @@
-// Hilfen für die Welt-Stern-Level S-6 „Honigwaben im Sternenmeer“ und S-7 „Riesenpilze im Tintenteich-Dschungel“ (kein Level:
+// Hilfen für die Welt-Stern-Level S-6 „Honigwaben im Sternenmeer“ und S-7 „Riesenpilz-Dschungel am Tintenteich“ (kein Level:
 // exportiert kein LEVEL, die Level-Registry überspringt dieses Modul). Nur für diese beiden Level – andere Bonuswelt-Level
 // haben eigene Hilfsdateien. Gemeinsame Dateien werden nicht verändert; alles Level-Lokale hängt sich über die offiziellen
 // Aufbau-Haken an (LEVEL.build / LEVEL.setup) und über level.onStep / view.onFrame.
@@ -7,9 +7,14 @@
 //   2) Waben-Gitter     hexLattice (gleiche Formeln wie der Baustein waben), Wabenmaler (WabenMaler: rect, disc, lane, …),
 //                       Ausgabe als waben-Felder in kleinen Stücken (je Stück eine Hüllkugel – zeichnet nur, was im Bild ist)
 //   3) Mechanik S-6     schalterWaben (Waben-Weg erscheint per Schalter, Umrisse vorher), flinkeTreppe (Waben-Stufen erscheinen
-//                       beim Hinaufsteigen und vergehen hinter einem), leuchtring (Leuchtring unter jeder Figur in der Draufsicht)
-//   4) Mechanik S-7     grossbloecke (2-m-Riesenziegel: Stampfen von oben, Riesentrank, Bombe), riesentrankQuelle (?-Block mit
-//                       Riesentrank füllt sich nach jedem Neustart neu)
+//                       beim Hinaufsteigen und vergehen hinter einem), wabenOhneLoecher (keine Fugen-Löcher an Waben-Ecken),
+//                       muenzenFlach (Münzen liegen in der Draufsicht flach), leuchtring (Leuchtring unter jeder Figur),
+//                       bluemchen (sparsame Blümchen auf Randwaben)
+//   4) Mechanik S-7     grossbloecke (2-m-Riesenziegel: Stampfen von oben, Riesentrank, Bombe; look 'stein': nur Riesentrank/
+//                       Bombe), riesentrankQuelle (?-Block mit Riesentrank füllt sich wieder, sobald niemand mehr riesig ist)
+//   5) Kulisse S-7      riesenpilzPlattform (Hut begehbar), riesenstaemme (Treibholz auf dem Teich), riesenbaeume,
+//                       wurzelsaeulen, dschungelDeko (Riesengras, Klee, Marienkäfer, Schnecken, Beeren, Felsen, Eicheln),
+//                       seerosen (begehbare Seerosenblätter)
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe), Bewegtes je Gruppe als
 // eine Instanz-Gruppe.
 

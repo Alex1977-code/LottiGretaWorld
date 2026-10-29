@@ -1,6 +1,6 @@
 // Welt Stern, Level S-6 „Honigwaben im Sternenmeer“ (Draufsicht über Honigwaben: Wurfsichel, Schalter-Waben, Stachelwalzen,
 // Glasröhre über den Lavasee zur Spiegelfrucht, Käferfeld, Splitterwege mit Feuer-Schnappblumen auf fliegenden Blöcken,
-// Wabenfläche mit Brummern, Zielturm mit flinker Treppe) und S-7 „Riesenpilze im Tintenteich-Dschungel“ (übergroßer Dschungel:
+// Wabenfläche mit Brummern, Zielturm mit flinker Treppe) und S-7 „Riesenpilz-Dschungel am Tintenteich“ (übergroßer Dschungel:
 // Pilzlingstürme, Rutschhang, Riesen-Pilzlingstürme, Riesentrank-Feld mit Großrollpilzen und Steinblock-Wänden, versteckter
 // Gleitblatt-Block, Blockwächter-Wand, Unterwasser mit Tintlingen und Strömungen, Pilz-Trampoline durch zwei Großblock-Lagen,
 // Röhre zum Ziel): Laden ohne Konsolenfehler/-warnungen, Daten (Thema, Musik, Zeit, Sterne, Stempel, Gegnerzahlen), Routen-Bot
