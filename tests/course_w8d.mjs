@@ -87,7 +87,7 @@ const ROUTES = {
       { name: 'Goldener Gelee-Brocken: Draufspringen besiegt ihn (1 Bitcoin)', from: [2.6, 0, 3.6], heroes: ['lotti'], expectCoins: 1,
         legs: [{ chaseKind: 'gelee_brocken', ids: ['gb1'], max: 900 }, { wait: 30 }] },
       { name: 'Goldene Schockwelle trifft, wer am Boden stehen bleibt', from: [0, 8, -80], heroes: ['lotti'], invuln: false,
-        legs: [{ to: [0, -82], within: 0.6 }, { until: 'welleTrifft', max: 120 * 30 }],
+        legs: [{ to: [0, -82], within: 0.6 }, { welle: 'blase' }],
         mech: (r) => r.mech.waveHits >= 1 && r.mech.hurts >= 1, mechText: (r) => `Wellentreffer ${r.mech.waveHits}, Treffer ${r.mech.hurts}`, expectAlive: true },
       { name: 'Wer vom Rummelplatz fällt, stürzt in die Tiefe', from: [10, 0, -12], heroes: ['lotti'], invuln: false, expectAlive: false,
         legs: [{ to: [16.5, -12], within: 0.3, max: 300, autoJump: false }, { wait: 300 }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall', mechText: (r) => `Tod ${r.mech.deathCause}` },
@@ -305,7 +305,7 @@ function install() {
           const n = b.contents.length, per = b.period;
           let k = 0;
           // Sprung dauert bis zum Kopfstoß ≈ 0,22 s: Absprung, wenn der gewünschte Inhalt in dieser Zeit beginnt
-          for (; k < 120 * 6; k++) { const ph = ((L.time + 0.24) / per) % n; if (Math.floor(ph) === Lg.want && ph - Lg.want < 0.35 && p.mode === 'ground') break; tick({}); }
+          for (; k < 120 * 6; k++) { const ph = ((L.time + 0.12) / per) % n; if (Math.floor(ph) === Lg.want && ph - Lg.want > 0.2 && ph - Lg.want < 0.6 && p.mode === 'ground') break; tick({}); }
           const shown = b.current;
           for (let i = 0; i < 30; i++) tick({ jump: true });
           for (let i = 0; i < 120 && p.mode !== 'ground'; i++) tick({});
@@ -357,6 +357,26 @@ function install() {
           mech.blase.won = !!sub?.won;
           log.push(['Würfelblase', JSON.stringify(mech.blase)]);
           if (!sub?.won) { log.push(['FEHLER: Würfelblase nicht besiegt']); break; }
+          continue;
+        }
+        // ------------------------------------------------ Gegenprobe: neben der Landestelle des Riesen stehen bleiben (Welle)
+        if (Lg.welle) {
+          const b = named(Lg.welle);
+          let k = 0, open = 0;
+          for (; k < 120 * 40 && !(b.waveHits > 0) && !p.dead; k++) {
+            let inp = {};
+            if ((b.state === 'gcrouch' || b.state === 'gair') && b.jump) {
+              // weg von der Landestelle (4,5 m), dann stehen bleiben
+              let ex = p.pos.x - b.jump.x1, ez = p.pos.z - b.jump.z1, ed = Math.hypot(ex, ez);
+              if (ed < 0.4) { ex = p.pos.x - b.arena.x > 0 ? -1 : 1; ez = 0; ed = 1; }
+              if (ed < 4.5) inp = this.stick(ex / ed, ez / ed, 1);
+            }
+            // geschützt bis zur Landung; danach 1,2 s verwundbar – nur die Welle kann treffen
+            if (b.state === 'gland' && open <= 0 && Math.hypot(p.pos.x - b.pos.x, p.pos.z - b.pos.z) > (b.S ?? 3) / 2 + 1.2) open = 144;
+            if (open > 0) { open--; p.invuln = 0; } else p.invuln = Math.max(p.invuln, 5);
+            tick(inp);
+          }
+          log.push(['Welle', k, b.waveHits, p.hurtTries]);
           continue;
         }
         // ------------------------------------------------ Warp-Box anspringen (hineinfallen)
