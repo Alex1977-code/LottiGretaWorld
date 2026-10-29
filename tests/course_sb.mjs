@@ -24,7 +24,10 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // (Power-up aus ?-Block) · { long: [x, z], runup } · { throwAt: [x, z] } · { upOnto: [x, z, top] } · { die } ·
 // { walze: Id, board: [x, z], lane: x | [[z, x] …], off: [x, z] | null, early, hold, stopAt: 'ende' | 'z<…', noJump } (Schienenwalze besteigen, mitlaufen,
 // über Hürden springen, am Ende abspringen) · { press: Id } (Druckknopf: draufspringen) · { hero: 'greta' } (Pause → Figur) ·
-// { lift: Id, board: [x, z], exit: [x, z] } (Mehrfigur-Lift: alle Figuren drauf, oben aussteigen)
+// { lift: Id, board: [x, z], exit: [x, z] } (Mehrfigur-Lift: alle Figuren drauf, oben aussteigen) · S-4: { boostGap } (über den
+// Boost-Pfeil durch die Lücke), { fish: Id } (Glotzfisch abpassen), { mast } (Zielmast verfolgen und greifen), { longAt } (Weitsprung
+// ab z) · S-5: { kick: Id } (Laufbombe seitlich anstoßen), { chimney } (Wandsprünge im Schacht), { bounce } (Feder) · { path },
+// { place }, { act } (Einzelaktion, z. B. Wurf)
 const Y8 = 8;
 const RX3 = 90;
 const ROUTES = {
