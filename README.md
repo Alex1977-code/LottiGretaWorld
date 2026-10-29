@@ -253,6 +253,22 @@ Musik `course_abspann`); danach zeigt die Karte den befreiten Turm und einen Pok
 | 8-B | Heiße Manege für den rosa Schlangenkönig | Glutgasse mit Lavabrocken-Regen, Riesenrad, Boss rosa Schlangenkönig |
 | 8-Burg | Gipfelsturm am Brummbär-Turm | Dächer, Riesenrad, Turm hinauf; Endboss Baron Brummbär im Krallen-Anzug, Super-POW-Block |
 
+**Welt Stern „Sternenzelt“** – erste Bonuswelt (frei nach dem Sieg in 8-Burg über die Röhre „WS“; S-9 ab 280 ★).
+Wer S-2 schafft, schaltet das **Sternenglanz-Kostüm** frei (Schalter „Glanz“ auf der Karte, Taste K):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| S-1 | Regenbogenritt durchs Sternenzelt | Regenbogenwege, Trapeze, Ritt über den Sternenbach, Wolkenkanone, Riesentrank |
+| S-2 | Plattenpurzeln zwischen den Planetoiden | Kippplatten mit Krakenpilzen, Farbplatten, Boost-Strecke, Schachbrett |
+| S-Kapitän | Krümel im Kurbel-Karussell | Drehbares Spieluhr-Diorama, ein Stern nur von hinten sichtbar |
+| S-3 | Walzenritt im Holzsternenhimmel | Rollende Holzwalzen, Hürden, Walzenraum, Doppel-Lift |
+| S-4 | Flügelmast-Jagd über dem Wolkenmeer | Der Zielmast fliegt davon: Jagd in 100 s, Boost-Pfeile, Donut-Treppe |
+| S-5 | Riesenblock-Wiese im Pixelhimmel | Retro-Blockland, wachsende ?-Türme, Laufbomben, Schlüsselmünzen |
+| S-6 | Honigwaben im Sternenmeer | Draufsicht: Waben aus Honig, Lava und Eis, Wurfsichel, Brummer |
+| S-7 | Riesenpilz-Dschungel am Tintenteich | Alles übergroß, Riesentrank, Großrollpilze, Tintenteich mit Tintlingen |
+| S-8 | Geisterreigen im Schneenebelmoor | Verschneiter Nebelfriedhof, 5 Schlüsselmünzen, Floß, Nebelplattformen |
+| S-9 | Kanonenhelm-Express durch die Neonstation | Schienenbretter mit Weichen, Kugelwand, Unterwassertunnel, Kanonen-Helm |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 
