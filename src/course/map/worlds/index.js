@@ -2,6 +2,8 @@
 // Neue Welten sind neue Dateien (Format: docs/KURS-ARCHITEKTUR.md, „Präzisierung (Weltkarte)“).
 // Sonderwelten mit Buchstaben-Präfix (Halloween-Welt: MAP.world = 31, MAP.prefix = 'H', Level-Ids „H-1“ …): die
 // Präfix-Tabelle entsteht aus den Weltdaten – worldOfLevel('H-1') → 31, worldOfLevel('2-3') → 2.
+import { setMapSource } from '../unlock.js';
+
 const modules = import.meta.glob('./w*.js', { eager: true });
 const MAPS = {};
 const PREFIX = {};   // Präfix (z. B. 'H') → Weltnummer
@@ -15,6 +17,8 @@ for (const [path, mod] of Object.entries(modules)) {
 
 export function getWorldMap(world) { return MAPS[world] ?? null; }
 export function listWorldMaps() { return Object.keys(MAPS).map(Number).sort((a, b) => a - b); }
+// Sammel-Schranke der Welt Krone (unlock.collection: alle Sterne und Stempel aller anderen Welten)
+setMapSource(() => listWorldMaps().map((n) => MAPS[n]));
 
 /** Präfix der Level-Ids einer Welt: MAP.prefix (Sonderwelt) bzw. die Weltnummer als Text. */
 export function worldPrefix(world) { return MAPS[world]?.prefix ?? String(world); }

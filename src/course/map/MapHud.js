@@ -381,12 +381,13 @@ export class MapHud {
     const st = ne ? s.status(ne.id) : null;
     const showGo = !!(onPad && s.status(onPad.id).enterable && this.touchCtl.visible && !s.inputLocked && !s.leaving && !s.travel);
     this.goBtn.setVisible(showGo);
-    const key = st ? [ne.id, st.title, st.stars, st.stamp, st.locked, st.reason, st.soon, !!onPad, s.gateStars()].join('|') : '';
+    const key = st ? [ne.id, st.title, st.stars, st.stamp, st.locked, st.reason, st.soon, !!onPad, s.gateStars(), st.collection?.stars, st.collection?.stamps].join('|') : '';
     if (key === this.prev.banner) return;
     this.prev.banner = key;
     if (!st) { this.banner.setVisible(false); return; }
     let status;
     if (st.reason === 'stars') status = `Benötigt ${st.minStars} Sterne (${s.gateStars()}/${st.minStars})`;
+    else if (st.reason === 'collection') status = s.collectionHint?.(st) ?? 'Noch nicht frei';   // Welt Krone: Sammel-Schranke K-1
     else if (st.locked) status = 'Noch nicht frei';
     else if (st.soon) status = st.next ? 'Bald – hier geht es später weiter' : 'Bald';
     else if (onPad && st.next) status = this.touchCtl.visible ? 'A oder „Los!“ – ab durch die Glasröhre!' : 'A / Leertaste / Enter: ab durch die Glasröhre!';

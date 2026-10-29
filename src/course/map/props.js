@@ -38,6 +38,14 @@ export const ENTRANCE_COLORS = {
   // Welt Stern (9)
   rainbowisle: 0xff6ab8, platefield: 0x3a6ae8, spindiorama: 0x2ab8a8, rollerisle: 0xd8884a, goalcloud: 0x5ab8f0, blockland: 0x3ec43a,
   honeycomb: 0xffb81a, giantjungle: 0x2ea84a, fogyard: 0x8a9ad8, cannonstation: 0x3ad8f0,
+  // Welt Pilz (10)
+  nighthills: 0x4a5ae0, spikybean: 0xff8a3a, darkjungle: 0x2a8a6a, shadowalley: 0xb07a4a, dayhall: 0xe8402a, giantwreck: 0x5a7aa8,
+  brokenbelt: 0x3aa8ff, brawlhouse: 0x9a5ad8,
+  // Welt Blume (11)
+  sparkcircus: 0xff5a5a, cubemine: 0x3ab8e8, bunnysavanna: 0xe8a830, torchcreek: 0x7a4ae0, clockfort: 0x3a7ae8, graymansion: 0x8a8a9a,
+  cannonlagoon: 0x1fb8a8, beepskyway: 0xff4ab0, sunsetbeach: 0xff8a4a, dayhive: 0xffb81a, spotbridge: 0x6a5aa8, bossdome: 0xd8283a,
+  // Welt Krone (12)
+  lavadiorama: 0xff6a2a, marathonhouse: 0x9a5ad8, championarch: 0xffc21a,
 };
 export const LOCKED_COLOR = 0x9a9cab;
 
