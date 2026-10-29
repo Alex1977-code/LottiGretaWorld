@@ -254,6 +254,75 @@ ROUTES['P-2'] = {
   ],
 };
 
+ROUTES['P-3'] = {
+  base: '6-4',
+  start: [0, 1, 6],
+  meta: { stars: 3, time: 400, theme: 'jungle@dunkel', music: 'course_jungle', variant: 'dunkel', archetype: 'parcours' },
+  enemies: { brummer: 0, rankenschnapper: 0, spuk: 8, kreisgeist: 5, helm_licht: 7, kettenzaun: 3, kampfraum: 1, lichtplattform: 1, starring: 0 },
+  main: [
+    { name: 'Licht-Helm am Start', to: [-0.8, 2.8], within: 0.3, run: false },
+    { expect: '=P().helmet === \'licht\'' },
+    { name: 'Steg', to: [0, -6.9], within: 0.4, run: false },
+    { name: 'auf Floß 1', board: 'floss1' },
+    { name: 'Floßstrecke I (Spuke ins Licht nehmen)', raft: 'floss1' },
+    { name: 'an Land', to: [-1, -99.4], within: 0.5, run: false },
+    { name: 'Checkpoint', to: [-2, -100.6], within: 0.6, run: false },
+    { to: [0, -113.4], within: 0.4, run: false },
+    { name: 'auf Floß 2', board: 'floss2' },
+    { name: 'Floßstrecke II (Kreisgeister) und Abwärtsströmung', raft: 'floss2' },
+    { name: 'Landeinsel', to: [0, -250.4], within: 0.5, run: false },
+    { name: 'drei Großspuke im Licht auflösen', lightAll: ['ende1', 'ende2', 'ende3'] },
+    { until: '=!ent(\'warp\').hidden', max: 240 },
+    { name: 'Ziel-Warp-Box', warp: [5, -256] },
+    { expect: '=P().pos.y > 8.5' },
+    { name: 'Zielmast', to: [0, -296.4], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'beide Floßstrecken gefahren, Geister auf dem Weg ins Licht genommen (≥ 4 aufgelöst), drei Großspuke besiegt, Warp-Box benutzt', ok: (r) => r.mech.rafts === 2 && r.mech.looks > 0 && r.mech.ghostsGone >= 7 && r.mech.banished === 3 && r.mech.warps === 1 },
+  ],
+  targets: [
+    { name: 'Stern 0: über der Kettenreihe – an den ersten Kettenzaun springen, von Zaun zu Zaun, oben über dem letzten springen', star: 0, from: [-5, 1, -6.2],
+      legs: [{ fence: [-5, -10.6], jumpAt: 4 }, { fenceTo: [-6.0, 2.4] }, { fenceHop: [-8.2, -10.6] }, { fenceTo: [-9.2, 2.4] }, { fenceHop: [-11.4, -10.6] },
+        { fenceTo: [-11.4, 3.0] }, { fenceHop: [-11.4, -13.2], seek: [-11.4, 5.9, -10.6], hold: 40 }, { wait: 60 }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht vom Ufer aus (Sprung zu kurz und zu niedrig)', star: 0, expectNot: true, from: [-9, 1, -6.2], heroes: ['lotti'],
+      legs: [{ to: [-11.4, -10.2], jump: 40, within: 0.3, max: 240, land: false }, { wait: 120 }] },
+    { name: 'Stern 1: vom Floß auf die unsichtbare Plattform über dem Weg springen, Stern holen, zurück aufs Floß', star: 1, from: [0, 1, -6.9], place: { helmet: 'licht' },
+      legs: [{ board: 'floss1' }, { raft: 'floss1', until: '=ent(\'floss1\').mb.pos.z < -32.6' }, { to: [-5, -35], jump: 40, within: 0.5, land: true },
+        { expect: '=P().pos.y > 3.5' }, { to: [-5, -40.4], within: 0.3, run: false }, { star: 1 },
+        { until: '=ent(\'floss1\').mb.pos.z < -40.5', max: 900 }, { board: 'floss1' }, { raft: 'floss1', until: '=ent(\'floss1\').mb.pos.z < -50' }], shot: 'stern1' },
+    { name: 'Stern 1 nicht ohne Sprung (das Floß fährt unter der Plattform durch)', star: 1, expectNot: true, from: [0, 1, -6.9], heroes: ['lotti'],
+      legs: [{ board: 'floss1' }, { raft: 'floss1', until: '=ent(\'floss1\').mb.pos.z < -48' }] },
+    { name: 'Stern 2: über der Ziel-Warp-Box per Wandsprung (zwischen den Felswänden)', star: 2, from: [5, -3, -253.4],
+      legs: [{ to: [5, -256], within: 0.2, run: false }, { wallclimb: { dir: 1, until: -3 + 7.4, z: -256, then: [5, -256], max: 900 } }, { star: 2 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht ohne Wandsprünge (einfacher Sprung zwischen den Wänden)', star: 2, expectNot: true, from: [5, -3, -253.4], heroes: ['lotti'],
+      legs: [{ to: [5, -256], within: 0.2, run: false }, { hop: 40 }, { wait: 30 }] },
+  ],
+  extra: [
+    { name: 'Ziel-Warp-Box bleibt verborgen, solange ein Großspuk übrig ist (zwei besiegt), erscheint nach dem dritten', from: [0, -3, -250.4], heroes: ['lotti'], place: { helmet: 'licht' },
+      legs: [{ lightAll: ['ende1', 'ende2'] }, { wait: 120 }, { expect: '=ent(\'warp\').hidden === true' }, { lightAll: ['ende3'] }, { until: '=!ent(\'warp\').hidden', max: 240 }],
+      mech: (r) => r.mech.banished === 1 && !r.log.some((l) => String(l[0]).startsWith('FEHLER')), mechText: (r) => `zuletzt besiegt ${r.mech.banished}` },
+    { name: 'Großspuk: Draufspringen hilft nicht (verletzt), nur Licht', from: [-2, -3, -252], heroes: ['lotti'], invuln: false, allowFail: true,
+      legs: [{ jumpOnKind: 'spuk', max: 600 }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1 && r.ghostAlive, mechText: (r) => `Treffer ${r.mech.hurts}` , ghost: 'ende1' },
+    { name: 'Lichtkegel macht die unsichtbare Plattform sichtbar (Fahrt auf Floß 1 mit Licht-Helm)', from: [0, 1, -6.9], heroes: ['lotti'], place: { helmet: 'licht' },
+      legs: [{ board: 'floss1' }, { raft: 'floss1', until: '=ent(\'floss1\').mb.pos.z < -31' },
+        { face: [0, -1], n: 12, pause: 60 },
+        { raft: 'floss1', until: '=ent(\'floss1\').mb.pos.z < -33.5' }], named: 'lichtsteg',
+      mech: (r) => r.ring?.lightTime > 0.3, mechText: (r) => `Lichtzeit ${r.ring?.lightTime} s, lit ${r.ring?.lit}` },
+    { name: 'Gegenprobe: ohne Licht-Helm bleibt die Plattform unsichtbar', from: [0, 1, -6.9], heroes: ['lotti'],
+      legs: [{ board: 'floss1' }, { raft: 'floss1', until: '=ent(\'floss1\').mb.pos.z < -33' }], named: 'lichtsteg',
+      mech: (r) => r.ring?.lightTime === 0 && r.ring?.lit < 0.05, mechText: (r) => `Lichtzeit ${r.ring?.lightTime} s` },
+    { name: 'Licht-Helm am Start liegt nach dem Aufheben wieder da (vier Helme, Nachschub)', from: [0, 1, 6], heroes: ['lotti'], probe: 'helme' },
+  ],
+  shots: [
+    ['start', [0, 1, 6]],
+    ['kette', [-4, 1, -6]],
+    ['floss1', [0, 1.2, -9.5], 560, { raft: 'floss1' }],
+    ['cp', [-2, 1, -100]],
+    ['landeinsel', [0, -3, -251]],
+    ['ziel', [0, 9, -284]],
+  ],
+};
+
 const PORT = 5035;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -324,6 +393,7 @@ function install() {
       p.reset(pos, o.yaw ?? Math.PI / 2);
       p.invuln = o.invuln ?? 0;
       if (o.power) p.setPower(o.power);
+      if (o.helmet) p.wearHelmet(o.helmet);
       L.runtime.status = 'play';
       if (o.timeLeft) L.runtime.timeLeft = o.timeLeft;
       L.controlYaw = c.view.rig.controlYaw(p.pos);
@@ -391,8 +461,10 @@ function install() {
         rode = false;
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); settle(); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
+        if (Lg.face) { const y0 = p.yaw; for (let i = 0; i < (Lg.n ?? 10); i++) tick({ ...this.stick(Lg.face[0], Lg.face[1], Lg.mag ?? 0.35), run: false }); for (let i = 0; i < (Lg.pause ?? 30); i++) tick({}); log.push(['blick', `${Lg.face}`, +y0.toFixed(2), +p.yaw.toFixed(2)]); continue; }
+        if (Lg.log) { log.push(['wert', Lg.log, JSON.stringify(new Function('P', 'L', 'ent', `return (${Lg.log});`)(P, L, ent))]); continue; }
         if (Lg.expect) { const ok = cond(Lg.expect); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.until && !Lg.ridePlank) { let k = 0; for (; k < (Lg.max ?? 1200) && !cond(Lg.until); k++) tick({}); log.push(['bis', Lg.until, k]); if (!cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
+        if (Lg.until && !Lg.ridePlank && !Lg.raft) { let k = 0; for (; k < (Lg.max ?? 1200) && !cond(Lg.until); k++) tick({}); log.push(['bis', Lg.until, k]); if (!cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
@@ -627,6 +699,143 @@ function install() {
           log.push(['abgesprungen', `${Lg.jumpOff}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
           continue;
         }
+        // ------------------------------------------------ auf ein Floß springen (bis die Figur darauf steht)
+        if (Lg.board) {
+          const f = L.named.get(Lg.board);
+          let k = 0, on = false;
+          for (; k < 600 && !on && !p.dead; k++) {
+            const q = f.mb.pos, dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz);
+            on = p.mode === 'ground' && p.ground?.tag === 'floss' && d < 0.9;
+            if (on) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(q.x, q.z, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d))), jump: p.mode === 'ground' ? d < 3.2 && d > 0.9 : p.vel.y > 0, run: false });
+          }
+          log.push(['auf dem Floß', Lg.board, on, k]);
+          if (!on) log.push(['FEHLER: nicht auf das Floß', Lg.board]);
+          continue;
+        }
+        // ------------------------------------------------ auf dem Floß mitfahren (Mitte halten); mit Licht-Helm zum nächsten Geist
+        // schauen (der Lichtkegel löst ihn auf), sonst Spuke ansehen (sie erstarren) – bis zum Ende bzw. Bedingung
+        if (Lg.raft) {
+          const f = L.named.get(Lg.raft);
+          let k = 0, lost = false, prev = null, rvx = 0, rvz = 0, looks = 0;
+          const GHOST = new Set(['spuk', 'kreisgeist']);
+          for (; k < (Lg.max ?? 9000) && !p.dead; k++) {
+            if (Lg.until && cond(Lg.until)) break;
+            if (!Lg.until && f.state === 'ende' && p.mode === 'ground') break;
+            const q = f.mb.pos;
+            if (prev) { rvx = (q.x - prev[0]) * 120; rvz = (q.z - prev[1]) * 120; }
+            prev = [q.x, q.z];
+            let g = null, gd = 7.5;
+            for (const e of L.entities) {
+              if (!GHOST.has(e.kind) || !e.alive || e.removed || e.defeated || e.state === 'defeated') continue;
+              const d = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z);
+              if (d < gd && Math.abs(e.pos.y - p.pos.y) < 5) { gd = d; g = e; }
+            }
+            const dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'air') { tick({ ...this.airSteer(q.x, q.z, rvx, rvz, 3, 7) }); continue; }
+            if (g && d < 0.7) {
+              // zum Geist drehen (kleiner Stick, fast auf der Stelle), Mitte halten
+              const fv = p.facingVec(), gx = g.pos.x - p.pos.x, gz = g.pos.z - p.pos.z, gl = Math.hypot(gx, gz) || 1;
+              const dot = (fv.x * gx + fv.z * gz) / gl;
+              looks++;
+              tick(dot < 0.96 ? { ...this.stick(gx, gz, 0.14), run: false } : {});
+              continue;
+            }
+            if (d <= 0.12) {
+              // in Fahrtrichtung schauen (wie ein Kind auf dem Floß), sonst stillstehen
+              const sp = Math.hypot(rvx, rvz), fv = p.facingVec();
+              const dot = sp > 0.5 ? (fv.x * rvx + fv.z * rvz) / sp : 1;
+              tick(dot < 0.9 ? { ...this.stick(rvx, rvz, 0.14), run: false } : {});
+            } else tick({ ...this.stick(dx, dz, Math.min(0.75, d * 1.2)), run: false });
+            if (p.mode === 'ground' && p.ground?.tag !== 'floss') { lost = true; break; }
+          }
+          mech.rafts = (mech.rafts ?? 0) + 1;
+          mech.looks = (mech.looks ?? 0) + looks;
+          log.push(['Floßfahrt', Lg.raft, k, f.state, looks, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (lost || p.dead || (!Lg.until && f.state !== 'ende')) log.push(['FEHLER: Floßfahrt', Lg.raft, lost, p.ground?.tag]);
+          continue;
+        }
+        // ------------------------------------------------ Geister (Ids) mit dem Licht-Helm auflösen: hingehen (≈ 4 m), anschauen, warten
+        if (Lg.lightAll) {
+          let k = 0;
+          const alive = () => Lg.lightAll.map((id) => ent(id)).filter((e) => e && e.alive && !e.removed && e.state !== 'defeated');
+          for (; k < (Lg.max ?? 6000) && alive().length && !p.dead; k++) {
+            const list = alive().sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
+            const e = list[0];
+            const gx = e.pos.x - p.pos.x, gz = e.pos.z - p.pos.z, gl = Math.hypot(gx, gz) || 1;
+            const fv = p.facingVec(), dot = (fv.x * gx + fv.z * gz) / gl;
+            if (gl > (Lg.dist ?? 4.5)) { tick({ ...this.stick(gx, gz, Math.min(1, (gl - 3.5) / 2 + 0.3)), run: false }); continue; }
+            if (gl < 1.8) { tick({ ...this.stick(-gx, -gz, 0.7), run: false }); continue; }
+            tick(dot < 0.97 ? { ...this.stick(gx, gz, 0.14), run: false } : {});
+          }
+          mech.banished = Lg.lightAll.length - alive().length;
+          log.push(['Licht', Lg.lightAll.join(','), k, mech.banished, p.helmet]);
+          if (alive().length) log.push(['FEHLER: Geister übrig', alive().length]);
+          continue;
+        }
+        // ------------------------------------------------ Wandsprung-Kette zwischen zwei Wänden (erste Wand in Richtung dir = ±1 entlang X)
+        if (Lg.wallclimb) {
+          const w = Lg.wallclimb;
+          let dir = w.dir, last = false, phase = 'in', top = false, k = 0, jumps = 0;
+          const zfix = () => (w.z === undefined ? 0 : Math.max(-1, Math.min(1, ((w.z - p.pos.z) * 3 - p.vel.z) * 0.5)));
+          const inp = (wx, wz) => (Math.hypot(wx, wz) < 0.02 ? { x: 0, y: 0 } : this.stick(wx, wz, Math.min(1, Math.hypot(wx, wz))));
+          for (; k < (w.max ?? 900) && !p.dead; k++) {
+            if (phase === 'in') { tick({ ...inp(dir, zfix()), jump: k < 24 }); last = k < 24; if (p.mode === 'wall') phase = 'chain'; }
+            else if (p.mode === 'wall' && !top) {
+              if (last) { tick({}); last = false; } else { tick({ jump: true }); last = true; jumps++; if (p.mode !== 'wall') dir = -dir; }
+            } else {
+              top = top || p.pos.y >= w.until;
+              let i2 = inp(dir, zfix());
+              if (top && w.then) { const vx = (w.then[0] - p.pos.x) * 2.5 - p.vel.x, vz = (w.then[1] - p.pos.z) * 2.5 - p.vel.z; i2 = inp(vx, vz); }
+              else if (top) i2 = { x: 0, y: 0 };
+              tick({ ...i2, jump: !top });
+              last = !top;
+              if (p.mode === 'ground' && phase === 'chain') break;
+            }
+            if (w.stop && cond(w.stop)) top = true;
+          }
+          log.push(['wandsprünge', jumps, k, top, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Kettenzaun/Klettergitter: hinspringen und greifen
+        if (Lg.fence) {
+          const [tx, tz] = Lg.fence;
+          let k = 0;
+          for (; k < 300 && !p.fence && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, 1)), jump: p.mode === 'ground' ? d < (Lg.jumpAt ?? 4) : p.vel.y > 0, run: false });
+          }
+          log.push(['zaun', `${Lg.fence}`, !!p.fence, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!p.fence) { log.push(['FEHLER: Zaun nicht gegriffen', Lg.fence]); break; }
+          continue;
+        }
+        // ------------------------------------------------ am Zaun klettern bis (x, y) (Stick in der Zaunebene; Bildschirm rechts = +X)
+        if (Lg.fenceTo) {
+          const [tx, ty] = Lg.fenceTo;
+          let k = 0;
+          for (; k < 1200 && p.fence && !p.dead; k++) {
+            const ex = tx - p.pos.x, ey = ty - p.pos.y;
+            if (Math.abs(ex) < 0.2 && Math.abs(ey) < 0.2) break;
+            tick({ x: Math.max(-1, Math.min(1, ex * 2)), y: Math.max(-1, Math.min(1, ey * 2)) });
+          }
+          log.push(['am zaun', `${Lg.fenceTo}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), !!p.fence]);
+          continue;
+        }
+        // ------------------------------------------------ vom Zaun abspringen (Stick zum Ziel), in der Luft hinlenken – bis zum nächsten Zaun bzw. Boden
+        if (Lg.fenceHop) {
+          const [tx, tz] = Lg.fenceHop;
+          const from = p.fence?.obj ?? null;
+          let k = 0;
+          tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, 1), jump: true });
+          for (; k < 300 && !p.dead; k++) {
+            if (p.fence && p.fence.obj !== from) break;
+            if (p.mode === 'ground') break;
+            if (Lg.seek && Math.hypot(Lg.seek[0] - p.pos.x, Lg.seek[2] - p.pos.z) < 0.6 && Math.abs(Lg.seek[1] - p.pos.y) < 1.4) { tick({ jump: k < 30 }); continue; }
+            tick({ ...this.airSteer(tx, tz, 0, 0, 3, 6), jump: k < (Lg.hold ?? 30) });
+          }
+          log.push(['zaunsprung', `${Lg.fenceHop}`, k, !!p.fence, p.fence?.obj?.spec?.id ?? null, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          continue;
+        }
         // ------------------------------------------------ Tatzenhieb (Krallen-Anzug) in Richtung [dx, dz]
         if (Lg.swipe) {
           const [dx, dz] = Lg.swipe;
@@ -708,6 +917,7 @@ function install() {
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
       mech.clocks = this.clocksTaken() - clocks0;
+      mech.ghostsGone = L.entities.filter((e) => (e.kind === 'spuk' || e.kind === 'kreisgeist') && (!e.alive || e.removed || e.state === 'defeated')).length + (L.data.id === 'P-3' ? 13 - L.entities.filter((e) => e.kind === 'spuk' || e.kind === 'kreisgeist').length : 0);
       mech.bells = ['baum1', 'baum2', 'baum3'].map((id) => L.named.get(id)?.rung ?? null).filter((v) => v !== null);
       mech.lives = L.runtime.save?.lives;
       return { log, autoJumps, steps, time: steps / 120, keys: L.keys?.schluessel?.n ?? 0, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
@@ -901,8 +1111,49 @@ RULES['P-2'] = async () => {
     r.baseTheme === 'grass' && r.baseVariant === null && r.baseBoss && r.baseBridge && r.baseStalk3 === 6.6 && r.baseGoalY === 40 && r.baseStamp && r.baseRemix === null && r.baseKeys === 0 && r.baseFunken === 'funken' && r.baseTitle === 'Kraxelei am Klötzchenberg');
 };
 
+RULES['P-3'] = async () => {
+  const r = await sc(() => {
+    const c = window.__course, L = c.level, CL = window.__courseLevels;
+    const base = CL.get('6-4'), raw = CL.raw('P-3');
+    const calls = window.__audio?.music?.__calls ?? [];
+    const ents = (k) => L.entities.filter((e) => e.kind === k && !e.removed);
+    return {
+      stub: CL.isRemix(raw) && raw.remix.base === '6-4' && !raw.segments, theme: L.data.theme, light: c.view.theme.light, hemi: c.view.theme.hemi.intensity, pl: c.view.theme.playerLight?.intensity ?? 0,
+      fogFar: c.view.theme.fog?.far, music: L.data.music, variant: L.data.musicVariant, call: calls.filter((x) => x[0] === 'course_jungle').slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
+      spuk: ents('spuk').length, gross: ents('spuk').filter((e) => (e.spec.size ?? 1) > 2).length, kreis: ents('kreisgeist').length, brummer: ents('brummer').length, ranken: ents('rankenschnapper').length,
+      helme: ents('helm_licht').filter((e) => e.pos.z > 0).length, helmeAll: ents('helm_licht').length, warpHidden: L.named.get('warp')?.hidden, raum: L.named.get('grossspuke')?.ids ?? L.named.get('grossspuke')?.spec?.ids,
+      stamp: ents('stamp').length, ring: ents('starring').length, limit: L.runtime.timeLimit,
+      baseTheme: base.theme, baseVariant: base.musicVariant ?? null, baseBrummer: base.enemies.filter((e) => e.kind === 'brummer').length, baseRanken: base.enemies.filter((e) => e.kind === 'rankenschnapper').length,
+      baseWarpHidden: !!base.items.find((i) => i.id === 'warp')?.hidden, baseRing: base.items.some((i) => i.kind === 'starring'), baseStamp: !!base.stamp, baseRemix: base.remix ?? null, baseSpuk: base.enemies.some((e) => e.kind === 'spuk'), baseTitle: base.title,
+    };
+  });
+  console.log(`  Remix: ${JSON.stringify({ theme: r.theme, hemi: r.hemi, pl: r.pl, fog: r.fogFar, call: r.call, spuk: r.spuk, gross: r.gross, kreis: r.kreis })}`);
+  check('P-3: Remix-Platzhalter (Basis 6-4), eigener Titel; stockdunkel (jungle@dunkel: kaum Grundlicht, naher Nebel, kräftiges Figurenlicht)', r.stub && r.theme === 'jungle@dunkel' && r.light === 'dunkel' && r.hemi < 0.3 && r.pl >= 20 && r.fogFar < 60);
+  check('P-3: Musik der Basis mit Klang-Variante dunkel → music.play(\'course_jungle\', { variant: \'dunkel\' })', r.music === 'course_jungle' && r.variant === 'dunkel' && r.call?.[1]?.variant === 'dunkel' && r.mVariant === 'dunkel');
+  check(`P-3: 4 Licht-Helme am Start (${r.helme}, insgesamt ${r.helmeAll}), Spuke ${r.spuk - r.gross} + Großspuke ${r.gross} + Kreisgeister ${r.kreis} statt Brummer und Rankenschnapper`, r.helme === 4 && r.helmeAll === 7 && r.gross === 5 && r.spuk === 8 && r.kreis === 5 && r.brummer === 0 && r.ranken === 0);
+  check('P-3: Ziel-Warp-Box anfangs verborgen (erscheint nach den drei Großspuken), kein Sternenring, kein Stempel, 400 s', r.warpHidden === true && r.ring === 0 && r.stamp === 0 && r.limit === 400);
+  check('P-3: Gegenprobe Basis 6-4 unverändert (Thema jungle, ohne Variante, 4 Brummer, 6 Rankenschnapper, Warp-Box sichtbar, Sternenring, Stempel, keine Spuke)',
+    r.baseTheme === 'jungle' && r.baseVariant === null && r.baseBrummer === 4 && r.baseRanken === 6 && !r.baseWarpHidden && r.baseRing && r.baseStamp && r.baseRemix === null && !r.baseSpuk && r.baseTitle === 'Floßfahrt durch den Giftsee-Dschungel');
+};
+
 // ------------------------------------------------------------------ Sonder-Proben (extra[].probe)
 const PROBES = {
+  helme: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__pa, p = c.player;
+      const helms = () => L.entities.filter((e) => e.kind === 'helm_licht' && e.alive && !e.removed && Math.hypot(e.pos.x, e.pos.z - 2.5) < 4).length;
+      const n0 = helms();
+      W.place([-0.8, 1, 3.6], { settle: 2 });
+      for (let i = 0; i < 60 && !p.helmet; i++) { c.setInput(W.stick(0, -1, 0.5)); c.step(1); }
+      c.setInput({});
+      const worn = p.helmet;
+      const n1 = helms();
+      for (let i = 0; i < 120 * 6; i++) c.step(1);
+      return { n0, worn, n1, n2: helms() };
+    });
+    console.log(`     Helme: ${JSON.stringify(r)}`);
+    return r.n0 === 4 && r.worn === 'licht' && r.n1 === 3 && r.n2 === 4;
+  },
   box: async () => {
     const r = await sc(() => {
       const c = window.__course, L = c.level, W = window.__pa, p = c.player;
@@ -1088,6 +1339,7 @@ for (const id of LEVELS) {
       const legs = t.legsFrom ? R[t.legsFrom] : t.legs;
       const res = await W('drive', legs, { invuln: t.invuln });
       if (t.named) res.ring = await W('named', t.named);
+      if (t.ghost) res.ghostAlive = await sc((id) => { const e = window.__course.level.entities.find((x) => x.spec?.id === id); return !!e && e.alive && !e.removed && e.state !== 'defeated'; }, t.ghost);
       const lives1 = await W('lives');
       let ok = true;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;

@@ -270,6 +270,85 @@ export function glockenbaeume(level, list) {
   return handles;
 }
 
+// =====================================================================================================================
+// P-3: unsichtbare Plattform (der Lichtkegel des Licht-Helms macht sie sichtbar)
+// =====================================================================================================================
+
+/**
+ * Lichtplattform (Bauplan P-3 „unsichtbare Plattform im 2. Abschnitt“): immer fest (von unten durchspringbar), aber unsichtbar –
+ * nur ein schwaches Glitzern verrät sie. Im Lichtkegel des Licht-Helms (onLight) leuchtet sie auf und bleibt noch kurz
+ * sichtbar; steht jemand darauf, schimmert sie ebenfalls. Kein Gegner, keine Berührung.
+ *   { pos: [x, y, z] (Mitte der Unterseite), size: [w, h, d], id, oneWay: true }
+ * Laufzeit: lit (0..1), lightTime (aufsummierte Lichtzeit), info().
+ */
+class Lichtplattform extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'lichtplattform');
+    this.touch = false;
+    const [w, h, d] = spec.size ?? [2.4, 0.4, 2.4];
+    this.half.set(w / 2, Math.max(0.6, h / 2), Math.min(w, d) / 2);
+    this.size = [w, h, d];
+    this.lit = 0;
+    this.lightTime = 0;
+    this.litHold = 0;
+    const p = this.pos;
+    this.shapeId = this.addShape({ type: 'box', min: [p.x - w / 2, p.y, p.z - d / 2], max: [p.x + w / 2, p.y + h, p.z + d / 2], oneWay: spec.oneWay !== false, tag: 'lichtplattform' });
+    if (level.view) this.buildLook();
+  }
+
+  // Lichtkegel-Ziel: knapp unter der Platte (der Kegel zielt leicht abwärts – so leuchtet sie schon von unten auf)
+  center(out = this._c) { return out.set(this.pos.x, this.pos.y - 0.2, this.pos.z); }
+
+  onLight(dt) { this.litHold = 0.9; this.lightTime += dt; }
+
+  update(dt) {
+    const p = this.level.player;
+    const on = p && p.mode === 'ground' && p.ground?.id === this.shapeId;
+    if (on) this.litHold = Math.max(this.litHold, 0.4);
+    if (this.litHold > 0) this.litHold -= dt;
+    const want = this.litHold > 0 ? 1 : 0;
+    this.lit += (want - this.lit) * Math.min(1, dt * (want ? 8 : 2.5));
+  }
+
+  buildLook() {
+    const [w, h, d] = this.size;
+    const root = new THREE.Group();
+    const g = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+    const slab = new THREE.Mesh(g, mat);
+    slab.position.y = h / 2;
+    root.add(slab);
+    const eg = new THREE.EdgesGeometry(g);
+    const em = new THREE.LineBasicMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0.06, depthWrite: false });
+    const edges = new THREE.LineSegments(eg, em);
+    edges.position.y = h / 2;
+    root.add(edges);
+    this.slab = slab; this.edges = edges;
+    this.setModel({ root, update: () => {}, dispose() { g.dispose(); mat.dispose(); eg.dispose(); em.dispose(); } });
+  }
+
+  render(dt, t) {
+    super.render(dt, t);
+    if (!this.slab) return;
+    const shimmer = 0.05 + 0.04 * Math.sin(t * 2.3 + this.pos.z);
+    this.slab.material.opacity = 0.55 * this.lit;
+    this.edges.material.opacity = Math.max(shimmer, 0.85 * this.lit);
+    this.slab.visible = this.lit > 0.02;
+  }
+
+  info() { return { lit: +this.lit.toFixed(2), lightTime: +this.lightTime.toFixed(2) }; }
+}
+
+/** Lichtplattformen anlegen (LEVEL.build oder setup): list [{ pos, size, id }]. */
+export function lichtplattformen(level, list) {
+  return list.map((q) => {
+    const e = new Lichtplattform(level, q);
+    level.entities.push(e);
+    if (q.id) level.named.set(q.id, e);
+    return e;
+  });
+}
+
 /** Glocke (Ursprung Aufhängung oben, hängt nach −Y). */
 function bellGeometry() {
   const pts = [];
