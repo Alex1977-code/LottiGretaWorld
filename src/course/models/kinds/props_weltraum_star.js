@@ -481,18 +481,18 @@ function torbogenGeo(W, H) {
       au.cyl(0.5, 0.44, 0.25, gradV(ST.starLow, ST.starHi), { p: [0, pillarH, z] }, 20);
     }
     // Bogen aus Sternen (Halbkreis über den Säulen), Schlussstern oben
-    const R = W / 2, n = 11;
+    const R = W / 2, n = Math.max(8, 2 * Math.round(W * 0.8));   // gerade: Schlussstern genau oben
     for (let i = 0; i <= n; i++) {
       const a = (i / n) * Math.PI;
       const z = Math.cos(a) * R, y = pillarH + Math.sin(a) * R * ((H - pillarH) / R);
-      const big = i === Math.round(n / 2);
+      const big = i === n / 2;
       if (big) continue;
-      const s = 0.42;
+      const s = clamp(W * 0.085, 0.3, 3);
       b.add(puffyStarGeo(s, s * 0.46, s * 0.55, s * 0.18), { v: (x, yy, zz, nx) => mix(rainbowAt(i / n), 0xffffff, smoothstep(nx * 0.5 + 0.1) * 0.35) }, { p: [0, y, z], r: [0, Math.PI / 2, a - Math.PI / 2], order: 'YXZ' });
     }
     // Verbindungsband (weißer Wulst) hinter den Sternen
     const pts = Array.from({ length: 25 }, (_, i) => { const a = (i / 24) * Math.PI; return [-0.12, pillarH + Math.sin(a) * (H - pillarH), Math.cos(a) * R]; });
-    b.add(taperTube(pts, 0.14, 48, 8), { v: (x, y, z, nx, ny) => mix(0xd8dcf4, 0xffffff, smoothstep(ny * 0.5 + 0.5)) });
+    b.add(taperTube(pts, clamp(W * 0.03, 0.1, 1), 48, 8), { v: (x, y, z, nx, ny) => mix(0xd8dcf4, 0xffffff, smoothstep(ny * 0.5 + 0.5)) });
     au.add(puffyStarGeo(0.9, 0.42, 0.6, 0.22), gradV(ST.starLow, ST.starHi, 0.5, 0.5), { p: [0, H + 0.2, 0], r: [0, Math.PI / 2, 0] });
     gl.add(puffyStarGeo(0.32, 0.14, 0.1, 0.04, 4), 0xfffbe0, { p: [0.62, H + 0.25, 0], r: [0, Math.PI / 2, 0] });
     return { body: b.geometry(), glow: gl.geometry(), gold: au.geometry() };
