@@ -21,7 +21,7 @@
 // Gegner: Funkenflämmchen 2, Lavablasen 4, rosa Schlangenkönig.
 
 import {
-  rummelAbend, farbZelt, rummelPflaster, plakat, zuckerwatte, funken, kletterturm, schiffschaukel, glutRand, line, ring, arc, column,
+  rummelAbend, farbZelt, rummelPflaster, plakat, zuckerwatte, funken, kletterturm, schiffschaukel, glutRand, manege, rummelUnten, buehnenSchuerze, bake, discG, line, ring, arc, column,
 } from './_helpers_d.js';
 import { circusArena, circusProps, grandStairs, RisingPipe, spawnLocal } from '../w3/_helpers_e.js';
 import { gondelRuf, lichterketten } from '../w6/_helpers_d.js';
@@ -70,15 +70,28 @@ export const LEVEL = {
     // ---------------------------------------------------------------- Zelt (rosa-rote Bahnen) und Manege
     const inside = (p) => p.pos.z < AZ + TR - 1 && Math.abs(p.pos.x) < TR + 2 && p.pos.y > AY - 2;
     const tent = farbZelt(level, { center: [0, AY, AZ], radius: TR, height: TH, cut: 2.5, inside, stripe: 0xff4aa0, trim: 0xffd04a });
-    const manege = circusArena(level, { center: [0, AY, AZ], arena: AR, door: 4.2, rows: 5, rowDepth: 1.0, rowRise: 0.6, span: [-0.45, Math.PI + 0.45] });
-    level._zirkus = { tent, manege };
+    const arena = manege(level, circusArena, { center: [0, AY, AZ], arena: AR, door: 4.2, rows: 5, rowDepth: 1.0, rowRise: 0.6, span: [-0.45, Math.PI + 0.45], near: (p) => p.pos.z < AZ + TR + 16 && p.pos.x < 36 });
+    level._zirkus = { tent, manege: arena };
+    bake(level, [discG(0, TR, 0, AY + 0.012, AZ, 0x3a0e1a, 64)], { castShadow: false });
     grandStairs(level, { x: 0, z: -32, y: Y0, n: 18, rise: (SY - Y0) / 18, run: 0.5, width: 5 });
     // ---------------------------------------------------------------- Vorplatz und Glutgasse
     rummelPflaster(level, {
       carpet: [{ x0: -1.3, x1: 1.3, z0: -15.6, z1: 14.6, y: Y0 + 0.01, color: 0xc8143a }, { x0: -1.3, x1: 1.3, z0: -31.8, z1: -20.4, y: Y0 + 0.01, color: 0xc8143a },
-        { x0: -1.2, x1: 1.2, z0: -45.2, z1: -41.2, y: SY + 0.01, every: 2.6, color: 0xc8143a }],
-      stars: [[0, Y0, 2.0, 1.0, 0xff7ac0], [TURM.x + 2.8, Y0, TURM.z + 2.6, 0.6, 0xffd04a], [GX, AY, GZ - 4, 1.2, 0xff7ac0]],
+        { x0: -1.2, x1: 1.2, z0: -45.2, z1: -41.2, y: SY + 0.01, every: 2.6, color: 0xc8143a },
+        { x0: -1.4, x1: 1.4, z0: AZ + TR - 0.5, z1: -74.4, y: AY + 0.01, every: 2.6, color: 0xc8143a }, { x0: GX - 5.4, x1: GX - 2.6, z0: GZ - 8, z1: GZ + 4.4, y: AY + 0.01, color: 0xc8143a }],
+      stars: [[0, Y0, 2.0, 1.0, 0xff7ac0], [TURM.x + 2.8, Y0, TURM.z + 2.6, 0.6, 0xffd04a], [GX, AY, GZ - 4, 1.2, 0xff7ac0], [8.6, AY, -77.6, 0.7, 0xffd04a], [-9.6, Y0, -22.2, 0.6, 0xff7ac0]],
     });
+    // kahle Inselkanten werden zu Zirkusbühnen (Streifen, Goldleiste, Glühbirnen)
+    buehnenSchuerze(level, [
+      { x0: -30, x1: 30, z: AZ + 28, y: AY, h: 3.4, face: 1, colors: [0xd8205a, 0xffc21a] },
+      { x0: -6, x1: 6, z: -45.4, y: SY, h: 2.6, face: -1, colors: [0x7a2ad8, 0xfff2e8] },
+      { x0: -19, x1: 19, z: GRABEN.z1, y: Y0, h: 1.0, face: -1, colors: [0x7a2ad8, 0xffc21a] },
+      { x0: -19, x1: 19, z: GRABEN.z0, y: Y0, h: 1.0, face: 1, colors: [0x7a2ad8, 0xffc21a] },
+      { x0: -32.4, x1: -19.6, z: 19, y: Y0, h: 2.6, face: 1, axis: 'z', colors: [0xd8205a, 0xfff2e8] },
+      { x0: -32.4, x1: -19.6, z: -19, y: Y0, h: 2.6, face: -1, axis: 'z', colors: [0xd8205a, 0xfff2e8] },
+      { x0: -16.4, x1: 14.6, z: 19, y: Y0, h: 2.6, face: 1, axis: 'z', colors: [0xd8205a, 0xfff2e8] },
+      { x0: -16.4, x1: 14.6, z: -19, y: Y0, h: 2.6, face: -1, axis: 'z', colors: [0xd8205a, 0xfff2e8] },
+    ]);
     kletterturm(level, { pos: [TURM.x, Y0, TURM.z], size: [3, TURM.h, 3], seed: 21 });
     schiffschaukel(level, { id: 'schaukel', pos: [SCH.x, SCH.y, SCH.z], length: SCH.L, dir: [1, 0], amp: 70, grow: 11, decay: 6, color: 0xd8205a });
     zuckerwatte(level, [{ pos: [7.4, Y0, -26.6], yaw: 0.5 }, { pos: [-6.8, Y0, 8.6], yaw: -0.4, color: 0xffc0e8 }]);
@@ -198,9 +211,9 @@ export const LEVEL = {
     // ---------------------------------------------------------------- 4 Seilbahn
     { type: 'seilbahn', id: 'gondel', from: G0, to: G1, speed: 2.6, wait: 1.5, trigger: 'stand', mode: 'pingpong' },
     // ---------------------------------------------------------------- 5/6 Zeltplateau, Manege
-    { type: 'island', pos: [0, AY - 6, AZ], size: [60, 6, 56], top: 'grass', under: 3 },
+    { type: 'island', pos: [0, AY - 6, AZ], size: [60, 6, 56], top: 'rock', topColor: 0x8a5a6a, sideColor: 0x3a1e2a, under: 3 },
     // ---------------------------------------------------------------- 7 Hinterhof (Röhren-Ausgang)
-    { type: 'island', pos: [GX, AY - 6, GZ], size: [26, 6, 30], top: 'grass', under: 3 },
+    { type: 'island', pos: [GX, AY - 6, GZ], size: [26, 6, 30], top: 'rock', topColor: 0x8a5a6a, sideColor: 0x3a1e2a, under: 3 },
     { type: 'pipe', id: 'ziel_ausgang', pos: [GX - 4, AY, GZ + 6], height: 1.2, color: 'green' },
   ],
   blocks: [

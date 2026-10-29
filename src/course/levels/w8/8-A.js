@@ -22,7 +22,7 @@
 // Gegner: goldene Gelee-Brocken 4, goldene Würfelblase.
 
 import {
-  rummelAbend, farbZelt, hauDenLukas, rummelPflaster, plakat, zuckerwatte, funken, line, ring, arc,
+  rummelAbend, farbZelt, hauDenLukas, rummelPflaster, plakat, zuckerwatte, funken, rummelUnten, buehnenSchuerze, manege, bake, discG, line, ring, arc,
 } from './_helpers_d.js';
 import { circusArena, circusProps, grandStairs } from '../w3/_helpers_e.js';
 import { gondelRuf, lichterketten } from '../w6/_helpers_d.js';
@@ -70,21 +70,43 @@ export const LEVEL = {
     lock: { min: [-2.7, AY, AZ + AR - 0.2], max: [2.7, AY + 9, AZ + AR + 1.1] },
     warp: 'warp_sieg', frame: 0.4, center: [0, AY, AZ], musicAfter: 'course_circus',
   },
-  prebuild(level) { rummelAbend(level, {}); },
+  prebuild(level) { rummelAbend(level, { floor: -8 }); },
   build(level) {
     // ---------------------------------------------------------------- Zelt (gold-lila Bahnen) und Manege
     const inside = (p) => p.pos.z < AZ + TR - 1 && Math.abs(p.pos.x) < TR + 2 && p.pos.y > AY - 2;
     const tent = farbZelt(level, { center: [0, AY, AZ], radius: TR, height: TH, cut: 2.5, inside, stripe: 0xf2b01a, cream: 0x6a2a9a, trim: 0xff5aa8 });
-    const manege = circusArena(level, { center: [0, AY, AZ], arena: AR, door: 4.2, rows: 5, rowDepth: 1.0, rowRise: 0.6, span: [-0.45, Math.PI + 0.45] });
-    level._zirkus = { tent, manege };
+    const arena = manege(level, circusArena, { center: [0, AY, AZ], arena: AR, door: 4.2, rows: 5, rowDepth: 1.0, rowRise: 0.6, span: [-0.45, Math.PI + 0.45], near: (p) => p.pos.z < AZ + TR + 16 && p.pos.x < 36 });
+    level._zirkus = { tent, manege: arena };
+    bake(level, [discG(0, TR, 0, AY + 0.012, AZ, 0x3a1430, 64)], { castShadow: false });
     grandStairs(level, { x: 0, z: -15, y: Y0, n: 18, rise: (SY - Y0) / 18, run: 0.5, width: 5 });
     // ---------------------------------------------------------------- Rummelplatz
     rummelPflaster(level, {
-      carpet: [{ x0: -1.3, x1: 1.3, z0: -14.8, z1: 14.6, y: Y0 + 0.01 }, { x0: -1.2, x1: 1.2, z0: -30.4, z1: -24.2, y: SY + 0.01, every: 2.6 }],
-      stars: [[0, Y0, 3.0, 1.0, 0xffd04a], [LUKAS.x + 2.2, Y0, LUKAS.z + 2.6, 0.55, 0xff7ac0], [GX, AY, GZ - 4, 1.2, 0xffd04a]],
+      carpet: [{ x0: -1.3, x1: 1.3, z0: -14.8, z1: 14.6, y: Y0 + 0.01 }, { x0: -1.2, x1: 1.2, z0: -30.4, z1: -24.2, y: SY + 0.01, every: 2.6 },
+        { x0: -1.4, x1: 1.4, z0: AZ + TR - 0.5, z1: -60.4, y: AY + 0.01, every: 2.6 }, { x0: GX - 5.4, x1: GX - 2.6, z0: GZ - 8, z1: GZ + 12, y: AY + 0.01 }],
+      stars: [[0, Y0, 3.0, 1.0, 0xffd04a], [LUKAS.x + 2.2, Y0, LUKAS.z + 2.6, 0.55, 0xff7ac0], [GX, AY, GZ - 4, 1.2, 0xffd04a], [8.6, AY, -63.4, 0.7, 0xff7ac0], [-9.2, Y0, 8.4, 0.6, 0x9ad8ff]],
+    });
+    // kahle Inselkanten werden zu Zirkusbühnen (Streifen, Goldleiste, Glühbirnen)
+    buehnenSchuerze(level, [
+      { x0: -30, x1: 30, z: AZ + 28, y: AY, h: 3.4, face: 1, colors: [0x7a2ad8, 0xffc21a] },
+      { x0: -6, x1: 6, z: -30.6, y: SY, h: 2.6, face: -1, colors: [0xd8205a, 0xfff2e8] },
+      { x0: -24.2, x1: 14.8, z: -14, y: Y0, h: 2.6, face: -1, axis: 'z', colors: [0xd8205a, 0xfff2e8] },
+      { x0: -24.2, x1: 14.8, z: 14, y: Y0, h: 2.6, face: 1, axis: 'z', colors: [0xd8205a, 0xfff2e8] },
+    ]);
+    // tief unter der Seilbahn: der abendliche Rummel des Barons (nur Zier)
+    rummelUnten(level, {
+      y: -12,
+      items: [
+        { kind: 'zelt', pos: [-15, -40], r: 5, h: 7, color: 0x7a2ad8 }, { kind: 'zelt', pos: [16, -50], r: 4.4, h: 6, color: 0xe8423a },
+        { kind: 'zelt', pos: [-22, -60], r: 4, h: 5.6, color: 0x3a7ae8 },
+        { kind: 'zelt', pos: [-5.5, -51], r: 3.4, h: 5, color: 0xffc21a }, { kind: 'zelt', pos: [9, -34], r: 3.2, h: 4.6, color: 0x4ac85a },
+        { kind: 'bude', pos: [7, -44], yaw: Math.PI / 2, color: 'gelb', seed: 3 }, { kind: 'bude', pos: [-9, -32], yaw: -Math.PI / 2, color: 'blau', seed: 5 },
+        { kind: 'bude', pos: [3.5, -58], yaw: Math.PI / 2, color: 'gruen', seed: 7 }, { kind: 'bude', pos: [-12, -54], yaw: 0, color: 'rot', seed: 9 },
+        ...[[-2, -38], [2, -38], [-2, -46], [2, -46], [-2, -54], [2, -54], [-12, -46], [12, -42], [12, -56]].map(([x, z]) => ({ kind: 'laterne', pos: [x, z] })),
+      ],
+      paths: [[-1.8, -30, 1.8, -64], [-20, -45.6, 20, -48.4]],
     });
     hauDenLukas(level, { id: 'lukas', pos: [LUKAS.x, Y0, LUKAS.z], height: 7, back: [0, -1], onRing: { reveal: 'stern1' } });
-    zuckerwatte(level, [{ pos: [7.6, Y0, -6.2], yaw: 0.4 }, { pos: [-9.6, Y0, -17.4], yaw: -0.3, color: 0x9ad8ff }]);
+    zuckerwatte(level, [{ pos: [-11.4, Y0, -1.4], yaw: 0.5 }, { pos: [-9.6, Y0, -17.4], yaw: -0.3, color: 0x9ad8ff }]);
     plakat(level, { pos: [4.6, Y0, 9.6], yaw: -0.3, kind: 'blase' });
     plakat(level, { pos: [-6.2, AY, -66.2], yaw: 0.3, kind: 'blase' });
     circusProps(level, [
@@ -176,9 +198,9 @@ export const LEVEL = {
     // ---------------------------------------------------------------- 4 Seilbahn
     { type: 'seilbahn', id: 'gondel', from: G0, to: G1, speed: 2.6, wait: 1.5, trigger: 'stand', mode: 'pingpong' },
     // ---------------------------------------------------------------- 5/6 Zeltplateau, Manege
-    { type: 'island', pos: [0, AY - 6, AZ], size: [60, 6, 56], top: 'grass', under: 3 },
+    { type: 'island', pos: [0, AY - 6, AZ], size: [60, 6, 56], top: 'rock', topColor: 0x8a6aa0, sideColor: 0x4a2e5e, under: 3 },
     // ---------------------------------------------------------------- 7 Hinterhof
-    { type: 'island', pos: [GX, AY - 6, GZ], size: [26, 6, 30], top: 'grass', under: 3 },
+    { type: 'island', pos: [GX, AY - 6, GZ], size: [26, 6, 30], top: 'rock', topColor: 0x8a6aa0, sideColor: 0x4a2e5e, under: 3 },
   ],
   blocks: [
     { kind: 'question', pos: [-2.4, Y0 + 3.0, 4.6], content: 'coins:5' },

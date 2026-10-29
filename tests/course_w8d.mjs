@@ -923,6 +923,7 @@ for (const id of LEVELS) {
     await W('place', pos, { settle: 10, invuln: 99 });
     if (prep) await W('prep', prep);
     if (steps) await sc((n) => { const c = window.__course; c.player.invuln = 99; c.setInput({}); c.step(n); c.setInput(null); }, steps);
+    await sc(() => { const p = window.__course.player; p.invuln = 0; p.hurt = () => false; });
     await shot(`${id}_${name}`);
   }
 }

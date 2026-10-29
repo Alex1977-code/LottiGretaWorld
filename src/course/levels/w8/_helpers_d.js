@@ -19,7 +19,7 @@ import * as THREE from 'three';
 import { lin, hex, mixc, smooth, colorize, merge, addStatic, addObject, Rnd } from '../../blocks/kit.js';
 import { Gimmick, runAction, playerOn, visDt } from '../../entities/gimmick.js';
 import { banner } from '../../blocks/w3kit.js';
-import { MovingBox } from '../../blocks/w2kit.js';
+import { MovingBox, bakeModel } from '../../blocks/w2kit.js';
 import { getModel } from '../../models/index.js';
 import { baronPark, crystalInferno, animateW8 } from '../../view/backdrop_w8.js';
 import { cylG, sphereG, coneG, blockG, starG, discG, ringG, bake, owned, spawnLocal, litFn } from '../w3/_helpers_e.js';
@@ -409,6 +409,107 @@ export function glutRand(level, list) {
     G.push(blockG(0.35, 0.08, d, x0, y, (z0 + z1) / 2, 0xff8a2a, { r: 0, seg: 0 }));
     G.push(blockG(0.35, 0.08, d, x1, y, (z0 + z1) / 2, 0xff8a2a, { r: 0, seg: 0 }));
   }
+  bake(level, G, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Manege wie in 3-B (circusArena aus w3/_helpers_e.js), aber sparsam: das Publikum (zwei Instanz-Gruppen und die Leuchtstäbe,
+ * dort immer gezeichnet) wird nur gezeigt, solange die Figur in der Nähe des Zelts ist (near(p) – sonst kostet es auf dem
+ * Rummelplatz Zeichenaufrufe und Dreiecke, ohne zu sehen zu sein). cfg wie circusArena, dazu near: (p) => bool.
+ */
+export function manege(level, circusArena, cfg) {
+  const scene = level.view?.three;
+  const before = new Set(scene?.children ?? []);
+  const st = circusArena(level, cfg);
+  if (!scene) return st;
+  const crowd = scene.children.filter((o) => !before.has(o) && (o.isInstancedMesh || o.isPoints));
+  let shown = true;
+  level.view.onFrame(() => {
+    const p = level.player;
+    const want = !p || cfg.near(p);
+    if (want === shown) return;
+    shown = want;
+    for (const o of crowd) o.visible = want;
+  });
+  st.crowd = crowd;
+  return st;
+}
+
+/**
+ * Rummel tief unten (Zier ohne Kollision, gebacken): unter der Seilbahn liegt der abendliche Rummelplatz – Buden, Karussells,
+ * Laternen mit warmem Licht, Wege. Wer fällt, stürzt trotzdem ab (keine Kollision). o = { y, items: [{ kind: 'bude' | 'karussell'
+ * | 'zelt' | 'laterne', pos: [x, z], yaw, color, r }] }
+ */
+export function rummelUnten(level, o) {
+  if (!level.view) return;
+  const y = o.y;
+  const P = [], G = [];
+  for (const it of o.items ?? []) {
+    const [x, z] = it.pos, yaw = it.yaw ?? 0;
+    if (it.kind === 'bude' || it.kind === 'karussell') {
+      const name = it.kind === 'bude' ? 'rummel_bude' : 'karussell';
+      bakeModel(level, name, it.kind === 'bude' ? { color: it.color ?? 'rot', seed: it.seed ?? 1 } : {}, x, y, z, yaw, it.scale ?? 1, it.kind === 'karussell' ? { angle: it.angle ?? 0.4 } : {}, { castShadow: false });
+    } else if (it.kind === 'zelt') {
+      const r = it.r ?? 4, h = it.h ?? 5, n = 12;
+      const c = it.color ?? 0xe8423a;
+      for (let i = 0; i < n; i++) {
+        const g = new THREE.ConeGeometry(r, h * 0.55, n, 1, true, (i / n) * TAU, TAU / n).toNonIndexed();
+        g.translate(x, y + h * 0.45 + h * 0.275, z);
+        P.push(fill(g, i % 2 ? 0xfff0f6 : c));
+      }
+      const wall = new THREE.CylinderGeometry(r * 0.94, r * 0.94, h * 0.45, n * 2, 1, true).toNonIndexed();
+      wall.translate(x, y + h * 0.225, z);
+      P.push(colorize(wall, (p, nn, out) => mixc(L(c), L(0xfff0f6), (Math.floor(((Math.atan2(p.z - z, p.x - x) / TAU) + 1) * n * 2) & 1), out)));
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; G.push(sphereG(0.18, x + Math.cos(a) * r * 0.96, y + h * 0.45, z + Math.sin(a) * r * 0.96, i % 2 ? 0xfff0a0 : 0xff8ac8, { ws: 6, hs: 4 })); }
+      G.push(sphereG(0.3, x, y + h + 0.1, z, 0xffd04a, { ws: 8, hs: 6 }));
+    } else if (it.kind === 'laterne') {
+      P.push(cylG(0.08, 0.1, 3.2, x, y, z, 0x2a1a3a, 6));
+      G.push(sphereG(0.32, x, y + 3.35, z, it.color ?? 0xffe0a0, { ws: 8, hs: 6 }));
+    }
+  }
+  // Wege: helle Pflasterbänder
+  for (const w of o.paths ?? []) {
+    const [x0, z0, x1, z1] = w;
+    P.push(blockG(Math.abs(x1 - x0) || 2.4, 0.05, Math.abs(z1 - z0) || 2.4, (x0 + x1) / 2, y, (z0 + z1) / 2, 0x8a7a6a, { r: 0, seg: 0 }));
+  }
+  bake(level, P, { castShadow: false });
+  bake(level, G, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Bunte Schürze an einer Inselkante (Zier): senkrechte Streifen mit Goldleiste oben und Glühbirnen – macht kahle Felswände zu
+ * einer Zirkusbühne. list: [{ x0, x1, z, y (Oberkante), h, face: +1 (Fläche zeigt nach +Z) | −1, colors: [a, b], axis: 'x' | 'z' }]
+ */
+export function buehnenSchuerze(level, list) {
+  if (!level.view) return;
+  const P = [], G = [];
+  for (const s of list) {
+    const h = s.h ?? 3, f = s.face ?? 1, [ca, cb] = s.colors ?? [0xd8205a, 0xfff2e8];
+    const len = s.x1 - s.x0, n = Math.max(2, Math.round(len / 0.8));
+    const along = s.axis === 'z';
+    for (let i = 0; i < n; i++) {
+      const u0 = s.x0 + (i / n) * len, w = len / n;
+      const g = along
+        ? blockG(0.06, h, w, s.z + f * 0.03, s.y - h, u0 + w / 2, i % 2 ? cb : ca, { r: 0, seg: 0 })
+        : blockG(w, h, 0.06, u0 + w / 2, s.y - h, s.z + f * 0.03, i % 2 ? cb : ca, { r: 0, seg: 0 });
+      P.push(g);
+    }
+    const top = along ? blockG(0.14, 0.22, len, s.z + f * 0.07, s.y - 0.24, (s.x0 + s.x1) / 2, 0xffc21a, { r: 0.02, seg: 0 }) : blockG(len, 0.22, 0.14, (s.x0 + s.x1) / 2, s.y - 0.24, s.z + f * 0.07, 0xffc21a, { r: 0.02, seg: 0 });
+    P.push(top);
+    // Zacken unten
+    for (let i = 0; i < n; i++) {
+      const u = s.x0 + ((i + 0.5) / n) * len;
+      const c = new THREE.ConeGeometry(len / n / 2, 0.5, 3).toNonIndexed();
+      c.rotateX(Math.PI);
+      if (along) { c.rotateY(Math.PI / 2); c.translate(s.z + f * 0.08, s.y - h - 0.2, u); } else c.translate(u, s.y - h - 0.2, s.z + f * 0.08);
+      P.push(fill(c, i % 2 ? 0xffc21a : ca));
+    }
+    for (let i = 0; i <= n; i += 1) {
+      const u = s.x0 + (i / n) * len;
+      G.push(along ? sphereG(0.09, s.z + f * 0.16, s.y - 0.12, u, i % 2 ? 0xfff0a0 : 0xff8ac8, { ws: 6, hs: 4 }) : sphereG(0.09, u, s.y - 0.12, s.z + f * 0.16, i % 2 ? 0xfff0a0 : 0xff8ac8, { ws: 6, hs: 4 }));
+    }
+  }
+  bake(level, P, { castShadow: false });
   bake(level, G, { material: 'glow', castShadow: false });
 }
 
