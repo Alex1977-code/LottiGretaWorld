@@ -22,7 +22,8 @@
 // Gegner: Kreisgeister (5 einzeln, 5 Ringe mit 32 Geistern).
 
 import { PI, line, ring, arc, column, sign, isl, Bld, litTop, grablicht, kruemelAngst, unsichtbareWolke, sternlaterne,
-  friedhofstor, schneebaelle, eisenzaun, gruft, kapelle, schneemann, baenke, kerzen, steg } from './_helpers_d.js';
+  friedhofstor, schneebaelle, eisenzaun, gruft, kapelle, schneemann, baenke, kerzen, steg, graeber, wege, tannen, laternen,
+  eisteiche } from './_helpers_d.js';
 
 const XK = 100;           // Kerzenkammer (Nebenbereich hinter der Kapellentür)
 const XR = -100;          // Nebelkammer (Rätselbox)
@@ -31,24 +32,73 @@ const YS = 3.2;           // Höhe des Boost-Stegs
 
 const geist = (id, c, r, o = {}) => ({ kind: 'kreisgeist', id, center: c, radius: r, speed: o.speed ?? 1.4, cw: o.cw ?? false, phase: o.phase ?? 0 });
 const kreis = (id, p, count, r, o = {}) => ({ kind: 'kreisgeist_kreis', id, pos: p, count, radius: r, speed: o.speed ?? 1.2, cw: o.cw ?? false, phase: o.phase ?? 0 });
-const grab = (x, z, o = {}) => ({ kind: 'grabstein', pos: [x, o.y ?? 0, z], yaw: o.yaw ?? (Math.sin(x * 3.1 + z) * 0.25), size: o.size ?? 1, variant: o.v ?? ['rund', 'kreuz', 'spitz'][Math.abs(Math.round(x * 7 + z * 3)) % 3], solid: o.solid ?? true });
 
-/** Gräberreihe von (x0, z) nach (x1, z) mit n Grabsteinen. */
+/** Gräberreihe (eigene Gräber mit Schmuck) von (x0, z) nach (x1, z) mit n Gräbern. */
 function reihe(x0, x1, z, n, o = {}) {
   const out = [];
-  for (let i = 0; i < n; i++) out.push(grab(x0 + ((x1 - x0) * i) / Math.max(1, n - 1), z + (i % 2 ? 0.3 : -0.2), o));
+  for (let i = 0; i < n; i++) {
+    const x = x0 + ((x1 - x0) * i) / Math.max(1, n - 1);
+    out.push({ pos: [x, o.y ?? 0, z + (i % 2 ? 0.3 : -0.2)], yaw: o.yaw ?? Math.sin(x * 3.1 + z) * 0.18, size: o.size ?? (0.9 + ((i * 7 + Math.round(z)) % 3) * 0.12) });
+  }
   return out;
 }
 
+// Gräberfelder zwischen den Wegen (frei bleiben: Mittelweg x ±2, Seitenwege, Anläufe und Landeflächen der Route)
+const GRAEBER = [
+  ...reihe(-26, -18, 12, 3), ...reihe(-26, -17, -1, 3), ...reihe(18, 26, 12, 3), ...reihe(20, 27, -4, 3),
+  ...reihe(-26, -8, -12, 5), ...reihe(-26, -9, -34, 5), ...reihe(-26, -9, -40, 4),
+  ...reihe(21.5, 27, -28, 2), ...reihe(21.5, 27, -34, 2), ...reihe(4, 9, -30, 2),
+  ...reihe(-26, -9, -52, 5), ...reihe(3.5, 8.5, -54, 2), ...reihe(22, 27, -54, 2),
+  ...reihe(-26, -21, -76, 2), ...reihe(-12, -5, -77, 3), ...reihe(3.5, 8, -78, 2), ...reihe(19, 27, -79, 3),
+  // Gräber direkt am Mittelweg (Lücken an den Seitenwegen)
+  ...reihe(-6.6, -4.4, 1.4, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.6, -2.6, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -14, 2, { yaw: PI / 2 }),
+  ...reihe(4.4, 6.4, -16, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -27, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.4, -24, 2, { yaw: -PI / 2 }),
+  ...reihe(-6.4, -4.4, -36, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.4, -44.6, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -52, 2, { yaw: PI / 2 }),
+  ...reihe(4.4, 6.4, -68, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -70.6, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.4, -74, 2, { yaw: -PI / 2 }),
+  // Grabinseln im Giftsumpf, Nebelstufen, Kapellenhügel, Nebelkammer
+  { pos: [-11.5, 0.4, -118], size: 1 }, { pos: [-10.2, 0.4, -120.4], size: 0.8 }, { pos: [10.4, 0.4, -147.6], size: 1 }, { pos: [11.6, 0.4, -149.6], size: 0.8 },
+  { pos: [-2.8, 0, -216.8], size: 0.8 }, { pos: [3.4, 0, -244.4], size: 0.8, kind: 'kreuz' },
+  { pos: [XZ - 6, 0, -326], size: 0.9 }, { pos: [XZ + 6.4, 0, -328], size: 1, kind: 'herz' }, { pos: [XZ - 7, 0, -334], size: 0.8 },
+  { pos: [XR - 5.6, -0.8, -191.6], size: 0.9 }, { pos: [-3.4, YS, -318], size: 0.8 }, { pos: [3.6, YS, -312.6], size: 0.7, kind: 'herz' },
+];
+
+// Pflasterwege (Mittelweg und Abzweige zu den Schlüsseln)
+const WEGE = [
+  { x0: -1.5, x1: 1.5, z0: 14, z1: -83 },
+  { x0: -6, x1: -1.5, z0: 6, z1: 4 }, { x0: 1.5, x1: 12, z0: -9, z1: -11 }, { x0: -14, x1: -1.5, z0: -19, z1: -21 },
+  { x0: 1.5, x1: 9, z0: -36.6, z1: -38.6 }, { x0: -24.4, x1: -1.5, z0: -45, z1: -47 }, { x0: -16, x1: -1.5, z0: -57, z1: -59 },
+  { x0: 1.5, x1: 21, z0: -61, z1: -63 }, { x0: -2, x1: 2, z0: -84.6, z1: -93 },
+  { x0: -2, x1: 2, z0: -174, z1: -189 }, { x0: XZ - 1.5, x1: XZ + 1.5, z0: -320, z1: -336 },
+];
+
 function build(level) {
-  // ------------------------------------------------ Zäune um den Friedhof (springbar, Lücke am Start)
+  // ------------------------------------------------ Zäune um den Friedhof (springbar, Lücke am Start), Lichterketten
   eisenzaun(level, [
     { from: [-29.6, 15.6], to: [-29.6, -42.6] }, { from: [-29.6, -49.4], to: [-29.6, -83.4] },
     { from: [29.6, 15.6], to: [29.6, -83.4] },
-    { from: [-29.6, 15.6], to: [-4, 15.6] }, { from: [4, 15.6], to: [29.6, 15.6] },
-    // innen: Gehege um die Krümel-Lichtung (offen nach Süden), Mittelweg-Einfassung
-    { from: [17.6, -38.6], to: [17.6, -50], h: 0.9 }, { from: [6.4, -50], to: [17.6, -50], h: 0.9 },
+    { from: [-29.6, 15.6], to: [-4, 15.6], lights: true }, { from: [4, 15.6], to: [29.6, 15.6], lights: true },
+    // innen: Gehege um die Krümel-Lichtung (offen nach Süden)
+    { from: [17.6, -38.6], to: [17.6, -50], h: 0.9, lights: true }, { from: [6.4, -50], to: [17.6, -50], h: 0.9, lights: true },
   ]);
+  graeber(level, GRAEBER);
+  wege(level, WEGE);
+  tannen(level, [
+    { pos: [-27.4, 0, 14] }, { pos: [27.4, 0, 13.4], height: 5.6 }, { pos: [-27.6, 0, -20], height: 6 }, { pos: [27.4, 0, -14], height: 5 },
+    { pos: [-27.6, 0, -62], height: 5.5 }, { pos: [27.6, 0, -40], height: 6.2 }, { pos: [27.4, 0, -60], height: 4.8 }, { pos: [-27.4, 0, -80], height: 5.4 },
+    { pos: [27.4, 0, -81], height: 5.8 }, { pos: [-6.6, 0, -91.6], height: 4.2 }, { pos: [6.6, 0, -91.6], height: 4.4 },
+    { pos: [-8.4, 0, -188.2], height: 4.4 }, { pos: [8.4, 0, -175.4], height: 4.8 }, { pos: [XZ - 8.4, 0, -320], height: 5.4 }, { pos: [XZ + 8.4, 0, -344], height: 6 },
+    { pos: [XK + 7.4, 0, -67.2], height: 3.6, solid: false }, { pos: [XK - 7.4, 0, -67.2], height: 3.6, solid: false },
+  ]);
+  laternen(level, [
+    { pos: [-2.6, 0, 2] }, { pos: [2.6, 0, -16] }, { pos: [-2.6, 0, -32] }, { pos: [2.6, 0, -48] }, { pos: [-2.6, 0, -66] },
+    { pos: [-3.6, 0, -81.6], color: 'lila' }, { pos: [3.6, 0, -81.6], color: 'lila' }, { pos: [9.6, 0, -37.6], color: 'mint' }, { pos: [-14.6, 0, -24], color: 'lila' },
+    { pos: [-23.6, 0, -48.6], color: 'rosa' }, { pos: [35.2, 6.5, -54.6], color: 'mint' }, { pos: [20.4, 0, -64.6] }, { pos: [-13.6, 0, -59.6], color: 'rosa' },
+    { pos: [-2.6, 0, -89] }, { pos: [2.6, 0, -89] }, { pos: [-12.6, 0.4, -116], color: 'lila' }, { pos: [12, 0.4, -145.4], color: 'mint' },
+    { pos: [-3.6, 0, -176.4] }, { pos: [3.6, 0, -188.6], color: 'lila' }, { pos: [3, 0, -212.4], color: 'mint' }, { pos: [-3.6, 0, -244.8] },
+    { pos: [-4.4, YS, -317.4], color: 'lila' }, { pos: [4.4, YS, -317.4], color: 'lila' }, { pos: [XZ - 3, 0, -321.6] }, { pos: [XZ + 3, 0, -321.6] },
+    { pos: [XR - 6, 0, -173.4], color: 'mint' }, { pos: [XR + 6, 0, -173.4], color: 'mint' }, { pos: [XK - 7, 0, -54], color: 'rosa' },
+  ]);
+  eisteiche(level, [{ pos: [16, 0, 3.4], r: 3.2 }, { pos: [XZ + 5.6, 0, -340], r: 2.2 }]);
   // ------------------------------------------------ Grüfte, Kapelle, Mauer
   gruft(level, { pos: [-19, 0, -22], size: [5, 3, 4], face: '+z', door: 'zu' });                         // Westgruft (Dach → Wolke)
   gruft(level, { pos: [-27.5, 0, -46], size: [4, 3.2, 5], face: '+x', roof: 'kuppel' });                // Gruft am linken Zaun (Tür → Sims)
@@ -167,7 +217,7 @@ export const LEVEL = {
     // ================================================================ 1 Schneefriedhof
     isl(-30, 30, 16, -84.6, 0, 6),
     isl(-8, 8, -84.6, -94, 0, 4),                                                  // Steg-Platz hinter dem Tor
-    isl(-13.1, -10.9, 6.1, 3.9, 1.7, 1.7, { top: 'rock', under: 0 }),             // Felsen im Kreisgeist-Ring (Schlüssel a)
+    isl(-13.3, -10.7, 6.3, 3.7, 1.3, 1.3, { top: 'rock', under: 0 }),             // Felsen im Kreisgeist-Ring (Schlüssel a)
     isl(31, 39, -53, -63, 6.5, 9, { top: 'rock', under: 4 }),                     // Felssims ganz rechts (Schlüssel e)
     isl(-16.3, -14.9, -19.3, -20.7, 1.4, 1.4, { top: 'rock', under: 0 }),         // Grabsockel vor der Westgruft (Tritt zum Dach)
     sign(-3.4, 0, 11.4, 'Nebelfriedhof', { yaw: 0.2 }),
@@ -181,19 +231,14 @@ export const LEVEL = {
     ], delay: 0.18 },
     { type: 'pow', id: 'pow_kaefig', pos: [-11, 0, -63], uses: 3, radius: 8, height: 3 },
     { type: 'deco_star', items: [
-      // Gräberreihen (links und rechts des Mittelwegs)
-      ...reihe(-26, -8, -2, 5), ...reihe(8, 26, -4, 5), ...reihe(-26, -10, -10, 4), ...reihe(-8, -2, -30, 2),
-      ...reihe(-26, -10, -38, 4), ...reihe(-26, -14, -54, 3), ...reihe(20, 27, -26, 2), ...reihe(20, 27, -34, 2),
-      ...reihe(-8, -2, -76, 2), ...reihe(4, 9, -64, 2), ...reihe(-26, -22, -60, 2), ...reihe(20, 27, -56, 2),
-      grab(5, -40.2, { size: 1.9, v: 'kreuz' }),                                    // großer Grabstein mit dem Grablicht
-      grab(-12, 2.2, { size: 0.8, solid: false }), grab(-9.6, 6.8, { size: 0.7, solid: false, v: 'rund' }),
-      // kahle Bäume, Schneehügel, Laternen, Irrlichter
-      { kind: 'kahler_baum', pos: [-24, 0, 10], height: 5.5 }, { kind: 'kahler_baum', pos: [24, 0, 12], height: 5 }, { kind: 'kahler_baum', pos: [-24, 0, -30], height: 6 },
-      { kind: 'kahler_baum', pos: [8, 0, -72], height: 6.5 }, { kind: 'kahler_baum', pos: [26, 0, -46], height: 5 }, { kind: 'kahler_baum', pos: [-6, 0, -46], height: 4.5 },
-      { kind: 'schneehuegel', pos: [-20, 0, 4], radius: 2.6 }, { kind: 'schneehuegel', pos: [22, 0, -18], radius: 2.2 }, { kind: 'schneehuegel', pos: [-4, 0, -64], radius: 2 },
-      { kind: 'schneehuegel', pos: [24, 0, 2], radius: 2.4 },
-      { kind: 'laterne', pos: [-2.6, 0, 2] }, { kind: 'laterne', pos: [2.6, 0, -18] }, { kind: 'laterne', pos: [-2.6, 0, -42] }, { kind: 'laterne', pos: [2.6, 0, -60] },
-      { kind: 'laterne', pos: [-3.6, 0, -81] }, { kind: 'laterne', pos: [3.6, 0, -81] }, { kind: 'laterne', pos: [35, 6.5, -55] },
+      { kind: 'grabstein', pos: [5, 0, -40.4], size: 1.9, variant: 'kreuz', solid: true },   // großer Grabstein mit dem Grablicht (Lachgesicht)
+      { kind: 'grabstein', pos: [-9.6, 0, 7.4], size: 0.9, variant: 'rund' }, { kind: 'grabstein', pos: [9.2, 0, -12.8], size: 0.9, variant: 'spitz' },
+      { kind: 'grabstein', pos: [-5.6, 0, -24.2], size: 1, variant: 'rund' }, { kind: 'grabstein', pos: [-5.4, 0, -61.4], size: 0.9, variant: 'kreuz' },
+      // kahle Bäume, Schneehügel, Irrlichter, Nebelbänke
+      { kind: 'kahler_baum', pos: [-24, 0, 7], height: 5.5 }, { kind: 'kahler_baum', pos: [23.6, 0, 8], height: 5 }, { kind: 'kahler_baum', pos: [-24, 0, -27.6], height: 6 },
+      { kind: 'kahler_baum', pos: [8, 0, -72], height: 6.5 }, { kind: 'kahler_baum', pos: [25, 0, -46], height: 5 }, { kind: 'kahler_baum', pos: [-6.4, 0, -42.6], height: 4.5 },
+      { kind: 'schneehuegel', pos: [-20, 0, 5], radius: 2.2 }, { kind: 'schneehuegel', pos: [23.4, 0, -19], radius: 2 }, { kind: 'schneehuegel', pos: [-4.6, 0, -70], radius: 1.8 },
+      { kind: 'schneehuegel', pos: [24, 0, 2.4], radius: 1.8 },
       { kind: 'irrlicht', pos: [-14, 2.2, -14] }, { kind: 'irrlicht', pos: [16, 2.8, -36], color: 0xc8b0ff }, { kind: 'irrlicht', pos: [-22, 2.4, -72] },
       { kind: 'irrlicht', pos: [20, 3.2, -80], color: 0x9affd8 }, { kind: 'irrlicht', pos: [10, 2.2, 0], color: 0xc8b0ff },
       { kind: 'nebelbank', pos: [-16, 0, -8], size: [14, 8], opacity: 0.32 }, { kind: 'nebelbank', pos: [14, 0, -58], size: [14, 9], opacity: 0.3 },
@@ -205,30 +250,28 @@ export const LEVEL = {
     isl(-14, -9, -114, -122, 0.4, 3, { top: 'rock', under: 0 }), isl(8, 13, -144, -151, 0.4, 3, { top: 'rock', under: 0 }),
     isl(9, 14, -110, -116, 0.3, 3, { top: 'rock', under: 0 }), isl(-13, -8, -152, -158, 0.3, 3, { top: 'rock', under: 0 }),
     { type: 'deco_star', items: [
-      grab(-11.5, -118, { y: 0.4 }), grab(-10.2, -120.4, { y: 0.4, size: 0.8 }), grab(10.4, -147.6, { y: 0.4 }), grab(11.6, -149.2, { y: 0.4, size: 0.7 }),
       { kind: 'kahler_baum', pos: [11.6, 0.3, -113], height: 5 }, { kind: 'kahler_baum', pos: [-10.6, 0.3, -155], height: 5.5 },
-      { kind: 'laterne', pos: [-12.6, 0.4, -116] }, { kind: 'laterne', pos: [12, 0.4, -145.4] },
       { kind: 'irrlicht', pos: [-8, 1.6, -132], color: 0xc8b0ff }, { kind: 'irrlicht', pos: [9, 1.8, -126] }, { kind: 'irrlicht', pos: [-6, 1.4, -164], color: 0x9affd8 },
       { kind: 'nebelbank', pos: [-12, -0.6, -134], size: [12, 10], opacity: 0.35 }, { kind: 'nebelbank', pos: [12, -0.6, -160], size: [12, 10], opacity: 0.35 },
     ] },
     // ================================================================ 3 Landeinsel
-    isl(-10, 10, -174, -190, 0, 4),
+    isl(-10, 10, -172.8, -190, 0, 4),
     sign(-6.5, 0, -176.4, 'Nebelstufen', { yaw: 0.2 }),
     // ================================================================ 4 Nebelplattformen
     { type: 'nebelboden', id: 'nebelboden', pos: [0, -1.0, -228], size: [34, 78], depth: 1.5, kill: 'fall', density: 0.6,
       parts: [{ pos: [6.5, -0.6, -214.5], size: [2.6, 0.4, 2.6], up: 3, down: 2 }, { pos: [-6.5, -0.6, -214.5], size: [2.6, 0.4, 2.6], up: 3, down: 2, phase: 2.5 }] },
-    { type: 'nebelplattform', id: 'nebelA', from: [0, 0, -193.6], to: [0, 0, -208.6], n: 5, depth: 3, up: 2.8, down: 1.6, move: 1.0, stagger: 0.8 },
+    { type: 'nebelplattform', id: 'nebelA', from: [0, 0, -193.6], to: [0, 0, -208.6], n: 5, depth: 3, up: 3.0, down: 1.6, move: 1.0, stagger: -1.1 },
     isl(-4, 4, -211, -219, 0, 3, { under: 0 }),
-    { type: 'nebelplattform', id: 'nebelB1', mode: 'blinken', from: [-3, 0, -222.6], to: [-3, 0, -234], n: 4, up: 2.4, down: 1.4, stagger: 0.6 },
-    { type: 'nebelplattform', id: 'nebelB2', from: [3, 0, -222.6], to: [3, 0, -234], n: 4, depth: 3, up: 2.8, down: 1.6, move: 1.0, stagger: 0.9, phase: 0.4 },
+    { type: 'nebelplattform', id: 'nebelB1', mode: 'blinken', from: [-3, 0, -222.6], to: [-3, 0, -234], n: 4, up: 2.4, down: 1.4, stagger: -0.6 },
+    { type: 'nebelplattform', id: 'nebelB2', from: [3, 0, -222.6], to: [3, 0, -234], n: 4, depth: 3, up: 3.0, down: 1.6, move: 1.0, stagger: -1.1, phase: 0.4 },
     isl(-4.5, 4.5, -237.5, -245.5, 0, 3, { under: 0 }),
     { type: 'nebelplattform', id: 'nebelC', depth: 3, up: 3.2, down: 1.4, move: 1.0,
-      parts: [{ pos: [0, 0.7, -249], phase: 0 }, { pos: [0, 1.5, -253], phase: 0.7 }, { pos: [0, 2.3, -257], phase: 1.4 }, { pos: [0, 3.1, -261], phase: 2.1 }] },
+      parts: [{ pos: [0, 0.7, -249], phase: 0 }, { pos: [0, 1.5, -253], phase: -1.1 }, { pos: [0, 2.3, -257], phase: -2.2 }, { pos: [0, 3.1, -261], phase: -3.3 }] },
     isl(-1.5, 1.5, -263.6, -266.4, YS, 4, { top: 'rock', under: 0 }),
     { type: 'deco_star', items: [
-      { kind: 'laterne', pos: [3, 0, -212] }, { kind: 'laterne', pos: [-3.6, 0, -244.5] }, { kind: 'irrlicht', pos: [-7, 1.6, -200] }, { kind: 'irrlicht', pos: [7, 1.4, -228], color: 0xc8b0ff },
+      { kind: 'irrlicht', pos: [-7, 1.6, -200] }, { kind: 'irrlicht', pos: [7, 1.4, -228], color: 0xc8b0ff },
       { kind: 'irrlicht', pos: [-6, 2.4, -256], color: 0x9affd8 }, { kind: 'irrlicht', pos: [6, 4.4, -276] }, { kind: 'irrlicht', pos: [-7, 4.2, -296], color: 0xc8b0ff },
-      grab(-2.8, -216.6, { size: 0.8 }), grab(2.4, -238.6, { size: 0.8, v: 'kreuz' }), { kind: 'kahler_baum', pos: [3.4, 0, -244.4], height: 4.2 },
+      { kind: 'kahler_baum', pos: [3.6, 0, -239.4], height: 4.2 },
       { kind: 'nebelbank', pos: [0, -1, -226], size: [18, 10], opacity: 0.3 }, { kind: 'nebelbank', pos: [-6, -1, -280], size: [12, 12], opacity: 0.3 },
     ] },
     // ================================================================ 5 Boost-Steg, Ende
@@ -237,24 +280,22 @@ export const LEVEL = {
     isl(-6, 6, -306.2, -320, YS, 5),
     sign(-4, YS, -308.6, 'Zum Kapellenhügel', { size: [2.8, 0.95], yaw: 0.2 }),
     { type: 'deco_star', items: [
-      { kind: 'laterne', pos: [-4.4, YS, -317] }, { kind: 'laterne', pos: [4.4, YS, -317] }, grab(-3, -318, { y: YS, size: 0.8 }), grab(3.2, -312, { y: YS, size: 0.7 }),
       { kind: 'schneehuegel', pos: [4, YS, -318.4], radius: 1.4 },
     ] },
     // ================================================================ Kerzenkammer (Nebenbereich)
     isl(XK - 9, XK + 9, -52, -69, 0, 4),
-    { type: 'deco_star', items: [{ kind: 'irrlicht', pos: [XK - 4, 2.6, -60] }, { kind: 'irrlicht', pos: [XK + 4, 3, -62], color: 0xc8b0ff }, { kind: 'laterne', pos: [XK + 6.8, 0, -54] }] },
+    { type: 'deco_star', items: [{ kind: 'irrlicht', pos: [XK - 4, 2.6, -60] }, { kind: 'irrlicht', pos: [XK + 4, 3, -62], color: 0xc8b0ff }] },
     // ================================================================ Nebelkammer (Rätselbox)
     isl(XR - 7, XR + 7, -172, -182, 0, 4),
     { type: 'nebelboden', pos: [XR, -1.6, -184], size: [14, 4], depth: 1.4, kill: 'fall', density: 0.7 },
     isl(XR - 7, XR + 7, -186, -193, -0.8, 3.2),
-    { type: 'deco_star', items: [{ kind: 'laterne', pos: [XR - 6, 0, -173.4] }, { kind: 'laterne', pos: [XR + 6, 0, -173.4] }, { kind: 'kahler_baum', pos: [XR + 5.6, -0.8, -191.4], height: 4.4 },
-      grab(XR - 5.6, -191.6, { y: -0.8, size: 0.9 }), { kind: 'irrlicht', pos: [XR, 2.6, -190] }] },
+    { type: 'deco_star', items: [{ kind: 'kahler_baum', pos: [XR + 5.6, -0.8, -191.4], height: 4.4 }, { kind: 'irrlicht', pos: [XR, 2.6, -190] }] },
     sign(XR - 4, 0, -174.6, 'Triff alle\nvier Scheiben!', { size: [2.6, 1.05], yaw: 0.2 }),
     // ================================================================ 6 Kapellenhügel (Ziel)
     isl(XZ - 10, XZ + 10, -318, -346, 0, 5),
     { type: 'deco_star', items: [
-      { kind: 'laterne', pos: [XZ - 3, 0, -322] }, { kind: 'laterne', pos: [XZ + 3, 0, -322] }, { kind: 'kahler_baum', pos: [XZ - 7, 0, -342], height: 5 }, { kind: 'kahler_baum', pos: [XZ + 7.5, 0, -340], height: 5.5 },
-      grab(XZ - 6, -326, { size: 0.8 }), grab(XZ + 6.4, -327, { size: 0.9, v: 'kreuz' }), { kind: 'schneehuegel', pos: [XZ + 6, 0, -320], radius: 1.8 }, { kind: 'irrlicht', pos: [XZ, 4.2, -344], color: 0x9affd8 },
+      { kind: 'kahler_baum', pos: [XZ - 7, 0, -342], height: 5 }, { kind: 'kahler_baum', pos: [XZ + 7.5, 0, -337], height: 5.5 },
+      { kind: 'schneehuegel', pos: [XZ + 6, 0, -320], radius: 1.8 }, { kind: 'irrlicht', pos: [XZ, 4.2, -344], color: 0x9affd8 },
     ] },
     { type: 'deco_star', kind: 'modell', pos: [XZ, 0, -343], name: 'sternen_torbogen', opts: { width: 7, height: 5.5 }, yaw: -PI / 2 },
   ],
@@ -267,25 +308,25 @@ export const LEVEL = {
     { kind: 'question', pos: [-2.6, 2.4, -2], content: 'coins:5' },
   ],
   enemies: [
-    kreis('fr', [-12, 0.25, 5], 7, 3.0, { speed: 1.2 }),                    // um den Schlüssel-Felsen
+    kreis('fr', [-12, 0.25, 5], 7, 2.9, { speed: 1.2 }),                    // um den Schlüssel-Felsen
     kreis('kr', [12, 0.2, -44], 8, 2.4, { speed: 1.0, cw: true }),         // um Krümel
     kreis('baum', [8, 0.3, -72], 6, 2.6, { speed: 1.3 }),                   // um den kahlen Baum
     kreis('sumpf1', [-11.5, 0.6, -118], 5, 2.4, { speed: 1.1 }), kreis('sumpf2', [10.5, 0.6, -147.5], 6, 2.6, { speed: 1.2, cw: true }),
-    geist('g1', [-5, 0.7, -18], 3.2), geist('g2', [16, 0.7, -60], 3, { cw: true }), geist('g3', [-15, 0.8, -44], 2.6, { phase: 0.5 }),
+    geist('g1', [-13, 0.7, -6], 2.2), geist('g2', [24, 0.7, -50], 2.4, { cw: true }), geist('g3', [-12, 0.8, -38], 2.2, { phase: 0.5 }),
     geist('g4', [0, 1.0, -228.3], 1.2, { speed: 1.2 }), geist('g5', [XZ + 4, 1.2, -336], 2.2, { speed: 1.0 }),
   ],
   items: [
     // Schlüsselmünzen (5) → Friedhofstor
-    { kind: 'schluesselmuenze', id: 'ka', group: 'tor', pos: [-12, 1.9, 5], onAll: { open: 'tor' } },
+    { kind: 'schluesselmuenze', id: 'ka', group: 'tor', pos: [-12, 1.5, 5], onAll: { open: 'tor' } },
     { kind: 'schluesselmuenze', id: 'kb', group: 'tor', pos: [19, 6.2, -23.6] },
     { kind: 'schluesselmuenze', id: 'kc', group: 'tor', pos: [-19, 5.2, -29] },
     { kind: 'schluesselmuenze', id: 'kd', group: 'tor', pos: [-17, 0.3, -67.4] },
     { kind: 'schluesselmuenze', id: 'ke', group: 'tor', pos: [33.6, 6.7, -58] },
     // Türen: Gruft am linken Zaun ↔ Felssims; Kapelle ↔ Kerzenkammer
-    { kind: 'tuer', id: 'tuer_links', pos: [-25.2, 0, -46], yaw: 0, style: 'stein', target: 'tuer_sims' },
-    { kind: 'tuer', id: 'tuer_sims', pos: [37.6, 6.5, -58], yaw: PI, style: 'stein', target: 'tuer_links' },
-    { kind: 'tuer', id: 'tuer_kapelle', pos: [23, 0, -64.4], yaw: -PI / 2, style: 'holz', target: 'tuer_kammer' },
-    { kind: 'tuer', id: 'tuer_kammer', pos: [XK, 0, -53.2], yaw: PI / 2, style: 'holz', target: 'tuer_kapelle' },
+    { kind: 'tuer', id: 'tuer_links', pos: [-25.2, 0, -46], yaw: 0, style: 'stein', target: 'tuer_sims', open: true },
+    { kind: 'tuer', id: 'tuer_sims', pos: [37.6, 6.5, -58], yaw: PI, style: 'stein', target: 'tuer_links', open: true },
+    { kind: 'tuer', id: 'tuer_kapelle', pos: [23, 0, -64.4], yaw: -PI / 2, style: 'holz', target: 'tuer_kammer', open: true },
+    { kind: 'tuer', id: 'tuer_kammer', pos: [XK, 0, -53.2], yaw: PI / 2, style: 'holz', target: 'tuer_kapelle', open: true },
     // Schneebälle (Wurfbälle)
     { kind: 'wurfball', id: 'sb1', pos: [-7.4, 0, -58.6], size: 0.5, life: 3, respawn: 1.2 },
     { kind: 'wurfball', id: 'sb2', pos: [-8.4, 0, -57.2], size: 0.5, life: 3, respawn: 1.2 },

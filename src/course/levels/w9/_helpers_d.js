@@ -539,34 +539,189 @@ export function schneebaelle(level, ids) {
 // =====================================================================================================================
 
 /**
- * Schmiedeeisenzaun mit Steinpfosten (Schneehauben): list [{ from: [x, z], to: [x, z], y: 0, h: 1.2, gap: 2.4, solid: true }]
- * – achsenparallel; Kollision als dünner Quader (springbar).
+ * Schmiedeeisenzaun mit Steinpfosten (Schneehauben): list [{ from: [x, z], to: [x, z], y: 0, h: 1.2, gap: 3, solid: true,
+ * lights: false (bunte Lichterkette zwischen den Pfosten) }] – achsenparallel; Kollision als dünner Quader (springbar).
+ * Sparsam gebaut (vierkantige Stäbe, ohne Sonnenschatten).
  */
+const BULBS = [0xff7ab8, 0x8affd0, 0xffe070, 0xb89aff, 0x7ad8ff];
 export function eisenzaun(level, list) {
-  const b = new Bld();
+  const b = new Bld(), g = new Bld();
+  let bi = 0;
   for (const f of list) {
     const [x0, z0] = f.from, [x1, z1] = f.to, y = f.y ?? 0, h = f.h ?? 1.2;
     if (f.solid !== false) level.world.add({ type: 'box', min: [Math.min(x0, x1) - 0.1, y, Math.min(z0, z1) - 0.1], max: [Math.max(x0, x1) + 0.1, y + h, Math.max(z0, z1) + 0.1], tag: 'zaun', noWallSlide: true });
     if (!level.view) continue;
-    const L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / (f.gap ?? 2.4)));
+    const L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / (f.gap ?? 3)));
     const ux = (x1 - x0) / L, uz = (z1 - z0) / L;
     for (let i = 0; i <= n; i++) {
       const px = x0 + (x1 - x0) * (i / n), pz = z0 + (z1 - z0) * (i / n);
-      b.box(0.36, h + 0.25, 0.36, px, y, pz, litTop(0xa8b0c8), { r: 0.05 });
-      b.sphere(0.24, px, y + h + 0.3, pz, 0xf6f9ff, { s: [1.15, 0.55, 1.15] });
+      b.box(0.36, h + 0.25, 0.36, px, y, pz, litTop(0xa8b0c8), { r: 0 });
+      b.sphere(0.24, px, y + h + 0.3, pz, 0xf6f9ff, { s: [1.15, 0.55, 1.15], ws: 8, hs: 5 });
       if (i === n) continue;
-      const seg = L / n, m = Math.max(2, Math.round(seg / 0.32));
+      const seg = L / n, m = Math.max(2, Math.round(seg / 0.45));
       for (let k = 1; k < m; k++) {
         const qx = px + ux * seg * (k / m), qz = pz + uz * seg * (k / m);
-        b.cyl(0.03, 0.03, h - 0.1, qx, y, qz, 0x2a2e48, 5);
-        b.cone(0.06, 0.16, qx, y + h - 0.1, qz, 0x3a3e58, 5);
+        b.box(0.05, h - 0.1, 0.05, qx, y, qz, 0x2a2e48, { r: 0 });
+        b.cone(0.07, 0.16, qx, y + h - 0.1, qz, k % 2 ? 0x3a3e58 : 0xb89a50, 4);
       }
       const cx = px + ux * seg / 2, cz = pz + uz * seg / 2, yaw = Math.atan2(ux, uz);
-      b.box(0.06, 0.06, seg, cx, y + 0.25, cz, 0x2a2e48, { yaw });
-      b.box(0.06, 0.06, seg, cx, y + h - 0.35, cz, 0x2a2e48, { yaw });
+      b.box(0.06, 0.06, seg, cx, y + 0.25, cz, 0x2a2e48, { yaw, r: 0 });
+      b.box(0.06, 0.06, seg, cx, y + h - 0.35, cz, 0x2a2e48, { yaw, r: 0 });
+      if (f.lights) {
+        const nb = Math.max(2, Math.round(seg / 0.7));
+        for (let k = 1; k < nb; k++) {
+          const u = k / nb, sag = Math.sin(u * PI) * 0.32;
+          g.sphere(0.07, px + ux * seg * u, y + h + 0.42 - sag, pz + uz * seg * u, BULBS[bi++ % BULBS.length], { ws: 6, hs: 4 });
+        }
+      }
     }
   }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Gräber (eigene, sparsame Optik mit Schmuck; Kollision je Grab): list [{ pos: [x, y, z], yaw, size: 1, kind: 'rund' |
+ * 'kreuz' | 'herz' | 'spitz', deko: 'kranz' | 'blumen' | 'kerze' | 'herz' | 'stern' | null, color }]. Steine in sanften
+ * Lavendel-/Blaugrautönen mit Schneehaube; der Schmuck bringt Farbe (Kränze mit roter Schleife, bunte Blumen, Laternchen).
+ */
+const FLOWER = [0xff5a8a, 0xffb83a, 0xb87aff, 0x5ac8ff, 0xff7ad8];
+export function graeber(level, list) {
+  const b = new Bld(), g = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, k = s.size ?? 1, yaw = s.yaw ?? 0;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);              // Vorderseite (Standard +Z, zur Kamera)
+    const w = 0.85 * k, h = 1.05 * k, d = 0.26 * k;
+    level.world.add({ type: 'box', min: [x - w / 2 - 0.05, y, z - w / 2 - 0.05], max: [x + w / 2 + 0.05, y + h + 0.2 * k, z + w / 2 + 0.05], tag: 'grab' });
+    if (!level.view) return;
+    const col = s.color ?? [0xb4b0d0, 0xa8b4cc, 0xc0b4c8, 0x9ca8c4][idx % 4];
+    const stone = litTop(col);
+    const kind = s.kind ?? ['rund', 'kreuz', 'herz', 'rund', 'spitz'][idx % 5];
+    b.box(w + 0.24, 0.16, d + 0.34, x, y, z, 0x8a90ac, { yaw, r: 0 });                       // Sockel
+    b.box(w + 0.16, 0.06, d + 0.26, x, y + 0.16, z, 0xf6f9ff, { yaw, r: 0 });                 // Schnee auf dem Sockel
+    if (kind === 'kreuz') {
+      b.box(0.22 * k, h, d, x, y + 0.16, z, stone, { yaw, r: 0 });
+      b.box(0.7 * k, 0.2 * k, d, x, y + 0.16 + h * 0.62, z, stone, { yaw, r: 0 });
+      b.box(0.26 * k, 0.07, d + 0.04, x, y + 0.16 + h, z, 0xf8faff, { yaw, r: 0 });
+      b.box(0.74 * k, 0.06, d + 0.04, x, y + 0.36 + h * 0.62, z, 0xf8faff, { yaw, r: 0 });
+    } else {
+      const hh = kind === 'spitz' ? h * 0.75 : h * 0.8;
+      b.box(w, hh, d, x, y + 0.16, z, stone, { yaw, r: 0 });
+      if (kind === 'rund') {
+        b.add(new THREE.CylinderGeometry(w / 2, w / 2, d, 10, 1, false, 0, PI), col, { p: [x, y + 0.16 + hh, z], r: [PI / 2, yaw, PI / 2] });
+        b.sphere(w * 0.5, x, y + 0.16 + hh + w * 0.3, z, 0xf8faff, { s: [1, 0.28, d / w * 1.4], yaw, ws: 8, hs: 4 });
+      } else if (kind === 'spitz') {
+        b.cone(w * 0.72, h * 0.42, x, y + 0.16 + hh, z, col, 4, { yaw: yaw + PI / 4, s: [1, 1, d / w * 1.5] });
+        b.cone(w * 0.36, h * 0.2, x, y + 0.16 + hh + h * 0.26, z, 0xf8faff, 4, { yaw: yaw + PI / 4, s: [1, 1, d / w * 1.6] });
+      } else {
+        // Herz-Grabstein (zwei Kugeln und eine Spitze)
+        for (const sd of [-1, 1]) b.sphere(w * 0.3, x + Math.cos(yaw) * sd * w * 0.22, y + 0.16 + hh + w * 0.08, z - Math.sin(yaw) * sd * w * 0.22, col, { s: [1, 1, d / (w * 0.6) * 1.2], ws: 8, hs: 6 });
+        b.box(w * 0.9, 0.08, d * 1.1, x, y + 0.16 + hh + w * 0.3, z, 0xf8faff, { yaw, r: 0 });
+      }
+    }
+    // Schmuck vor dem Grab
+    const dx = x + fx * (d / 2 + 0.24), dz = z + fz * (d / 2 + 0.24);
+    const deko = s.deko === undefined ? ['kranz', 'blumen', 'kerze', 'blumen', 'herz', null][idx % 6] : s.deko;
+    if (deko === 'kranz') {
+      b.torus(0.24 * k, 0.07 * k, x + fx * (d / 2 + 0.03), y + 0.16 + h * 0.45, z + fz * (d / 2 + 0.03), 0x2a8a5a, { rx: 0, yaw, ts: 10, rs: 4 });
+      g.sphere(0.07 * k, x + fx * (d / 2 + 0.08), y + 0.16 + h * 0.45 - 0.22 * k, z + fz * (d / 2 + 0.08), 0xff3a5a, { s: [1.6, 1, 1], ws: 6, hs: 4 });
+      for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.4; g.sphere(0.035, x + fx * (d / 2 + 0.07) + Math.cos(yaw) * Math.cos(a) * 0.24 * k, y + 0.16 + h * 0.45 + Math.sin(a) * 0.24 * k, z + fz * (d / 2 + 0.07) - Math.sin(yaw) * Math.cos(a) * 0.24 * k, 0xff4a4a, { ws: 4, hs: 3 }); }
+    } else if (deko === 'blumen') {
+      for (let i = 0; i < 3; i++) {
+        const ox = (i - 1) * 0.18;
+        const qx = dx + Math.cos(yaw) * ox, qz = dz - Math.sin(yaw) * ox;
+        b.box(0.03, 0.26, 0.03, qx, y + 0.16, qz, 0x3a8a4a, { r: 0 });
+        g.sphere(0.07, qx, y + 0.45, qz, FLOWER[(idx + i) % FLOWER.length], { ws: 6, hs: 4 });
+      }
+    } else if (deko === 'kerze') {
+      b.box(0.2, 0.26, 0.2, dx, y + 0.16, dz, 0xd8403a, { r: 0 });
+      b.cone(0.16, 0.14, dx, y + 0.42, dz, 0xb8303a, 4, { yaw: PI / 4 });
+      g.box(0.12, 0.16, 0.12, dx, y + 0.21, dz, 0xffd870, { r: 0 });
+    } else if (deko === 'herz') {
+      g.sphere(0.08, dx - Math.cos(yaw) * 0.06, y + 0.3, dz + Math.sin(yaw) * 0.06, 0xff6aa8, { ws: 6, hs: 4 });
+      g.sphere(0.08, dx + Math.cos(yaw) * 0.06, y + 0.3, dz - Math.sin(yaw) * 0.06, 0xff6aa8, { ws: 6, hs: 4 });
+      g.cone(0.1, 0.14, dx, y + 0.16, dz, 0xff6aa8, 4, { rx: PI });
+    } else if (deko === 'stern') {
+      g.sphere(0.12, x + fx * (d / 2 + 0.02), y + 0.16 + h * 0.5, z + fz * (d / 2 + 0.02), 0xffe070, { ws: 6, hs: 4 });
+    }
+  });
   b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
+}
+
+/** Gepflasterte Wege (flache Pflastersteine, Schneeränder): list [{ x0, x1, z0, z1, y: 0, cell: 1 }]. */
+export function wege(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  const cols = [0x9a98b8, 0x8e8eae, 0xa6a2c0, 0x908ab0];
+  for (const s of list) {
+    const x0 = Math.min(s.x0, s.x1), x1 = Math.max(s.x0, s.x1), z0 = Math.max(s.z0, s.z1), z1 = Math.min(s.z0, s.z1), y = s.y ?? 0, c = s.cell ?? 1;
+    const nx = Math.max(1, Math.round((x1 - x0) / c)), nz = Math.max(1, Math.round((z0 - z1) / c));
+    const cw = (x1 - x0) / nx, cd = (z0 - z1) / nz;
+    for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) {
+      const h = (i * 31 + k * 17) % 7;
+      b.box(cw - 0.12, 0.05, cd - 0.12, x0 + (i + 0.5) * cw + ((k % 2) ? 0.04 : -0.04), y, z0 - (k + 0.5) * cd, cols[h % cols.length], { r: 0 });
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
+/** Verschneite Tannen (Kulisse; solid: Stamm-Kollision): list [{ pos, height: 5, solid }]. */
+export function tannen(level, list) {
+  const b = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos, h = s.height ?? 5;
+    if (s.solid !== false) level.world.add({ type: 'cyl', x, z, r: 0.5, y0: y, y1: y + h, tag: 'tanne' });
+    if (!level.view) continue;
+    b.cyl(0.18 * h / 5, 0.26 * h / 5, h * 0.2, x, y, z, 0x6a4a3a, 6);
+    for (let i = 0; i < 3; i++) {
+      const r = h * (0.36 - i * 0.09), y0 = y + h * (0.16 + i * 0.24), hh = h * 0.38;
+      b.cone(r, hh, x, y0, z, i % 2 ? 0x2a7a6a : 0x2a6a5e, 8);
+      b.cone(r * 0.62, hh * 0.45, x, y0 + hh * 0.55, z, 0xf6f9ff, 8);
+    }
+    b.sphere(0.12 * h / 5, x, y + h + 0.05, z, 0xfff6c0);
+  }
+  b.flush(level, { castShadow: true });
+}
+
+/**
+ * Laternen mit leuchtendem Glas (Pfahl, Käfig mit vier leuchtenden Scheiben, Dach mit Schneehaube): list [{ pos, height: 2.6,
+ * color: 'warm' | 'lila' | 'mint' }] – Laternenlicht des Themas (view.addLantern), Kollision schlanker Zylinder.
+ */
+const LAMP = { warm: 0xffd880, lila: 0xd8b0ff, mint: 0xa8ffe0, rosa: 0xffb0d8 };
+export function laternen(level, list) {
+  const b = new Bld(), g = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos, h = s.height ?? 2.6;
+    level.world.add({ type: 'cyl', x, z, r: 0.14, y0: y, y1: y + h + 0.6, tag: 'laterne' });
+    if (!level.view) continue;
+    const c = LAMP[s.color ?? 'warm'] ?? s.color;
+    b.cyl(0.07, 0.1, h, x, y, z, 0x3a3a52, 6);
+    b.cyl(0.18, 0.22, 0.14, x, y, z, 0x3a3a52, 6);
+    b.box(0.46, 0.08, 0.46, x, y + h, z, 0x2a2a40, { r: 0 });
+    for (const [ox, oz] of [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]]) b.box(0.05, 0.5, 0.05, x + ox, y + h + 0.08, z + oz, 0x2a2a40, { r: 0 });
+    g.box(0.36, 0.44, 0.36, x, y + h + 0.1, z, c, { r: 0 });
+    b.cone(0.38, 0.32, x, y + h + 0.58, z, 0x2a2a40, 4, { yaw: PI / 4 });
+    b.cone(0.26, 0.16, x, y + h + 0.66, z, 0xf6f9ff, 4, { yaw: PI / 4 });
+    b.sphere(0.06, x, y + h + 0.92, z, 0xd8a840, { ws: 5, hs: 4 });
+    level.view.addLantern?.(x, y + h + 0.3, z);
+  }
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
+}
+
+/** Zugefrorener Teich (flach, ohne Kollision) mit Schneerand und Spiegelungen: list [{ pos, r: 3 }]. */
+export function eisteiche(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const s of list) {
+    const [x, y, z] = s.pos, r = s.r ?? 3;
+    b.add(new THREE.CircleGeometry(r, 20), { v: (px, py, pz) => new THREE.Color(0x9ad8f0).lerp(new THREE.Color(0xe0f6ff), Math.min(1, Math.hypot(px, pz) / r * 0.7)) }, { p: [x, y + 0.03, z], r: [-PI / 2, 0, 0] });
+    b.torus(r, 0.22, x, y + 0.03, z, 0xf8faff, { rx: PI / 2, ts: 24, rs: 4 });
+    for (let i = 0; i < 3; i++) g.box(0.06, 0.01, r * (0.5 - i * 0.12), x + (i - 1) * r * 0.3, y + 0.045, z, 0xffffff, { yaw: 0.6, r: 0 });
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
 }
 
 /**
