@@ -23,7 +23,7 @@ import { remixOf } from '../../level/remix.js';
 import { LEVEL as BASIS } from '../w6/6-2.js';
 import { holzsteg } from '../w6/_helpers_a.js';
 import { brandung } from '../w5/_helpers_a.js';
-import { wrackheck, isl, line, ring } from './_helpers_pb.js';
+import { wrackheck, deckPlanken, isl, line, ring } from './_helpers_pb.js';
 
 const Y = 1;            // Decks und Inseln (wie 6-2)
 const WL = -1.4;        // Wasserlinie der Kulisse
@@ -93,7 +93,7 @@ export const LEVEL = remixOf('6-2', {
       { type: 'kippschiff', id: 'wrack4', pos: [WX, Y, -136], length: 30, width: 12, style: 'geist', masts: 3, rails: false, maxTilt: 6, weight: 0.8, slide: 0.5, wave: { amp: 2.5, period: 6 } },
       isl(WX - 4, WX + 4, -151.6, -158.6, Y, 5, { top: 'rock' }),
       // ---------------- Zielinsel: Mastturm und Kippplattform zur Mastspitze
-      isl(-2.5, 2.5, -160.4, -165.2, TT, 8, { top: 'rock' }),
+      isl(-2.5, 2.5, -160.4, -165.2, TT, 8, { top: 'none', color: 0x7a5a3a }),
       { type: 'kippsteg', id: 'maststeg', from: [0, TT, -165.6], to: [0, TT, -171.2], width: 1.2, style: 'holz', wave: { amp: 5, period: 3.4 } },
       { type: 'deco_w6', items: [
         { kind: 'wrackteil', pos: [10.4, Y, 2.4], yaw: 0.6 }, { kind: 'fass', pos: [7.4, Y, -6.6] }, { kind: 'anker', pos: [WX - 3.2, Y, 4.6], yaw: 0.4 },
@@ -149,7 +149,13 @@ export const LEVEL = remixOf('6-2', {
     holzsteg(level, WX - 3.6, WX + 3.6, -111.4, -120, Y, { bottom: -3, seed: 23 });
     holzsteg(level, WX + 5, WX + 15, -42.2, -42.8, BUG, { bottom: Y, seed: 25 });
     holzsteg(level, WX - 18.2, WX - 6.2, -14.6, -17.4, Y, { bottom: -3, seed: 27 });
+    holzsteg(level, WX - 5, WX + 5, -38.6, -46, BUG, { posts: false, seed: 29 });                 // Vorderdeck
+    holzsteg(level, -2.5, 2.5, -160.4, -165.2, TT, { bottom: Y, seed: 31 });                     // Mastturm
     brandung(level, [...saum(6.6, 11.4, 3.4, -7.2), ...saum(WX - 4, WX + 4, 6, -3.2), ...saum(WX - 22, WX - 18.2, -14, -18), ...saum(WX - 4, WX + 4, -111, -120.4), ...saum(WX - 4, WX + 4, -151.6, -158.6)]);
+  },
+  setup(level) {
+    deckPlanken(level, { pos: [WX, Y, -19], length: 30, width: 12, colors: [0xc8955a, 0xa8784a, 0x4a321e], seed: 11 });
+    deckPlanken(level, { pos: [WX, Y, -136], length: 30, width: 12, colors: [0x76766a, 0x606054, 0x2a2a24], seed: 13 });
   },
   marks: {
     start: [0, Y, 6], heck: [9, Y, -4.4], wrack2: [WX, Y, 1], bug2: [WX, BUG, -42], steg2: [WX - 12, Y, -16], laderaum: [100, 4, -12],

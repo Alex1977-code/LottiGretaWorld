@@ -318,6 +318,60 @@ export function geheimPlatte(level, o) {
   return st;
 }
 
+/**
+ * Plankendeck für ein großes Kippschiff (P-6 Riesenwracks): Längsplanken mit versetzten Stößen, Nagelreihen und Fugen auf
+ * der Deckfläche (dem Deckumriss des Bausteins folgend: hinten breit, zum Bug spitz). Hängt als eigenes Mesh an der
+ * Darstellung des Kippschiffs (kippt mit); nur Optik. o: { pos (wie das Kippschiff), length, width, colors: [hell,
+ * dunkel, Fuge], seed }. Ein Zeichenaufruf je Schiff, kein Schattenwurf.
+ */
+export function deckPlanken(level, o) {
+  if (!level.view) return null;
+  const [px, py, pz] = o.pos, L = o.length, W = o.width;
+  const hit = level.view.frameFns?.find((f) => f.obj?.name === 'kippschiff' && Math.abs(f.obj.position.x - px) < 0.01 && Math.abs(f.obj.position.z - pz) < 0.01);
+  if (!hit) return null;
+  const halfW = (u) => (W / 2) * (u > 0 ? 1 - Math.pow(u, 2.2) * 0.85 : 1 - Math.pow(-u, 3) * 0.25);
+  const [ca, cb, cf] = o.colors ?? [0xb88450, 0x9a6a3e, 0x4a321e];
+  const b = new Bld();
+  let seed = o.seed ?? 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed & 0xffff) / 0xffff; };
+  const PW = 0.5, step = 0.25;
+  for (let s = -W / 2 + PW / 2 + 0.1, k = 0; s < W / 2 - PW / 2 - 0.05; s += PW, k++) {
+    // Abschnitte entlang der Länge, in denen die Planke ganz auf dem Deck liegt (Bug = −z)
+    let z = L / 2 - 0.05, run = null;
+    const flush = (z0, z1) => {
+      let a = z0;
+      const off = rnd() * 2.2;
+      let seg = 1.4 + off;
+      while (a > z1 + 0.05) {
+        const e = Math.max(z1, a - seg);
+        const c = rnd() < 0.5 ? ca : cb;
+        b.box(PW - 0.05, 0.05, a - e - 0.04, s, 0.004, (a + e) / 2, c, { r: 0.01 });
+        b.box(0.06, 0.012, 0.06, s - PW / 2 + 0.1, 0.055, a - 0.12, cf, { r: 0 });
+        b.box(0.06, 0.012, 0.06, s + PW / 2 - 0.1, 0.055, a - 0.12, cf, { r: 0 });
+        a = e; seg = 2.6 + rnd() * 1.2;
+      }
+    };
+    for (; z > -L / 2 + 0.05; z -= step) {
+      const u = -z / (L / 2);
+      const ok = halfW(u) > Math.abs(s) + PW / 2 + 0.05;
+      if (ok && run === null) run = z;
+      if (!ok && run !== null) { flush(run, z + step); run = null; }
+    }
+    if (run !== null) flush(run, -L / 2 + 0.1);
+    void k;
+  }
+  const g = b.geometry();
+  if (!g) return null;
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
+  m.name = 'deckplanken';
+  m.castShadow = false; m.receiveShadow = true;
+  m.position.set(0, 0.004, 0);
+  m.userData.owned = true;
+  hit.obj.add(m);
+  void py;
+  return m;
+}
+
 // =====================================================================================================================
 // P-Haus: Kraftkapseln der Kampf-Räume
 // =====================================================================================================================
