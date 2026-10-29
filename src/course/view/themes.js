@@ -133,6 +133,18 @@ import { DARKGHOST_THEME } from './theme_darkghost.js'; THEMES.darkghost ??= DAR
 import { INFERNO_THEME } from './theme_inferno.js'; THEMES.inferno ??= INFERNO_THEME;
 import { BARONPARK_THEME } from './theme_baronpark.js'; THEMES.baronpark ??= BARONPARK_THEME;
 import { ABSPANN_THEME } from './theme_abspann.js'; THEMES.abspann ??= ABSPANN_THEME;
+// Bonuswelt Stern „Sternenzelt“ und Blitz-Arena (Motor und Bausteine Bonuswelten): nur eintragen, wenn das Thema nicht schon
+// anders registriert ist (Weltraum der Welt Stern heißt starspace – space bleibt das Welt-2-Thema)
+import { STARSPACE_THEME } from './theme_starspace.js'; THEMES.starspace ??= STARSPACE_THEME;
+import { RAINBOW_THEME } from './theme_rainbow.js'; THEMES.rainbow ??= RAINBOW_THEME;
+import { GALAXY_THEME } from './theme_galaxy.js'; THEMES.galaxy ??= GALAXY_THEME;
+import { WOODSPACE_THEME } from './theme_woodspace.js'; THEMES.woodspace ??= WOODSPACE_THEME;
+import { BLOCKLAND_THEME } from './theme_blockland.js'; THEMES.blockland ??= BLOCKLAND_THEME;
+import { HONEYCOMB_THEME } from './theme_honeycomb.js'; THEMES.honeycomb ??= HONEYCOMB_THEME;
+import { GROTTO_THEME } from './theme_grotto.js'; THEMES.grotto ??= GROTTO_THEME;
+import { FOGBOG_THEME } from './theme_fogbog.js'; THEMES.fogbog ??= FOGBOG_THEME;
+import { COSMIC_THEME } from './theme_cosmic.js'; THEMES.cosmic ??= COSMIC_THEME;
+import { BOSSBLITZ_THEME } from './theme_bossblitz.js'; THEMES.bossblitz ??= BOSSBLITZ_THEME;
 
 // Themen-Varianten der Remix-Level (Präzisierung „Motor und Bausteine Bonuswelten“, view/themeVariants.js): Namen wie
 // 'grass@nacht' oder 'space@tag+sw' legt der Varianten-Haken beim ersten Abruf an (auch für ?theme=<name>@<licht>)

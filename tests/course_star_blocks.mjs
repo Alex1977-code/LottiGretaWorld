@@ -813,6 +813,40 @@ if (want('mech')) {
   if (errors.length > e0) for (const e of errors.slice(e0, e0 + 10)) console.log('   ', e);
 }
 
+// =====================================================================================================================
+// Themen der Welt Stern (?theme=) mit Bildern
+// =====================================================================================================================
+if (want('themes') && SHOTS) {
+  console.log('Stern-Themen');
+  const VIEWS = {
+    starspace: ['start'], rainbow: ['farb'], galaxy: ['dreh'], woodspace: ['walze'], blockland: ['turm'], honeycomb: ['waben'],
+    grotto: ['raum'], fogbog: ['nebel'], cosmic: ['brett'], bossblitz: ['diorama'],
+  };
+  const labels = {};
+  const e0 = errors.length, t0 = stats.length;
+  for (const th of Object.keys(VIEWS)) {
+    const e1 = errors.length;
+    await load('0-34', `&theme=${th}`);
+    const m = await sc(() => window.__t.marks);
+    labels[th] = await sc(() => {
+      const c = window.__course, t = c.view.theme, s = c.view.sky;
+      return { label: t.label, backdrop: t.backdrop ?? null, hemi: t.hemi.intensity, pl: !!t.playerLight, uw: !!t.underwater, fogNear: t.fog.near, kids: s.group.children.length + s.domeGroup.children.length, star: !!s.star, below: !!s.star?.stars };
+    });
+    for (const [k, w] of VIEWS[th].entries()) {
+      await T('place', m[w], { settle: 30 });
+      if (th === 'honeycomb') await T('place', [0, 0, -252], { settle: 30 });
+      await shot(k ? `thema_${th}_${w}` : `thema_${th}`, 1700);
+    }
+    console.log(`  ${th}: ${labels[th].label} (Kulisse ${labels[th].backdrop}, ${labels[th].kids} Teile${labels[th].pl ? ', Figurenlicht' : ''}${labels[th].uw ? ', Unterwasser' : ''}, Himmelslicht ${labels[th].hemi})${errors.length > e1 ? ' – Fehler!' : ''}`);
+  }
+  const ls = Object.values(labels).map((l) => l.label);
+  check('Themen: alle zehn Stern-Themen registriert (eigene Namen, eigene Kulisse mit Teilen)', ls.every((l) => l && l !== 'Wiese') && new Set(ls).size === 10 && Object.values(labels).every((l) => l.backdrop && l.kids >= 2 && l.star));
+  check('Themen: fogbog nebelig mit Figurenlicht, grotto mit Unterwasser-Stimmung, honeycomb mit Sternen rundum (Draufsicht)', labels.fogbog.pl && labels.fogbog.fogNear < 30 && labels.grotto.uw && labels.honeycomb.below);
+  budget(t0, 'Themen-Bilder');
+  check('Themen: keine Konsolenfehler', errors.length === e0);
+  if (errors.length > e0) for (const e of errors.slice(e0, e0 + 10)) console.log('   ', e);
+}
+
 const ok = summary(errors);
 await browser.close();
 stop();
