@@ -120,7 +120,7 @@ const ROUTES = {
       { name: 'Lücke in Wand B', to: [7.2, -123.5], within: 0.6 }, { to: [7.2, -128.5], within: 0.6 },
       { name: 'an der Schatzkammer vorbei', to: [-1.5, -136], within: 0.6 }, { to: [-1.5, -150], within: 0.7 },
       { name: 'vor die Blockwächter-Wand', to: [3, -167.8], within: 0.3, run: false },
-      { name: 'auf den Lauerblock (Reihe 1)', lauer: 'lb2' },
+      { name: 'auf den Lauerblock (Reihe 1)', lauer: 'lb2', need: 1.9 },
       { name: 'auf den Lauerblock (Reihe 2)', lauer: 'lb5' },
       { name: 'auf die Wand', to: [6, -173.8], jump: 30, jumpAt: 4, within: 0.5, run: false },
       { expect: '=P().pos.y > -4.2' },
@@ -145,19 +145,16 @@ const ROUTES = {
     targets: [
       { name: 'Stempel: auf den Großblock-Ring, Stampfattacke auf den Deckel – drinnen liegt der Stempel', stamp: true, from: [-6, 0, -8],
         legs: [{ to: [-6, -10.4], within: 0.3, run: false }, { to: [-6, -12], jump: 24, jumpAt: 2.2, within: 0.4, run: false }, { expect: '=P().pos.y > 1.9' },
-          { pound: [-6, -14], above: 4.2, hold: 40 }, { wait: 60 }], shot: 'stempel' },
+          { pound: [-6, -14], above: 4.3 }, { wait: 60 }], shot: 'stempel' },
       { name: 'Stempel nicht ohne Stampfen (Deckel bleibt zu)', stamp: true, expectNot: true, from: [-6, 0, -8], heroes: ['lotti'],
         legs: [{ to: [-6, -10.4], within: 0.3, run: false }, { to: [-6, -12], jump: 24, jumpAt: 2.2, within: 0.4, run: false },
           { to: [-6, -14], jump: 30, jumpAt: 2.5, within: 0.3, run: false }, { wait: 120 }] },
       { name: 'Stern 0: versteckter Gleitblatt-Block, Lauerblöcke hinauf, im Gleitflug zur Blätterinsel', star: 0, from: [-5, -10, -157.5],
         legs: [{ to: [-5, -159.6], within: 0.2, run: false }, { hop: 30 }, { wait: 20 }, { grab: [-5, -160], back: [-5, -157.6] },
-          { to: [3, -167.8], within: 0.3, run: false }, { lauer: 'lb2' }, { lauer: 'lb5' }, { to: [6, -173.8], jump: 30, jumpAt: 4, within: 0.5, run: false },
+          { to: [3, -167.8], within: 0.3, run: false }, { lauer: 'lb2', need: 1.9 }, { lauer: 'lb5' }, { to: [6, -173.8], jump: 30, jumpAt: 4, within: 0.5, run: false },
           { to: [4, -187], within: 0.4, run: false }, { glide: [-22.5, -188], jumpAt: 16.2 }, { star: 0 }], shot: 'stern0' },
       { name: 'Stern 0 nicht ohne Gleitblatt (Sprung zu kurz)', star: 0, expectNot: true, from: [4, -4, -187],
         legs: [{ glide: [-22.5, -188], jumpAt: 16.2 }, { wait: 60 }] },
-      { name: 'Blätterinsel: Röhre zurück aufs Plateau', from: [-22.5, -4, -186.5], heroes: ['lotti'],
-        legs: [{ to: [-22.5, -189.2], within: 0.2, run: false }, { to: [-22.5, -189.6], jump: 16, jumpAt: 1, within: 0.3, run: false }, { crouch: 40 },
-          { expect: '=P().pos.x > -8 && P().pos.y > -4.3' }] },
       { name: 'Stern 1: Riesentrank, Pilz-Trampolin durch die erste Großblock-Lage, zweites Trampolin durch die zweite', star: 1, from: [-4, -5, -295.8],
         legs: [{ grab: [-4, -298], back: [-4, -295.8] }, { expect: '=P().power === \'riese\'' }, { to: [0, -302.6], within: 0.3, run: false },
           { to: [0, -306], jump: 30, jumpAt: 3.6, within: 0.8, run: false, land: false }, { airTo: [4, -306], minY: 2.6 }, { airTo: [5.4, -307.6], minY: 9.6 }, { star: 1 }], shot: 'stern1' },
@@ -177,6 +174,9 @@ const ROUTES = {
         legs: [{ to: [3, -133], within: 0.6 }, { to: [5, -139.5], within: 0.4 }, { chaseKind: 'powerup', power: 'oneup', max: 300 }] },
       { name: 'Schatzkammer: ohne Riesentrank bleibt sie zu', from: [5, -10, -133.5], heroes: ['lotti'], allowFail: true,
         legs: [{ to: [5, -139.5], within: 0.4, max: 240 }], mech: (r) => r.pos[2] > -136.6, mechText: (r) => `z ${r.pos[2].toFixed(1)}` },
+      { name: 'Blätterinsel: Röhre zurück aufs Plateau', from: [-22.5, -4, -186.5], heroes: ['lotti'],
+        legs: [{ to: [-22.5, -189.2], within: 0.2, run: false }, { to: [-22.5, -189.6], jump: 16, jumpAt: 1, within: 0.3, run: false }, { crouch: 40 },
+          { expect: '=P().pos.x > -8 && P().pos.y > -4.3' }] },
       { name: 'Riesentrank-Quelle füllt sich nach dem Riesentrank wieder', from: [0, -10, -101.6], heroes: ['lotti'],
         legs: [{ grab: [0, -104], back: [0, -101.6] }, { wait: 1800 }, { expect: '=L.named.get(\'quelle1\').info().kind === \'question\' && L.named.get(\'quelle1\').fills >= 1' }] },
       { name: 'Riese zertrümmert Steinwand A', from: [0, -10, -110], heroes: ['lotti'], place: { power: 'riese' },
@@ -383,16 +383,21 @@ function install() {
         if (Lg.pound) {
           const [tx, tz] = Lg.pound;
           let k = 0, pounded = false;
-          for (; k < 400 && !P().dead; k++) {
+          for (; k < (Lg.max ?? 600) && !P().dead; k++) {
             const q = P();
             const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz);
-            if (q.mode === 'ground' && k > 4 && (pounded || q.state === 'groundpound')) break;
-            if (q.mode === 'air' && !pounded && d < 0.25 && q.vel.y < 1.5 && q.pos.y > (Lg.above ?? -99)) { pounded = true; }
-            if (pounded) { tick({ crouch: true }); continue; }
-            tick({ ...(q.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 6) : this.stick(dx, dz, 1)), jump: k < (Lg.hold ?? 30), run: false });
+            if (pounded) { if (q.mode === 'ground' && q.state !== 'groundpound' && k > 4) break; tick({ crouch: q.mode === 'air' }); continue; }
+            if (q.mode === 'air') {
+              if (d < (Lg.r ?? 0.45) && q.vel.y < 2 && q.pos.y > (Lg.above ?? -99)) { pounded = true; tick({ crouch: true }); continue; }
+              tick({ ...this.airSteer(tx, tz, 0, 0, 5, 6), jump: q.vel.y > 0 });
+              continue;
+            }
+            // am Boden: hinlaufen und nahe dran abspringen (gelandet ohne Stampfen: noch einmal)
+            tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d))), jump: d < (Lg.jumpAt ?? 2.6) && k % 30 < 20, run: false });
           }
           for (let i = 0; i < 40; i++) tick({});
           log.push(['stampfen', `${Lg.pound}`, pounded, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          if (!pounded) log.push(['FEHLER: nicht gestampft', Lg.pound]);
           continue;
         }
         // ------------------------------------------------ Wurfsichel auf einen Punkt werfen (zum Ziel drehen, Aktion), Rückkehr abwarten
