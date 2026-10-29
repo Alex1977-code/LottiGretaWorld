@@ -151,6 +151,25 @@ function build(level) {
     id: 'kugeltore', balls: ['kugel_rosa', 'kugel_blau'], onAll: { star: 0 },
     goals: [{ pos: [KUGEL.x0 + 4, Y, KUGEL.z1 + 3.2], dir: [0, -1], width: 3, depth: 1.8, color: 0xff7ac8 }, { pos: [KUGEL.x1 - 4, Y, KUGEL.z1 + 3.2], dir: [0, -1], width: 3, depth: 1.8, color: 0x5ab8ff }],
   });
+  // Kugelraum-Boden: je eine gepunktete Farbbahn mit Pfeilen von der Kugel zu ihrem Tor (aufgemalt), Sternchen an den Wänden
+  if (level.view) {
+    const b = new Bld(), g = new Bld();
+    for (const [x, col, dot] of [[KUGEL.x0 + 4, 0xffb8e0, 0xff7ac8], [KUGEL.x1 - 4, 0xb8dcff, 0x5ab8ff]]) {
+      const za = KUGEL.z0 - 10.4, zb = KUGEL.z1 + 4.4, len = za - zb;
+      b.box(2.2, 0.02, len, x, Y + 0.002, (za + zb) / 2, col, { r: 0.01 });
+      for (let k = 0; k < 4; k++) {
+        const z = za - 1.2 - k * (len - 1.6) / 3;
+        b.cone(0.5, 0.02, x, Y + 0.024, z, dot, 3, { yaw: Math.PI });
+      }
+    }
+    for (let k = 0; k < 6; k++) {
+      const z = KUGEL.z0 - 2 - k * 3.4, c = [0xfff2a0, 0xffb8e8, 0xb8f0ff][k % 3];
+      g.star(0.3, 0.13, 0.05, KUGEL.x0 + 0.06, Y + 3.2 + (k % 2) * 0.6, z, c, { yaw: Math.PI / 2 });
+      g.star(0.3, 0.13, 0.05, KUGEL.x1 - 0.06, Y + 3.2 + ((k + 1) % 2) * 0.6, z, c, { yaw: -Math.PI / 2 });
+    }
+    b.flush(level);
+    g.flush(level, { material: 'glow', castShadow: false });
+  }
   // ---------------- Riesentrank-Strecke: Sternblock-Mauern (nur als Riese); links bleibt ein schmaler Pfad
   sternmauern(level, [
     ...WALLS.map((z, i) => ({ id: `mauer${i + 1}`, x0: -5, x1: 7, z0: z + 0.5, z1: z - 0.5, y: FY, h: 3, coins: 3 })),

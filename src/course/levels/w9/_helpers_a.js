@@ -166,6 +166,29 @@ export function regenbogenPlatten(level, list) {
         g.star(0.16, 0.065, 0.04, sx, top - h * 0.55, z1 + 0.02, [0xfff2a0, 0xffd0f0, 0xb8f0ff][(k + 1) % 3]);
       }
     }
+    // Rand-Zier breiter Bahnen: Sternlämpchen auf weißen Pfosten entlang der Längskanten (abwechselnd links/rechts)
+    // und Wolkenbäusche, die seitlich unter der Kante hervorquellen
+    if (q.edge ?? Math.min(W, D) >= 5) {
+      const L = along === 'z' ? D : W, step = q.edgeStep ?? 6, n2 = Math.max(1, Math.floor(L / step));
+      for (let k = 0; k < n2; k++) {
+        const u = -L / 2 + (k + 0.5) * (L / n2), side = k % 2 ? 1 : -1;
+        const px = along === 'z' ? cx + side * (W / 2 - rim / 2) : cx + u, pz = along === 'z' ? cz + u : cz + side * (D / 2 - rim / 2);
+        b.cyl(0.07, 0.1, 0.8, px, top, pz, 0xffffff, 8);
+        b.sphere(0.11, px, top + 0.8, pz, 0xfff8e0, { ws: 8, hs: 6 });
+        g.star(0.3, 0.12, 0.07, px, top + 1.08, pz, [0xfff2a0, 0xffb8e8, 0xb8f0ff][k % 3], { yaw: along === 'z' ? 0 : Math.PI / 2 });
+        // Wolkenbausch an der anderen Seite
+        const ox = along === 'z' ? cx - side * (W / 2 + 0.15) : cx + u + 1.4, oz = along === 'z' ? cz + u + 1.4 : cz - side * (D / 2 + 0.15);
+        const r0 = 0.55 + rnd.real(0, 0.25);
+        b.sphere(r0, ox, top - 0.55, oz, 0xffffff);
+        b.sphere(r0 * 0.75, ox + (along === 'z' ? 0 : 0.7), top - 0.75, oz + (along === 'z' ? 0.7 : 0), 0xf4eeff);
+      }
+      // flache Sternchen auf den Streifen (wie aufgemalt)
+      const nd = Math.round((W * D) / 22);
+      for (let k = 0; k < nd; k++) {
+        const sx = cx + rnd.real(-W / 2 + 0.6, W / 2 - 0.6), sz = cz + rnd.real(-D / 2 + 0.6, D / 2 - 0.6);
+        b.star(0.3, 0.13, 0.01, sx, top + 0.004, sz, 0xfffaf0, { rx: -Math.PI / 2, rz: rnd.real(0, TAU), bevel: 0.012 });
+      }
+    }
   }
   b.flush(level);
   g.flush(level, { material: 'glow', castShadow: false });
