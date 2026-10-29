@@ -14,6 +14,15 @@
 //   standerOn(level, owner)         Figur, die auf einer Form dieses Besitzers steht (oder null)
 //   figureInside(level, box)        Figur, die im Quader steckt (vor dem Wieder-fest-Werden einer Form)
 //   defineHandle(handle, props)     Felder samt Gettern in einen Griff übernehmen
+//   useModel(spec, name)            Registry-Modell verwenden? (vorhanden und spec.look !== 'eigen')
+//   modelColor(c, d)                Plattenfarbe für die Stern-Modelle (Name aus PANEL oder Hex)
+//   sphereOf(pts, pad)              Hüllkugel über Punkte → { center, radius }
+//   instancedModel(level, name, n, opts, sphere)   Instanz-Variante (createInstanced, models/lib/instanced_star.js) mit
+//                                   fester Hüllkugel und Animation je Bild
+//   ModelSet                        Instanz-Gruppe aus einem beliebigen Registry-Modell (je Mesh ein InstancedMesh; Lagen
+//                                   je Schlüssel-Zustand gemessen und gemischt): set(i, x, y, z, yaw, k, scale), hide, commit,
+//                                   cull(center, radius)
+//   bakeRoot(level, model, state)   Modell mit beliebiger Lage (auch geneigt) in die statische Geometrie backen
 //   + aus w8kit/w7kit/w2kit: figures, MovingBox, regModel, stdMat, pathOf, pathAt, canvasTexture, bakeW8, hurtFigures,
 //     killFigures, sphereTouches, boxTouches, cycle, onRespawn, ease, clamp, TAU, modelOr, glowTexture, spikeGeo
 //   + Geometrie: lin, mixc, smooth, colorize, merge, roundedBox, SIDE
@@ -308,6 +317,60 @@ export class ModelSet {
   cull(center, radius) { for (const im of this.meshes) cullSphere(im, center, radius); }
 
   get ok() { return this.meshes.length > 0; }
+}
+
+const _bm = new THREE.Matrix4(), _bi = new THREE.Matrix4(), _bc = new THREE.Color();
+/**
+ * Ein Registry-Modell (oder irgendein Objekt) mit seiner aktuellen Lage (root.position/rotation/scale, auch geneigt) in die
+ * statische Geometrie backen – wie bakeW8, aber mit beliebiger Drehung: undurchsichtige Teile ins Welt-Material
+ * (Vertexfarben), MeshBasicMaterial ins Glüh-Material; durchsichtige und texturierte Teile entfallen. m = { root, update?,
+ * dispose? } (wird danach freigegeben). → Dreiecke
+ */
+export function bakeRoot(level, m, state = null, o = {}) {
+  if (!level.view) { m.dispose?.(); return 0; }
+  if (state) m.update?.(0, state);
+  const root = m.root;
+  root.updateMatrixWorld(true);
+  let tris = 0;
+  const parts = { world: [], glow: [] };
+  root.traverse((ob) => {
+    if (!ob.isMesh || !ob.visible) return;
+    for (let q = ob.parent; q; q = q.parent) if (!q.visible) return;
+    const mat = Array.isArray(ob.material) ? ob.material[0] : ob.material;
+    if (!mat || mat.map || mat.transparent || mat.visible === false) return;
+    const kind = mat.isMeshBasicMaterial ? 'glow' : 'world';
+    const list = [];
+    if (ob.isInstancedMesh) {
+      for (let i = 0; i < ob.count; i++) {
+        ob.getMatrixAt(i, _bi);
+        if (Math.abs(_bi.determinant()) < 1e-9) continue;
+        let col = null;
+        if (ob.instanceColor) { ob.getColorAt(i, _bc); col = _bc.clone(); }
+        list.push({ M: _bm.clone().multiplyMatrices(ob.matrixWorld, _bi), col });
+      }
+    } else list.push({ M: ob.matrixWorld.clone(), col: null });
+    for (const { M, col } of list) {
+      const g = ob.geometry.index ? ob.geometry.toNonIndexed() : ob.geometry.clone();
+      for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'color') g.deleteAttribute(a);
+      if (!g.attributes.normal) g.computeVertexNormals();
+      const c = mat.color ?? new THREE.Color(1, 1, 1), e = mat.emissive;
+      const tint = [c.r * (col ? col.r : 1), c.g * (col ? col.g : 1), c.b * (col ? col.b : 1)];
+      const em = e ? [e.r, e.g, e.b] : [0, 0, 0];
+      const n = g.attributes.position.count;
+      const old = mat.vertexColors && g.attributes.color ? g.attributes.color.array : null;
+      const arr = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) arr[i * 3 + k] = old ? old[i * 3 + k] * tint[k] : Math.min(1, tint[k] + em[k] * 0.5);
+      g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+      g.applyMatrix4(M);
+      tris += n / 3;
+      parts[kind].push(g);
+    }
+  });
+  m.dispose?.();
+  const cast = o.castShadow !== false;
+  for (const g of parts.world) level.view.addStatic(g, { material: 'world', castShadow: cast });
+  for (const g of parts.glow) level.view.addStatic(g, { material: 'glow', castShadow: false });
+  return tris;
 }
 
 /** Steht eine Figur (am Boden) auf einer Form mit diesem owner? → Figur | null */

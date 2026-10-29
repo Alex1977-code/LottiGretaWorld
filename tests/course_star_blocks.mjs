@@ -679,10 +679,12 @@ if (want('mech')) {
       t.until(() => b.state === 'weg', 1200);
       const route1 = b.route.join(''), fell = p.pos.y < -1.5;
       t.until(() => !p.dead && c.level.runtime.status === 'play', 900);
-      // Weiche mit dem Kanonen-Helm umschießen: auf dem Brett stehend nach vorn feuern, bevor es die Weiche erreicht
+      // Weiche mit dem Kanonen-Helm umschießen: auf dem Brett stehend zur Zielscheibe (w.pos; mit Modell am Signalmast neben
+      // der Weiche) feuern, bevor das Brett die Weiche erreicht
       b.reset();
       const s0 = w.state;
-      t.place([0, 0.75, -316], { settle: 4, yaw: Math.PI / 2, invuln: 99 });
+      const aim = Math.atan2(-(w.pos.z + 316), w.pos.x);
+      t.place([0, 0.75, -316], { settle: 4, yaw: aim, invuln: 99 });
       p.wearHelmet('kanone');
       c.setInput({ action: true }); t.tick(2); c.setInput({});
       t.until(() => w.hits > 0, 240);

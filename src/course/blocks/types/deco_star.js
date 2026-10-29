@@ -4,6 +4,14 @@
 // (Sterne, Fenster, Laternen, Irrlichter, Neon) ins Glüh-Material. Gibt es ein Registry-Modell `deco_star_<kind>` (Kulissen-
 // Agent; Ursprung = Fußpunkt, Blick nach +X), wird stattdessen dieses gebacken (statisch, mit Instanzfarben; opts = Felder
 // des Eintrags ohne kind/pos); die Kollision (solid) bleibt gleich; look: 'eigen' erzwingt die eigene Geometrie.
+// Kulissen-Modelle der Bonuswelten (MODEL_MAP, gebacken): planet → planet { kind: variant 'ring' | 'pilz' | 'blume' | 'eis'
+// (Standard ring; ring: false → pilz), size 2·radius }, rakete → spielzeugrakete, komet → sternschnuppe (Schweif gegen dir),
+// riesenblock → retro_block { kind: block 'gras' | 'erde' | 'ziegel' | 'frage' | 'hart' (sonst aus color) }, retro_wolke,
+// retro_busch, wabe → wabensaeule (variant 'normal' | 'lava' | 'eis'), riesenpflanze/riesenpilz/riesenblume → riesenpflanze
+// ('blatt'/'pilz'/'blume'), grabstein → schneegrab (variant 'rund' | 'kreuz' | 'spitz'), antenne → weltraum_antenne; nur als
+// Modell: kuppel (weltraum_kuppel: size 6), torbogen (sternen_torbogen: width 6, height 5), regenbogenweg (length, width,
+// bend, rise), walzen_schiene, brett_schiene (variant 'gerade' | 'bogen'), nebelbank (durchsichtig, zieht – bewegtes Objekt:
+// size [w, d], count, color, opacity, height). Übrige Arten: eigene Geometrie.
 //
 // Einzeln:  { type: 'deco_star', kind, pos: [x, y, z], … }   oder Liste: { type: 'deco_star', items: [{ kind, pos, … }, …] }
 // pos = Fußpunkt (schwebende Dinge: Mitte); yaw in Radiant; scale; Streuungen deterministisch (seed) in size: [w, d] um pos.
@@ -28,9 +36,10 @@
 // Beispiel: { type: 'deco_star', items: [{ kind: 'planet', pos: [-12, 6, -20], radius: 3 }, { kind: 'rakete', pos: [9, 0, -4] }] }
 
 import * as THREE from 'three';
-import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, hex } from '../kit.js';
+import { v3, lin, mixc, smooth, colorize, merge, Rnd, addStatic, hex, addObject } from '../kit.js';
 import { bakeW8 } from '../w8kit.js';
-import { hasModel } from '../../models/index.js';
+import { hasModel, getModel } from '../../models/index.js';
+import { visDt } from '../../entities/gimmick.js';
 
 const TAU = Math.PI * 2;
 const ni = (g) => (g.index ? g.toNonIndexed() : g);
@@ -309,6 +318,32 @@ const SOLID = {
   antenne: () => [0.4, 3, 0.4], leuchtsaeule: () => [1, 6, 1],
 };
 
+/**
+ * Kulissen-Modelle der Bonuswelten (Registry, Modell-Agent; props_weltraum_star.js, props_retro_star.js) je Art: Name,
+ * opts und Höhenversatz des Ursprungs (Modell-Fußpunkt bzw. -Mitte gegenüber pos). Gebacken (statisch); nebelbank (durch-
+ * sichtig) bleibt ein bewegtes Objekt.
+ */
+const MODEL_MAP = {
+  planet: (it) => ['planet', { kind: it.variant ?? (it.ring === false ? 'pilz' : 'ring'), size: 2 * (it.radius ?? 2), tilt: it.tilt }, -(it.radius ?? 2)],
+  rakete: (it) => ['spielzeugrakete', { color: it.color === 'weiss' ? 'lila' : it.color ?? 'rot', size: (it.height ?? 4) * 1.15 }, 0],
+  komet: (it) => ['sternschnuppe', { length: 4.5 * (it.size ?? 1), size: 1.4 * (it.size ?? 1) }, 0],
+  riesenblock: (it) => ['retro_block', { kind: it.block ?? ({ rot: 'ziegel', braun: 'erde', grau: 'hart', gruen: 'gras' }[it.color] ?? 'frage'), size: it.size ?? 3 }, 0],
+  retro_wolke: (it) => ['retro_wolke', { size: 2 * (it.size ?? 2), seed: it.seed ?? 0 }, 0],
+  retro_busch: (it) => ['retro_busch', { size: 2.5 * (it.size ?? 1.2), seed: it.seed ?? 0 }, 0],
+  wabe: (it) => ['wabensaeule', { height: it.height ?? 2, size: it.radius ?? 1, kind: it.variant ?? (it.color === 'weiss' ? 'eis' : 'normal') }, 0],
+  riesenpflanze: (it) => ['riesenpflanze', { kind: 'blatt', size: 1.5 * (it.size ?? 4) }, 0],
+  riesenpilz: (it) => ['riesenpflanze', { kind: 'pilz', size: it.height ?? 5 }, 0],
+  riesenblume: (it) => ['riesenpflanze', { kind: 'blume', size: it.height ?? 5 }, 0],
+  grabstein: (it) => ['schneegrab', { kind: it.variant ?? (it.round === false ? 'spitz' : 'rund'), size: 1.2 * (it.size ?? 1), tilt: it.tilt ?? 0 }, 0],
+  antenne: (it) => ['weltraum_antenne', { size: it.height ?? 3 }, 0],
+  kuppel: (it) => ['weltraum_kuppel', { size: it.size ?? 6 }, 0],
+  torbogen: (it) => ['sternen_torbogen', { width: it.width ?? 6, height: it.height ?? 5 }, 0],
+  regenbogenweg: (it) => ['regenbogenweg', { length: it.length ?? 8, width: it.width ?? 3, bend: it.bend ?? 0, rise: it.rise ?? 0 }, 0],
+  walzen_schiene: (it) => ['walzen_schiene', { length: it.length ?? 12, gauge: it.gauge ?? 6, height: it.height ?? 3 }, 0],
+  brett_schiene: (it) => ['brett_schiene', { kind: it.variant ?? 'gerade', length: it.length ?? 8, posts: it.posts ?? 0 }, 0],
+  nebelbank: (it) => ['nebelbank', { size: it.size ?? [10, 6], count: it.count ?? 10, color: it.color ?? 0xe8eaff, opacity: it.opacity ?? 0.5, height: it.height ?? 1.2 }, 0],
+};
+
 export function buildDecoStar(level, spec) {
   const items = spec.items ?? [spec];
   const parts = { shadow: [], flat: [] };
@@ -329,6 +364,25 @@ export function buildDecoStar(level, spec) {
       const { kind, pos, yaw, scale, solid, shadow, look, seed, name, state, ...opts } = it;
       void kind; void pos; void solid; void look; void seed; void name;
       bakeW8(level, reg, it.opts ?? opts, p.x, p.y, p.z, yaw ?? -Math.PI / 2, scale ?? 1, state ?? {}, { castShadow: shadow !== false });
+      continue;
+    }
+    const mm = it.look !== 'eigen' && MODEL_MAP[it.kind]?.(it);
+    if (mm && hasModel(mm[0])) {
+      const [name, opts, dy] = mm;
+      for (const k of Object.keys(opts)) if (opts[k] === undefined) delete opts[k];
+      let yaw = it.yaw ?? -Math.PI / 2;
+      if (it.kind === 'komet' && Array.isArray(it.dir)) yaw = Math.atan2(-it.dir[2], it.dir[0]);
+      if (name === 'nebelbank') {
+        // durchsichtig, zieht langsam: als bewegtes Objekt (nicht backen)
+        if (level.view) {
+          const m = getModel(name, opts);
+          m.root.position.set(p.x, p.y, p.z); m.root.rotation.y = it.yaw ?? 0;
+          const hd = {};
+          addObject(level, m.root, (dt) => m.update?.(visDt(level, hd, dt), {}));
+        }
+        continue;
+      }
+      bakeW8(level, name, opts, p.x, p.y + dy, p.z, yaw, it.scale ?? 1, it.state ?? {}, { castShadow: it.shadow !== false });
       continue;
     }
     if (it.kind === 'modell') { console.warn(`[deco_star] Modell ${it.name} fehlt`); continue; }

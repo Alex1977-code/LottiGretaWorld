@@ -135,7 +135,8 @@ export const LEVEL = {
     sign(-11, 0, -310, 'Schienenbrett'),
     { type: 'deco_star', items: [{ kind: 'antenne', pos: [10, 0, -311], yaw: -0.6 }, { kind: 'neonring', pos: [-9, 0, -352], radius: 1.6, color: 'pink' }, { kind: 'leuchtsaeule', pos: [11, 0, -351], height: 5 }] },
     { type: 'schienenbrett', id: 'brett', start: 'A', next: 'B',
-      nodes: { A: [0, 0.2, -316], B: [0, 0.2, -327], C: [-8, 0.2, -337], D: [8, 0.2, -337], E: [8, 0.2, -347] },
+      // Abzweige im Winkel der Modell-Weiche (≈ 20° links/rechts): Zielscheibe am Signalmast links neben der Weiche
+      nodes: { A: [0, 0.2, -316], B: [0, 0.2, -327], C: [-3.6, 0.2, -337], D: [3.6, 0.2, -337], E: [3.6, 0.2, -347] },
       rails: [['A', 'B'], ['B', 'C'], ['B', 'D'], ['D', 'E']], weichen: { B: { to: ['C', 'D'], pos: [0, 1.45, -330] } }, speed: 5, respawn: 2 },
     plat(-350, -354, 0, 26),
 

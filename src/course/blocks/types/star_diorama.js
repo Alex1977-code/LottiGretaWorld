@@ -12,7 +12,8 @@
 //     Vierteldrehung), dir: 1 (+1 = von oben gegen den Uhrzeigersinn), schalter: { pos, id, color } | [ … ],
 //     items: [{ kind: 'coin' | …, pos: [dx, dy, dz] } | { star: id | Index }] (drehen mit), sicht: [{ star: id | Index,
 //     yaw: [a, b] (Grad) | turn: [Stellungen] }], onTurn: Aktion, disc: { radius, height, color } (feste Drehscheibe unter
-//     den Teilen; begehbar, dreht mit), gear: true (Zahnkranz am Rand der Scheibe) }
+//     den Teilen; begehbar, dreht mit; Optik: Registry-Modell 'diorama_drehscheibe' mit Zahnkranz und Antriebsritzel, sonst
+//     eigene Scheibe), gear: true (eigene Scheibe: Zahnkranz am Rand), look: 'eigen' }
 //   level.named.get(id) = { turn (0..3), turning, turns, angle, toggle() (= start(), eine Vierteldrehung), visible(star),
 //     info() }; Formen tag 'drehdiorama' (owner = Griff, mover mit dyaw); star(level).dioramas.
 //   Beispiel: { type: 'drehdiorama', id: 'dreh', pos: [0, 0, -20], disc: { radius: 6 },
@@ -22,7 +23,8 @@
 import * as THREE from 'three';
 import { v3, addObject, box, merge, lin, mixc, colorize } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { defineHandle, star, figures, ease, camYawAt, yawIn, TAU } from '../starkit.js';
+import { defineHandle, star, figures, ease, camYawAt, yawIn, TAU, useModel } from '../starkit.js';
+import { getModel } from '../../models/index.js';
 
 export function buildDrehdiorama(level, spec) {
   const P = v3(spec.pos);
@@ -167,7 +169,16 @@ export function buildDrehdiorama(level, spec) {
   root.name = 'drehdiorama';
   root.position.set(P.x, P.y, P.z);
   const geos = [];
+  const discModel = spec.disc && useModel(spec, 'diorama_drehscheibe');
   for (const q of parts) {
+    if (q.disc && discModel) {
+      // Registry-Modell: Messing-Zahnkranz, Fliesenringe, Antriebsritzel (Ursprung Mitte der Unterseite, state.angle)
+      const m = getModel('diorama_drehscheibe', { radius: q.r, height: q.h, teeth: Math.max(24, Math.round(q.r * 9)) });
+      m.root.position.set(P.x, P.y - q.h, P.z);
+      const hd = {};
+      addObject(level, m.root, (dt) => { visDt(level, hd, dt); m.update?.(0, { angle: st.angle }); });
+      continue;
+    }
     if (q.disc) {
       const g = new THREE.CylinderGeometry(q.r, q.r, q.h, 40);
       g.translate(0, -q.h / 2, 0);

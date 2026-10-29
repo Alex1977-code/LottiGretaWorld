@@ -9,21 +9,23 @@
 //   { kind: 'fliegender_zielmast', id, pos: [x, y, z] (Fußpunkt am Start), path: [[x, y, z] …] (Fußpunkte der Flugbahn),
 //     height: 9, speed: 6.5, near: 11, far: 24, start: 'nah' (Figur in trigger m) | 'auto' | 'signal' (start()),
 //     trigger: 9, mode: 'flucht' | 'pendel', land: [x, y, z] (Landeplatz nach dem Fang; Standard: Boden darunter),
-//     bob: 0.35 (m Auf und Ab im Flug), wings: true }
+//     bob: 0.35 (m Auf und Ab im Flug), look: 'eigen' }
 //   Laufzeit: state ('wartet'|'fliegt'|'schwebt'|'gelandet'|'gefangen'), s (Weg), dist (Figur), start(), info();
-//   star(level).poles. Modell: Zielmast (Registry 'goal_pole' bzw. Rückfall) + eigene Flügel (Registry 'zielmast_fluegel',
-//   sobald es ihn gibt: opts { span }, state { flap 0..1 }).
+//   star(level).poles. Modell: Registry 'zielmast_fluegel' (Zielmast mit Federflügeln; state fly 0..1 – angelegt, schwebend
+//   0,75, fliegend 1 –, flagY; blickt in Flugrichtung), sonst Zielmast 'goal_pole' mit eigenen Flügeln.
 // scheinziel – sieht aus wie ein Zielmast, ist aber keiner (Bauplan S-4 „Scheinziel am Start“, B-6 „zwei falsche Zielmasten
 //   rufen Großspuke“): Berühren → Aktion onTouch (z. B. { spawn: { kind: 'grossspuk', … } } oder { start: 'mast' }), Signal
 //   'scheinziel'; danach verpufft er (mode 'poff', Konfetti) oder bekommt Flügel und fliegt davon (mode 'fluegel').
 //   { kind: 'scheinziel', id, pos, height: 9, onTouch: Aktion, mast: id (fliegender_zielmast, der dann startet),
-//     mode: 'fluegel' | 'poff' }   Laufzeit: touched, info()
+//     mode: 'fluegel' | 'poff' }   Laufzeit: touched, info(). Modell: Zielmast 'goal_pole'; nach der Berührung (fluegel)
+//   Wechsel zum Registry-Modell 'zielmast_fluegel' (fliegt), sonst eigene Flügel.
 // felsblock – großer Felsblock bzw. rissige Felswand (Bauplan S-5 „Felsblock mit Bombe sprengen“, S-9 „rissige Wand mit dem
 //   Kanonen-Helm sprengen“, B-7 „Felsblockwände“): fest, Stampfen/Tatze/Feuer prallen ab; Bombe (Laufbombe = kickbombe,
 //   attackArea 'bomb'), Kanonenkugel ('cannon') und Riesentrank ('mega') sprengen ihn (by). Danach Inhalt/Aktion.
 //   { kind: 'felsblock', id, pos (Mitte Unterseite), size: 2.4 | [w, h, d], look: 'fels' | 'wand' (rissige Felswand) |
 //     'eis', by: ['bomb', 'cannon', 'mega'], content: 'star:1' | 'coins:5' | Aktion, onBreak: Aktion, hidden }
-//   Laufzeit: broken, by (womit), info(); star(level).rocks.
+//   Laufzeit: broken, by (womit), info(); star(level).rocks. Modell: Registry 'felsblock_riss' (fels und wand; size [w, h, d];
+//   beim Sprengen state.break 0 → 1 in 0,9 s, die Form ist sofort weg), 'eis' und look 'eigen': eigene Geometrie.
 // riesen_frageturm – Riesen-?-Block, der beim Anschlagen (Kopfstoß von unten; auch Stampfen, Wurfsichel, Panzer, Bombe)
 //   nach oben zu einem Turm aus Riesen-?-Blöcken wächst (Bauplan S-5 „Riesen-?-Blöcke, die zu Türmen wachsen“, „?-Turm
 //   anschlagen, Wandsprung“); wer oben steht, fährt mit. Jeder neue Block wirft Münzen aus; der oberste den Inhalt.
@@ -32,8 +34,11 @@
 //     coins: 1 (je Block), content: 'coins:5' | Power-up | 'star:i' | Aktion (oberster Block), onGrow: Aktion (fertig),
 //     trigger: ['bump', 'pound', 'throw', 'shell', 'bomb', 'mega', 'cannon'], color: 'gold' | 'orange', hidden }
 //   Laufzeit: state ('bereit'|'waechst'|'turm'), grown, top (y der Oberseite), grow(), info(); star(level).towers.
+//   Modell: Registry 'riesen_frageblock_turm' (oben part 'kopf' mit bump, darunter je Block ein 'segment', das teleskopartig
+//   hochfährt: state.out), sonst eigene Instanz-Blöcke (color).
 // laufbombe – andere Bezeichnung für die vorhandene Kickbombe (läuft wie ein Pilzling, Lunte, Explosion sprengt Felsblöcke).
-//   { kind: 'laufbombe', … } = { kind: 'kickbombe', … } (entities/kinds/kickbombe.js).
+//   { kind: 'laufbombe', … } = { kind: 'kickbombe', … } (entities/kinds/kickbombe.js), mit dem Registry-Modell 'laufbombe'
+//   (Zustände übersetzt: walk, fuse mit progress, carried, thrown; look: 'eigen' → Modell der Kickbombe).
 // Hüllen: die Stern-Bausteine drehplatte, farbplatten, plattenwand, schienenwalze, walzenraum, waben, draufsicht,
 //   nebelplattform, nebelboden, schienenbrett, kanonenkugel_wand, drehdiorama, zeituhren, sternenglanz sind auch als kind
 //   erlaubt (level.spawn(kind, spec); level.named.get(id) = Griff des Bausteins).
@@ -43,7 +48,7 @@ import { Gimmick, runAction, contentAction, visDt } from '../gimmick.js';
 import { goalModel } from '../visuals.js';
 import { KINDS as BOMB } from './kickbombe.js';
 import { hasModel, getModel } from '../../models/index.js';
-import { star, figures, canvasTexture, clamp, TAU, lin, mixc, smooth, colorize, merge, roundedBox, SIDE } from '../../blocks/starkit.js';
+import { star, figures, canvasTexture, clamp, TAU, lin, mixc, smooth, colorize, merge, roundedBox, SIDE, useModel } from '../../blocks/starkit.js';
 import { buildDrehplatte, buildFarbplatten, buildPlattenwand } from '../../blocks/types/star_platten.js';
 import { buildSchienenwalze, buildWalzenraum } from '../../blocks/types/star_walze.js';
 import { buildZeituhren } from '../../blocks/types/star_zeituhr.js';
@@ -69,10 +74,6 @@ function wingGeo() {
 
 /** Flügelpaar an einer Gruppe (Ursprung zwischen den Flügeln, Spannweite span) → { root, flap(k) }. */
 function makeWings(span = 1.6) {
-  if (hasModel('zielmast_fluegel')) {
-    const m = getModel('zielmast_fluegel', { span });
-    return { root: m.root, flap: (k) => m.update?.(0.016, { flap: k }), dispose: () => m.dispose?.() };
-  }
   const root = new THREE.Group();
   const geo = wingGeo();
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, emissive: 0x202030 });
@@ -123,12 +124,19 @@ class FliegenderZielmast extends Gimmick {
     this.goal = null;
     this.flapK = 0;
     star(level).poles.push(this);
+    this.flyK = 0;
     if (level.view) {
-      const m = goalModel({ height: this.H });
-      this.wings = makeWings(1.9);
-      this.wings.root.position.set(0, 1 + this.H * 0.82, 0);
-      m.root.add(this.wings.root);
-      this.setModel(m);
+      if (useModel(spec, 'zielmast_fluegel')) {
+        // Registry-Modell: Zielmast mit Federflügeln (angelegt … schlagend, wippt und neigt sich in Flugrichtung +X)
+        this.flyModel = true;
+        this.setModel(getModel('zielmast_fluegel', { height: this.H }));
+      } else {
+        const m = goalModel({ height: this.H });
+        this.wings = makeWings(1.9);
+        this.wings.root.position.set(0, 1 + this.H * 0.82, 0);
+        m.root.add(this.wings.root);
+        this.setModel(m);
+      }
     }
   }
 
@@ -171,7 +179,11 @@ class FliegenderZielmast extends Gimmick {
       else if (this.s >= this.L) { this.s = this.L; this.state = 'gelandet'; this.level.sfx('land'); }
       if (this.state !== 'gelandet') this.state = this.v < 0.4 && this.mode !== 'pendel' ? 'schwebt' : 'fliegt';
     }
+    const px = this.base.x, pz = this.base.z;
     this.at(this.s, this.base);
+    // Blickrichtung = Flugrichtung (Modell: Flug nach +X)
+    const fx = (this.base.x - px) * this.dirS, fz = (this.base.z - pz) * this.dirS;
+    if (Math.hypot(fx, fz) > 1e-4) this.yaw = Math.atan2(-fz, fx);
     const bob = this.state === 'gelandet' || this.state === 'wartet' ? 0 : Math.sin(this.t * 2.2) * (this.spec.bob ?? 0.35);
     this.pos.set(this.base.x, this.base.y + bob, this.base.z);
   }
@@ -217,15 +229,16 @@ class FliegenderZielmast extends Gimmick {
   }
 
   render(dt, t) {
+    const want = this.state === 'fliegt' ? 1 : this.state === 'schwebt' ? 0.75 : 0;
+    this.flyK += (want - this.flyK) * Math.min(1, dt * 4);
     super.render(dt, t);
-    if (!this.model) return;
-    this.model.update?.(dt, { flag: this.flag, grabbed: this.state === 'gefangen' });
+    if (!this.model || this.flyModel) return;
     this.wings?.flap(this.flapK);
     const lean = this.state === 'fliegt' ? -0.12 * Math.min(1, this.v / Math.max(1, this.speed)) : 0;
     this.model.root.rotation.z = lean;
   }
 
-  modelState() { return { flag: this.flag, grabbed: this.state === 'gefangen' }; }
+  modelState() { return { flag: this.flag, flagY: this.flag, grabbed: this.state === 'gefangen', fly: this.flyK }; }
   info() { return { state: this.state, s: +this.s.toFixed(2), L: +this.L.toFixed(2), v: +this.v.toFixed(2), dist: +this.dist.toFixed(2), pos: [+this.pos.x.toFixed(2), +this.pos.y.toFixed(2), +this.pos.z.toFixed(2)] }; }
   dispose() { this.wings?.dispose?.(); super.dispose?.(); }
 }
@@ -243,10 +256,13 @@ class Scheinziel extends Gimmick {
     this.baseShape = this.addSolid({ type: 'box', min: [this.pos.x - 0.5, this.pos.y, this.pos.z - 0.5], max: [this.pos.x + 0.5, this.pos.y + 1, this.pos.z + 0.5], tag: 'scheinziel' });
     if (level.view) {
       const m = goalModel({ height: this.H });
-      this.wings = makeWings(1.9);
-      this.wings.root.position.set(0, 1 + this.H * 0.82, 0);
-      this.wings.root.visible = false;
-      m.root.add(this.wings.root);
+      // ohne Registry-Modell 'zielmast_fluegel': eigene Flügel, bis zur Berührung verborgen
+      if (!useModel(spec, 'zielmast_fluegel')) {
+        this.wings = makeWings(1.9);
+        this.wings.root.position.set(0, 1 + this.H * 0.82, 0);
+        this.wings.root.visible = false;
+        m.root.add(this.wings.root);
+      }
       this.setModel(m);
     }
   }
@@ -265,7 +281,12 @@ class Scheinziel extends Gimmick {
     runAction(L, this.spec.onTouch, { pos: [p.x, p.y + 1, p.z], source: this });
     if (this.spec.mast) L.named.get(this.spec.mast)?.start?.();
     if ((this.spec.mode ?? 'fluegel') === 'poff') { L.effects?.debris?.({ x: p.x, y: p.y + 2, z: p.z }, 0xffffff, 10); this.kill(); }
-    else { this.removeShapes(); if (this.wings) this.wings.root.visible = true; }
+    else {
+      this.removeShapes();
+      if (this.wings) this.wings.root.visible = true;
+      // Registry-Modell: der Mast bekommt Flügel (Modell-Wechsel zum Zielmast mit Flügeln, fliegt nach +X = −Z hier)
+      else if (this.model && useModel(this.spec, 'zielmast_fluegel')) { this.setModel(getModel('zielmast_fluegel', { height: this.H })); this.flyModel = true; this.yaw = Math.PI / 2; }
+    }
     return 'none';
   }
 
@@ -282,7 +303,7 @@ class Scheinziel extends Gimmick {
     this.wings?.flap((t * 2.4) % 1);
   }
 
-  modelState() { return { flag: 1, grabbed: false }; }
+  modelState() { return { flag: 1, flagY: 1, grabbed: false, fly: this.flyModel ? 1 : 0 }; }
   info() { return { touched: this.touched, flying: this.touched && this.alive }; }
 }
 
@@ -331,7 +352,13 @@ class Felsblock extends Gimmick {
     const p = this.pos;
     this.addSolid({ type: 'box', min: [p.x - w / 2, p.y, p.z - d / 2], max: [p.x + w / 2, p.y + h, p.z + d / 2], breakable: 'bomb', mega: true, tag: 'felsblock' });
     star(level).rocks.push(this);
-    if (level.view) {
+    this.breakT = 0;
+    if (level.view && (spec.look ?? 'fels') !== 'eis' && useModel(spec, 'felsblock_riss')) {
+      // Registry-Modell: rissiger Fels (Ursprung Mitte der Unterseite); beim Sprengen state.break 0 → 1 (Risse glühen,
+      // Brocken fliegen), danach verschwindet er
+      this.rockModel = true;
+      this.setModel(getModel('felsblock_riss', { size: [w, h, d] }));
+    } else if (level.view) {
       const root = new THREE.Group();
       const mesh = new THREE.Mesh(rockGeo(spec.look ?? 'fels', w, h, d), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }));
       if (spec.look === 'wand') mesh.position.y = h / 2;
@@ -356,9 +383,17 @@ class Felsblock extends Gimmick {
     runAction(L, this.spec.onBreak, { pos: at, source: this, via: kind });
     L.signal?.('felsblock', { id: this.spec.id ?? null, by: kind, pos: at });
     void source;
-    this.kill();
+    // mit Modell: Form sofort weg, Bruch-Animation noch 0,9 s sichtbar
+    if (this.rockModel) this.removeShapes(); else this.kill();
   }
 
+  update(dt) {
+    if (!this.broken || !this.rockModel) return;
+    this.breakT += dt;
+    if (this.breakT >= 0.9) this.kill();
+  }
+
+  modelState() { return { break: this.broken ? Math.min(1, 0.12 + this.breakT / 0.9) : 0 }; }
   info() { return { broken: this.broken, by: this.by }; }
 }
 
@@ -421,7 +456,24 @@ class RiesenFrageturm extends Gimmick {
     this.mover = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx: p.x, cz: p.z };
     this.shape = this.addSolid({ type: 'box', min: [p.x - S / 2, p.y, p.z - S / 2], max: [p.x + S / 2, p.y + S, p.z + S / 2], mover: this.mover, tag: 'riesen_frageturm' });
     star(level).towers.push(this);
-    if (level.view) {
+    this.bumps = 0;
+    if (level.view && useModel(spec, 'riesen_frageblock_turm')) {
+      // Registry-Modell: ?-Kopfblock oben, darunter wachsen goldene Segmente teleskopartig (state.out = Höhe/size)
+      const root = new THREE.Group();
+      const head = getModel('riesen_frageblock_turm', { size: S, part: 'kopf' });
+      const segs = Array.from({ length: this.n }, () => getModel('riesen_frageblock_turm', { size: S, part: 'segment' }));
+      root.add(head.root, ...segs.map((q) => q.root));
+      this.parts = { head, segs };
+      this.setModel({
+        root,
+        update: (dt) => {
+          head.root.position.y = S * this.k;
+          head.update?.(dt, this.bumps ? { anim: 'bump', n: this.bumps } : 'idle');
+          segs.forEach((q, i) => { const out = clamp(this.k - i, 0, 1); q.root.visible = out > 0.001; q.root.position.y = S * i; q.update?.(dt, { out }); });
+        },
+        dispose() { head.dispose?.(); for (const q of segs) q.dispose?.(); },
+      });
+    } else if (level.view) {
       const body = new THREE.InstancedMesh(qBodyGeo(spec.color), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), this.n + 1);
       const decal = new THREE.InstancedMesh(qDecalGeo(), new THREE.MeshStandardMaterial({ map: qTexture(), transparent: true, alphaTest: 0.2, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), this.n + 1);
       body.castShadow = true; body.receiveShadow = true;
@@ -460,6 +512,7 @@ class RiesenFrageturm extends Gimmick {
     this.state = 'waechst';
     this.via = via;
     this.t = 0;
+    this.bumps++;
     this.level.sfx('blockhit');
     this.level.sfx('powerup_appear');
     return true;
@@ -506,6 +559,30 @@ class RiesenFrageturm extends Gimmick {
   info() { return { state: this.state, grown: this.grown, top: +this.top.toFixed(2), via: this.via ?? null }; }
 }
 
+// ===================================================================== Laufbombe
+
+/**
+ * Laufbombe = Kickbombe (Verhalten unverändert) mit dem Registry-Modell 'laufbombe' (Zwilling des Zündkopfs mit den
+ * Bonuswelt-Zuständen); die Zustände der Kickbombe werden übersetzt: walk → walk, lit → fuse (progress), getragen → carried,
+ * gekickt/in der Luft → thrown, sonst idle.
+ */
+function makeLaufbombe(level, spec) {
+  const e = BOMB.kickbombe(level, spec);
+  if (level.view && e && useModel(spec, 'laufbombe')) {
+    e.setModel(getModel('laufbombe'));
+    const base = e.modelState.bind(e);
+    e.modelState = () => {
+      const m = base();
+      if (e.state === 'carried') return { anim: 'carried' };
+      if (m.anim === 'walk') return { anim: 'walk', speed: m.speed };
+      if (m.anim === 'kicked') return { anim: 'thrown', speed: m.speed };
+      if (m.anim === 'lit') return { anim: 'fuse', progress: m.fuse ?? 0 };
+      return 'idle';
+    };
+  }
+  return e;
+}
+
 // ===================================================================== Hüllen (Bausteine als kind)
 
 const BUILD = {
@@ -532,5 +609,5 @@ export const KINDS = {
   scheinziel: (level, spec) => new Scheinziel(level, spec),
   felsblock: (level, spec) => new Felsblock(level, spec),
   riesen_frageturm: (level, spec) => new RiesenFrageturm(level, spec),
-  laufbombe: (level, spec) => BOMB.kickbombe(level, spec),
+  laufbombe: makeLaufbombe,
 };

@@ -32,7 +32,8 @@
 import * as THREE from 'three';
 import { v3, addObject, lin, mixc, smooth, colorize, merge, box } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { defineHandle, star, figures, onRespawn, ease, clamp, TAU, figureInside } from '../starkit.js';
+import { defineHandle, star, figures, onRespawn, ease, clamp, TAU, figureInside, useModel, bakeRoot } from '../starkit.js';
+import { getModel } from '../../models/index.js';
 
 const WOOD = {
   holz: { a: 0xc8884a, b: 0x9a5e2a, end: 0xe8c08a, ring: 0x7a4a1e },
@@ -155,6 +156,32 @@ export function buildSchienenwalze(level, spec) {
     if (st.state === 'rollt' || st.state === 'zurueck' || st.state === 'faellt') st.angle += ((st.state === 'zurueck' ? -1 : 1) * roll) / R * dt;
   });
   if (!level.view) return handle;
+  const rollSign = () => (axis === 'x' ? 1 : -1) * Math.sign(st.pos.tz || st.pos.tx || -1);
+  if (useModel(spec, 'schienenwalze')) {
+    // Registry-Modell: Holzwalze mit roten Laufrädern (Achse lokal X, Ursprung = Laufkante = Schienen-Oberkante,
+    // Achse R + 0,2 darüber); Schienen: Modell walzen_schiene je Pfad-Abschnitt (gebacken)
+    const m = getModel('schienenwalze', { radius: R, length: LEN });
+    const holder = {};
+    addObject(level, m.root, (dt) => {
+      const d = visDt(level, holder, dt);
+      m.root.position.set(st.pos.x, st.pos.y - R - 0.2, st.pos.z);
+      m.root.rotation.y = axis === 'z' ? Math.PI / 2 : 0;
+      m.root.visible = st.state !== 'weg';
+      m.update?.(d, { angle: rollSign() * st.angle });
+    });
+    if (spec.rails !== false) {
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const l = Math.hypot(b.x - a.x, b.z - a.z), dy = b.y - a.y;
+        if (l < 0.01) continue;
+        const r = getModel('walzen_schiene', { length: Math.hypot(l, dy) + 0.4, gauge: LEN, height: spec.posts ?? 2, ends: spec.end === 'halt' || spec.end === 'zurueck' });
+        r.root.position.set((a.x + b.x) / 2, (a.y + b.y) / 2 - R - 0.2, (a.z + b.z) / 2);
+        r.root.rotation.set(-Math.atan2(dy, l), Math.atan2(b.x - a.x, b.z - a.z), 0, 'YXZ');
+        bakeRoot(level, r);
+      }
+    }
+    return handle;
+  }
   // ---------------- Darstellung: Walze (dreht um ihre Achse), Schienen über den Pfad
   const W = WOOD[spec.style] ?? WOOD.holz;
   const root = new THREE.Group();
@@ -192,7 +219,7 @@ export function buildSchienenwalze(level, spec) {
     root.position.set(st.pos.x, st.pos.y, st.pos.z);
     root.visible = st.state !== 'weg';
     // Achse lokal X; Fahrt nach −Z (axis x): Oberfläche gegen die Fahrt = Drehung um +X
-    spin.rotation.x = (axis === 'x' ? 1 : -1) * Math.sign(st.pos.tz || st.pos.tx || -1) * -st.angle;
+    spin.rotation.x = rollSign() * -st.angle;
   });
   if (spec.rails !== false) addRails(level, pts, axis, LEN, R);
   return handle;
