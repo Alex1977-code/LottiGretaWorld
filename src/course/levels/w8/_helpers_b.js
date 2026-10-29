@@ -187,6 +187,114 @@ export function himmelslaternen(level, box, n = 40, o = {}) {
   return mesh;
 }
 
+// =====================================================================================================================
+// 8-5 Flutverlies
+// =====================================================================================================================
+
+export const FLUT = {
+  stone: 0x5a8a94, stoneHi: 0x86b8c0, stoneLo: 0x2e5058, mortar: 0x3a6068, moss: 0x4aa88a, mossHi: 0x7ad8b0,
+  gold: 0xffc84a, glow: 0x7af0ff, grate: 0x2a3a44, coral: [0xff7a9a, 0xffa84a, 0xc07aff, 0xffe06a, 0x6ae0d0],
+};
+
+/**
+ * Festungsmauern mit Bogenblenden, Moosrand und glimmenden Gitterfenstern (Optik + Kollision, die Kamera darf hindurch):
+ * list = [{ x0, x1, zA, zB, y0, y1, arches: 'x' | 'z' | null (Bögen auf der Seite zum Weg), side: +1 | −1 (Wegseite),
+ * windows: true }].
+ */
+export function flutMauern(level, list) {
+  const b = new Bld(), g = new Bld();
+  for (const m of list) {
+    const z0 = Math.max(m.zA, m.zB), z1 = Math.min(m.zA, m.zB), w = m.x1 - m.x0, d = z0 - z1, h = m.y1 - m.y0;
+    const cx = (m.x0 + m.x1) / 2, cz = (z0 + z1) / 2;
+    b.box(w, h, d, cx, m.y0, cz, litTop(FLUT.stone, 0.62), { r: 0.08 });
+    b.box(w + 0.12, 0.28, d + 0.12, cx, m.y1 - 0.2, cz, FLUT.moss, { r: 0.1 });
+    level.world.add({ type: 'box', min: [m.x0, m.y0, z1], max: [m.x1, m.y1, z0], camIgnore: m.camIgnore ?? true, tag: 'flutmauer', ...(m.climbable ? { climbable: true } : {}) });
+    if (!m.arches) continue;
+    const along = m.arches === 'z' ? d : w;
+    const n = Math.max(1, Math.floor(along / 4));
+    const face = m.arches === 'z' ? (m.side > 0 ? m.x1 : m.x0) : (m.side > 0 ? z0 : z1);
+    for (let i = 0; i < n; i++) {
+      const u = (i + 0.5) / n;
+      const ax = m.arches === 'z' ? face + 0.06 * (m.side ?? 1) : m.x0 + w * u, az = m.arches === 'z' ? z0 - d * u : face + 0.06 * (m.side ?? 1);
+      const aw = Math.min(3, along / n - 0.8), ah = Math.min(h - 1, 4.2);
+      // Bogenblende: dunkle Nische mit Rundbogen, helle Laibung
+      const sx = m.arches === 'z' ? 0.14 : aw, sz = m.arches === 'z' ? aw : 0.14;
+      b.box(sx, ah - aw / 2, sz, ax, m.y0 + 0.2, az, FLUT.stoneLo, { r: 0.02, seg: 0 });
+      b.cyl(aw / 2, aw / 2, 0.14, ax, m.y0 + 0.2 + ah - aw / 2, az, FLUT.stoneLo, 14, { rx: m.arches === 'z' ? 0 : Math.PI / 2, rz: m.arches === 'z' ? Math.PI / 2 : 0 });
+      if (m.windows !== false && i % 2 === 0) {
+        // Gitterfenster im Bogen (glimmt türkis)
+        g.box(m.arches === 'z' ? 0.16 : aw * 0.5, 1.1, m.arches === 'z' ? aw * 0.5 : 0.16, ax, m.y0 + 0.2 + ah - aw / 2 - 0.8, az, FLUT.glow, { r: 0, seg: 0 });
+        for (let k = -1; k <= 1; k++) {
+          const ox = m.arches === 'z' ? 0 : k * aw * 0.16, oz = m.arches === 'z' ? k * aw * 0.16 : 0;
+          b.box(m.arches === 'z' ? 0.2 : 0.06, 1.2, m.arches === 'z' ? 0.06 : 0.2, ax + ox, m.y0 + 0.2 + ah - aw / 2 - 0.85, az + oz, FLUT.grate, { r: 0, seg: 0 });
+        }
+      }
+    }
+  }
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/** Korallen und Seeanemonen (bunt, verschmolzen): pts = [[x, y, z, größe?], …]. */
+export function korallen(level, pts) {
+  const b = new Bld();
+  pts.forEach(([x, y, z, s = 1], i) => {
+    const c = FLUT.coral[i % FLUT.coral.length];
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * TAU + i, r = 0.25 * s;
+      b.cyl(0.07 * s, 0.11 * s, (0.6 + (k % 2) * 0.35) * s, x + Math.cos(a) * r, y, z + Math.sin(a) * r, c, 6, { rz: Math.cos(a) * 0.35, rx: -Math.sin(a) * 0.35 });
+      b.sphere(0.12 * s, x + Math.cos(a) * r * 2, y + (0.62 + (k % 2) * 0.35) * s, z + Math.sin(a) * r * 2, c);
+    }
+    b.sphere(0.22 * s, x, y + 0.12 * s, z, 0xffffff, { s: [1, 0.6, 1] });
+  });
+  b.flush(level, { castShadow: false });
+}
+
+/**
+ * Bunte Fischschwärme (harmlose Zier, eine Instanz-Gruppe): schools = [{ c: [x, y, z], r, n, h, speed }]. Kreisen um ihre
+ * Mitte und wippen; Fische zeigen in Schwimmrichtung.
+ */
+export function fischSchwaerme(level, schools) {
+  if (!level.view) return null;
+  const fish = [];
+  let s = 5;
+  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const COLS = [0xff8a3a, 0xffd23a, 0x3ad0ff, 0xff6aa8, 0x9aff6a];
+  schools.forEach((sc, si) => { for (let i = 0; i < (sc.n ?? 8); i++) fish.push({ sc, a: rnd() * TAU, r: (sc.r ?? 2) * (0.6 + rnd() * 0.5), y: (rnd() - 0.5) * (sc.h ?? 1.2), c: COLS[(si + i) % COLS.length], w: (sc.speed ?? 0.5) * (0.8 + rnd() * 0.4) }); });
+  // Fisch: Körper (gestreckte Kugel) + Schwanzflosse (Kegel), Blick nach +X
+  const body = new THREE.SphereGeometry(0.22, 8, 6); body.scale(1.5, 0.9, 0.6);
+  const tail = new THREE.ConeGeometry(0.16, 0.28, 4); tail.rotateZ(Math.PI / 2); tail.translate(-0.42, 0, 0);
+  const geo = new THREE.BufferGeometry();
+  const merged = [body.toNonIndexed(), tail.toNonIndexed()];
+  const pos = [], nor = [];
+  for (const g of merged) { pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); }
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4, metalness: 0.1 }), fish.length);
+  mesh.name = 'fische';
+  mesh.castShadow = false; mesh.receiveShadow = false; mesh.frustumCulled = false;
+  const col = new THREE.Color();
+  fish.forEach((f, i) => mesh.setColorAt(i, col.set(f.c)));
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1), p = new THREE.Vector3();
+  const holder = {};
+  let t = 0;
+  const update = (dt) => {
+    t += visDt(level, holder, dt);
+    fish.forEach((f, i) => {
+      const a = f.a + t * f.w, [cx, cy, cz] = f.sc.c;
+      p.set(cx + Math.cos(a) * f.r, cy + f.y + Math.sin(t * 1.3 + f.a) * 0.15, cz + Math.sin(a) * f.r);
+      e.set(0, -a - Math.PI / 2 + Math.sin(t * 9 + i) * 0.15, 0);
+      q.setFromEuler(e);
+      m4.compose(p, q, one);
+      mesh.setMatrixAt(i, m4);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  };
+  update(0);
+  addObject(level, mesh, update);
+  return mesh;
+}
+
 /** Großer Mond mit Hof (nur Optik, folgt nicht der Kamera; sehr weit hinten). */
 export function mond(level, pos, r = 9) {
   if (!level.view) return;

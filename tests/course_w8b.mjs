@@ -102,6 +102,85 @@ const ROUTES = {
   },
 };
 
+const FL5 = 1.0, HX5 = 40;
+ROUTES['8-5'] = {
+  start: [0, 0, 6],
+  meta: { stars: 3, time: 400, theme: 'dungeon', music: 'course_dungeon', archetype: 'parcours_ride' },
+  named: ['becken', 'wuerfel1', 'wuerfel2', 'wuerfel3', 'blau1', 'blau2', 'blau3', 'blau4', 'rot1', 'rot2', 'rot3', 'wand', 'bruecke', 'oben'],
+  main: [
+    { name: 'Flutsaal: Niedrigwasser abwarten, hinab ins Becken', to: [0, -5], within: 0.5, run: false }, { until: 'niedrig', max: 1800 },
+    { to: [0, -27.4], within: 0.5, run: false, swimJump: false },
+    { name: 'Hochwasser abwarten (das Wasser hebt die Heldin)', until: 'hochwasser', max: 1800 },
+    { name: 'aus dem Hochwasser auf die Ausgangskante', leap: [0, -32.5], from: [0, -29.2], over: 1.15 }, { expect: 'kante' },
+    { name: 'Wasserkörper 1', to: [0, -39.4], within: 0.4, run: false }, { to: [0, -43.4], jump: 30, within: 0.6, run: false, land: false },
+    { name: 'Wasserkörper 2', leap: [1.5, -49.2] }, { name: 'Wasserkörper 3', leap: [-0.5, -54.8] }, { name: 'auf den Kontrollpunkt', leap: [0, -60.5] },
+    { expect: 'cpHof' },
+    { name: 'Kontrollpunkt', to: [0, -65], within: 0.6, run: false },
+    { name: 'blaue Stachelblöcke', cross: 'blau1', z0: -73.6, z1: -79.6 }, { cross: 'blau2', z0: -80.1, z1: -85.8 },
+    { cross: 'blau3', z0: -86.2, z1: -92 }, { cross: 'blau4', z0: -92.2, z1: -98.4 },
+    { name: 'zum Steg', to: [0, -100.4], within: 0.4, run: false },
+    { name: 'auf Pflaume', mount: [0, -106] },
+    { name: 'Kanal', ride: [[-101, 0], [-114, 0], [-118, 1.3], [-124, 1.0], [-131, -0.2], [-136, -1.3], [-140, 0], [-150, 0]] },
+    { name: 'Fallblock-Brücke (rennen)', to: [0, -153.2], within: 0.4, run: false }, { to: [0, -170], within: 0.6, run: true },
+    { expect: 'rotHalle' },
+    { name: 'rote Stachelblöcke: rechts vorbei', to: [3.6, -172], within: 0.4, run: false }, { to: [3.6, -188.3], within: 0.4, run: false },
+    { to: [-3.6, -188.4], within: 0.4, run: false }, { to: [-3.6, -196.2], within: 0.4, run: false },
+    { cross: 'rot3', z0: -196.6, z1: -201.4 },
+    { name: 'Stachelwand-Gang', follow: 'wand', exit: [6.2, -231.2] },
+    { name: 'Endsaal', to: [9, -243.6], within: 0.4, run: false }, { to: [9, -246], jump: 30, within: 0.25, run: false }, { crouch: 12 },
+    { expect: 'seeufer' },
+    { name: 'Zielmast', to: [0, -292], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'mit dem Hochwasser hinauf, drei Wasserkörper, Ritt auf Pflaume', ok: (r) => r.mech.swims >= 2 && r.mech.ride > 120 * 5 && !r.log.some((l) => l[0] === 'FEHLER: Bedingung') },
+  ],
+  targets: [
+    { name: 'Stern 1: unsichtbare Wand an der Ausgangskante mit dem Krallen-Anzug hinauf', star: 0, from: [0, FL5, -35], place: { power: 'krallen' },
+      legs: [{ climb: [6.0, -35], face: [1, 0], top: FL5 + 8 }, { to: [8.4, -35], within: 0.4, run: false }, { star: 0 }], shot: 'stern1' },
+    { name: 'Stern 1 nicht ohne Krallen-Anzug (an der Wand rutscht man hinab)', star: 0, expectNot: true, from: [0, FL5, -35], heroes: ['lotti'],
+      legs: [{ climb: [6.0, -35], face: [1, 0], top: FL5 + 8, max: 300, soft: true }, { wait: 60 }], mech: (r) => r.pos[1] < FL5 + 4, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
+    { name: 'Stern 2: Bogenwand nach dem Ritt hinauf, über die verschwindenden Fallblöcke', star: 1, from: [0, FL5, -151.3], place: { power: 'krallen' },
+      legs: [{ climb: [-5.0, -151.3], face: [-1, 0], top: FL5 + 7 }, { to: [-7.8, -152.4], within: 0.4, run: false },
+        { to: [-7.8, -155], jump: 30, within: 0.35, run: false }, { to: [-7.8, -157.8], jump: 30, within: 0.35, run: false },
+        { to: [-7.8, -160.6], jump: 30, within: 0.35, run: false }, { to: [-7.8, -163.4], jump: 30, within: 0.35, run: false },
+        { to: [-7.8, -166.2], jump: 30, within: 0.4, run: false }, { star: 1 }], shot: 'stern2' },
+    { name: 'Stempel: auf dem blauen Stachelblock mitfahren, oben links in die Nische', stamp: true, from: [3, FL5, -79.4],
+      legs: [{ onBlock: 'blau2', side: 1 }, { niche: [-6.2, -83], block: 'blau2' }, { to: [-6.6, -83], within: 0.3, run: false }], shot: 'stempel' },
+    { name: 'Stern 3: Wolkenkanone im Endsaal → Münzhimmel', star: 2, from: [10, FL5, -236],
+      legs: [{ warp: [14, -238] }, { expect: 'himmel' }, { to: [HX5, -249.8], within: 0.3, run: false }, { to: [HX5, -256], jump: 30, jumpAt: 5.4, within: 0.4, run: false },
+        { to: [HX5 + 1, -257.2], within: 0.3, run: false }, { to: [HX5 + 4, -262], jump: 30, jumpAt: 5, within: 0.4, run: false },
+        { to: [HX5 + 3.2, -263.2], within: 0.3, run: false }, { to: [HX5, -268], jump: 30, jumpAt: 5.2, within: 0.4, run: false },
+        { to: [HX5 - 1, -269.4], within: 0.3, run: false }, { to: [HX5 - 4, -274], jump: 30, jumpAt: 5, within: 0.4, run: false },
+        { to: [HX5 - 3.2, -275.2], within: 0.3, run: false }, { to: [HX5, -279.6], jump: 30, jumpAt: 5, within: 0.4, run: false }, { star: 2 },
+        { to: [HX5, -282.2], jump: 30, within: 0.25, run: false }, { crouch: 12 }, { expect: 'seeufer' }], shot: 'stern3' },
+  ],
+  extra: [
+    { name: 'Krallen-Anzug aus dem ?-Block am Start', from: [2.6, 0, 3.4], heroes: ['lotti'],
+      legs: [{ to: [2.6, 1.5], within: 0.2, run: false }, { hop: 20 }, { to: [2.6, 3.8], within: 0.3, run: false }, { to: [2.6, 1.5], jump: 40, jumpAt: 1.6, within: 0.3, run: false }, { wait: 30 }, { expect: 'krallen' }] },
+    { name: 'Steigbecken: bei Niedrigwasser kommt man von der Beckensohle nicht auf die Kante', from: [0, -6, -28.4], heroes: ['lotti'],
+      legs: [{ until: 'niedrig', max: 1800 }, { to: [0, -30.6], jump: 40, within: 0.3, run: false, max: 200, autoJump: false, land: false }, { wait: 60 }],
+      mech: (r) => r.pos[1] < 0, mechText: (r) => `y ${r.pos[1].toFixed(1)}`, allowFail: true },
+    { name: 'Extraleben: unsichtbarer Block im Endsaal', from: [12, FL5, -234], heroes: ['lotti'], expectLives: 1,
+      legs: [{ to: [12, -232], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+  ],
+  shots: [
+    ['start', [0, 0, 6]],
+    ['flutsaal', [0, 0, -4]],
+    ['kante', [0, 1.0, -34]],
+    ['wuerfel', [0, 1.0, -39]],
+    ['cp', [0, 1.0, -66]],
+    ['blau', [0, 1.0, -72]],
+    ['steg', [0, 1.0, -100.6]],
+    ['halle', [0, 1.0, -151]],
+    ['bruecke', [0, 1.0, -152.6]],
+    ['rot', [3.6, 1.0, -176]],
+    ['wand', [0, 1.0, -202]],
+    ['endsaal', [10, 1.0, -232]],
+    ['himmel', [40, 42, -250]],
+    ['ziel', [0, 1.0, -276]],
+  ],
+};
+
 const PORT = 4860;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -140,6 +219,15 @@ function install() {
     kammer: () => at(70, 92, -0.5, -180, -214),
     aufIso: () => P().pos.x < -8.9 && P().pos.y > -0.2 && P().mode === 'ground',
     funken: () => P().power === 'funken',
+    // 8-5
+    krallen: () => P().power === 'krallen',
+    hochwasser: () => { const b = L.named.get('becken'); return !!b && b.state === 'oben'; },
+    niedrig: () => { const b = L.named.get('becken'); return !!b && b.state === 'unten'; },
+    kante: () => at(-6, 6.1, 0.6, -29.5, -40.5) && P().mode === 'ground',
+    cpHof: () => at(-5, 5, 0.6, -57.4, -70.5),
+    rotHalle: () => at(-6, 6, 0.6, -168, -201),
+    seeufer: () => at(-7, 7, 0.6, -265, -301),
+    himmel: () => P().pos.x > 30 && P().pos.y > 40,
   };
   const W = {
     place(pos, o = {}) {
@@ -184,7 +272,7 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, warps: 0, rides: 0, ride: 0, stomped: [], hurtList: [], probe: {}, lands: 0, impacts: 0, pipes: 0 };
+      const mech = { hurts: 0, warps: 0, rides: 0, ride: 0, stomped: [], hurtList: [], probe: {}, lands: 0, impacts: 0, pipes: 0, swims: 0, climbs: 0 };
       const track = [];
       let lastHurts = p.hurtTries ?? 0;
       const stones = L.entities.filter((e) => e.kind === 'stampfstein');
@@ -339,6 +427,124 @@ function install() {
           if (!p.dismounted && !Lg.partial) log.push(['FEHLER: Ritt nicht beendet']);
           continue;
         }
+        // ------------------------------------------------ schwimmend an die Oberfläche, Aussprung, in der Luft zum Ziel (Wasser/Boden)
+        if (Lg.leap) {
+          const [tx, tz] = Lg.leap;
+          let k = 0;
+          for (let q = 0; q < 240 && p.mode === 'air' && !p.dead; q++) tick({});
+          // an die Oberfläche und zum Rand des Wasserkörpers auf der Zielseite schwimmen (bzw. zur Stelle from), dann Aussprung
+          // mit Schwung in Zielrichtung
+          const wb = !Lg.from && p.water && p.water.x1 !== undefined ? p.water : null;
+          const x0 = Lg.from ? Lg.from[0] : wb ? Math.max(wb.x0 + 0.7, Math.min(wb.x1 - 0.7, tx)) : p.pos.x;
+          const z0 = Lg.from ? Lg.from[1] : wb ? Math.max(wb.z0 + 0.7, Math.min(wb.z1 - 0.7, tz)) : p.pos.z;
+          for (; k < 900 && p.mode === 'swim' && !p.dead; k++) {
+            const dx = x0 - p.pos.x, dz = z0 - p.pos.z, d = Math.hypot(dx, dz);
+            const top = p.water ? p.water.top - (p.pos.y + p.half.y) < 0.45 : false;
+            const go = d < (Lg.from ? 0.5 : 1.3) && top && k > 10;
+            const st = Lg.from ? this.stick(dx, dz, Math.min(1, d)) : go ? this.stick(tx - p.pos.x, tz - p.pos.z, 1) : this.stick(dx, dz, 1);
+            tick({ ...st, jump: go && k % 12 < 4 });
+          }
+          let j = 0;
+          // erst steigen (über die Kante), dann zum Ziel lenken
+          for (; j < 400 && (p.mode === 'air' || p.mode === 'wall') && !p.dead; j++) {
+            const up = Lg.over !== undefined && p.pos.y < Lg.over && p.vel.y > 0;
+            tick({ ...(up ? this.airSteer(x0, z0, 0, 0, 3.2, 2) : this.airSteer(tx, tz, 0, 0, 3.2, 6.5)), jump: p.vel.y > 0 });
+          }
+          settle();
+          if (p.mode === 'swim') mech.swims++;
+          log.push(['aussprung', `${Lg.leap}`, k, j, p.mode, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ an einem quer fahrenden Stachelblock vorbei: Seite gegenüber seinem Ziel
+        // wählen, warten, bis er dort hält (bzw. weit genug weg ist), dann durch seine Spur
+        if (Lg.cross) {
+          const b = L.named.get(Lg.cross);
+          const bx = () => b.mb.pos.x;
+          let prev = bx(), dir = 0, k = 0;
+          const goTo = (gx, gz, within, maxN, run = false) => { let n = 0; for (; n < maxN && !p.dead; n++) { const dx = gx - p.pos.x, dz = gz - p.pos.z, d = Math.hypot(dx, dz); if (d < within && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.max(0.25, Math.min(1, d / 1.0))), run }); } return n; };
+          for (; k < 1200 && !dir; k++) { tick({}); const x = bx(); if (Math.abs(x - prev) > 1e-4) dir = Math.sign(x - prev); prev = x; }
+          const lane = -dir * 3.6;
+          goTo(lane, Lg.z0, 0.35, 400);
+          let w = 0;
+          for (; w < 1600 && !p.dead; w++) {
+            const x = bx(), mv = x - prev; prev = x;
+            const far = Math.abs(x - lane) > 4.6;
+            const away = b.color === 'rot' ? (Math.sign(mv) === Math.sign(x - lane) || Math.abs(x - lane) > 6.2) : b.state === 'wartet';
+            if (far && away) break;
+            tick({});
+          }
+          const n = goTo(lane, Lg.z1, 0.45, 400, true);
+          log.push(['vorbei', Lg.cross, dir, lane, k, w, n, +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ hinter der zurückweichenden Stachelwand her bis zum Ausgang
+        if (Lg.follow) {
+          const wall = L.named.get(Lg.follow);
+          const wz = () => wall.mb.pos.z;
+          let prev = wz(), k = 0;
+          for (; k < 2400; k++) { tick({}); const z = wz(); if (z < prev - 1e-4 && z < -212) break; prev = z; }
+          const [ex, ez] = Lg.exit;
+          let j = 0;
+          for (; j < 2400 && !p.dead; j++) {
+            const home = wz() < -232.6;
+            const tz = home ? ez : Math.max(ez, wz() + 2.8);
+            const atExitZ = home && Math.abs(p.pos.z - ez) < 0.8;
+            const gx = atExitZ ? ex : 0, gz = tz;
+            const dx = gx - p.pos.x, dz = gz - p.pos.z, d = Math.hypot(dx, dz);
+            if (atExitZ && d < 0.4) break;
+            tick({ ...this.stick(dx, dz, Math.max(0.2, Math.min(1, d / 1.2))), run: false });
+          }
+          log.push(['stachelwand', k, j, +p.pos.x.toFixed(2), +p.pos.z.toFixed(2), +wz().toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Krallen-Anzug: an die Wand laufen, springen, hinaufklettern
+        if (Lg.climb) {
+          const [wx, wz] = Lg.climb;
+          const fx = Lg.face?.[0] ?? 0, fz = Lg.face?.[1] ?? -1;
+          let n = 0;
+          for (; n < 600; n++) { const dx = wx - fx * 1.2 - p.pos.x, dz = wz - fz * 1.2 - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.2 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.max(0.2, Math.min(1, d / 1.2))), run: false }); }
+          let k = 0, climbed = false;
+          for (; k < (Lg.max ?? 900); k++) {
+            if (p.dead) break;
+            tick({ ...this.stick(fx, fz, 1), jump: p.mode === 'ground' && k % 40 < 10 });
+            if (p.state === 'climb') climbed = true;
+            if (p.mode === 'ground' && p.pos.y > Lg.top - 0.2) break;
+          }
+          if (climbed) mech.climbs++;
+          log.push(['Krallen', k, climbed, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.power]);
+          if (p.pos.y < Lg.top - 0.2) { log.push([Lg.soft ? 'nicht erklommen (erwartet)' : 'FEHLER: Wand nicht erklommen', Lg.climb]); if (!Lg.soft) break; }
+          continue;
+        }
+        // ------------------------------------------------ auf einen quer fahrenden Block (Oberseite) springen, wenn er auf seiner Seite hält
+        if (Lg.onBlock) {
+          const b = L.named.get(Lg.onBlock);
+          let k = 0;
+          for (; k < 1600 && !(b.state === 'wartet' && Math.sign(b.mb.pos.x) === Lg.side && Math.abs(b.mb.pos.x) > 2.9); k++) tick({});
+          let j = 0, on = false;
+          for (; j < 300 && !p.dead; j++) {
+            const tx = b.mb.pos.x, tz = b.mb.pos.z;
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: j < 34, run: false });
+            if (j > 8 && p.mode === 'ground') { on = p.ground?.owner === b || p.ground?.tag === 'stachelblock'; break; }
+          }
+          log.push(['auf Block', Lg.onBlock, k, j, on, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!on) log.push(['FEHLER: nicht auf dem Block']);
+          continue;
+        }
+        // ------------------------------------------------ vom Block (wenn er auf der anderen Seite hält) in die Nische springen
+        if (Lg.niche) {
+          const b = L.named.get(Lg.block);
+          let k = 0;
+          for (; k < 1600 && !(b.state === 'wartet' && b.mb.pos.x < -2.9); k++) tick({ ...this.stick(b.mb.pos.x - p.pos.x, b.mb.pos.z - p.pos.z, Math.min(0.6, Math.hypot(b.mb.pos.x - p.pos.x, b.mb.pos.z - p.pos.z))) });
+          const [tx, tz] = Lg.niche;
+          let j = 0;
+          for (; j < 300 && !p.dead; j++) {
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: j < 40, run: false });
+            if (j > 8 && p.mode === 'ground') break;
+          }
+          for (let q = 0; q < 30; q++) tick({});
+          log.push(['Nische', k, j, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
         const within = Lg.within ?? 0.6;
@@ -366,7 +572,7 @@ function install() {
           if (j0 === null && Lg.jumpAt && dist <= Lg.jumpAt) j0 = i;
           const jump = (holdJ && j0 !== null ? (i - j0 < holdJ) : false) || auto > 0;
           if (auto > 0) auto--;
-          const swimJ = p.mode === 'swim' && (i % 24) < 10;
+          const swimJ = p.mode === 'swim' && Lg.swimJump !== false && (i % 24) < 10;
           tick({ ...st, run: Lg.run ?? true, jump: jump || swimJ });
           if (p.mode === 'air') airborne = true;
           else if (airborne) landed = true;
@@ -497,6 +703,10 @@ for (const id of LEVELS) {
     check(`${id}: ${R.meta.stars} Sterne, Stempel, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}, Archetyp ${R.meta.archetype}`,
       starsOk && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music && meta.archetype === R.meta.archetype);
     for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+    if (R.named) {
+      const miss = await sc((ids) => ids.filter((x) => !window.__course.level.named.get(x)), R.named);
+      check(`${id}: Bausteine ${R.named.join(', ')} vorhanden${miss.length ? ` (fehlt: ${miss.join(', ')})` : ''}`, miss.length === 0);
+    }
   }
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
