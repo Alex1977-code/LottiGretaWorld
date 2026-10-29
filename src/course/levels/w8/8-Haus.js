@@ -132,8 +132,8 @@ function build(level) {
     glowPoints(level, [[0, R5.oben + 2.6, cz]], 0xfff0a0, 5, { opacity: 0.5, name: 'leuchtfeuer' });
   }
   // 6 Ziegelsperre: glatte Mauer links und rechts der Ziegel, Kletterwand dahinter
-  kb(5, -7, -2.5, R6.ziegel - 0.5, R6.ziegel + 0.5, Y, Y + 4, { climb: false, look: 'glatt' });
-  kb(5, 2.5, 7, R6.ziegel - 0.5, R6.ziegel + 0.5, Y, Y + 4, { climb: false, look: 'glatt' });
+  kb(5, -7, -2.5, R6.ziegel - 0.5, R6.ziegel + 0.5, Y, Y + 6, { climb: false, look: 'glatt' });
+  kb(5, 2.5, 7, R6.ziegel - 0.5, R6.ziegel + 0.5, Y, Y + 6, { climb: false, look: 'glatt' });
   kb(5, -7, 7, R6.wand, 18, Y, R6.top, { look: 'kletter', color: 0xd8783a, alt: 0xc86a30, faces: ['+z'] });
   // 7 Doppelwand: vordere Wand (links), glatter Sockel und hängende hintere Wand (rechts)
   kb(6, -7, 2, R7.a[0], R7.a[1], Y, R7.aTop, { look: 'kletter', color: 0x4ab86a, alt: 0x5ac87a });
@@ -203,9 +203,9 @@ const CAMS = [
   cam({ pitch: 34, dist: 16, center: P(9, 0, 8, Y + 4) }),
 ];
 
-// Ziegel: Raum 6 (Sperre 5 × 4) und Raum 9 (Wand 5 × 9); Bröckel-Bauklötze in Raum 10 (3 × 4, darüber eine feste Kante)
+// Ziegel: Raum 6 (Sperre 5 × 6) und Raum 9 (Wand 5 × 9); Bröckel-Bauklötze in Raum 10 (3 × 4, darüber eine feste Kante)
 const ZIEGEL6 = [];
-for (let r = 0; r < 4; r++) for (let x = -2; x <= 2; x++) ZIEGEL6.push({ kind: 'brick', roomId: 'r6', pos: P(5, x, R6.ziegel, Y + r) });
+for (let r = 0; r < 6; r++) for (let x = -2; x <= 2; x++) ZIEGEL6.push({ kind: 'brick', roomId: 'r6', pos: P(5, x, R6.ziegel, Y + r) });
 const ZIEGEL9 = [];
 for (let r = 0; r < 9; r++) for (let x = -2; x <= 2; x++) ZIEGEL9.push({ kind: 'brick', roomId: 'r9', pos: P(8, x, R9.ziegel, Y + r) });
 const KLOETZE = [];
@@ -237,7 +237,7 @@ export const LEVEL = {
     // ---------------- 2 Kristallhöhle
     floor(1, -7, 7, -1, R2.s1[0], Y),
     // ---------------- 3 Piep-Wand: rote Blöcke unten, blaue oben (kletterbar, nur fest im Takt)
-    floor(2, -7, 7, -1, R3.rot - 0.5, Y),
+    floor(2, -7, 7, -1, R3.rot + 0.5, Y),           // Boden auch unter den roten Blöcken (sind sie aus, steht man davor)
     { type: 'piep_block', id: 'r3_rot', color: 'rot', pos: P(2, 0, R3.rot, Y), size: [14, 5, 1], every: 4, warn: 2 },
     { type: 'piep_block', id: 'r3_blau', color: 'blau', pos: P(2, 0, R3.blau, R3.sims), size: [14, 5, 1], every: 4, warn: 2 },
     // ---------------- 4 Glutwand: Start, Lavagraben

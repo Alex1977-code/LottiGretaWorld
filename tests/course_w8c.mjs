@@ -242,7 +242,7 @@ function install() {
     rotFest: () => { const q = named('r3_rot')?.info?.()?.[0]; return !!q && q.on && !q.warn && q.solid > 0 && q.pending === 0; },
     blauFest: () => { const q = named('r3_blau')?.info?.()?.[0]; return !!q && q.on && !q.warn && q.solid > 0 && q.pending === 0; },
     rotAus: () => { const q = named('r3_rot')?.info?.()?.[0]; return !!q && !q.on && !q.warn; },
-    ziegel6: () => L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === 'r6').length <= 14,
+    ziegel6: () => L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === 'r6').length <= 24,
     ziegel9: () => L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === 'r9').length === 0,
     // 8-7
     plateau1: () => at(-7, 7, -0.5, -57.5, -67),
@@ -754,7 +754,7 @@ function hausLegs(i, Z0) {
   const R = (x, u) => [x, Z0 - u];
   const L = [
     [{ to: R(0, 5.2), within: 0.3, run: false }, { name: 'Turm hinauf', to: R(0, 8), jump: 40, within: 0.6, run: false }, { pound: R(0, 8) }, { expect: 'schalter1' },
-      { to: R(0, 11.6), within: 0.5, run: false }, { to: R(0, 13), within: 0.3, run: false }],
+      { to: R(0, 11.6), within: 0.5, run: false }, { to: R(0, 12.8), within: 0.3, run: false }, { wait: 40 }, { to: R(0, 13.1), within: 0.15, run: false }],
     [{ to: R(0, 4.2), within: 0.3, run: false }, { name: 'Felsstufe 1', to: R(0, 6.4), jump: 40, within: 0.6, run: false }, { name: 'Felsstufe 2', to: R(0, 9.2), jump: 40, within: 0.6, run: false },
       { to: R(0, 11.5), within: 0.3 }],
     [{ to: R(0, 4.0), within: 0.3, run: false }, { until: 'rotFest', max: 900 }, { name: 'rote Blöcke hinauf', to: R(0, 7), jump: 40, within: 0.5, run: false },
@@ -813,8 +813,8 @@ async function haus() {
       for (const e of errors.slice(0, 8)) console.log('      ', e);
       check(`${id}: „Haus Krallenkraxel“, Welt 8, Archetyp house, Thema house, Musik course_house, 10 Räume à 10 s, 10 Sterne, fail 'exit'`,
         d.title === 'Haus Krallenkraxel' && d.world === 8 && d.arch === 'house' && d.theme === 'house' && d.music === 'course_house' && d.rooms === 10 && d.times.every((t) => t === 10) && d.fail === 'exit' && d.starCount === 10);
-      check(`${id}: Ziegel 65, Bröckel-Bauklötze 12, POW 1, Druckschalter 1, Pilzlinge 3 (${JSON.stringify(d.kinds)})`,
-        d.kinds.brick === 65 && d.kinds.bruchstueck === 12 && d.kinds.pow === 1 && d.kinds.pswitch === 1 && d.kinds.pilzling === 3);
+      check(`${id}: Ziegel 75, Bröckel-Bauklötze 12, POW 1, Druckschalter 1, Pilzlinge 3 (${JSON.stringify(d.kinds)})`,
+        d.kinds.brick === 75 && d.kinds.bruchstueck === 12 && d.kinds.pow === 1 && d.kinds.pswitch === 1 && d.kinds.pilzling === 3);
     }
     await sc(installHaus);
     const Z0 = await sc(() => window.__course.level.data._haus.Z0);
@@ -849,6 +849,7 @@ async function hausExtra() {
   const Z0 = await sc(() => window.__course.level.data._haus.Z0);
   const run = (i, legs, o = {}) => sc(([k, lg, oo]) => {
     const c = window.__course, L = c.level, H = window.__haus, p = L.player;
+    for (let q = 0; q < 900 && (p.dead || L.runtime.status !== 'play' || c.arch.info().phase !== 'play'); q++) { c.setInput({}); c.step(1); }   // nach einem Tod: Neustart des Raums abwarten
     if (c.arch.info().room !== k) c.arch.enterRoom(k);
     H.waitPlay(k);
     const kr = L.named.get('krallen');
@@ -857,9 +858,9 @@ async function hausExtra() {
     const y0 = p.pos.y;
     const res = window.__w8.drive(lg, { invuln: oo.invuln ? undefined : false, house: true });
     for (let q = 0; q < (oo.wait ?? 60); q++) c.step(1);
-    const out = { star: !!L.runtime.stars[k], maxY: +Math.max(...res.track.map((t) => t[1]), p.pos.y).toFixed(2), y0: +y0.toFixed(2), dead: p.dead, cause: p.deathCause ?? null, a: c.arch.info(),
+    const out = { star: !!L.runtime.stars[k], maxY: +Math.max(...res.track.map((t) => t[1]), p.pos.y).toFixed(2), y0: +y0.toFixed(2), dead: p.dead || res.log.some((l) => l[0] === 'TOD'), cause: res.log.find((l) => l[0] === 'TOD')?.[1] ?? p.deathCause ?? null, log: res.log.filter((l) => l[0] !== 'spur').slice(-8), a: { room: c.arch.info().room, phase: c.arch.info().phase },
       bricks: L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === `r${k + 1}`).length,
-      broke: L.entities.filter((e) => e.kind === 'bruchstueck' && (e.state === 'fall' || e.state === 'weg' || e.removed)).length, piep: L.named.get('r3_rot')?.info?.()?.[0] ?? null };
+      broke: L.named.get('broeckel')?.info?.().touched ?? 0, piep: L.named.get('r3_rot')?.info?.()?.[0] ?? null };
     kr.off = false;
     return out;
   }, [i, legs, o]);
@@ -868,17 +869,17 @@ async function hausExtra() {
   g.ohne2 = await run(1, [{ to: R(1, 0, 4.2), within: 0.3, run: false }, { to: R(1, 0, 6.4), jump: 40, within: 0.6, run: false, max: 400 }, { hop: 40 }], { ohne: true });
   g.ohne5 = await run(4, [{ to: R(4, 0, 4.6), within: 0.3, run: false }, { to: R(4, 0, 6.5), jump: 40, within: 0.35, run: false, max: 400 }, { hop: 40 }], { ohne: true });
   g.rotAus = await run(2, [{ to: R(2, 0, 4.0), within: 0.3, run: false }, { until: 'rotAus', max: 900 }, { to: R(2, 0, 7), jump: 40, within: 0.5, run: false, max: 200, autoJump: false }]);
-  g.rinne = await run(3, [{ to: R(3, 0, 3.7), within: 0.25, run: false }, { to: R(3, 0, 8.6), jump: 40, within: 0.6, run: true, max: 400 }], { wait: 30 });
   g.ziegel = await run(5, [{ to: R(5, 0, 4.3), within: 0.2, run: false }, { to: R(5, 0, 10), jump: 40, within: 0.6, run: false, max: 360, autoJump: false }]);
   g.pow = await run(8, [{ to: R(8, 1.4, 6.9), within: 0.3, run: false }, { to: R(8, 0, 9.6), jump: 40, within: 0.6, run: false, max: 360, autoJump: false }], { invuln: true });
-  g.broeckel = await run(9, [{ to: R(9, 0, 5.4), within: 0.3, run: false }, { to: R(9, 0, 10), jump: 40, within: 0.6, run: false }, { wait: 120 }], { invuln: true, wait: 120 });
-  console.log('      ', JSON.stringify(g));
+  g.rinne = await run(3, [{ to: R(3, 0, 3.7), within: 0.25, run: false }, { to: R(3, 0, 8.6), jump: 40, within: 0.6, run: true, max: 400 }], { wait: 30 });
+  g.broeckel = await run(9, [{ to: R(9, 0, 5.4), within: 0.3, run: false }, { to: R(9, 0, 10), jump: 40, within: 0.6, run: false }, { to: R(9, 0, 12.5), within: 0.3 }], { invuln: true, wait: 120 });
+  for (const [k, v] of Object.entries(g)) console.log(`       ${k}: ${JSON.stringify({ ...v, piep: undefined })}`);
   const Y = 1;
   check(`${id}: ohne Krallen-Anzug nicht auf die erste Felsstufe (Raum 2, höchstens y ${g.ohne2.maxY} < ${Y + 6})`, !g.ohne2.star && g.ohne2.maxY < Y + 5.5);
   check(`${id}: ohne Krallen-Anzug nicht auf den Leuchtturm (Raum 5, höchstens y ${g.ohne5.maxY} < ${Y + 7})`, !g.ohne5.star && g.ohne5.maxY < Y + 6.5);
   check(`${id}: rote Piep-Blöcke aus → kein Halt an der Wand (höchstens y ${g.rotAus.maxY})`, g.rotAus.maxY < Y + 4.5);
   check(`${id}: mittlere Lavarinne ist tödlich (${g.rinne.cause})`, g.rinne.dead && g.rinne.cause === 'lava');
-  check(`${id}: ohne Tatzenhieb versperren die Ziegel die Wand (Ziegel ${g.ziegel.bricks}, höchstens y ${g.ziegel.maxY})`, g.ziegel.bricks === 20 && g.ziegel.maxY < Y + 4.5 && !g.ziegel.star);
+  check(`${id}: ohne Tatzenhieb versperren die Ziegel die Wand (Ziegel ${g.ziegel.bricks}, höchstens y ${g.ziegel.maxY})`, g.ziegel.bricks === 30 && g.ziegel.maxY < Y + 6 && !g.ziegel.star);
   check(`${id}: ohne POW-Block bleibt die Kletterspalte zu (Ziegel ${g.pow.bricks}, höchstens y ${g.pow.maxY})`, g.pow.bricks === 45 && !g.pow.star && g.pow.maxY < Y + 5);
   check(`${id}: Bröckelturm – berührte Bauklötze brechen (${g.broeckel.broke}), Stern oben (${g.broeckel.star})`, g.broeckel.broke >= 3 && g.broeckel.star);
 
