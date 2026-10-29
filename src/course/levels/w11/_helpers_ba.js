@@ -519,8 +519,12 @@ export function moorfackeln(level, groups, o = {}) {
   const hint = new THREE.InstancedMesh(new THREE.TorusGeometry(0.36, 0.045, 4, 14), new THREE.MeshBasicMaterial({ color: 0x8ad0ff, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
   hint.name = 'moorfackeln-hinweis';
   // ---- warmer Lichthof um brennende Fackeln (additiv, Instanzen) und wenige Punktlichter bei den nächsten brennenden
-  const glow = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff8a30, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
+  const glowPos = new Float32Array(torches.length * 3).fill(-1000);
+  const glowGeo = new THREE.BufferGeometry();
+  glowGeo.setAttribute('position', new THREE.BufferAttribute(glowPos, 3));
+  const glow = new THREE.Points(glowGeo, new THREE.PointsMaterial({ map: softDot(), color: 0xffa040, size: o.glowSize ?? 7, sizeAttenuation: true, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
   glow.name = 'moorfackeln-schein';
+  let glowLit = -1;
   const lights = [];
   for (let i = 0; i < (o.lights ?? 3); i++) {
     const pl = new THREE.PointLight(o.lightColor ?? 0xffa050, 0, o.lightDist ?? 9, 2);
@@ -533,7 +537,8 @@ export function moorfackeln(level, groups, o = {}) {
   let mx = Infinity, Mx = -Infinity, my = Infinity, My = -Infinity, mz = Infinity, Mz = -Infinity;
   for (const t of torches) { mx = Math.min(mx, t.x); Mx = Math.max(Mx, t.x); my = Math.min(my, t.y); My = Math.max(My, t.y + H + 1.4); mz = Math.min(mz, t.z); Mz = Math.max(Mz, t.z); }
   const sph = new THREE.Sphere(new THREE.Vector3((mx + Mx) / 2, (my + My) / 2, (mz + Mz) / 2), Math.hypot(Mx - mx, My - my, Mz - mz) / 2 + 2);
-  for (const m of [body, flame, hint, glow]) { m.boundingSphere = sph.clone(); m.frustumCulled = true; }
+  for (const m of [body, flame, hint]) { m.boundingSphere = sph.clone(); m.frustumCulled = true; }
+  glowGeo.boundingSphere = sph.clone();
   bodyGeo.boundingSphere = sph.clone();
   const root = new THREE.Group();
   root.add(body, flame, hint, glow, ...lights);
@@ -561,12 +566,9 @@ export function moorfackeln(level, groups, o = {}) {
         p.set(t.x, t.y + H + 0.18, t.z);
         m4.compose(p, q, s);
         flame.setMatrixAt(t.i, m4);
-        const gs = grow * (1.15 + 0.06 * Math.sin(time * 9 + t.i));
-        q.identity(); s.set(gs, gs, gs); p.set(t.x, t.y + H + 0.5, t.z);
-        m4.compose(p, q, s); glow.setMatrixAt(t.i, m4);
         m4.makeScale(0, 0, 0); hint.setMatrixAt(t.i, m4);
       } else {
-        m4.makeScale(0, 0, 0); flame.setMatrixAt(t.i, m4); glow.setMatrixAt(t.i, m4);
+        m4.makeScale(0, 0, 0); flame.setMatrixAt(t.i, m4);
         const a = 0.85 + 0.15 * Math.sin(time * 3 + t.z);
         e.set(Math.PI / 2, 0, 0); q.setFromEuler(e); s.set(a, a, a); p.set(t.x, t.y + H + 0.34, t.z);
         m4.compose(p, q, s); hint.setMatrixAt(t.i, m4);
@@ -574,9 +576,30 @@ export function moorfackeln(level, groups, o = {}) {
     }
     flame.instanceMatrix.needsUpdate = true;
     hint.instanceMatrix.needsUpdate = true;
-    glow.instanceMatrix.needsUpdate = true;
+    // Lichthöfe nur bei Änderungen neu setzen
+    const nLit = torches.reduce((a, t) => a + (t.lit ? 1 : 0), 0);
+    if (nLit !== glowLit) {
+      glowLit = nLit;
+      for (const t of torches) { glowPos[t.i * 3] = t.x; glowPos[t.i * 3 + 1] = t.lit ? t.y + H + 0.45 : -1000; glowPos[t.i * 3 + 2] = t.z; }
+      glowGeo.attributes.position.needsUpdate = true;
+    }
   });
   return handle;
+}
+
+let SOFT = null;
+/** Weicher runder Lichtpunkt (Leinwand-Textur, einmal je Seite). */
+function softDot() {
+  if (SOFT || typeof document === 'undefined') return SOFT;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.25, 'rgba(255,255,255,0.45)'); gr.addColorStop(0.6, 'rgba(255,255,255,0.12)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  SOFT = new THREE.CanvasTexture(c);
+  SOFT.colorSpace = THREE.SRGBColorSpace;
+  return SOFT;
 }
 
 // =====================================================================================================================
