@@ -656,14 +656,16 @@ if (part(11)) {
     const c = window.__credits;
     c.setManual?.(true);
     const texts = (c.lines ?? []).map((l) => (Array.isArray(l) ? l[0] : l)).filter((x) => typeof x === 'string');
-    return { w8: texts.filter((x) => x.includes('Brummbär-Rummelplatz')).length, finished: c.state().finished };
+    // Weltenliste („Die Reise“): Zeilen „Welt n · Titel“ – Welt 8 genau einmal (aus der Karte, kein zusätzlicher Rückfall-Eintrag)
+    const w8 = texts.filter((x) => /^Welt 8 · /.test(x));
+    return { w8: w8.length, w8line: w8[0] ?? null, worlds: texts.filter((x) => /^(Welt \d+|Welt Stern) · /.test(x)), finished: c.state().finished };
   });
   console.log('  Abspann:', JSON.stringify(r));
   await sc(() => window.__credits.finish());
   await waitMap(8);
   st = await sc(() => window.__courseMap.state());
   check('Abspann läuft mit der Welt-8-Karte (Welt 8 genau einmal in der Weltenliste, Spielstand „geschafft“), Rückkehr in die befreite Welt 8 mit Pokal',
-    r.finished && r.w8 === 1 && st.world === 8 && st.decor.finished === true && st.decor.flags.style === 'herz' && (await sc(() => !!window.__courseMap.hud.trophyShown)));
+    r.finished && r.w8 === 1 && r.w8line === 'Welt 8 · Brummbär-Rummelplatz' && st.world === 8 && st.decor.finished === true && st.decor.flags.style === 'herz' && (await sc(() => !!window.__courseMap.hud.trophyShown)));
   await loadWith({ levels: with8(w1to7(true), [...W8IDS]), mapOpened: [...OPENED_1_7, ...opened8([...W8IDS])], world: 8, worlds: WORLDS8, mapPos: null });
   await waitMap(8);
 }

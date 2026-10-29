@@ -130,12 +130,13 @@ const PALETTES = {
     },
   },
   cookie: {
-    bands: COOKIEB, side: 0xb8783e, rim: 0xf2c88a, cell: 2,
+    bands: COOKIEB, side: 0xb8783e, rim: 0xf2c88a, cell: 1,
     tile: (rnd) => (i, j, ax, az) => {
-      const o = tone(checker2(ax, az) ? 0xc88c50 : 0xc2864c, 0xcc9456, rnd.frac() * 0.5);
-      const h = hash2(Math.floor(ax / 2) - 5, Math.floor(az / 2) + 2);
-      if (h > 0.92) mixc(o, lin(0xffb8d8), 0.4, o);        // rosa Zuckerguss
-      else if (h < 0.07) mixc(o, lin(0x7a4428), 0.45, o);  // Schokostück
+      // Keksteig in ruhigen 2-m-Platten, kleine Schokostückchen und rosa Zuckerguss-Tupfen (je 1 m)
+      const o = tone(checker2(ax, az) ? 0xc88c50 : 0xc4884e, 0xcc9456, rnd.frac() * 0.3);
+      const h = hash2(Math.floor(ax) - 5, Math.floor(az) + 2);
+      if (h > 0.955) mixc(o, lin(0xffb8d8), 0.35, o);        // rosa Zuckerguss
+      else if (h < 0.05) mixc(o, lin(0x7a4428), 0.4, o);    // Schokostück
       return o;
     },
   },
