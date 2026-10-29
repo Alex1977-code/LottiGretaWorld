@@ -94,7 +94,7 @@ function build(level) {
     g.flush(level, { material: 'glow' });
   }
   // Sternkapsel am Ende des Sternwegs (Stern 2): Kanonenkugel trifft → der Stern fliegt zur Schützin
-  sternkapsel(level, { id: 'kapsel', pos: [-2.4, 1.5, -321], star: 2, r: 0.75 });
+  sternkapsel(level, { id: 'kapsel', pos: [-2.4, 1.5, -321], star: 2, r: 0.9 });
 }
 
 function setup(level) {

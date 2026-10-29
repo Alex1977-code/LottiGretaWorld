@@ -218,7 +218,7 @@ ROUTES['S-9'] = {
   ],
   targets: [
     { name: 'Stern 0: rissige Wand an Station M1 mit dem Kanonen-Helm sprengen', star: 0, from: [-6.4, 0, -69.5], place: { helm: 'kanone' },
-      legs: [{ aim: [-3, 1, -69.5], shots: 4, until: broken('risswand') }, { to: [0.6, -69.5], within: 0.3 }, { star: 0 }], shot: 'stern0' },
+      legs: [{ aim: [-3, 1, -69.5], shots: 4, hit: broken('risswand') }, { to: [0.6, -69.5], within: 0.3 }, { star: 0 }], shot: 'stern0' },
     { name: 'Stern 0 nicht ohne Helm (Stampfen prallt ab, keine Lücke darüber)', star: 0, expectNot: true, from: [-6, 0, -69.5], heroes: ['lotti'], allowFail: true,
       legs: [{ pound: [-3.2, -69.5] }, { to: [0.6, -69.5], jump: 40, jumpAt: 4, within: 0.3, max: 300 }, { wait: 30 }] },
     { name: 'Stern 1: im Unterwassertunnel abtauchen und die Ziegel rechts wegschießen', star: 1, from: [-6, -1.6, -174], place: { helm: 'kanone' },
@@ -231,14 +231,15 @@ ROUTES['S-9'] = {
       legs: [{ brett: 'netz', off: null, stay: 240, aims: [
         { target: { weiche: 'N1' }, name: 'weiche N1', z: -231, until: -243, done: '=ent(\'netz:N1\').state === 1' },
         { target: { weiche: 'N3' }, name: 'weiche N3', z: -256, until: -266, done: '=ent(\'netz:N3\').state === 1' },
-        { target: { weiche: 'N5' }, name: 'weiche N5', z: -281, until: -290, done: '=ent(\'netz:N5\').state === 1' }] },
+        { target: { weiche: 'N5' }, name: 'weiche N5', z: -281, until: -290, done: '=ent(\'netz:N5\').state === 1' },
+        { target: 'kapsel', name: 'Sternkapsel', z: -298, done: '=ent(\'kapsel\').broken' }] },
         { expect: '=ent(\'kapsel\').broken' }, { wait: 200 }, { expect: '=P().pos.y > -8 && P().pos.y < -5' }, { warp: [-3, -314] }, { expect: '=P().pos.z > -232' }], shot: 'stern2' },
     { name: 'Stern 2 nicht ohne die Sternweiche (Brett bleibt auf dem Hauptgleis)', star: 2, expectNot: true, from: [-6, 0.6, -229.4], heroes: ['lotti'], place: { helm: 'kanone' },
       legs: [{ brett: 'netz', off: [-6, -351.6], aims: [
         { target: { weiche: 'N1' }, name: 'weiche N1', z: -231, until: -243, done: '=ent(\'netz:N1\').state === 1' },
         { target: { weiche: 'N3' }, name: 'weiche N3', z: -256, until: -266, done: '=ent(\'netz:N3\').state === 1' }] }] },
     { name: 'Stempel: auf dem Gipfel drei ?-Blöcke über dem All beschießen → Brücke zum Stempel-Planetoiden', stamp: true, from: [3.2, YT, -133.5], place: { helm: 'kanone' },
-      legs: [{ aim: [19.5, YT + 1, -131], shots: 3, until: '=ent(\'qb1\')?.kind === \'used\' || L.entities.find((e) => e.spec?.id === \'qb1\')?.kind === \'used\'' },
+      legs: [{ aim: [19.5, YT + 1, -131], shots: 3, hit: '=L.entities.find((e) => e.spec?.id === \'qb1\')?.kind === \'used\'' },
         { aim: [19.5, YT + 1, -133.5], shots: 3 }, { aim: [19.5, YT + 1, -136], shots: 3 }, { until: '=ent(\'sternbruecke\').shown', max: 300 },
         { to: [17, -133.5], within: 0.5 }, { stamp: true }], shot: 'stempel' },
     { name: 'Stempel nicht ohne Brücke (14 m Lücke)', stamp: true, expectNot: true, from: [2, YT, -133.5], heroes: ['lotti', 'greta'], invuln: false, allowFail: true,
@@ -246,8 +247,8 @@ ROUTES['S-9'] = {
   ],
   extra: [
     { name: 'Weiche nicht umgeschossen: Brett 2 dreht eine Kehrschleife und kommt wieder', from: [-8, 0, -75.2], heroes: ['lotti'],
-      legs: [{ brett: 'brett2', off: null, max: 1500, stopIf: '=ent(\'brett2\').route.includes(\'H2\') && ent(\'brett2\').route.filter((n) => n === \'F\').length >= 2' }],
-      mech: (r) => r.log.some((l) => l[0] === 'brett' && String(l[4]).includes('FHH2EF')), mechText: (r) => `Route ${r.log.find((l) => l[0] === 'brett')?.[3] ?? '-'}` },
+      legs: [{ brett: 'brett2', off: null, max: 2600, stopIf: '=ent(\'brett2\').route.includes(\'H2\') && ent(\'brett2\').route.filter((n) => n === \'F\').length >= 2' }],
+      mech: (r) => r.log.some((l) => l[0] === 'brett' && String(l[3]).includes('FHH2EF')), mechText: (r) => `Route ${r.log.find((l) => l[0] === 'brett')?.[3] ?? '-'}` },
     { name: 'Ohne Helm: die Bärenwand auf dem Gleis schiebt vom Brett (Absturz)', from: [0, 0, -7.6], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
       legs: [{ brett: 'brett1', off: null, max: 700 }], mech: (r) => r.dead || r.log.some((l) => l[0] === 'TOD'), mechText: (r) => `tot ${r.dead}` },
     { name: 'Von der Kugelwand fallen ist harmlos (Platz darunter)', from: [-8, 9, -122], heroes: ['lotti'], invuln: false,
@@ -333,6 +334,7 @@ function install() {
       p.reset(pos, o.yaw ?? Math.PI / 2);
       p.invuln = o.invuln ?? 0;
       if (o.power) p.setPower(o.power);
+      if (p.helmet && !o.helm) p.dropHelmet?.('gone');
       if (o.helm) p.wearHelmet?.(o.helm);
       L.runtime.status = 'play';
       L.controlYaw = c.view.rig.controlYaw(p.pos);
@@ -638,17 +640,19 @@ function install() {
               continue;
             }
             if (Lg.stopIf && cond(Lg.stopIf)) break;
-            // aktuelles Ziel
-            const a = aims.find((x) => x.state !== 'done' && (x.z === undefined || q.pos.z < x.z) && (x.node === undefined || h.route.includes(x.node)));
-            if (a && (doneAim(a) || (a.until !== undefined && q.pos.z < a.until))) { a.state = 'done'; log.push(['ziel', a.name ?? String(a.target), doneAim(a), n]); continue; }
+            // aktuelles Ziel: aktiv zwischen z und until; getroffen (done) → wieder nach vorn schauen, fällt es zurück (Weiche
+            // erneut umgestellt), wird nachgezielt; ohne until endet das Ziel mit dem Treffer
+            const a = aims.find((x) => x.state !== 'done' && (x.z === undefined || q.pos.z < x.z));
+            if (a && ((a.until !== undefined && q.pos.z < a.until) || (a.until === undefined && doneAim(a)))) { a.state = 'done'; log.push(['ziel', a.name ?? String(a.target), doneAim(a), n]); continue; }
+            const aimNow = a && !doneAim(a);
             let want = dir;
-            if (a) { const t = posOf(a.target); if (t) { const dx = t.x - q.pos.x, dz = t.z - q.pos.z, l = Math.hypot(dx, dz) || 1; want = { x: dx / l, z: dz / l }; } }
+            if (aimNow) { const t = posOf(a.target); if (t) { const dx = t.x - q.pos.x, dz = t.z - q.pos.z, l = Math.hypot(dx, dz) || 1; want = { x: dx / l, z: dz / l }; } }
             const fv = q.facingVec(), dot = fv.x * want.x + fv.z * want.z;
             const cx = mb.pos.x - q.pos.x, cz = mb.pos.z - q.pos.z, cd = Math.hypot(cx, cz);
             if (q.mode === 'air') { tick(this.airSteer(mb.pos.x, mb.pos.z, 0, 0, 3, 6)); continue; }
-            if (dot < (a ? 0.996 : 0.97)) { tick({ ...this.stick(want.x, want.z, 0.12), run: false }); continue; }
+            if (dot < (aimNow ? 0.996 : 0.985)) { tick({ ...this.stick(want.x, want.z, 0.12), run: false }); continue; }
             if (cd > 0.45) { tick({ ...this.stick(cx, cz, 0.3), run: false }); continue; }
-            if (a && a.state !== 'shot' && (n - fired) > 18) { fired = n; tick({ action: true }); mech.shots++; continue; }
+            if (aimNow && (n - fired) > 18) { fired = n; tick({ action: true }); mech.shots++; continue; }
             tick({});
           }
           log.push(['brett', Lg.brett, h.state, h.route?.join?.('') ?? '', k, n, aims.map((x) => `${x.name ?? x.target}:${x.state}`).join(' '), +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
@@ -733,9 +737,9 @@ function install() {
         if (Lg.aim) {
           const [tx, , tz] = Lg.aim;
           face(tx - P().pos.x, tz - P().pos.z, 0.998, 90);
-          for (let s = 0; s < (Lg.shots ?? 1); s++) { tick({ action: true }); for (let w = 0; w < (Lg.gap ?? 30); w++) tick({}); mech.shots++; if (Lg.until && cond(Lg.until)) break; }
-          log.push(['feuer', `${Lg.aim}`, Lg.until ? cond(Lg.until) : '-']);
-          if (Lg.until && !cond(Lg.until)) log.push(['FEHLER: Ziel nicht getroffen', Lg.until]);
+          for (let s = 0; s < (Lg.shots ?? 1); s++) { tick({ action: true }); for (let w = 0; w < (Lg.gap ?? 30); w++) tick({}); mech.shots++; if (Lg.hit && cond(Lg.hit)) break; }
+          log.push(['feuer', `${Lg.aim}`, Lg.hit ? cond(Lg.hit) : '-']);
+          if (Lg.hit && !cond(Lg.hit)) log.push(['FEHLER: Ziel nicht getroffen', Lg.hit]);
           continue;
         }
         // ------------------------------------------------ senkrecht neben einem Block hochspringen, erst über seiner Oberkante hinüberlenken
