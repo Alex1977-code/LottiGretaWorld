@@ -7,12 +7,15 @@
 //   huerden(level, list)                Holz-Athletik: Hürden-Balken (feste Form) mit Pfosten bis zu den Schienen (S-3)
 //   versteckteMuenzen(level, o)         unsichtbare Münzen erscheinen nacheinander, sobald eine Figur den Bereich betritt
 //   beiZustand(level, id, test, action) Aktion einmal, sobald der Griff level.named.get(id) die Bedingung erfüllt
-//   blockSaeule(...)                    S-5: Riesenblock-Säulen (Retro-Blöcke mit Nieten) als statische Geometrie + Form
-//   wolke(...)                          S-4: Wattewolken-Insel (Wolkenplattform, fest von oben und von der Seite)
+//   riesenblock(level, pos, size, color) S-5: bunter Riesenblock mit Nieten (statische Geometrie + feste Form)
+//   wolkenInseln(level, list)           S-4: Wattewolken-Inseln (fest von oben und von der Seite), Bäusche rundum
+//   wolkenteiche(level, list)           S-4: Wolkenteiche (Rand + Wasserfläche) für die Glotzfisch-Löcher
+//   donutBloecke(level, list)           S-4: Donut-Blöcke (Mechanik des Bausteins donutblock) mit sparsamer Instanz-Optik
 
 import * as THREE from 'three';
-import { box, merge, addStatic, lin, mixc, smooth, colorize } from '../../blocks/kit.js';
-import { runAction } from '../../entities/gimmick.js';
+import { box, merge, addStatic, addObject, lin, mixc, smooth, colorize } from '../../blocks/kit.js';
+import { runAction, visDt } from '../../entities/gimmick.js';
+import { buildDonutblock } from '../../blocks/types/w5_donut.js';
 import { banner } from '../../blocks/w3kit.js';
 
 export const PI = Math.PI;
@@ -152,4 +155,152 @@ export function riesenblock(level, pos, size, color = 'gelb', o = {}) {
   }
   addStatic(level, merge(parts));
   return shape;
+}
+
+// ===================================================================================================================== S-4 Wolken
+
+/**
+ * Wattewolken-Inseln: je Eintrag [x0, x1, zA, zB, top, o?] eine feste Wolke (Quader top − depth … top) mit weicher, flach
+ * gewölbter Decke und Wattebäuschen rundum (oben bündig mit der Lauffläche, unten hängend). Alles statisch verschmolzen.
+ * o: { depth 1.2, puff 1 (Größe der Bäusche), tint 0xeaf2ff (Schatten-Ton), seed }.
+ */
+export function wolkenInseln(level, list) {
+  const parts = [];
+  let seed = 1;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed & 0xffff) / 0xffff; };
+  for (const [x0, x1, zA, zB, top, o = {}] of list) {
+    const depth = o.depth ?? 1.2;
+    const xa = Math.min(x0, x1), xb = Math.max(x0, x1), za = Math.min(zA, zB), zb = Math.max(zA, zB);
+    level.world.add({ type: 'box', min: [xa, top - depth, za], max: [xb, top, zb], tag: 'wolke' });
+    if (!level.view) continue;
+    seed = o.seed ?? (Math.round(xa * 7 + za * 13) & 0x7fff) + 11;
+    const W = lin(0xffffff), S = lin(o.tint ?? 0xdce8fa), D = lin(0xc4d4f0);
+    const shadeC = (p, n, out) => { mixc(D, W, smooth(-0.7, 0.75, n.y * 0.85 + n.z * 0.12), out); if (n.y < 0.2) mixc(out, S, 0.4, out); };
+    // Decke (flach, Kanten weich)
+    const slab = box(xb - xa, 0.5, zb - za, (xa + xb) / 2, top - 0.25, (za + zb) / 2, 0xffffff, { r: 0.24, seg: 2 });
+    colorize(slab, shadeC);
+    parts.push(slab);
+    // Bäusche am Rand (oben bündig) und darunter hängend
+    const per = 2 * ((xb - xa) + (zb - za));
+    const n = Math.max(8, Math.round(per / 1.5));
+    const pf = o.puff ?? 1;
+    for (let i = 0; i < n; i++) {
+      let u = (i + 0.5) / n * per, x, z;
+      const w = xb - xa, d = zb - za;
+      if (u < w) { x = xa + u; z = zb; } else if ((u -= w) < d) { x = xb; z = zb - u; } else if ((u -= d) < w) { x = xb - u; z = za; } else { u -= w; x = xa; z = za + u; }
+      const r = (0.75 + rnd() * 0.45) * pf;
+      const g = new THREE.SphereGeometry(r, 9, 6);
+      g.scale(1.25, 0.62, 1.15);
+      g.translate(x, top - 0.38 - r * 0.25, z);
+      parts.push(colorize(g.toNonIndexed(), shadeC));
+      if (i % 2 === 0) {
+        const r2 = (1.0 + rnd() * 0.6) * pf;
+        const g2 = new THREE.SphereGeometry(r2, 9, 6);
+        g2.scale(1.2, 0.7, 1.2);
+        const cx = (xa + xb) / 2, cz = (za + zb) / 2;
+        g2.translate(x + (cx - x) * 0.18, top - depth - r2 * 0.15, z + (cz - z) * 0.18);
+        parts.push(colorize(g2.toNonIndexed(), shadeC));
+      }
+    }
+    // Unterseite: ein paar große Bäusche
+    const m = Math.max(1, Math.round((xb - xa) * (zb - za) / 40));
+    for (let i = 0; i < m; i++) {
+      const r = (1.4 + rnd() * 1.2) * pf;
+      const g = new THREE.SphereGeometry(r, 10, 6);
+      g.scale(1.3, 0.6, 1.3);
+      g.translate(xa + (xb - xa) * (0.2 + rnd() * 0.6), top - depth - r * 0.2, za + (zb - za) * (0.2 + rnd() * 0.6));
+      parts.push(colorize(g.toNonIndexed(), shadeC));
+    }
+  }
+  if (parts.length) addStatic(level, merge(parts), { castShadow: true });
+}
+
+/** Wolkenteiche (Glotzfisch-Löcher): je [x, y, z, r] ein weißer Wolkenwulst mit blauer Wasserfläche (Kulisse, ohne Form). */
+export function wolkenteiche(level, list) {
+  if (!level.view) return;
+  const parts = [];
+  for (const [x, y, z, r = 0.9] of list) {
+    const rim = new THREE.TorusGeometry(r + 0.12, 0.2, 6, 18);
+    rim.rotateX(PI / 2); rim.translate(x, y + 0.05, z);
+    parts.push(colorize(rim.toNonIndexed(), (p, n, o) => mixc(lin(0xd0def6), lin(0xffffff), smooth(-0.4, 0.9, n.y), o)));
+    const wa = new THREE.CircleGeometry(r, 18);
+    wa.rotateX(-PI / 2); wa.translate(x, y + 0.035, z);
+    parts.push(colorize(wa.toNonIndexed(), (p, n, o) => { const k = Math.hypot(p.x - x, p.z - z) / r; mixc(lin(0x2a8ae8), lin(0x7ad4ff), smooth(0.2, 1, k), o); }));
+  }
+  addStatic(level, merge(parts), { castShadow: false });
+}
+
+// ===================================================================================================================== S-4 Donut-Blöcke
+
+const GLAZE = { rosa: [0xff8ac8, 0xffd8ee], schoko: [0x8a4a2a, 0xc88a5a], gelb: [0xffc83a, 0xfff0a8], minze: [0x6ae0c0, 0xd0fff0] };
+const DONUT_GEO = {};
+/** Donut-Block (1 m, Ursprung Mitte der Unterseite) mit ≈ 340 Dreiecken: Keks-Sockel, Glasur-Ring, Streusel (wie 7-3). */
+function donutLowGeo(color) {
+  if (DONUT_GEO[color]) return DONUT_GEO[color];
+  const [gh, hh] = GLAZE[color] ?? GLAZE.rosa;
+  const dough = lin(0xe8b070), doughD = lin(0xa86a34), glaze = lin(gh), hi = lin(hh);
+  const parts = [];
+  const base = new THREE.BoxGeometry(0.98, 0.62, 0.98, 1, 1, 1);
+  base.translate(0, 0.31, 0);
+  parts.push(colorize(base, (p, n, o) => mixc(doughD, dough, smooth(-0.6, 0.9, n.y + p.y * 0.5), o)));
+  const rim = new THREE.CylinderGeometry(0.5, 0.49, 0.06, 8, 1, true);
+  rim.translate(0, 0.6, 0);
+  parts.push(colorize(rim, (p, n, o) => mixc(glaze, hi, 0.25, o)));
+  const tor = new THREE.TorusGeometry(0.3, 0.16, 6, 12);
+  tor.rotateX(PI / 2); tor.translate(0, 0.66, 0);
+  parts.push(colorize(tor, (p, n, o) => (n.y > -0.15 ? mixc(glaze, hi, smooth(0.4, 1, n.y) * 0.6, o) : mixc(doughD, dough, 0.6, o))));
+  const SP = [0xffffff, 0x5ad0ff, 0xff5a8a, 0x6aff7a, 0xa86aff].map(lin);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * 2 * PI + (i % 3) * 0.3;
+    const sp = new THREE.BoxGeometry(0.11, 0.035, 0.035);
+    sp.rotateY(a * 1.7); sp.translate(Math.cos(a) * 0.3, 0.81, Math.sin(a) * 0.3);
+    const c = SP[i % SP.length];
+    parts.push(colorize(sp, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }));
+  }
+  DONUT_GEO[color] = merge(parts);
+  return DONUT_GEO[color];
+}
+
+/**
+ * Donut-Blöcke: Mechanik unverändert aus dem Baustein `donutblock` (einsinken, zittern, fallen, wiederkommen), aber je Eintrag
+ * eine Instanz-Gruppe mit eng gesetzter Begrenzungskugel und dem sparsamen Donut (statt ≈ 4500 Dreiecken je Block).
+ * list: [{ id, blocks | from/to | grid, size, delay, respawn, color, …Felder des Bausteins }]. Liefert die Griffe.
+ */
+export function donutBloecke(level, list) {
+  const v = level.view;
+  const out = [];
+  for (const spec of list) {
+    level.view = null;
+    let h = null;
+    try { h = buildDonutblock(level, spec); } finally { level.view = v; }
+    if (!h || !v) { out.push(h); continue; }
+    out.push(h);
+    const blocks = h.blocks, size = spec.size ?? 1, delay = spec.delay ?? 0.5;
+    const im = new THREE.InstancedMesh(donutLowGeo(spec.color ?? 'rosa'), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 }), blocks.length);
+    im.name = 'donuts';
+    im.castShadow = spec.shadow !== false; im.receiveShadow = true;
+    const bb = new THREE.Box3(), pv = new THREE.Vector3();
+    for (const b of blocks) { bb.expandByPoint(pv.set(b.x, b.y0 + size, b.z)); bb.expandByPoint(pv.set(b.x, b.y0 - 6, b.z)); }
+    bb.expandByScalar(size);
+    im.boundingSphere = bb.getBoundingSphere(new THREE.Sphere());
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+    const holder = {};
+    let tt = 0;
+    addObject(level, im, (dt) => {
+      const d = visDt(level, holder, dt);
+      tt += d;
+      blocks.forEach((b, i) => {
+        if (b.state === 'gone') { im.setMatrixAt(i, ZERO); return; }
+        if (b.pop > 0) b.pop = Math.max(0, b.pop - d);
+        const k = b.pop > 0 ? 1 - b.pop / 0.35 : 1;
+        const sh = b.state === 'loaded' ? 0.035 * Math.min(1, b.load / Math.max(0.05, delay)) : 0;
+        pv.set(b.x + Math.sin(tt * 47 + i) * sh, b.y, b.z + Math.cos(tt * 41 + i) * sh);
+        const s = size * (k < 1 ? Math.max(0.05, Math.sin(k * PI * 0.5) + Math.sin(k * PI) * 0.15) : 1);
+        im.setMatrixAt(i, m.compose(pv, q, sc.set(s, s, s)));
+      });
+      im.instanceMatrix.needsUpdate = true;
+    });
+  }
+  return out;
 }
