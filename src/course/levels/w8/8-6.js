@@ -17,7 +17,8 @@
 //   E Checkpoint-Raum z −126 … −146  Kontrollpunkt, schnell steigende Plattform im Statuenschacht; auf halber Höhe links ein
 //                                    Sims mit der Rätselbox (Spukzimmer: sechs Spuke mit Licht besiegen → Stern 1)
 //   F Türreihe        z −143 … −200  oberes Stockwerk: vier Flügeltüren, einzelne Kreisgeister kreisen dazwischen; am Ende
-//   (y 15)                           des Gangs wartet Großspuk 2 vor Stern 2 und jagt zur Ausgangstür (rechts)
+//   (y 15)                           des Gangs liegt Stern 2; hinter der letzten Tür erwacht Großspuk 2 (Jäger, lauerte in der
+//                                    Wand) und jagt zur Ausgangstür (rechts) – wer zum Stern will, muss ihn mit Licht bannen
 //   G Ziel            x  +3 …  +15   Balkon hinter der Ausgangstür, Sprung hinüber auf den Turm mit dem Zielmast
 // Rätselbox-Raum x 60 … 76, z −134 … −150 (eigene Kameraschiene).
 // Sterne: 0 Spiegelbild im großen Spiegel (unsichtbare Spiegelstufen über dem Graben) · 1 Rätselbox: sechs Spuke mit Licht
@@ -225,7 +226,9 @@ export const LEVEL = {
     // Türreihe
     einzel('geist6', 0, YU + 0.35, -157, 1.7, { speed: 1.3 }), einzel('geist7', 0, YU + 0.35, -167, 1.7, { speed: 1.3, cw: true }), einzel('geist8', 0, YU + 0.35, -177, 1.7, { speed: 1.3, phase: 0.5 }),
     { kind: 'spuk', id: 'spuk4', pos: [2, YU, -166] },
-    { kind: 'spuk', id: 'grossspuk2', pos: [0, YU, -195.4], size: 2.5, sight: 15, speed: 2.4 },
+    // Großspuk 2 als Jäger: lauert in der linken Gangwand, erwacht hinter der letzten Tür und jagt zur Ausgangstür
+    { kind: 'spuk', id: 'grossspuk2', pos: [-4.8, YU, -167], size: 2.5, hunt: true, huntSpeed: 2.4, giveUp: 30,
+      trigger: { min: [-3, YU - 1, -187], max: [3, YU + 4, -183] } },
     flieger('flieger9', 0, YU + 4.2, -170, { r: 1.6 }), flieger('flieger10', 0, YU + 4.2, -186, { r: 1.6, cw: true }),
     // Rätselbox-Raum: sechs Spuke
     ...[[RB - 6, -139], [RB + 6, -139], [RB - 5, -147], [RB + 5, -147], [RB, -148.5], [RB - 2, -143]].map(([x, z], i) => ({ kind: 'spuk', id: `rbspuk${i + 1}`, pos: [x, Y, z], sight: 16 })),
@@ -240,7 +243,7 @@ export const LEVEL = {
     { kind: 'roter_ring', id: 'rotring', pos: [13, Y, -77.4], yaw: Math.PI / 2, time: 12, coins: RED.map(([x, z]) => [x, Y + 0.45, z]) },
     // Türreihe (öffnen sich beim Herankommen) und Ausgangstür zum Balkon
     ...DOORS.map((z, i) => ({ kind: 'spuk_tuer', id: `tuer${i + 1}`, pos: [0, YU, z], yaw: -Math.PI / 2 })),
-    { kind: 'spuk_tuer', id: 'ausgang', pos: [3.1, YU, -190], yaw: 0 },
+    { kind: 'spuk_tuer', id: 'ausgang', pos: [3.1, YU, -190], yaw: 0, open: true },
     // Tür im Spiegelsaal: verschlossen, bis Großspuk 1 besiegt ist
     { kind: 'spuk_tuer', id: 'saaltuer', pos: [8.1, Y, -72], yaw: 0, locked: true, key: 'grossspuk1' },
     // Rätselbox auf dem Sims im Statuenschacht und Rückweg aus dem Spukzimmer

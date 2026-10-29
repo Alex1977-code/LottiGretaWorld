@@ -77,8 +77,11 @@ const ROUTES = {
         legs: [{ steig: 'steig', jumpTo: { y: 8.1, to: [-4.2, -141.8] } }, { until: 'rbraum', max: 600 }, { lightAll: 'rbspuk' }, { wait: 120 }, { star: 1 }, { warp: [68, -136.4] }, { expect: 'sims' }], shot: 'stern1' },
       { name: 'Stern 1 nicht ohne Licht (Spuke nur anschauen)', star: 1, expectNot: true, from: [68, 1, -140], heroes: ['lotti'], place: { invuln: 99 },
         legs: [{ to: [64, -142], within: 0.5, run: false }, { wait: 240 }, { to: [72, -142], within: 0.5, run: false }, { wait: 240 }], mech: (r) => r.mech.rbLeft === 6, mechText: (r) => `${r.mech.rbLeft} Spuke` },
-      { name: 'Stern 2: Ende des letzten Gangs – Großspuk 2 mit Licht besiegen', star: 2, from: [0, 15, -184.4], place: { helmet: 'licht', invuln: 99 },
-        legs: [{ light: 'grossspuk2' }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2: Ende des letzten Gangs – der Jäger-Großspuk erwacht, Stern holen, Großspuk mit Licht bannen', star: 2, from: [0, 15, -180.6], place: { helmet: 'licht' },
+        legs: [{ to: [0, -196.6], within: 0.4 }, { expect: 'jagd' }, { star: 2 }, { light: 'grossspuk2' }, { to: [1.6, -190], within: 0.4, run: false }, { to: [5.2, -190], within: 0.5, run: false }, { expect: 'balkon' }],
+        mech: (r) => r.mech.hurts === 0, mechText: (r) => `Treffer ${r.mech.hurts}`, shot: 'stern2' },
+      { name: 'Großspuk 2 jagt erst nach der letzten Tür (lauert vorher)', star: 2, expectNot: true, from: [0, 15, -175], heroes: ['lotti'], place: { invuln: 99 },
+        legs: [{ wait: 240 }], mech: (r) => r.mech.jagd === false, mechText: (r) => `jagt ${r.mech.jagd}` },
       { name: 'Stempel: Figurenschalter nur für Greta – Leuchttreppe zur Empore', stamp: true, from: [3.6, 1, 3.6], heroes: ['greta'],
         legs: [{ to: [4.6, 2.2], within: 0.25, run: false }, { wait: 60 }, { expect: 'treppe' },
           ...[0, 1, 2, 3, 4, 5].map((i) => ({ to: [5.5, -0.6 - i * 0.96], jump: 26, within: 0.35, run: false })), { to: [5.6, -7.0], jump: 30, within: 0.4, run: false }, { hop: 20 }], shot: 'stempel' },
@@ -232,6 +235,7 @@ function install() {
     rbraum: () => P().pos.x > 55 && !P().dead,
     sims: () => P().pos.x < -2 && P().pos.y > 8.5 && P().pos.z < -139 && !P().dead,
     treppe: () => named('stempeltreppe')?.info?.().hidden === false,
+    jagd: () => L.entities.find((e) => e.spec?.id === 'grossspuk2')?.hunting === true,
     // 8-7
     plateau1: () => at(-7, 7, -0.5, -57.5, -67),
     festland: () => at(-11, 13, -6.5, -127.5, -183),
@@ -418,9 +422,9 @@ function install() {
             let k = 0;
             for (; k < 1500 && e && e.alive && !e.removed && !e.defeated && !p.dead; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
-              if (d > (Lg.dist ?? 5.0)) tick({ ...this.stick(dx, dz, Math.min(1, (d - 3) / 1.5 + 0.3)), run: false });
-              else if (d < 2.6) tick({ ...this.stick(-dx, -dz, 1), run: false });
-              else tick(this.stick(dx, dz, 0.12));
+              // heran bis in den Lichtkegel (7 m), dann stehen bleiben und ihn anschauen (angeschaut ist er langsam)
+              if (d > (Lg.dist ?? 5.5)) tick({ ...this.stick(dx, dz, Math.min(1, (d - 3) / 1.5 + 0.3)), run: false });
+              else tick(this.stick(dx, dz, 0.07));
             }
             log.push(['licht', id, e ? e.vanishedBy ?? e.state : null, k]);
             if (e && e.alive && !e.removed && !e.defeated) log.push(['FEHLER: Geist nicht besiegt', id]);
@@ -614,6 +618,7 @@ function install() {
       mech.treppe = L.named.get('stempeltreppe')?.info?.().hidden === false;
       mech.lift1s = L.named.get('lift1')?.pm?.s ?? null;
       mech.saaltuer = L.named.get('saaltuer')?.locked === false;
+      mech.jagd = L.entities.find((e) => e.spec?.id === 'grossspuk2')?.hunting ?? null;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
