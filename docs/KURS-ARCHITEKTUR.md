@@ -9142,3 +9142,185 @@ Bilder `tests/out/sa_*.png`. Routen: S-1 ≈ 76 s, S-2 ≈ 75 s, S-Kapitän ≈ 
 1 (ein Krakenpilz-Steinchen; die Route besiegt die Krakenpilze auf der Münzinsel und am Kontrollpunkt von oben). Kennzahlen
 (Zeichenaufrufe inkl. Schattenpass / Dreiecke, Höchstwerte): S-1 ≤ 75 / 229 k, S-2 ≤ 90 / 194 k, S-Kapitän ≤ 105 / 247 k
 (9 Funkenflämmchen kosten allein ≈ 36 Aufrufe); Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level S-3, S-4 und S-5)
+
+Welt Stern „Sternenzelt“ (Präfix `S`, Welt 9), Level 3 bis 5. Dateien: `src/course/levels/w9/S-3.js`, `S-4.js`, `S-5.js` und
+die eigene Hilfsdatei `src/course/levels/w9/_helpers_b.js` (kein `LEVEL`, nur von diesen drei Leveln benutzt). **Kein
+Motor-Code geändert**: alle Sonderteile sind level-seitig (Haken `LEVEL.build`/`LEVEL.setup`, statische Geometrie, eigene
+Instanz-Gruppen über `addObject`). Bausteine nach „Präzisierung (Motor und Bausteine Bonuswelten)“, Gegner nach
+„Präzisierung (Gegner Bonuswelten)“. Meta exakt nach der Welt-Stern-Tabelle:
+
+| Level | Titel | Archetyp | Thema / Musik | Sterne | Zeit |
+|---|---|---|---|---|---|
+| S-3 | Walzenritt im Holzsternenhimmel | `parcours` | woodspace / course_rollingride | 3 + Stempel | 400 s |
+| S-4 | Flügelmast-Jagd über dem Wolkenmeer | `verfolgung` (nicht registriert → Standard-Parcours; die Jagd regelt der Zielmast) | skyway / course_goalpole | 3 + Stempel | 100 s, keine Zeitboni |
+| S-5 | Riesenblock-Wiese im Pixelhimmel | `parcours` | blockland / course_blockland | 3 + Stempel | 400 s |
+
+### Präzisierung (Level S-3, S-4 und S-5): S-3 „Walzenritt im Holzsternenhimmel“
+
+≈ 425 m nach −Z, Laufhöhe y 0, ab dem Walzenaufstieg y 8; Holz-Athletik-Decks (`holzdecks`: Planken, bunte Lackkante, Stelzen
+mit Sternanker) über dem All, Turnhallen-Kulisse (Matten, Hütchen, Medizinbälle, Sprungkästen, Sternlampen, Fahnen, Reifen,
+Wimpel). Schienenwalzen (`schienenwalze`, Pfad = Achsmitte, Oberkante = Achse + Radius; wer stehen bleibt, rutscht hinten
+herunter). Abschnitte: **1 Startdeck** (z 8 … −12) mit schmalem Steg nach rechts (betritt man ihn, erscheinen nacheinander
+11 versteckte Bitcoins; Extraleben-Block am Ende) · **2 erste Walze** (R 1,6, L 7, 3 m/s, z −14 … −90) unter rot-weißen
+**Hürden** (`huerden`: feste Form nur für Figuren, die Walze rollt darunter durch): halbe zum Ausweichen, eine ganze, ein Tor
+mit Lücke · **3 Walzentrio** (drei Walzen R 1,2, L 5) mit ?-Block **Wurfsichel**; Bitcoin-Reihen schweben neben den Walzen
+im All (nur mit der Sichel zu angeln); danach die **Rätselbox** in den Walzenraum · **4 zweite Walze** (R 1,6, L 6) an drei
+**Hackvögeln** auf Seitenkonsolen vorbei (Sicht 1,9 m, sie hacken in die Randspur), ein vierter am Landedeck ·
+**5 Kontrollpunkt** (z −245,6) mit der **Kurbelwalze** (R 0,8, links, Ende `halt` am Prellbock) und dem ?-Block
+**Krallen-Anzug** · **6 Walzenaufstieg** (drei schräge Walzen bis y 8) · **7 große Walze** (R 2,2, L 9, z −305 … −398) mit
+drei Hürden; rechts der **Seitenweg** über Holzdecks mit Zeit-Uhren (+10 s) und dem **Figurenschalter** (nur Greta) ·
+**8 Endwand** (z −401 … −424, kletterbar, Holzturm daneben) mit ?-Block **Spiegelfrucht** und dem **Doppel-Lift**
+(`multilift`, fährt nur mit zwei Figuren, in der Ecke an der Wand), Zielmast links. Walzenraum abseits bei x 90: hohle
+Riesenwalze (`walzenraum`, R 6, L 10) mit Druckknopf innen.
+Sterne: **0** Walzenraum – den Knopf zweimal drücken, die Regale drehen sich zur Treppe zum Stern in der Mitte · **1** die
+Kurbelwalze bis zum Prellbock rollen lassen (`beiZustand(…, 'ende')`) → unter dem Ende der großen Walze erscheint eine
+**Sternbühne** (`appear`) mit dem Stern · **2** oben auf der Endwand (Spiegelfrucht + Doppel-Lift oder Krallen-Anzug).
+**Stempel**: über dem Figurenschalter am Seitenweg – mit Greta drauf, eine Blocktreppe erscheint (Lotti wechselt per Pause
+zu Greta). Geheimnisse: versteckte Steg-Bitcoins, drei unsichtbare Extraleben-Blöcke (Steg-Ende, Vorraum des Walzenraums, oben
+auf der Endwand), Sichel-Bitcoins, Zeit-Uhren. Gegner: Hackvogel 4.
+
+### Präzisierung (Level S-3, S-4 und S-5): S-4 „Flügelmast-Jagd über dem Wolkenmeer“
+
+≈ 290 m nach −Z über Wattewolken (`wolkenInseln`: feste Quader mit weicher Decke, Pastell-Wirbelmuster, rosa Unterseiten,
+Bäusche rundum), Laufhöhe y 0, kein Kontrollpunkt (100 s, ein Atemzug). **Scheinziel**: am Start steht der Zielmast
+(`fliegender_zielmast`, `start: 'nah'`, `trigger` 6,5 m) wie ein Ziel („Ziel? Schon?“) – kommt man näher, breitet er die
+Flügel aus und fliegt hoch voraus (Pfad über alle Wolken, Landung auf der Zielwolke z −277). **Flugregie** in `LEVEL.setup`
+(Felder der Instanz je Schritt): am Start 6,5 m/s, danach 10,5 m/s; er wartet, wenn man zurückfällt (`near` 11 / `far` 24);
+hat ihn eine Figur überholt (Boost), fliegt er ohne zu warten hinterher. Abschnitte: **1 Startwolke** · **2 Boost-Lücke**
+(13 m) mit dem rosa **Donut-Bogen** rechts (Stern 0), erster **Glotzfisch** (drei Wolkenteiche), Stempel-Nebenwolke rechts ·
+**3 Wolkenbahn** mit zwei Boost-Pfeilen und 12-m-Lücke, zweiter Glotzfisch (`aim`), links das gelbe Donut-Feld zur Sternwolke
+(Stern 1) · **4** dritter Glotzfisch hinter einer Boost-Lücke · **5 Donut-Felder** (rosa Band 3 × 11, Schoko-Rautenfeld,
+kleine Rastwolken) und die **Donut-Treppe** (Stufen je 1,2 m bis y 6, oben Stern 2, Minz-Donuts hinab) neben dem flachen
+Band · **6 Zielwolke** mit Regenbogen-Torbogen (Schachbrett-Banner), Wimpeln und Luftballons; Fang am gelandeten Mast.
+Donut-Blöcke: Mechanik unverändert vom Baustein `donutblock`, Optik level-seitig als sparsame Instanz-Gruppe (`donutBloecke`,
+≈ 340 statt ≈ 4500 Dreiecke je Block). Sterne: **0** Donut-Bogen rechts der ersten Boost-Lücke · **1** ganz links über das
+Donut-Feld auf die Sternwolke · **2** Donut-Treppe hinauf, oberer Weg. **Stempel**: Nebenwolke hinter dem ersten Glotzfisch.
+**Geheimnis**: ein getimter **Weitsprung** am Start greift den Mast noch beim Abheben (Ziel nach ≈ 2 s; Gegenprobe: erst
+springen, wenn er schon abhebt, ist zu spät). Weiter: unsichtbare Extraleben-Blöcke (Wolke des zweiten Glotzfischs hinten
+links, Zielwolke), Münzblock, Bitcoin-Bögen über die Lücken. Gegner: Glotzfisch 3. Kulisse: Luftballon-Trauben und
+Heißluftballons (je eine wippende Instanz-Gruppe), Wolkenblüten, Regenbögen, Retro-Wolken, Planeten, Komet.
+
+### Präzisierung (Level S-3, S-4 und S-5): S-5 „Riesenblock-Wiese im Pixelhimmel“
+
+Zwei Gebiete plus Zehn-Sekunden-Raum, Grasinseln mit Raster-Decke über der Wiese tief unten (y −25: Bach mit Sandufer,
+Pixelbäume, Blumenbeete), Feldwege (Sand-Schachbrett) und Pixelblumen auf den Inseln, bunte Riesenblöcke mit Nieten
+(`riesenblock`). **Gebiet 1** (x ≈ 0, z 10 … −168): Startinsel (?-Block **Gleitblatt**) → **Aufzug-Riesen-?-Block**
+(`riesen_frageturm`, `trigger: ['pound', 'bomb', 'mega']`, stampfen → er wächst und trägt zur hohen Insel y 7,2) → hohe Insel
+mit **Laufbombe** (Bestand `kickbombe` über `laufbombe`; zündet in 2,2 m, seitlich angestoßen rollt sie und sprengt Ziegel) und
+Ziegelmauer; vom Rand gleitet man mit dem Gleitblatt zur Bitcoin-Insel (Extraleben) → Riesenblock-Stufen hinab zur
+**Riesentrank-Insel** (versteckter Block mit **Riesentrank**, Steinblock-Nische nur für Riesen, **Rätselbox**) → zwei
+**Riesen-?-Blöcke** über der Wiese (von unten anschlagen: wachsen zu Türmen, Bitcoins) → Ende von Gebiet 1 mit dem
+**Großblock** (Stampfen → Stempel) und der **Warp-Box** zum Kontrollpunkt; rechts die hohen Großblock-Stufen. **Gebiet 2
+„Felsenwiese“** (x 70, z −186 … −318): Kontrollpunkt an der Warp-Box, Laufbombe vor dem **Felsblock**, fünf
+**Schlüsselmünzen** (Säule, Aufzug-?-Block `k2turm`, Sprungblöcke über die Lücke, Pilzling-Nische, über der Feder) öffnen die
+versteckte **Ziel-Warp-Box** (`onAll: { reveal: 'zielbox' }`) zur Zielinsel. **Zehn-Sekunden-Raum** (x −70): Druckknopf →
+`plattenwand` im Modus `signal` (`grid [5, 4]`, `order` diagonal `[[0,0],[1,1],[2,2],[3,3]]`) fährt zehn Sekunden eine
+Blocktreppe aus (Zeitanzeige `countdown`), danach wieder ein.
+Sterne: **0** Zehn-Sekunden-Treppe hinauf (oben auf der Wand) · **1** Laufbombe in den Felsblock kicken – er zerspringt, der
+Stern liegt darin (Stampfen allein reicht nicht) · **2** Großblock-Stufen hinauf, auf dem Plateau den schwebenden ?-Block
+anschlagen – er wächst zum Turm; im Schacht zwischen Turm und Riesensäule mit **Wandsprüngen** hinauf. **Stempel**: im
+Großblock – stampfen, er wächst und der Stempel springt obendrauf (Inhalt `[stempelHeraus]`; Draufspringen genügt nicht).
+Geheimnisse: Riesentrank-Block, zwei unsichtbare Extraleben-Blöcke (Bitcoin-Insel, Pilzling-Nische), Gleitflug, Bitcoins aus
+den Riesen-?-Türmen. Gegner: Pilzling 7 (zwei jagen in der Nische), Pilzlingsturm 1 (drei Stufen, spaziert rechts auf der
+Startinsel, hinterlässt 5 Bitcoins), Laufbombe 3.
+
+### Präzisierung (Level S-3, S-4 und S-5): Hilfen `_helpers_b.js`
+
+Allgemein: `deck`, `line`/`ring`/`arc`/`column` (Bitcoin-Pfade), `sign`, `versteckteMuenzen` (unsichtbare Münzen erscheinen
+beim Betreten eines Bereichs), `beiZustand` (Aktion, sobald ein benannter Griff einen Zustand erreicht), `banner`, `wimpel` ·
+S-3: `holzdecks`, `huerden`, `turnzeug` · S-4: `wolkenInseln`, `wolkenteiche`, `donutBloecke`, `himmelsDeko` (Luftballons,
+Heißluftballons, Wolkenblüten, Ziel-Torbogen) · S-5: `riesenblock`, `wiesenDeko` (Bach, Pixelbäume, Beete, Feldwege,
+Pixelblumen, Felsbrocken). Laufzeit-Haken der Level selbst: S-4 Flugregie des Zielmasts, S-5 `zehnSekunden`, `stempelHeraus`.
+
+### Präzisierung (Level S-3, S-4 und S-5): Test `tests/course_sb.mjs`
+
+Port 4945 (+ `PORT_BASE`), nach `npm run build`: `node tests/course_sb.mjs [S-3|S-4|S-5]`, Teilläufe `PARTS=load,route,sweep,
+targets,extra,shots` (je Lauf < 10 min; der Messgang `sweep` braucht `route`), `HEROES`, `ONLY`, `VERBOSE`, `SHOTS`, `DETAIL`,
+`TRACE`; Bilder `tests/out/sb_<Level>_*.png`. Bot mit echter Eingabe über `__course.setInput/step` (Route unverwundbar,
+Treffer-Versuche gezählt; Gegenproben verwundbar), Beine u. a. `walze`, `press`, `hero`, `lift`, `grab`, `throwAt`, `long`/
+`longAt`, `boostGap`, `fish`, `mast`, `pound`, `kick`, `chimney`, `bounce`, `warp`, `stompAll`. Geprüft: Laden ohne
+Konsolenfehler/-warnungen, Metadaten und Gegnerzahlen; Routen-Bot Lotti und Greta Start → Zielmast (S-3 ≈ 126/125 s, neun
+Walzen, Hürden übersprungen; S-4 ≈ 34/33 s, drei Boost-Lücken, drei Glotzfische abgepasst, Mast gefangen; S-5 ≈ 63/60 s,
+fünf Schlüsselmünzen, zwei Warp-Boxen, zwei Aufzug-Türme; keine Treffer-Versuche); alle Sterne und Stempel mit beiden Figuren
+samt Gegenproben (u. a. S-3 Stern 0 nicht ohne Drehen, Stern 1 nicht ohne Kurbelwalze, Doppel-Lift nicht mit einer Figur,
+Stempel nicht mit Lotti; S-4 Sterne nicht vom Hauptweg, Weitsprung-Gegenprobe; S-5 Wand ohne Knopf glatt, Felsblock nicht
+durch Stampfen, Stern 2 nicht ohne Turm, Stempel nicht durch Draufspringen); Extras (versteckte Bitcoins, Extraleben,
+Wurfsichel, Abrutschen und Hürde, Hackvogel, Zeit-Uhren, Glotzfisch, wartender Mast, 100 s ohne Zeitboni, Riesentrank,
+Gleitblatt mit Gegenprobe, Riesen-?-Turm, Pilzlingsturm abtragen, Laufbombe sprengt Ziegel, Ziel-Box erst nach fünf Schlüsseln). Gemessen (scale 2,
+inkl. Schattenpass): S-3 Messgang (60 Punkte) ≤ 76 Zeichenaufrufe / ≤ 213 k Dreiecke, Bilder 39–75 / ≤ 208 k; S-4 Messgang
+(34) ≤ 59 / ≤ 147 k, Bilder 30–65 / ≤ 147 k; S-5 Messgang (49) ≤ 69 / ≤ 169 k, Bilder 27–60 / ≤ 173 k; Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level S-6 und S-7)
+
+Additiv zur Liste „Bonuswelten – Level-Liste und Freischaltung“, Welt Stern (9): Titel und Besonderheiten von S-6 und S-7.
+Dateien `src/course/levels/w9/S-6.js`, `S-7.js`, eigene Hilfen `src/course/levels/w9/_helpers_c.js` (kein `LEVEL`, nur für
+diese zwei Level), Test `tests/course_sc.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei,
+Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Beide: Archetyp `parcours`, `world: 9`, 3 Sterne + Stempel.
+
+### S-6 „Honigwaben im Sternenmeer“ (parcours, Draufsicht · honeycomb · course_honeycomb · 400 s)
+
+- Alle Wege sind Honigwaben (Baustein `waben`) auf **einem gemeinsamen Gitter** (`hexLattice`, Zellen Q/R, Zeilen nach −Z);
+  der `WabenMaler` malt Flächen/Wege/Lava-/Eismuster und gibt sie als waben-Felder zu je ≤ 5 Zeilen aus (jedes Stück zeichnet
+  nur im Bild). Kamera: `draufsicht` über fast das ganze Level (Höhe 15,5, fov 44, ahead 3), nur am Zielturm neigt sie sich.
+- Abschnitte (Oberseite y 0, All unter y −12): **Startwabe** (?-Block mit Wurfsichel, Schwebeblock links) → **erste Gabelung**:
+  links fester Weg mit Krabbelkäfern, rechts **Schalter-Waben** (`schalterWaben`: erscheinen Zelle für Zelle nach dem
+  Druckknopf, vorher leuchtende Umrisse) → **Stachelwalzen** (drei `stachelwalze_rot` quer, daneben Lava-/Eiswaben) →
+  **Glasröhre** über den Lavasee zur **Spiegelfrucht-Insel** (Kontrollpunkt, Klon) → **Käferfeld** (Krabbelkäfer-Kolonnen,
+  sechs Flatterkäfer im Mittelteil) → **Splitterwege** (drei schmale Wege, fliegende Blöcke mit Feuer-Schnappblumen) →
+  **große Wabenfläche** (Kontrollpunkt, Lavaring, Eisspuren, Lavafeld links, vier Brummer) → **Zielturm** (Wabensäule 9,6 m;
+  `flinkeTreppe`: sieben Waben-Stufen im Bogen erscheinen beim Hinaufsteigen und vergehen 3,6 s danach – flink hinauf).
+- Sterne: 0 Ende des **rechten Wegs** (Druckknopf) · 1 **alle sechs Flatterkäfer** (`kampfraum` mit ids → `{ reveal }`) ·
+  2 über dem **Lavafeld links** nahe dem Ende (nur mit der **Wurfsichel**; ?-Block am Kontrollpunkt 2). Stempel: **links im All
+  schwebend** neben der Gabelung (Wurfsichel; Münzspur zeigt hinaus). Extraleben: verborgener Block links hinten am Start
+  (rosa Kristalle), verborgener Block über der hohen Wabe im Käferfeld. Gegner: Krabbelkäfer 12, Flatterkäfer 6,
+  Feuer-Schnappblumen 4, Brummer 4, Pilzlinge 2.
+- Lesbarkeit von oben (nur Darstellung, level-lokal): **Leuchtring** (weiß-türkis) unter jeder Figur, in der Luft auf dem Boden
+  darunter (Landepunkt); **Münzen liegen flach** (`muenzenFlach`: Pool `coin` kippt in draufsicht-Bereichen um 90° – man
+  sieht das ₿); Kulisse nur tief unten (Planeten, Raketen, Kometen) und sparsame **Blümchen** auf Randwaben.
+- Waben-Kollision: der Baustein gibt jeder Zelle einen Zylinder mit dem Innenradius; an den Ecken dreier Waben blieb ein
+  ≈ 0,2-m-Loch, in dem eine stehende Figur durchfiel. `wabenOhneLoecher` vergrößert in diesem Level die Zylinder normaler und
+  Eis-Waben auf r 1,5 (Lava bleibt) – Hinweis für den Motor-Agenten: dasselbe gehört eigentlich in den Baustein.
+- B-10 (Remix, Taghimmel) findet die Bauplan-Orte vor: Schwebeblock nahe dem Start (x −10, z −4), Glasröhre über dem ersten
+  Lavabereich (z −88 … −112), Lavafeld links nahe dem Ende (Mitte −6,4 / −262,5).
+
+### S-7 „Riesenpilz-Dschungel am Tintenteich“ (parcours · grotto · course_grotto · 400 s)
+
+- Alles übergroß: Riesenpilze als Plattformen (`riesenpilzPlattform`), Riesenbäume, Riesengras, Kleeblätter, Marienkäfer,
+  Schneckenhäuser, Beeren, Eicheln, Felsen (`dschungelDeko`, verschmolzen), Großblöcke (`grossbloecke`, 2 m: Riesenziegel –
+  Stampfen von oben, Riesentrank, Bombe – bzw. `look: 'stein'` – nur Riesentrank/Bombe).
+- Abschnitte (Absturz unter y −26): **Dschungelstart** (y 0, zwei Pilzlingstürme, Schnappblume, Stempel-Käfig) →
+  **Rutschhang** (`rutschhang`, Schlucht bis y −10) → **Riesen-Pilzlingstürme** (7 und 9 Stufen patrouillieren zwischen zwei
+  Riesenpilzen) → **Riesentrank-Feld** (`riesentrankQuelle`: ?-Block, der sich wieder füllt, sobald niemand riesig ist; vier
+  Großrollpilze; Stein-Großblöcke als Wände A/B und eine **Schatzkammer** mit Extraleben – nur als Riese) → **versteckter
+  Gleitblatt-Block** → **Blockwächter-Wand** (6 m, fünf `lauerblock` im Takt als Stufen: Reihe 1 zuerst, Reihe 2 0,54 s später,
+  je 2,3 s draußen) → Plateau (Kontrollpunkt) → **Tintenteich** (`lagune` 100 m, Oberfläche y −6: vier Riesenstämme auf dem
+  Wasser – darunter durchtauchen –, Strömungen nach rechts/links/gegen einen, sechs Tintlinge, Wurzelsäulen, Seetang, Seerosen-
+  blätter am Rand) → Trampolin-Platz (y −5, Kontrollpunkt) → **Röhre zum Ziel** (Zielplatz y 0, 15 m entfernt).
+- Sterne: 0 **hinter der Blockwächter-Wand**: Blätterinsel 14 m links vom Plateau – nur im **Gleitflug** (Gleitblatt) · 1 **zwei
+  Großblock-Lagen**: als Riese auf das Pilz-Trampolin, durch Lage 1, auf das zweite Trampolin oben auf Lage 1, durch Lage 2 –
+  oben der Stern · 2 **Bonusbereich über der Röhre** (Pilz-Trampolin hinauf): Riesentrank-Quelle, Druckschalter (`pswitch`,
+  12 s), acht blaue Münzen in Steinkäfigen (`steinblock`) – nur als Riese. Stempel: **am Anfang in Großblöcken
+  eingeschlossen** (Ring aus acht Riesenziegeln mit Deckel: Stampfattacke auf den Deckel). Extraleben: verborgener Block über
+  dem Münzkreis am Start, Schatzkammer. Gegner: Pilzlingstürme 4, Großrollpilze 5, Tintlinge 6, Lauerblöcke 5, Pilzlinge 2,
+  Schnappblume 1. Röhre auf der Blätterinsel zurück aufs Plateau.
+
+### Hilfen `_helpers_c.js`
+
+`line/ring/arc/column` (Münzen), `hexLattice`, `WabenMaler` (`rect`, `disc`, `ring`, `lane`, `pick`, `fields`), `schalterWaben`,
+`flinkeTreppe`, `wabenOhneLoecher`, `muenzenFlach`, `leuchtring`, `bluemchen` (S-6); `grossbloecke`, `riesentrankQuelle`,
+`riesenpilzPlattform`, `riesenstaemme`, `riesenbaeume`, `wurzelsaeulen`, `dschungelDeko`, `seerosen` (S-7).
+
+### Test `tests/course_sc.mjs`
+
+Port 4955, `PARTS=load,route,sweep,targets,extra,shots`, `HEROES`, `ONLY`, `SHOTS`, `DETAIL`, `TRACE`; Bilder `tests/out/sc_*.png`.
+Prüft je Level Laden ohne Konsolenfehler, Daten und Gegnerzahlen, Routen-Bot Lotti und Greta bis zum Zielmast (echte Eingaben;
+S-6 mit Glasröhre/Klon und flinker Treppe, S-7 mit Rutschhang, Lauerblock-Stufen, Tauchstrecke und Röhre), Messgang über die
+Route, alle Sterne und den Stempel mit Gegenproben (ohne Druckknopf, ohne Wurfsichel, ohne Gleitblatt, ohne Riesentrank, ohne
+Stampfen) und Extras (Extraleben, Lava-Wabe, Stachelwalze, vergehende Stufen, Riesentrank-Quelle füllt sich, Schatzkammer,
+Steinwand, Tintling, Strömung, Pixelbild). Routen (Bot, rennend): S-6 ≈ 40 s (Lotti) / 38 s (Greta), S-7 ≈ 57 s / 54 s.
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang über die Route Ø und Höchstwert, Bilder Höchstwert):
+S-6 Ø 61 / 186 k, max 74 / 266 k (Käferfeld), Bilder ≤ 91 / 261 k; S-7 Ø 58 / 169 k, max 90 / 217 k, Bilder ≤ 92 / 231 k
+(Großblock-Lagen). Sparmaßnahmen: Waben-Felder je ≤ 5 Zeilen, Stachelwalzen ohne Sonnenschatten, Großblöcke als je eine
+Instanz-Gruppe mit Bild-Atlas, Blümchen statt Riesenblumen-Modellen; Grenzen < 120 / < 300 k.
