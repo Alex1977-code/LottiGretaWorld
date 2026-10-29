@@ -52,7 +52,7 @@ function build(level) {
 
 function setup(level) {
   // Steg am Start: versteckte Bitcoins tauchen auf, sobald man ihn betritt
-  versteckteMuenzen(level, { area: [6.4, 21, -2.6, -5.4], group: 'steg', banner: 'Versteckte Bitcoins!' });
+  versteckteMuenzen(level, { area: [6.4, 21.4, -2, -6], coins: [6.5, 21.5, -2.4, -5.6], banner: 'Versteckte Bitcoins!' });
   // Kurbelwalze am Kontrollpunkt am Prellbock → Sternbühne unter dem Ende der großen Walze
   beiZustand(level, 'kurbel', (h) => h.state === 'ende', [
     { reveal: ['sternbuehne', 'unterstern'], sfx: 'powerup_appear' },
@@ -109,9 +109,9 @@ export const LEVEL = {
 
     // ================================================================ 4 zweite Walze an Hackvögeln vorbei
     { type: 'schienenwalze', id: 'walze2', path: [[0, -W2.R, -174.4], [0, -W2.R, -232]], radius: W2.R, length: W2.LEN, speed: 3, roll: 1.1, respawn: 3 },
-    deck(-6.4, -3.35, -186.6, -191.4, 0, 1.2),      // Konsole links (Hackvogel 1)
-    deck(3.35, 6.4, -199.6, -204.4, 0, 1.2),        // Konsole rechts (Hackvogel 2)
-    deck(-6.4, -3.35, -212.6, -217.4, 0, 1.2),      // Konsole links (Hackvogel 3)
+    deck(-6.4, -3.05, -186.6, -191.4, 0, 1.2),      // Konsole links (Hackvogel 1)
+    deck(3.05, 6.4, -199.6, -204.4, 0, 1.2),        // Konsole rechts (Hackvogel 2)
+    deck(-6.4, -3.05, -212.6, -217.4, 0, 1.2),      // Konsole links (Hackvogel 3)
 
     // ================================================================ 5 Kontrollpunkt mit Kurbelwalze
     deck(-7, 7, -234, -256, 0, 2),
@@ -140,8 +140,8 @@ export const LEVEL = {
     sign(10.6, Y8, -319.4, 'Seitenweg', { yaw: -0.2 }),
     { type: 'zeituhren', id: 'uhren', list: [[10.4, Y8 + 1.3, -325.8], [11, Y8 + 1.3, -334.9], [11, Y8 + 1.3, -345.7], [11, Y8 + 1.3, -369]], sec: 10 },
     { type: 'appear', id: 'stempeltreppe', style: 'block', delay: 0.18,
-      parts: [{ pos: [13.4, Y8, -349.4], size: [1.6, 1.8, 1.6], color: 'orange' }, { pos: [13.4, Y8, -352.6], size: [1.6, 3.6, 1.6], color: 'pink' },
-        { pos: [11.2, Y8, -355.8], size: [1.6, 5.4, 1.6], color: 'blue' }] },
+      parts: [{ pos: [13.4, Y8, -349.6], size: [2, 1.6, 2], color: 'orange' }, { pos: [13.4, Y8, -352.4], size: [2, 3.2, 2], color: 'pink' },
+        { pos: [11.4, Y8, -355.2], size: [2, 4.8, 2], color: 'blue' }] },
     // Sternbühne unter dem Ende der großen Walze (erscheint, wenn die Kurbelwalze am Prellbock ist) mit Stufen hinauf
     { type: 'appear', id: 'sternbuehne', style: 'block', delay: 0.16,
       parts: [{ pos: [-7.6, 2.4, -395.4], size: [3.6, 0.6, 3.6], color: 'yellow' }, { pos: [-10.6, 4.2, -397.6], size: [1.8, 0.6, 1.8], color: 'orange' },
@@ -150,7 +150,7 @@ export const LEVEL = {
     // ================================================================ 8 Endwand mit Doppel-Lift
     deck(-12, 12, -401, -424, Y8, 2.2),
     { type: 'wall', id: 'endwand', pos: [2, Y8, -421], size: [12, 10, 4], climbable: true },
-    { type: 'multilift', id: 'doppellift', pos: [6.4, Y8 - 0.4, -417], rise: 10, need: 2, speed: 2.4, wait: 1.2, color: 'purple' },
+    { type: 'multilift', id: 'doppellift', pos: [6.4, Y8, -417], rise: 9.6, need: 2, speed: 2.4, wait: 1.2, color: 'purple' },
     sign(9.6, Y8, -411.6, 'Doppel-Lift\nnur zu zweit!', { size: [2.6, 1.1], yaw: -0.25 }),
 
     // ================================================================ Walzenraum (Rätselbox)
@@ -199,16 +199,16 @@ export const LEVEL = {
     { kind: 'hidden', pos: [RX + 4.4, 2.9, -140.4], content: 'oneup' },       // Extraleben im Vorraum des Walzenraums
   ],
   enemies: [
-    { kind: 'hackvogel', id: 'hv1', pos: [-3.6, 0, -189], dir: [1, 0], period: 2.1, sight: 10, phase: 0 },
-    { kind: 'hackvogel', id: 'hv2', pos: [3.6, 0, -202], dir: [-1, 0], period: 2.1, sight: 10, phase: 0.4 },
-    { kind: 'hackvogel', id: 'hv3', pos: [-3.6, 0, -215], dir: [1, 0], period: 2.1, sight: 10, phase: 0.7 },
+    { kind: 'hackvogel', id: 'hv1', pos: [-3.35, 0, -189], dir: [1, 0], period: 2.1, sight: 10, phase: 0 },
+    { kind: 'hackvogel', id: 'hv2', pos: [3.35, 0, -202], dir: [-1, 0], period: 2.1, sight: 10, phase: 0.4 },
+    { kind: 'hackvogel', id: 'hv3', pos: [-3.35, 0, -215], dir: [1, 0], period: 2.1, sight: 10, phase: 0.7 },
     { kind: 'hackvogel', id: 'hv4', pos: [-2.6, 0, -237.6], dir: [0, 1], period: 2.4, sight: 9, track: true },
   ],
   items: [
     // Start und Steg
     line([0, 0.6, 1.5], [0, 0.6, -9], 5),
-    line([8, 0.55, -4], [16.4, 0.55, -4], 6, { hidden: true, group: 'steg' }),
-    ring([19.4, 0.6, -4], 1.3, 5, { hidden: true, group: 'steg' }),
+    line([8, 0.55, -4], [16.4, 0.55, -4], 6, { hidden: true }),
+    ring([19.4, 0.6, -4], 1.3, 5, { hidden: true }),
     // erste Walze: Mittelspur, Bögen über den Hürden
     line([0, 0.6, -17], [0, 0.6, -28], 4),
     line([2, 0.6, -35], [2, 0.6, -42], 3), line([-2, 0.6, -50], [-2, 0.6, -56], 3),
@@ -219,7 +219,7 @@ export const LEVEL = {
     line([0, 0.6, -104], [0, 0.6, -114], 4), line([0, 0.6, -126], [0, 0.6, -136], 4), line([0, 0.6, -148], [0, 0.6, -158], 4),
     line([-4.8, 0.9, -104], [-4.8, 0.9, -112], 3), line([4.8, 0.9, -126], [4.8, 0.9, -134], 3), line([-4.8, 0.9, -148], [-4.8, 0.9, -156], 3),
     // zweite Walze: Randspuren locken an die Hackvögel
-    line([-2.3, 0.6, -184], [-2.3, 0.6, -194], 4), line([2.3, 0.6, -197], [2.3, 0.6, -207], 4), line([-2.3, 0.6, -210], [-2.3, 0.6, -220], 4),
+    line([-2.1, 0.6, -184], [-2.1, 0.6, -194], 4), line([2.1, 0.6, -197], [2.1, 0.6, -207], 4), line([-2.1, 0.6, -210], [-2.1, 0.6, -220], 4),
     line([0, 0.6, -177], [0, 0.6, -182], 2), line([0, 0.6, -223], [0, 0.6, -230], 3),
     // Kontrollpunkt, Kurbelwalze
     ring([0, 0.6, -246], 2.4, 8), line([-9.8, 0.6, -242], [-9.8, 0.6, -248], 3),
@@ -248,7 +248,7 @@ export const LEVEL = {
     { pos: [-7.6, 3.6, -395.4], hidden: true, id: 'unterstern' },             // 1: Sternbühne unter der großen Walze
     [1.6, Y8 + 10.9, -421.2],                                                 // 2: oben auf der Endwand
   ],
-  stamp: [11.2, Y8 + 6.4, -355.8],
+  stamp: [11.4, Y8 + 5.8, -355.2],
   goal: [-8, Y8, -416],
   marks: {
     start: [0, 0, 5], steg: [8, 0, -4], walze1: [0, 0, -11.4], p1: [0, 0, -96], trio1: [0, 0, -99.6], p4: [0, 0, -166],

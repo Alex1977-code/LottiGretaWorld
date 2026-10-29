@@ -70,8 +70,8 @@ export function huerden(level, list) {
 // ===================================================================================================================== Laufzeit
 
 /**
- * Versteckte Münzen (coins/coin mit hidden: true und group) erscheinen nacheinander (gap s), sobald eine Figur am Boden im
- * Bereich area [x0, x1, z0, z1] (y > ymin) steht. Mit banner: kurze Ansage.
+ * Versteckte Münzen (coins/coin mit hidden: true im Bereich coins [x0, x1, z0, z1], Standard area) erscheinen nacheinander
+ * (gap s), sobald eine Figur am Boden im Bereich area [x0, x1, z0, z1] (y > ymin) steht. Mit banner: kurze Ansage.
  */
 export function versteckteMuenzen(level, o) {
   const [x0, x1, z0, z1] = o.area;
@@ -82,7 +82,8 @@ export function versteckteMuenzen(level, o) {
       const f = level.players ?? [level.player];
       const hit = f.some((p) => p && !p.dead && p.mode === 'ground' && p.pos.x > Math.min(x0, x1) && p.pos.x < Math.max(x0, x1) && p.pos.z > Math.min(z0, z1) && p.pos.z < Math.max(z0, z1) && p.pos.y > (o.ymin ?? -99));
       if (!hit) return;
-      list = level.entities.filter((e) => e.kind === 'coin' && e.hidden && e.alive && !e.removed && e.spec?.group === o.group);
+      const [cx0, cx1, cz0, cz1] = o.coins ?? o.area;
+      list = level.entities.filter((e) => e.kind === 'coin' && e.hidden && !e.hiddenUntilLit && e.alive && !e.removed && e.pos.x > Math.min(cx0, cx1) && e.pos.x < Math.max(cx0, cx1) && e.pos.z > Math.min(cz0, cz1) && e.pos.z < Math.max(cz0, cz1));
       list.sort((a, b) => Math.hypot(a.pos.x - level.player.pos.x, a.pos.z - level.player.pos.z) - Math.hypot(b.pos.x - level.player.pos.x, b.pos.z - level.player.pos.z));
       state = 'show'; t = 0;
       level.sfx('powerup_appear');
