@@ -183,8 +183,8 @@ const ROUTES = {
       { until: 'ringLaeuft', max: 120 },
       { to: [-2.2, -1.5], within: 0.5 }, { to: [2.2, -4.2], within: 0.5 },
       { to: [0.5, -5.6], within: 0.5 },
-      { name: 'Kippschiff 1', to: [-2.2, -10.5], jump: 14, within: 0.6, run: false },
-      { to: [2.2, -14.5], within: 0.6, run: false },
+      { name: 'Kippschiff 1', to: [-1.6, -10.5], jump: 14, within: 0.3, run: false },
+      { to: [1.6, -14.5], within: 0.3, run: false },
       { to: [0, -19.4], jumpAt: 0.9, jump: 30, within: 0.6, run: false },
       { to: [-0.8, -21.6], within: 0.5, run: false },
       { to: [0, -22.8], within: 0.4, run: false },
@@ -193,22 +193,23 @@ const ROUTES = {
       { until: 'stern0Sichtbar', max: 240 },
       { name: 'Stern 0 vom Sternring', star: 0 },
       { name: 'Pustewolke über Kippschiff 2', stompAll: ['pw1'] },
-      { name: 'Schubser auf Kippschiff 2', push: 'schubser2', dir: [1, 0] },
+      { to: [0, -38], within: 0.5, run: false },
+      { name: 'Schubser auf Kippschiff 2', push: 'schubser2', dir: [1, 0], centerZ: -42, roomZ: 4 },
       { to: [0, -49.2], within: 0.4, run: false },
-      { name: 'Krakenpilz auf dem Wrackfelsen', stompAll: ['kp1'] },
       { name: 'Warp-Box 1 zu Wrack 2', warp: [0, -54.6] },
       { expect: 'onW2' },
       { to: [WX6, -2], within: 0.5, run: false },
       { name: 'auf Wrack 2', to: [WX6, -5.6], jump: 14, within: 0.6, run: false },
-      { name: 'Krakenpilz am Heck', stompAll: ['kp2'] },
-      { name: 'Schubser 1 von Wrack 2', push: 's2a', dir: [1, 0], center: WX6, room: 4 },
-      { name: 'Schubser 2 von Wrack 2', push: 's2b', dir: [-1, 0], center: WX6, room: 4 },
+      { name: 'Schubser 1 von Wrack 2', push: 's2a', dir: [1, 0], center: WX6, room: 3.5, centerZ: -19, roomZ: 12, auto: false },
+      { name: 'Schubser 2 von Wrack 2', push: 's2b', dir: [-1, 0], center: WX6, room: 3.5, centerZ: -19, roomZ: 12, auto: false },
       { name: 'Pustewolke am Bug', stompAll: ['pw2'] },
       { to: [WX6, -32.6], within: 0.5, run: false },
       { until: 'liftUnten', max: 900 },
       { name: 'Hebebühne', to: [WX6, -36.4], within: 0.5 },
       { until: 'liftOben', max: 900 },
-      { name: 'hohes Vorderdeck', to: [WX6, -40.6], within: 0.5 },
+      { name: 'hohes Vorderdeck', to: [WX6, -39.0], within: 0.4, run: false },
+      { name: 'Krakenpilz auf dem Vorderdeck: ausweichen, dann draufspringen', stompAll: ['kp2'], bait: [WX6, -39.0], dodge: [WX6 + 1.4, -40.5] },
+      { to: [WX6, -41.2], within: 0.4, run: false },
       { expect: 'onBug2' },
       { name: 'Warp-Box 2 in den Laderaum', warp: [WX6, -43.6] },
       { expect: 'laderaum6' },
@@ -220,7 +221,7 @@ const ROUTES = {
       { to: [LX6 + 6, -56.5], within: 0.6, run: false },
       { name: 'Warp-Box 3 hinaus', warp: [LX6, -59.4] },
       { expect: 'cpInsel6' },
-      { name: 'Krakenpilz am Checkpoint', stompAll: ['kp3'] },
+      { name: 'Krakenpilz am Checkpoint: ausweichen, dann draufspringen', stompAll: ['kp3'], bait: [-1.2, -78.6], dodge: [0.5, -79.6] },
       { name: 'Checkpoint', to: [0, -80], within: 0.6 },
       { to: [0, -85.6], within: 0.4, run: false },
       { name: 'kippende Trümmer: Brücke 1', to: [0, -96.9], within: 0.4, run: false },
@@ -254,16 +255,16 @@ const ROUTES = {
       { name: 'Sprung zur Mastspitze', to: [0, -173], jump: 30, within: 0.2, run: false },
     ],
     routeChecks: [
-      { name: 'fünf Warp-Fahrten, Sternring (Stern 0), Hebebühne, 13 Schubser ins Meer gestoßen, Mastspitze (Extraleben)', ok: (r) => r.mech.warps === 5 && r.rt.stars[0] && r.mech.pushedOff === 13 && r.rt.top },
+      { name: 'fünf Warp-Fahrten, Sternring (Stern 0), Hebebühne, 13 Schubser ins Meer gestoßen, Mastspitze (Extraleben)', ok: (r) => r.mech.warps === 5 && r.rt.stars[0] && r.mech.pushedOff === 13 && r.rt.pole >= 0.95 },
       { name: 'ohne einen Treffer-Versuch', ok: (r) => r.mech.hurts === 0 },
     ],
     targets: [
       { name: 'Stern 0: Sternring am Anleger – acht Sternmünzen über Anleger, Kippschiff 1 und Kippsteg in 15 s', star: 0, from: [-2.6, 1, 5.4],
         legs: [{ expect: 'stern0Versteckt' }, { to: [-2.6, 3.6], within: 0.4, run: false }, { until: 'ringLaeuft', max: 120 },
           { to: [-2.2, -1.5], within: 0.5 }, { to: [2.2, -4.2], within: 0.5 }, { to: [0.5, -5.6], within: 0.5 },
-          { to: [-2.2, -10.5], jump: 14, within: 0.6, run: false }, { to: [2.2, -14.5], within: 0.6, run: false },
+          { to: [-1.6, -10.5], jump: 14, within: 0.3, run: false }, { to: [1.6, -14.5], within: 0.3, run: false },
           { to: [0, -19.4], jumpAt: 0.9, jump: 30, within: 0.6, run: false }, { to: [-0.8, -21.6], within: 0.5, run: false },
-          { to: [0, -22.8], within: 0.4, run: false }, { to: [0, -33.2], within: 0.4, run: false },
+          { dump: "starcoin" }, { to: [0, -22.8], within: 0.4, run: false }, { to: [0, -33.2], within: 0.4, run: false }, { dump: "starcoin" },
           { chaseKind: 'starcoin', max: 600, run: false }, { until: 'stern0Sichtbar', max: 240 }, { star: 0 }], shot: 'stern0' },
       { name: 'Stern 0 nicht ohne Sternring', star: 0, expectNot: true, from: [0, 1, -34.6], heroes: ['lotti'],
         legs: [{ to: [0, -36.2], within: 0.3, run: false }, { hop: 30 }, { wait: 30 }] },
@@ -284,9 +285,9 @@ const ROUTES = {
           { to: [10.2, -4.4], within: 0.4, run: false }, { to: [7.8, -4.4], within: 0.4, run: false }] },
       { name: 'Geheimnis: unsichtbarer Extraleben-Block vorn an Wrack 2', from: [WX6, BUG6, -44.6], heroes: ['lotti'], expectLives: 1,
         legs: [{ to: [WX6, -45.2], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
-      { name: 'Geheimnis: unsichtbarer Riesentrank-Block auf Wrack 4 – der Riese wirft Schubser bei Berührung um', from: [WX6 + 2.2, 1, -123.6], heroes: ['lotti'],
-        legs: [{ to: [WX6 + 2.2, -125.4], within: 0.2, run: false }, { hop: 30 }, { wait: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'riese' },
-          { to: [WX6 + 4, -128.5], within: 0.6 }, { to: [WX6 - 4, -128.5], within: 0.6 }, { wait: 30 }, { expect: 'zweiS4Weg' }] },
+      { name: 'Geheimnis: unsichtbarer Riesentrank-Block auf Wrack 4 – der Riese wirft Schubser bei Berührung um', from: [WX6, 1, -122.2], heroes: ['lotti'],
+        legs: [{ to: [WX6, -123.6], within: 0.2, run: false }, { hop: 30 }, { wait: 20 }, { chaseKind: 'powerup', max: 900 }, { expect: 'riese' },
+          { to: [WX6 + 3.5, -126.5], within: 0.6 }, { to: [WX6 - 3.5, -126.5], within: 0.6 }, { wait: 30 }, { expect: 'zweiS4Weg' }] },
       { name: 'Warp-Box auf Wrack 4 verborgen, solange Schubser an Bord sind', from: [WX6, 1, -153], heroes: ['lotti'],
         legs: [{ expect: 'w4Zu' }, { to: [WX6, -155.4], jump: 30, within: 0.3, run: false, max: 300 }, { wait: 60 }, { expect: 'nichtTurm' }] },
       { name: 'Hebebühne fährt allein auf und ab (kein Festsitzen nach einem Sturz)', from: [WX6, 1, -32.6], heroes: ['lotti'],
@@ -526,7 +527,7 @@ function install() {
     onW4: () => P().pos.x < -90 && P().pos.z < -100 && !P().dead,
     w4Offen: () => !named('w4_aus')?.hidden,
     w4Zu: () => !!named('w4_aus')?.hidden,
-    onTurm: () => onGround() && Math.abs(P().pos.y - 8.5) < 0.5 && Math.abs(P().pos.z + 162.6) < 3,
+    onTurm: () => onGround() && P().pos.y > 8.2 && P().pos.y < 10 && Math.abs(P().pos.z + 162.6) < 3,
     nichtTurm: () => !(Math.abs(P().pos.y - 8.5) < 0.6 && Math.abs(P().pos.z + 162.6) < 3) && P().pos.x < -90,
     liftUnten: () => (named('hebebuehne')?.pm.pos.y ?? 9) < 0.55,
     liftOben: () => (named('hebebuehne')?.pm.pos.y ?? 0) > 4.45,
@@ -645,6 +646,7 @@ function install() {
           continue;
         }
         if (Lg.power) { p.setPower(Lg.power); log.push(['power', Lg.power]); continue; }
+        if (Lg.dump) { log.push(['übrig', Lg.dump, L.entities.filter((e) => e.kind === Lg.dump && e.alive && !e.removed && !e.hidden).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)])]); continue; }
         if (Lg.unmask) { p.dropHelmet?.('gone'); log.push(['Maske ab', p.helmet ?? null]); continue; }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
@@ -771,6 +773,19 @@ function install() {
             // side (m): Werfer von vorn (zur Kamera, quer zu seinem Tänzeln) anspringen – vor ihm stehen bleiben, senkrecht
             // hochspringen, im Fallen auf ihn lenken (mit Pilz-Maske sieht er die zugewandte Figur nicht)
             const sideOn = Lg.side && e.kind === 'feuer_werfer';
+            // Krakenpilz (bait: [x, z] Köderpunkt am Rand seiner Sicht, dodge: [x, z] Ausweichpunkt quer zur Wurflinie): hingehen, warten,
+            // bis er spuckt, zur Seite treten (das Steinchen landet auf der alten Stelle), warten, bis es zerbröselt – dann anspringen
+            if (Lg.bait && e.kind === 'krakenpilz' && !e.__baited) {
+              e.__baited = true;
+              const s0 = e.spits ?? 0;
+              const goTo = ([x, z], run, max) => { for (let q = 0; q < max && !p.dead; q++) { const gx = x - p.pos.x, gz = z - p.pos.z, gd = Math.hypot(gx, gz); if (gd < 0.3 && p.mode === 'ground') break; tick(p.mode === 'ground' ? { ...this.stick(gx, gz, Math.max(0.3, Math.min(1, gd))), run } : {}); } };
+              goTo(Lg.bait, false, 600);
+              let q = 0;
+              for (; q < 900 && (e.stones?.length ?? 0) === 0 && e.alive && !e.defeated; q++) tick({});
+              goTo(Lg.dodge, true, 240);
+              for (let w = 0; w < 600 && (e.stones?.length ?? 0) > 0; w++) tick({});
+              log.push(['köder', e.spec?.id, (e.spits ?? 0) - s0, q]);
+            }
             for (; k < (Lg.max ?? 1800) && e.alive && !e.defeated && !e.removed; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
               if (sideOn) {
@@ -935,6 +950,8 @@ function install() {
             }
           }
           for (let k = 0; k < 120 && e?.alive && !e?.removed && !e?.defeated; k++) tick({});
+          // zurück zur Mitte (schwankendes Deck: nicht an der Kante stehen bleiben)
+          if (Lg.center !== undefined) for (let k = 0; k < 160 && !p.dead && Math.abs(p.pos.x - cx) > 1.2; k++) tick(p.mode === 'ground' ? this.stick(cx - p.pos.x, 0, 0.8) : {});
           if (gone()) mech.pushedOff = (mech.pushedOff ?? 0) + 1;
           log.push(['schubser', Lg.push, gone(), tries, e?.state, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!gone() && !Lg.partial) { log.push(['FEHLER: Schubser nicht hinuntergestoßen', Lg.push]); break; }

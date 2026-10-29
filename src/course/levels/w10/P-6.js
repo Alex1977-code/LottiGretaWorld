@@ -40,13 +40,13 @@ const saum = (x0, x1, zA, zB, d = 0.35) => {
 export const M6 = {
   Y, WX, BUG, TT,
   STERN0: [0, Y + 1.6, -36.2], STERN1: [WX + 14.4, BUG + 1.2, -42.5], STERN2: [WX - 20.2, Y + 1.2, -16],
-  RING: [[-2.2, Y + 0.6, -1.5], [2.2, Y + 0.6, -4.2], [-2.2, Y + 0.9, -10.5], [2.2, Y + 0.9, -14.5], [0, Y + 3.3, -19.4], [-0.8, Y + 0.9, -21.6], [0, Y + 0.7, -26.5], [0, Y + 0.7, -31.2]],
+  RING: [[-2.2, Y + 0.6, -1.5], [2.2, Y + 0.6, -4.2], [-1.6, Y + 0.7, -10.5], [1.6, Y + 0.7, -14.5], [0, Y + 3.3, -19.4], [-0.8, Y + 0.9, -21.6], [0, Y + 0.7, -26.5], [0, Y + 0.7, -31.2]],
   HECK: { x0: 7.2, x1: 10.8, zLow: 2.2, zHigh: -5.6, yLow: Y + 0.15, yHigh: Y + 2.9 },
-  SCHUBSER4: [[-4, -128.5], [4, -128.5], [-3, -133.5], [3, -133.5], [-4, -138.5], [4, -138.5], [-2.5, -143.5], [2.5, -143.5]],
+  SCHUBSER4: [[-3.5, -126.5], [3.5, -126.5], [-3.5, -132.5], [3.5, -132.5], [-3.5, -138.5], [3.5, -138.5], [-3.5, -144.5], [3.5, -144.5]],
 };
 
 const schubser4 = M6.SCHUBSER4.map(([dx, z], i) => ({
-  kind: 'schubser', id: `s4_${i + 1}`, pos: [WX + dx, Y, z], behavior: 'guard', sight: 5.5, warn: 0.8, push: 6.5, lift: 4.5, wake: 300,
+  kind: 'schubser', id: `s4_${i + 1}`, pos: [WX + dx, Y, z], behavior: 'guard', sight: 3.6, warn: 0.9, push: 6.5, lift: 4.5, wake: 300,
   group: 'wrack4', ...(i === 0 ? { onGroup: [{ reveal: 'w4_aus' }, { sfx: 'powerup_appear' }] } : {}),
 }));
 
@@ -90,7 +90,7 @@ export const LEVEL = remixOf('6-2', {
       // ---------------- kippende Trümmer: Pustewolke mit Gegenwind über Kippbrücke 2
       // ---------------- Wrack 4 (abseits): Anleger, Riesen-Kippschiff mit acht Schubsern, Bugfelsen
       isl(WX - 4, WX + 4, -111, -120.4, Y, 5, { top: 'rock' }),
-      { type: 'kippschiff', id: 'wrack4', pos: [WX, Y, -136], length: 30, width: 12, style: 'geist', masts: 3, rails: false, maxTilt: 9, weight: 1.3, slide: 1.2, wave: { amp: 3.5, period: 6 } },
+      { type: 'kippschiff', id: 'wrack4', pos: [WX, Y, -136], length: 30, width: 12, style: 'geist', masts: 3, rails: false, maxTilt: 6, weight: 0.8, slide: 0.5, wave: { amp: 2.5, period: 6 } },
       isl(WX - 4, WX + 4, -151.6, -158.6, Y, 5, { top: 'rock' }),
       // ---------------- Zielinsel: Mastturm und Kippplattform zur Mastspitze
       isl(-2.5, 2.5, -160.4, -165.2, TT, 8, { top: 'rock' }),
@@ -106,20 +106,20 @@ export const LEVEL = remixOf('6-2', {
     blocks: [
       { kind: 'question', pos: [WX - 2.6, Y + 2.6, -10.5], content: 'riesentrank' },
       { kind: 'hidden', pos: [WX, BUG + 2.6, -45.2], content: 'oneup' },                     // unsichtbar vorn an Wrack 2
-      { kind: 'hidden', pos: [WX + 2.2, Y + 2.6, -125.4], content: 'riesentrank' },          // unsichtbar auf Wrack 4
+      { kind: 'hidden', pos: [WX, Y + 2.6, -123.6], content: 'riesentrank' },          // unsichtbar auf Wrack 4
       { kind: 'blockwand', pos: [WX - 18.8, Y, -16], size: [1, 3, 5] },                       // Steinblock-Wand vor dem Stern 2
     ],
     enemies: [
       // Wrack 1
-      { kind: 'krakenpilz', id: 'kp1', pos: [1.8, Y, -56.2], sight: 9, first: 1.2 },
+      { kind: 'krakenpilz', id: 'kp1', pos: [10.2, Y, 1.6], sight: 6, interval: 3.2 },                  // bewacht das Wrackheck auf der Sandbank
       { kind: 'pustewolke', id: 'pw1', pos: [0, Y + 1.6, -38.6], dir: [0, 1], reach: 6, strength: 4.5, sight: 9 },
       // Wrack 2
       { kind: 'schubser', id: 's2a', pos: [WX + 3, Y, -16], behavior: 'guard', sight: 5.5, warn: 0.8, push: 6.5, lift: 4.5, wake: 300 },
       { kind: 'schubser', id: 's2b', pos: [WX - 3, Y, -26], behavior: 'guard', sight: 5.5, warn: 0.8, push: 6.5, lift: 4.5, wake: 300 },
-      { kind: 'krakenpilz', id: 'kp2', pos: [WX + 3.5, Y, -7.5], sight: 9, first: 1.6 },
+      { kind: 'krakenpilz', id: 'kp2', pos: [WX - 3.4, BUG, -42.2], sight: 6, interval: 3.2 },
       { kind: 'pustewolke', id: 'pw2', pos: [WX, Y + 1.6, -28.5], dir: [0, 1], reach: 6, strength: 4, sight: 9 },
       // kippende Trümmer
-      { kind: 'krakenpilz', id: 'kp3', pos: [-4.2, Y, -83.6], sight: 8, first: 1.4 },
+      { kind: 'krakenpilz', id: 'kp3', pos: [-4.2, Y, -83.6], sight: 6, interval: 3.2 },
       { kind: 'pustewolke', id: 'pw3', pos: [0, Y + 1.6, -109.3], dir: [0, 1], reach: 7, strength: 3.8, sight: 10 },
       // Wrack 4: acht Schubser (Gruppe – alle ins Meer → Warp-Box)
       ...schubser4,
