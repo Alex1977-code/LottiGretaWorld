@@ -29,8 +29,18 @@ function starPoints(cx, cy, r1, r0) {
   return pts;
 }
 
+/** Breite der Stern-Reihe in Stern-Plätzen (Häuser mit vielen Sternen, z. B. K-Haus mit 30: kleinere Reihen zu je 10). */
+const STAR_WRAP = 12;
+const starSlots = (n, hasStamp) => (n > STAR_WRAP ? 6.2 : n) + (hasStamp ? 1 : 0);
+
 /** Stern-Reihe und Stempel in eine Graphics zeichnen (Mitte cx, cy). */
 function drawStars(g, cx, cy, n, got, hasStamp, stamp, size = 4.6) {
+  if (n > STAR_WRAP) {
+    const s = size * 0.62, rows = Math.ceil(n / 10), off = hasStamp ? size * 1.15 : 0;
+    for (let r = 0; r < rows; r++) { const k = Math.min(10, n - r * 10); drawStars(g, cx - off, cy + (r - (rows - 1) / 2) * s * 2.1, k, Math.max(0, Math.min(k, got - r * 10)), false, false, s); }
+    if (hasStamp) drawStars(g, cx + 5 * s * 2.3 + size * 0.2, cy, 0, 0, true, stamp, size);
+    return;
+  }
   const gap = size * 2.3;
   const total = n + (hasStamp ? 1 : 0);
   let x = cx - ((total - 1) * gap) / 2;
@@ -359,7 +369,7 @@ export class MapHud {
 
   drawLabel(lab, st) {
     lab.text.setText(`${st.label}  ${st.title}`);
-    const w = Math.max(lab.text.width + 14, (st.starsMax + (st.hasStamp ? 1 : 0)) * 10 + 12);
+    const w = Math.max(lab.text.width + 14, starSlots(st.starsMax, st.hasStamp) * 10 + 12);
     const h = st.starsMax > 0 || st.hasStamp ? 26 : 16;
     lab.bg.clear();
     lab.bg.fillStyle(st.locked ? 0x3a3a4a : 0x1a1830, st.locked ? 0.6 : 0.62);
@@ -395,7 +405,7 @@ export class MapHud {
     else status = st.roamer ? ((s.map.roamers ?? []).find((r) => r.level === ne.id)?.hint ?? 'Lauf die Bullen an!') : 'Aufs Podest stellen';
     this.bannerTitle.setText(`${st.label}  ·  ${st.title}`);
     this.bannerStatus.setText(status);
-    const starW = (st.starsMax + (st.hasStamp ? 1 : 0)) * 11;
+    const starW = starSlots(st.starsMax, st.hasStamp) * 11;
     const w = Math.max(this.bannerTitle.width + 28, starW + this.bannerStatus.width + 34, 150);
     const g = this.bannerBg;
     g.clear();
