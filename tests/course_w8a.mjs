@@ -88,7 +88,7 @@ const ROUTES = {
   '8-1': {
     start: [0, Y, 6],
     meta: { stars: 3, time: 400, theme: 'rainfort', music: 'course_rainfort', archetype: 'parcours' },
-    enemies: { feuer_werfer: 3, stachelfalle: 6 },
+    enemies: { feuer_werfer: 3, stachelfalle: 7, knochenflieger_gruppe: 5, knochenflieger_glied: 25 },
     main: [
       { name: 'Torhof', to: [0, -5], within: 0.6 },
       { name: 'Steg 1: Stachelfalle im Takt', trap: 'falle1', at: [0, -9.6], to: [0, -18.5] },
@@ -158,6 +158,12 @@ const ROUTES = {
       { name: 'Graben nach Turm 2 zu breit zum Springen (nur die Warp-Box)', from: [0, Y, -46], heroes: ['lotti', 'greta'], expectAlive: false, allowFail: true,
         legs: [{ to: [-3.5, -53.6], within: 0.3, run: true }, { to: [-3.5, -72], jump: 40, jumpAt: 20, within: 0.6, max: 300 }],
         mech: (r) => r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : `z ${r.pos[2].toFixed(1)}`) },
+      { name: 'Keil-Gruppe: Knochenflieger im Sturzflug von oben treffen – Knochenhaufen, setzt sich nach 4 s neu zusammen', from: [0, Y, -186], heroes: ['lotti'],
+        legs: [{ diveStomp: 'kg_keil', at: [0, -186], max: 3000 }, { until: '=ent(\'kg_keil\').members.some((m) => m.state === \'rebuild\') || ent(\'kg_keil\').rebuilds > 0', max: 900 }],
+        mech: (r) => r.mech.piles >= 1 && !r.log.some((l) => String(l[0]).startsWith('FEHLER')), mechText: (r) => `Haufen ${r.mech.piles}` },
+      { name: 'Keil-Gruppe: Stampfattacke auf den Knochenhaufen besiegt endgültig', from: [0, Y, -186], heroes: ['lotti'],
+        legs: [{ diveStomp: 'kg_keil', at: [0, -186], max: 3000, finish: true }],
+        mech: (r) => (r.mech.gone ?? 0) >= 1, mechText: (r) => `endgültig ${r.mech.gone ?? 0}` },
       { name: 'Extraleben: unsichtbarer Block am Torhof', from: [5.5, Y, 9.8], heroes: ['lotti'], expectLives: 1,
         legs: [{ to: [5.5, 8], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
       { name: 'Extraleben: unsichtbarer Block in der Wachstube', from: [BX + 6, Y, -154], heroes: ['lotti'], expectLives: 1,
@@ -662,6 +668,49 @@ function install() {
             tick(d > 0.15 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
           }
           log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Knochenflieger einer Gruppe im Sturzflug von oben treffen (Reflexsprung), optional stampfen
+        if (Lg.diveStomp) {
+          const g = L.named.get(Lg.diveStomp);
+          const piles0 = g.members.filter((m) => m.state === 'bones').length;
+          let k = 0, tries = 0, hit = false;
+          const last = new Map();
+          const JD = Lg.jumpDist ?? 2.2, JH = Lg.jumpH ?? 2.4;
+          for (; k < (Lg.max ?? 2400) && !p.dead && !hit; k++) {
+            const dv = g.members.filter((m) => m.state === 'dive' && !m.defeated);
+            let m = null, best = 99;
+            for (const q of dv) { const d = Math.hypot(q.pos.x - p.pos.x, q.pos.z - p.pos.z); const l = last.get(q); const down = l && q.pos.y < l.y - 1e-3; if (down && d < best) { best = d; m = q; } }
+            for (const q of g.members) last.set(q, { x: q.pos.x, y: q.pos.y, z: q.pos.z });
+            if (m && p.mode === 'ground' && best < JD && m.pos.y - p.pos.y < JH) {
+              tries++;
+              const mm = m;
+              for (let n = 0; n < 200 && !p.dead; n++, k++) {
+                if (n > 8 && p.mode === 'ground') break;
+                const l = last.get(mm) ?? mm.pos, vx = (mm.pos.x - l.x) * 120, vz = (mm.pos.z - l.z) * 120;
+                last.set(mm, { x: mm.pos.x, y: mm.pos.y, z: mm.pos.z });
+                tick({ ...(p.mode === 'air' ? this.airSteer(mm.pos.x, mm.pos.z, vx, vz, 4, 7) : {}), jump: n < (Lg.hold ?? 18) });
+              }
+              hit = g.members.filter((q) => q.state === 'bones').length > piles0;
+            } else {
+              const [hx, hz] = Lg.at; const dx = hx - p.pos.x, dz = hz - p.pos.z, d = Math.hypot(dx, dz);
+              tick(d > 0.4 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
+            }
+          }
+          mech.piles = g.members.filter((q) => q.state === 'bones').length;
+          log.push(['knochen', Lg.diveStomp, hit, tries, k, mech.piles]);
+          if (hit && Lg.finish) {
+            // auf einen Knochenhaufen springen und stampfen → endgültig
+            const pile = g.members.find((q) => q.state === 'bones');
+            for (let n = 0; n < 300 && pile && pile.state === 'bones' && !p.dead; n++, k++) {
+              const dx = pile.pos.x - p.pos.x, dz = pile.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (p.mode === 'air' && d < 0.4 && p.vel.y < 1) { tick({ crouch: true }); continue; }
+              tick({ ...(p.mode === 'air' ? this.airSteer(pile.pos.x, pile.pos.z, 0, 0, 4, 6) : this.stick(dx, dz, 1)), run: false, jump: p.mode === 'ground' && d < 1.4 });
+            }
+            for (let n = 0; n < 60; n++) tick({});
+            mech.gone = g.members.filter((q) => q.state === 'gone' || q.defeated).length;
+            log.push(['haufen', mech.gone]);
+          }
           continue;
         }
         // ------------------------------------------------ liegendes Zahnrad als Stufe: von der aktuellen Stelle hinauf springen, dann zur Mitte

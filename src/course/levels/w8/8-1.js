@@ -168,6 +168,12 @@ export const LEVEL = {
     werfer('werfer1', 1.8, -94.5),
     werfer('werfer2', -1.6, -114.5, { pace: 1.4 }),
     werfer('werfer3', 1.6, -128.5, { weapon: 'hammer', pace: 0.8, interval: 3 }),
+    // Knochenflieger-Gruppen (setzen sich nach dem Draufspringen neu zusammen; Power-up/Stampfen auf den Haufen = endgültig)
+    { kind: 'knochenflieger_gruppe', id: 'kg_turm1', pos: [0, Y + 4.6, -23.5], count: 3, formation: 'ring', radius: 1.5, center: [0, Y + 4.6, -23.5], orbit: 0.8, sight: 6, respawn: 4 },
+    { kind: 'knochenflieger_gruppe', id: 'kg_turm2', count: 3, formation: 'linie', spacing: 1.5, path: [[-3.5, Y + 4.8, -47], [3.5, Y + 4.8, -47], [3.5, Y + 4.8, -52], [-3.5, Y + 4.8, -52]], loop: true, sight: 5.5, respawn: 4 },
+    { kind: 'knochenflieger_gruppe', id: 'kg_steg', count: 4, formation: 'linie', spacing: 1.6, path: [[0, Y + 5, -167], [0, Y + 5, -178]], sight: 5.5, respawn: 4 },
+    { kind: 'knochenflieger_gruppe', id: 'kg_keil', pos: [0, Y + 5.2, -186], count: 7, formation: 'keil', spacing: 1.5, center: [0, Y + 5.2, -186], orbit: 2.6, sight: 6.5, respawn: 4 },
+    { kind: 'knochenflieger_gruppe', id: 'kg_ring', pos: [0, Y + 5, -214], count: 8, formation: 'ring', radius: 2.6, center: [0, Y + 5, -214], orbit: 1.6, spin: 0.8, sight: 6.5, respawn: 4 },
     // Wachstube (Rätselbox): die Wache des Barons
     { kind: 'pilzling', id: 'wache1', pos: [BX - 4, Y, -150], behavior: 'chase', sight: 6, wake: 30 },
     { kind: 'pilzling', id: 'wache2', pos: [BX + 4, Y, -150], behavior: 'chase', sight: 6, wake: 30 },
