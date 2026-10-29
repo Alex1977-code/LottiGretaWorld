@@ -84,7 +84,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: LEN, style: 'metall' }],
     pictures: [{ wall: 'l', u: 4, motif: 'burg' }, { wall: 'r', u: 4, motif: 'zielfahne' }],
     clocks: [{ wall: 'r', u: 8, y: 3.6, r: 0.45, speed: 2 }],
-    props: [{ kind: 'zahnrad', x: -6.7, u: 4.5, y: Y + 3.2, yaw: Math.PI / 2, r: 0.9, solid: false }, { kind: 'rohre', x: 6.4, u: 1, yaw: 0 }, { kind: 'ruestung', x: 6.1, u: 15, yaw: -0.4 }] },
+    props: [{ kind: 'zahnrad', x: -6.7, u: 10.5, y: Y + 3.4, yaw: Math.PI / 2, r: 0.8, solid: false }, { kind: 'rohre', x: 6.4, u: 1, yaw: 0 }, { kind: 'ruestung', x: 6.1, u: 15, yaw: -0.4 }] },
 ];
 const TAPETE6 = { sterne6: 'sterne' };
 const KAPSEL = (i) => P(i, -5.4, 1.6);

@@ -1,15 +1,21 @@
-// Hilfen für die Remix-Level der Welt Pilz P-5 „Werfertrubel im Sonnensaal“ (Basis 6-3), P-6 „Wrackriesen im Sturmwind“
+// Hilfen für die Remix-Level der Welt Pilz P-5 „Werfertrubel im Sonnensaal“ (Basis 6-3), P-6 „Riesenwracks im Morgenwind“
 // (Basis 6-2), P-7 „Sinkschollen über dem Blauglutsee“ (Basis 7-4) und das Kampf-Haus P-Haus „Haus Zehnkampf“ (kein Level:
 // exportiert kein LEVEL, die Level-Registry überspringt dieses Modul). Gemeinsame Dateien und die Basislevel werden nicht
 // verändert; alles Level-Lokale hängt sich über die Remix-Haken (`build`/`setup`, Präzisierung „Motor und Bausteine
 // Bonuswelten“: eigene Haken laufen nach denen der Basis) bzw. `LEVEL.build`/`LEVEL.setup` sowie `level.onStep` /
 // `view.onFrame` an.
 //
+//   P-5  pfropfen       Stachelkugel verstopft eine Glasröhre: Wurfball/Feuer (an Kugel oder Riegel) sprengt sie heraus
+//        werferStockwerk  Werfer im Saal zielen nur auf Figuren auf ihrem Stockwerk
+//        sternBalkon    Geländer, Goldleiste und Blumenkästen des Sternbalkons (Optik)
+//   P-6  wrackheck      schräg gehobenes Wrackheck auf einer Sandbank (begehbare Planken, darunter Platz für Münzen)
+//        deckPlanken    Längsplanken auf großen Kippschiffen (hängt an der Schiffsdarstellung, kippt mit)
 //   P-7  sinkschollen   zerbrochene Steinschollen über der blauen Lava: steht eine Figur darauf, sinken sie (zuerst
 //                       zittern, dann gleichmäßig) bis unter die Lava; ohne Last steigen sie wieder auf. Kollision mit
 //                       mover (die Figur fährt mit), Darstellung als zwei Instanz-Gruppen (Stein + Glutrisse).
 //        geheimPlatte   unsichtbare Plattform (fest, aber nicht gezeichnet), die beim ersten Betreten sichtbar wird
 //                       (Glimmern, Glaskante) – nur im Gleitflug erreichbar.
+//   P-Haus kraftKapsel  Werkzeug je Kampf-Raum (Power-up oder Helm beim Raumstart, Nachschub nach Verlust), Sockel-Optik
 //
 // Alles Statische ist verschmolzen (Bld → Abschnitts-Meshes); Bewegtes zeichnet je Gruppe in wenigen Aufrufen.
 

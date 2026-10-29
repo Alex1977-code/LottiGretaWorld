@@ -8,17 +8,18 @@
 // Übernimmt 6-2 als Daten (remixOf) – Anleger, Kippschiffe, Kippsteg, Wrackfelsen, Laderaum, Kippbrücken, letztes Schiff und
 // Zielinsel bleiben; Änderungen an 6-2 wirken hier mit. Regeln:
 //   - Morgenlicht über dem Meer (Thema wreck@morgen), Musik der Basis, kein Stempel, 400 s; keine Spuke im Laderaum.
-//   - Ablauf über **fünf Warp-Boxen**: (1) Wrackfelsen → **Wrack 2** (Riesenschiff abseits bei x −110: Riesentrank-?-Block,
-//     zwei Schubser, Krakenpilz, Pustewolke; am Bug **hebt** eine Hebebühne die Figur auf das hohe Vorderdeck) → (2) vom
-//     Vorderdeck in den Laderaum (Bauch des Wracks, Kreisgeister) → (3) Laderaum → Checkpoint, **kippende Trümmer** (drei
-//     Kippbrücken, Krakenpilz, Pustewolke mit Gegenwind) und das Trümmerschiff mit zwei Schubsern → (4) Bugfelsen →
-//     **Wrack 4** (Riesen-Kippschiff mit **acht Schubsern** – alle ins Meer stoßen öffnet die Warp-Box) → (5) auf den
-//     **Mastturm** der Zielinsel: die **Kippplattform** (Kippsteg) führt zur Mastspitze.
+//   - Ablauf über **fünf Warp-Boxen**: (1) Wrackfelsen → **Wrack 2** (Riesenschiff mit Plankendeck abseits bei x −110:
+//     Riesentrank-?-Block, zwei Schubser bewachen die Bordwände, Pustewolke mit Gegenwind; am Bug **hebt** eine Hebebühne
+//     die Figur auf das hohe Vorderdeck, dort spuckt ein Krakenpilz) → (2) vom Vorderdeck in den Laderaum (Bauch des Wracks,
+//     Kreisgeister, ohne Spuke) → (3) Laderaum → Checkpoint (Krakenpilz), **kippende Trümmer** (drei Kippbrücken, Pustewolke
+//     mit Gegenwind) und das Trümmerschiff mit zwei Schubsern → (4) Bugfelsen → **Wrack 4** (Riesen-Kippschiff mit **acht
+//     Schubsern** – alle ins Meer stoßen öffnet die Warp-Box) → (5) auf den **Mastturm** der Zielinsel: die
+//     **Kippplattform** (Kippsteg) führt zur Mastspitze (Extraleben).
 //   - Wrack 1: **Sternring** (acht Sternmünzen über Anleger, Kippschiff 1 und Kippsteg), die Stachelwalzen des Walzenwerfers
-//     rollen weiter, Pustewolke am Ende des Kippstegs, Krakenpilz auf dem Wrackfelsen; neben dem Anleger ragt das gehobene
-//     **Wrackheck** aus einer Sandbank – darunter liegen Bitcoins.
+//     rollen weiter, Pustewolke über Kippschiff 2; neben dem Anleger ragt das gehobene **Wrackheck** aus einer Sandbank –
+//     darunter liegen Bitcoins, ein Krakenpilz bewacht sie.
 //   - Sterne neu: 0 Sternring · 1 Ende des schmalen Stegs rechts der Warp-Box auf dem Vorderdeck von Wrack 2 · 2 Ende des
-//     langen Stegs links an Wrack 2 hinter einer Steinblock-Wand (nur als Riese mit dem Riesentrank zu zertrümmern).
+//     langen Stegs links an Wrack 2 hinter einer 6 m hohen Steinblock-Wand (nur als Riese mit dem Riesentrank zu zertrümmern).
 import { remixOf } from '../../level/remix.js';
 import { LEVEL as BASIS } from '../w6/6-2.js';
 import { holzsteg } from '../w6/_helpers_a.js';
