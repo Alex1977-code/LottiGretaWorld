@@ -281,7 +281,11 @@ Danach ist das Spiel unter `https://<user>.github.io/<repo>/` erreichbar und als
 
 ## PWA
 
-`public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build).
+`public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build). Beim Bauen trägt
+`vite.config.js` die Liste **aller** Build-Dateien in den Service Worker ein; er speichert sie beim Installieren vorab
+und übernimmt erst danach (unveränderte gehashte Dateien kommen aus dem alten Cache). So startet das Spiel auch im
+Flugzeugmodus direkt nach einem Update – einmal online öffnen genügt. Test: `tests/offline.mjs` (Update-Besuch und
+Erstbesuch, danach offline).
 Icons liegen in `public/icons/` und werden mit `npm run icons` aus der Lotti-Grafik erzeugt.
 
 ## Struktur
