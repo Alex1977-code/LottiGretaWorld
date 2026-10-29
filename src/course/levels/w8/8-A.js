@@ -24,7 +24,7 @@
 import {
   rummelAbend, farbZelt, hauDenLukas, rummelPflaster, plakat, zuckerwatte, funken, rummelUnten, buehnenSchuerze, manege, bake, discG, line, ring, arc,
 } from './_helpers_d.js';
-import { circusArena, circusProps, grandStairs } from '../w3/_helpers_e.js';
+import { circusArena, circusProps, grandStairs, particles } from '../w3/_helpers_e.js';
 import { gondelRuf, lichterketten } from '../w6/_helpers_d.js';
 
 const Y0 = 0;                   // Rummelplatz
@@ -133,6 +133,9 @@ export const LEVEL = {
       level.onBossDefeated = (b) => { prevDef?.(b); ring0.cheer(1, 6); };
     }
     funken(level, { x: GX, z: GZ - 8, y: AY, near: (p) => p.pos.x > 38 });
+    // goldenes Konfetti rieselt um die Kamera (Zugabe!)
+    particles(level, { follow: () => { const t = level.view.rig.target; return { x: t.x, y: t.y - 3, z: t.z - 5 }; }, size: [36, 32], n: 90, h: 16, dir: -1, speed: [0.7, 1.4], dot: 0.2, sway: 1.1, colors: [0xffd04a, 0xfff2a0, 0xff7ac0, 0xb07aff, 0xffffff], additive: false, opacity: 0.9, name: 'konfetti' });
+    plakat(level, { pos: [GX + 9.2, AY, GZ + 5], yaw: -0.7, kind: 'freunde' });
   },
   segments: [
     { type: 'killplane', y: -14 },

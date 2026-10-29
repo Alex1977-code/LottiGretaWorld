@@ -313,7 +313,7 @@ function plakatTex(kind) {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 320;
   const g = c.getContext('2d');
-  const blase = kind === 'blase';
+  const blase = kind !== 'koenig';
   g.fillStyle = blase ? '#2a1050' : '#3a0a1e'; g.fillRect(0, 0, 256, 320);
   g.fillStyle = blase ? '#ffc21a' : '#ff5aa8'; g.fillRect(8, 8, 240, 304);
   g.fillStyle = blase ? '#5a1a8a' : '#7a1430'; g.fillRect(16, 16, 224, 288);
@@ -324,7 +324,19 @@ function plakatTex(kind) {
     for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 5, rr = k % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
     g.fill();
   }
-  if (blase) {
+  if (kind === 'freunde') {
+    // der Turm des Barons, oben das Glas mit den gefangenen Freunden (kleine Hasen-Köpfe), Herzen
+    g.fillStyle = '#4a2a5e'; g.fillRect(104, 120, 48, 120);
+    g.fillStyle = '#7a3a8a'; for (let y = 132; y < 240; y += 22) g.fillRect(104, y, 48, 6);
+    g.fillStyle = '#ffd86a'; for (const [x, y] of [[116, 150], [134, 176], [116, 204], [134, 226]]) g.fillRect(x, y, 8, 10);
+    g.fillStyle = 'rgba(200,240,255,0.55)'; g.beginPath(); g.ellipse(128, 92, 40, 34, 0, 0, TAU); g.fill();
+    g.strokeStyle = '#e8f8ff'; g.lineWidth = 4; g.stroke();
+    g.fillStyle = '#ffc21a'; g.fillRect(96, 54, 64, 10);
+    const ears = (x, y, c) => { g.fillStyle = c; g.beginPath(); g.ellipse(x - 5, y - 14, 4, 10, 0, 0, TAU); g.ellipse(x + 5, y - 14, 4, 10, 0, 0, TAU); g.arc(x, y, 10, 0, TAU); g.fill(); g.fillStyle = '#111'; g.fillRect(x - 5, y - 2, 3, 3); g.fillRect(x + 3, y - 2, 3, 3); };
+    ears(108, 104, '#d8a070'); ears(128, 96, '#f6f0e8'); ears(148, 104, '#9a7a5a');
+    g.fillStyle = '#ff5a8a';
+    for (const [x, y] of [[50, 90], [204, 80], [190, 130]]) { g.beginPath(); g.arc(x - 6, y, 7, 0, TAU); g.arc(x + 6, y, 7, 0, TAU); g.moveTo(x - 13, y + 2); g.lineTo(x, y + 16); g.lineTo(x + 13, y + 2); g.fill(); }
+  } else if (blase) {
     // goldener Gelee-Würfel mit Melonen-Hut, Schockwellen-Ringe darunter
     g.strokeStyle = '#ffe070'; g.lineWidth = 4;
     for (const r of [70, 92]) { g.beginPath(); g.ellipse(128, 212, r, r * 0.22, 0, 0, TAU); g.stroke(); }
@@ -348,8 +360,9 @@ function plakatTex(kind) {
     for (const [x, y] of [[196, 104], [212, 140], [48, 120]]) { g.fillStyle = '#ff6a1a'; g.beginPath(); g.arc(x, y, 10, 0, TAU); g.fill(); g.fillStyle = '#ffd04a'; g.beginPath(); g.arc(x - 3, y - 3, 4, 0, TAU); g.fill(); }
   }
   g.fillStyle = '#fff6d0'; g.textAlign = 'center';
-  g.font = 'bold 27px "Nunito", Arial, sans-serif'; g.fillText(blase ? 'Goldglibber' : 'Schlangenkönig', 128, 262);
-  g.font = 'bold 22px "Nunito", Arial, sans-serif'; g.fillText(blase ? '– die Zugabe! –' : 'heiß wie Lava!', 128, 292);
+  const T1 = { blase: 'Goldglibber', koenig: 'Schlangenkönig', freunde: 'Haltet durch,' }, T2 = { blase: '– die Zugabe! –', koenig: 'heiß wie Lava!', freunde: 'liebe Freunde!' };
+  g.font = 'bold 27px "Nunito", Arial, sans-serif'; g.fillText(T1[kind] ?? T1.blase, 128, 262);
+  g.font = 'bold 22px "Nunito", Arial, sans-serif'; g.fillText(T2[kind] ?? T2.blase, 128, 292);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;

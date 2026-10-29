@@ -23,7 +23,7 @@
 import {
   rummelAbend, farbZelt, rummelPflaster, plakat, zuckerwatte, funken, kletterturm, schiffschaukel, glutRand, manege, rummelUnten, buehnenSchuerze, bake, discG, line, ring, arc, column,
 } from './_helpers_d.js';
-import { circusArena, circusProps, grandStairs, RisingPipe, spawnLocal } from '../w3/_helpers_e.js';
+import { circusArena, circusProps, grandStairs, RisingPipe, spawnLocal, particles } from '../w3/_helpers_e.js';
 import { gondelRuf, lichterketten } from '../w6/_helpers_d.js';
 
 const Y0 = 0;                   // Vorplatz und Glutgasse
@@ -49,6 +49,7 @@ export const LEVEL = {
   timeLimit: 500,
   starSlots: 3,
   killY: -12,
+  farHide: 36,              // ferne Gegner (Lavablasen in der Schlucht, Funkenflämmchen) nicht zeichnen
   start: { pos: [0, Y0, 11.5], yaw: Math.PI / 2 },
   checkpoint: [{ pos: [0, SY, -41.8], yaw: Math.PI / 2 }, { pos: [1.4, AY, -77.6], yaw: Math.PI / 2 }],
   camera: [
@@ -138,9 +139,14 @@ export const LEVEL = {
     }
     spawnLocal(level, new RisingPipe(level, { id: 'roehre_ziel', pos: [0, AY, AZ - 8.6], hidden: true, height: 1.5, target: 'ziel_ausgang', color: 0xff5aa8 }));
     funken(level, { x: GX, z: GZ - 8, y: AY, near: (p) => p.pos.x > 38 });
+    // Glutfunken steigen um die Kamera auf (Lava-Inferno nebenan)
+    particles(level, { follow: () => { const t = level.view.rig.target; return { x: t.x, y: t.y - 6, z: t.z - 6 }; }, size: [40, 36], n: 80, h: 18, dir: 1, speed: [1.0, 2.2], dot: 0.24, sway: 0.9, colors: [0xffa030, 0xff6010, 0xffd060], opacity: 0.85, name: 'glutfunken' });
+    plakat(level, { pos: [GX + 9.2, AY, GZ + 5], yaw: -0.7, kind: 'freunde' });
   },
   segments: [
     { type: 'killplane', y: -12 },
+    // Feuerschalen am Eingang und an der Holzbrücke über den Lavagraben
+    { type: 'torches', h: 2.0, items: [[-4.4, Y0, 6.6], [4.4, Y0, 6.6], [-2.6, Y0, GRABEN.z1 + 0.9], [2.6, Y0, GRABEN.z1 + 0.9], [-2.6, Y0, GRABEN.z0 - 0.9], [2.6, Y0, GRABEN.z0 - 0.9]] },
     // ---------------------------------------------------------------- 1/2 Vorplatz und Glutgasse (Lavagraben quer)
     { type: 'island', pos: [0, Y0 - 4, -0.9], size: [38, 4, 31.0], top: 'rock', topColor: 0x8a5a6a, sideColor: 0x3a1e2a, under: 3 },
     { type: 'island', pos: [0, Y0 - 4, -26.0], size: [38, 4, 12.8], top: 'rock', topColor: 0x8a5a6a, sideColor: 0x3a1e2a, under: 3 },

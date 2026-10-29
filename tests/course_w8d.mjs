@@ -747,6 +747,30 @@ function install() {
         c.setInput({});
         if (what === 'riese') for (let i = 0; i < 120 * 25 && !(b.state === 'gland' || b.state === 'grest'); i++) { p.invuln = 99; c.step(1); }
         if (what === 'riese') for (let i = 0; i < 14; i++) c.step(1);
+      } else if (what === 'radOben') {
+        // Bild: oben im Riesenrad (die Gondel am Scheitel, Figur darauf)
+        const r = named('rad');
+        for (let i = 0; i < 120 * 40; i++) { const g = r.gondolas.reduce((a, b) => (b.mb.pos.y > a.mb.pos.y ? b : a)); if (Math.abs(g.mb.pos.x - r.gondolas[0].mb.pos.x) < 99 && g.mb.top > 13.6) break; c.step(1); }
+        const g = r.gondolas.reduce((a, b) => (b.mb.pos.y > a.mb.pos.y ? b : a));
+        p.reset([g.mb.pos.x, g.mb.top + 0.05, g.mb.pos.z], Math.PI / 2);
+        for (let i = 0; i < 30; i++) c.step(1);
+      } else if (what === 'schaukeln') {
+        // Bild: die Schiffschaukel schwingt hoch, die Figur fährt mit
+        const s = named('schaukel');
+        p.reset([s.mb.pos.x, s.top + 0.05, s.mb.pos.z], Math.PI / 2);
+        for (let i = 0; i < 120 * 12 && !(s.A > 1.1 && s.theta < -s.A + 0.06); i++) { const dx = s.mb.pos.x - p.pos.x, dz = s.mb.pos.z - p.pos.z; c.setInput(Math.hypot(dx, dz) > 0.3 ? this.stick(dx, dz, 0.4) : {}); c.step(1); }
+      } else if (what === 'teller' || what === 'pfuetzen') {
+        const b = named('koenig');
+        for (let i = 0; i < 400 && !L.archetype?.started; i++) { c.setInput({ ...this.stick(0, -1, 0.6) }); c.step(1); }
+        c.setInput({});
+        if (what === 'teller') {
+          for (let i = 0; i < 120 * 30 && !(b.state === 'lean' && b.stateT > 0.8); i++) { p.invuln = 99; c.step(1); }
+          const t = b.target;
+          if (t) p.reset([t.pos.x, t.plateTop + 0.05, t.pos.z], Math.PI / 2);
+          for (let i = 0; i < 20; i++) c.step(1);
+        } else {
+          for (let i = 0; i < 120 * 30 && !(L.entities.filter((e) => e.kind === 'lavapfuetze' && !e.removed).length >= 2 && b.state === 'throw'); i++) { p.invuln = 99; c.step(1); }
+        }
       }
       c.setInput(null);
       return p.info();
@@ -916,9 +940,9 @@ for (const id of LEVELS) {
 
   // ------------------------------------------------ Bilder je Abschnitt aus der Spielkamera
   if (ONLY || !PARTS.has('shots')) continue;
+  loaded = null;
   for (const [name, pos, steps = 0, prep = null] of R.shots) {
     if (SHOTS && !SHOTS.has(name)) continue;
-    loaded = null;
     await load(id);
     await W('place', pos, { settle: 10, invuln: 99 });
     if (prep) await W('prep', prep);
