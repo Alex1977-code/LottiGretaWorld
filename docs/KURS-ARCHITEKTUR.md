@@ -1988,7 +1988,8 @@ höchstens 67 / 159 k (Rückkehr mit Schwenk 85 / 191 k).
   `collection(maps, save, exclude) → { stars, starsMax, stamps, stampsMax, levels, levelsMax, complete, missing }` (missing ≤ 12
   Level-Ids in Weltreihenfolge); `setMapSource(fn)`/`mapSource()` (die Karten meldet `worlds/index.js` an; Node-Tests geben sie als
   Argument). `CourseMapScene.js` – `status(id).collection` (Stand der Sammlung bei Regeln mit `collection`), `collectionHint(st)`;
-  `MapHud.js` – Hinweis bei `reason === 'collection'` und Sammlungsstand im Schlüssel der Hinweis-Leiste (zwei Zeilen, sonst nichts umgebaut).
+  `MapHud.js` – Hinweis bei `reason === 'collection'` und Sammlungsstand im Schlüssel der Hinweis-Leiste; Eingänge mit mehr als 12 Sternen (K-Haus, 30) zeigen ihre Sterne in
+  kleinen Reihen zu je 10 (`starSlots`/`drawStars`, sonst nichts umgebaut).
 - Lebendige Kulisse (`KroneLife`): `fest { beat, step, k, frac, whole, cannon, source, theme, bpm, shown, material }` (Goldlaternen,
   Kronen-Funkeln und Gipfelspitzen im Puls-Material; je Zählzeit schießt die nächste Kanone), `confetti { cannons, n, bursts,
   visible }` (56 Schnipsel je Kanone, eine Instanz-Fläche), `flags { n }`; je Eingang `lavadiorama { lava, propellers, donuts,
