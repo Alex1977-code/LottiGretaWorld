@@ -230,17 +230,18 @@ class KruemelAngst extends CourseEntity {
     this.freeT = 0;
     this.left = spec.count ?? 0;
     this.yaw = spec.yaw ?? -PI / 2;
-    this.addShape({ type: 'cyl', x: this.pos.x, z: this.pos.z, r: 0.35, y0: this.pos.y, y1: this.pos.y + 0.7, tag: 'kruemel' });
+    this.addShape({ type: 'cyl', x: this.pos.x, z: this.pos.z, r: 0.4, y0: this.pos.y, y1: this.pos.y + 0.95, tag: 'kruemel' });
     if (level.view) {
       const m = getModel(hasModel('kruemel') ? 'kruemel' : 'bunny_small');
       const root = new THREE.Group();
+      m.root.scale.setScalar(spec.scale ?? 1.4);
       root.add(m.root);
       // Stirnlampe des Kapitäns (kleines Leuchten am Kopf)
       this.lamp = glowSprite(0xfff2b0, 0.5);
-      this.lamp.position.set(0.16, 0.5, 0);
+      this.lamp.position.set(0.22, 0.7, 0);
       root.add(this.lamp);
       this.bubble = bubbleSprite('Hilfe!');
-      this.bubble.sprite.position.set(0, 1.45, 0);
+      this.bubble.sprite.position.set(0, 1.75, 0);
       root.add(this.bubble.sprite);
       this.inner = m;
       this.setModel({ root, update: (dt, st) => m.update?.(dt, st), dispose: () => { m.dispose?.(); this.bubble.dispose(); } });
@@ -283,7 +284,7 @@ class KruemelAngst extends CourseEntity {
     if (this.bubble) {
       const near = p && Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z) < 11;
       this.bubble.sprite.visible = near && (!this.free || this.freeT < 6);
-      this.bubble.sprite.position.y = 1.45 + Math.sin(t * 2.4) * 0.05;
+      this.bubble.sprite.position.y = 1.75 + Math.sin(t * 2.4) * 0.05;
       this.bubble.sprite.rotation.y = -this.yaw;
     }
     if (this.lamp) this.lamp.material.opacity = 0.65 + 0.2 * Math.sin(t * 5);
@@ -985,8 +986,8 @@ function softDot() {
   c.width = c.height = 64;
   const g = c.getContext('2d');
   const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.2, 'rgba(255,255,255,1)'); gr.addColorStop(0.34, 'rgba(255,255,255,0.55)');
-  gr.addColorStop(0.62, 'rgba(255,255,255,0.16)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(255,255,255,1)'); gr.addColorStop(0.26, 'rgba(255,255,255,0.7)');
+  gr.addColorStop(0.5, 'rgba(255,255,255,0.3)'); gr.addColorStop(0.75, 'rgba(255,255,255,0.1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -1008,7 +1009,7 @@ export function irrlichter(level, list, o = {}) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const mat = new THREE.PointsMaterial({ size: o.size ?? 2.6, map: softDot(), vertexColors: true, transparent: true, depthWrite: false, sizeAttenuation: true });
+  const mat = new THREE.PointsMaterial({ size: o.size ?? 3.4, map: softDot(), vertexColors: true, transparent: true, depthWrite: false, sizeAttenuation: true });
   const pts = new THREE.Points(geo, mat);
   pts.frustumCulled = false;
   pts.renderOrder = 4;

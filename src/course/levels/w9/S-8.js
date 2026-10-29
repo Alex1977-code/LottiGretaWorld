@@ -325,7 +325,7 @@ export const LEVEL = {
     isl(-10, 10, -172.8, -190, 0, 4),
     sign(-6.5, 0, -176.4, 'Nebelstufen', { yaw: 0.2 }),
     // ================================================================ 4 Nebelplattformen
-    { type: 'nebelboden', id: 'nebelboden', pos: [0, -1.0, -228], size: [34, 78], depth: 1.5, kill: 'fall', density: 0.6,
+    { type: 'nebelboden', id: 'nebelboden', pos: [0, -1.0, -228], size: [34, 78], depth: 1.5, kill: 'fall', density: 0.6, color: 0xdcd2f8,
       parts: [{ pos: [6.5, -0.6, -214.5], size: [2.6, 0.4, 2.6], up: 3, down: 2 }, { pos: [-6.5, -0.6, -214.5], size: [2.6, 0.4, 2.6], up: 3, down: 2, phase: 2.5 }] },
     { type: 'nebelplattform', id: 'nebelA', from: [0, 0, -193.6], to: [0, 0, -208.6], n: 5, depth: 3, up: 3.0, down: 1.6, move: 1.0, stagger: -1.1 },
     isl(-4, 4, -211, -219, 0, 3, { under: 0 }),
@@ -353,7 +353,7 @@ export const LEVEL = {
     isl(XK - 9, XK + 9, -52, -69, 0, 4),
     // ================================================================ Nebelkammer (Rätselbox)
     isl(XR - 7, XR + 7, -172, -182, 0, 4),
-    { type: 'nebelboden', pos: [XR, -1.6, -184], size: [14, 4], depth: 1.4, kill: 'fall', density: 0.7 },
+    { type: 'nebelboden', pos: [XR, -1.6, -184], size: [14, 4], depth: 1.4, kill: 'fall', density: 0.7, color: 0xdcd2f8 },
     isl(XR - 7, XR + 7, -186, -193, -0.8, 3.2),
     { type: 'deco_star', items: [{ kind: 'kahler_baum', pos: [XR + 5.6, -0.8, -191.4], height: 4.4 }] },
     sign(XR - 4, 0, -174.6, 'Triff alle\nvier Scheiben!', { size: [2.6, 1.05], yaw: 0.2 }),
