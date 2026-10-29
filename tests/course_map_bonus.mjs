@@ -278,8 +278,9 @@ const shut = (s2, id) => s2.entrances[id].locked && !s2.entrances[id].pathOpen;
 async function ride(M, id, label) {
   const P = entOf(M, id).pos;
   await tp(P[0], P[1] + 0.3, P[2] + 3, -Math.PI / 2, 20);
-  let rr = await walkTo(P[0], P[2], (s) => s.onPad === id, 600);
+  let rr = await walkTo(P[0], P[2], `(s) => s.onPad === '${id}'`, 600);
   const onPad = rr.s.onPad === id;
+  await frames(2);
   const hint = await banner();
   await sc(() => { const m = window.__courseMap; m.hud.toast('', 0.01); m.step(2); m.setInput({ jump: true }); });
   const s1 = await sc(() => window.__courseMap.step(1));

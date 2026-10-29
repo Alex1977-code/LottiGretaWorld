@@ -18,7 +18,8 @@
 //   beepskyway    B-8 (4-3)   Piep-Block-Himmelsweg: zwei Sätze Piep-Blöcke wechseln JE Zählzeit (viermal so schnell wie in Welt 4,
 //                             ohne Warnblinken), Lautsprecher ('lautsprecher') pumpen im Takt, Stachelblock ('stachelblock_blau')
 //   sunsetbeach   B-9 (5-1)   Sonnenuntergangs-Strand: Sand, tief stehende Abendsonne, Strandkorb ('strandkorb'), Sonnenschirm,
-//                             Palmen ('palme'), ein Pilzlingsturm ('pilzlingsturm') mit Feuer-Werfer obenauf
+//                             Palmen ('palme'), ein Pilzlingsturm ('pilzlingsturm') mit Feuer-Werfer obenauf; die Brandung rollt je
+//                             Zählzeit an, ein Wasserball hüpft im Takt
 //   dayhive       B-10 (S-6)  Waben am Taghimmel: Wabenfeld (Instanzen, leuchten Ring für Ring im Takt), Wabensäulen ('wabensaeule'),
 //                             Sonne und Wattewolken statt Weltraum
 //   spotbridge    B-11 (8-1)  Stachelbrücke mit Suchscheinwerfer: Brücke über einen Graben, ein Suchscheinwerfer ('suchscheinwerfer')
@@ -428,7 +429,33 @@ function sunsetBeach(ev, x, y, z) {
   skyDisc(ev, 'w11m:sunsetsun', sx, sy, sz, 3.2, 0xffd080, 0xff7a4a, 0xff8a5a, 16, 'w11:abendsonne');
   // Sandfläche und Wellenkante
   ev.addStatic(place(cached('w11m:beachsand', () => { const b = new Build(); b.add(new THREE.CircleGeometry(6.5, 24).rotateX(-PI / 2), { v: (px, py, pz) => mix(0xf4d898, 0xfff0c8, Math.hypot(px, pz) / 6.5) }, { s: [1.3, 1, 0.8] }); return b.geometry(); }).clone(), x, y + 0.02, z), { castShadow: false });
-  ev.addStatic(place(cached('w11m:surf', () => { const b = new Build(); b.add(new THREE.RingGeometry(6.3, 6.9, 24, 1, PI * 1.1, PI * 0.8).rotateX(-PI / 2), 0xffffff, { s: [1.3, 1, 0.8] }); return b.geometry(); }).clone(), x, y + 0.03, z), { material: 'glow', castShadow: false, tile: GLOW_TILE11 });
+  // Brandung: rollt je Zählzeit an den Strand (eigenes Mesh, unbeleuchtet)
+  const surfM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, fog: true, depthWrite: false });
+  ev.own.push(surfM);
+  const surf = new THREE.Mesh(cached('w11m:surf2', () => new THREE.RingGeometry(6.3, 6.9, 24, 1, PI * 1.1, PI * 0.8).rotateX(-PI / 2)), surfM);
+  surf.position.set(x, y + 0.03, z);
+  surf.name = 'w11:brandung';
+  ev.view.add(surf);
+  cullByView(ev, surf, x, y, z, 8, 70);
+  // Wasserball hüpft im Takt über den Sand
+  const ball = mover(ev, cached('w11m:beachball', () => {
+    const b = new Build();
+    b.sphere(0.42, { v: (px, py, pz) => { const a = Math.atan2(pz, px); const k = Math.floor(((a + PI) / TAU) * 6); return py > 0.36 || py < -0.36 ? 0xffffff : [0xff4a4a, 0xffffff, 0x3a8aff, 0xffffff, 0xffd02a, 0xffffff][k % 6]; } }, {}, 14, 10);
+    return b.geometry();
+  }), x - 2, y + 0.42, z + 2.5, 'w11:wasserball');
+  cullByView(ev, ball, x - 2, y + 1, z + 2.5, 3, 60);
+  let wave = 0, bounce = 0;
+  ev.updaters.push((dt, t) => {
+    const bt = beatAt(t);
+    wave = bt.frac;
+    const s = 0.94 + 0.1 * wave;
+    surf.scale.set(1.3 * s, 1, 0.8 * s);
+    surfM.opacity = 0.9 - 0.6 * wave;
+    bounce = Math.sin(bt.frac * PI);
+    const bar = Math.floor(bt.beat / 4);
+    ball.position.set(x - 2 + Math.sin(bar * 1.7) * 1.2, y + 0.42 + bounce * 1.1, z + 2.5 + Math.cos(bar * 1.3) * 0.8);
+    ball.rotation.set(t * 1.3, t * 0.7, 0);
+  });
   if (MK.bake(ev, 'strandkorb', { color: 'rot' }, [x + 4, y, z + 1.5], FRONT - 0.5, 1, null, true, 4600)) solidBox(ev, x + 3.2, y, z + 0.7, x + 4.8, y + 1.8, z + 2.3, 'strandkorb');
   MK.bake(ev, 'sonnenschirm', { color: 'gelb', height: 2.6 }, [x + 6, y, z - 1], 0, 1, null, true, 2600);
   solidCyl(ev, x + 6, z - 1, 0.2, y, y + 2.4);
@@ -441,7 +468,7 @@ function sunsetBeach(ev, x, y, z) {
   th = th || 2.5;
   MK.bake(ev, 'feuer_werfer', {}, [tx, y + th, tz], FRONT, 1, { anim: 'idle' }, true, 9400);
   solidCyl(ev, tx, tz, 0.55, y, y + th + 1.4);
-  addInfo(ev, () => ({ beach: { tower: th, sunset: true } }));
+  addInfo(ev, () => ({ beach: { tower: th, sunset: true, wave: +wave.toFixed(3), ball: +bounce.toFixed(3) } }));
   modelsInfo(ev);
 }
 
