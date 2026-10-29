@@ -588,13 +588,15 @@ const WING = [0xff7ab4, 0xffd23a, 0x7ab8ff, 0xb07af0, 0xff8a5a, 0x5ad8a8];
 function wingGeo() {
   return cached('w11m:wing', () => {
     const b = new Build();
-    b.add(new THREE.CircleGeometry(0.26, 10), 0xffffff, { p: [0.06, 0, 0.22], r: [-PI / 2, 0, 0], s: [1, 1.2, 1] });
-    b.add(new THREE.CircleGeometry(0.18, 8), 0xf0f0f0, { p: [-0.16, 0, 0.16], r: [-PI / 2, 0, 0] });
+    // Vorder- und Hinterflügel: helle Mitte mit Augenfleck, dunkler Rand (Instanzfarbe färbt alles)
+    const ring = (r) => ({ v: (px, py) => { const d = Math.hypot(px, py) / r; return d > 0.78 ? 0x6a4a5a : d < 0.22 ? 0xffffff : 0xf4f4f4; } });
+    b.add(new THREE.CircleGeometry(0.3, 12, 0, TAU).toNonIndexed(), ring(0.3), { p: [0.07, 0, 0.26], r: [-PI / 2, 0, 0], s: [1, 1.2, 1] });
+    b.add(new THREE.CircleGeometry(0.21, 10).toNonIndexed(), ring(0.21), { p: [-0.18, 0, 0.18], r: [-PI / 2, 0, 0] });
     return b.geometry();
   });
 }
 function bodyGeo() {
-  return cached('w11m:bfbody', () => { const b = new Build(); b.sphere(0.05, 0x3a2a3a, { s: [4, 1, 1] }, 6, 4); b.sphere(0.05, 0x3a2a3a, { p: [0.22, 0.02, 0] }, 5, 4); return b.geometry(); });
+  return cached('w11m:bfbody', () => { const b = new Build(); b.sphere(0.055, 0x6a4a3a, { s: [4, 1, 1] }, 6, 4); b.sphere(0.055, 0x6a4a3a, { p: [0.24, 0.02, 0] }, 5, 4); return b.geometry(); });
 }
 function petalFlakeGeo() {
   return cached('w11m:flake', () => { const b = new Build(); b.add(new THREE.CircleGeometry(0.12, 6), 0xffffff, { s: [1, 0.6, 1] }); return b.geometry(); });
