@@ -27,6 +27,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // zum Absteigen) · { roll: id, via } (Schiebekugel) · { fire: id } (Feuerbälle auf ein Ziel) · { tiles: id } (Schaltfelder)
 // · { die } · { power: name } (Power-up direkt setzen – nur für Gegenproben)
 const Y = 0, FY = -1, HY = 18;
+const BAHN_END_X = +(3.6 * Math.sin(Math.PI * 2.2)).toFixed(2);
 const ROUTES = {
   'S-1': {
     start: [0, Y, 6],
@@ -129,6 +130,81 @@ const ROUTES = {
       ['farbraum', [-124, FY, -266]],
       ['finale', [0, FY, -306]],
       ['ziel', [0, 3, -337]],
+    ],
+  },
+  'S-2': {
+    start: [0, 0, 6],
+    meta: { stars: 3, time: 400, theme: 'galaxy', music: 'course_galaxy', archetype: 'parcours', world: 9 },
+    enemies: { krakenpilz: 6, huepfmaus: 2 },
+    main: [
+      { name: 'Start-Planet', to: [0, -7.2], within: 0.5 },
+      { name: 'über das Kippfeld rennen', to: [0, -17.4], within: 0.8, run: true },
+      { name: 'Sprung zur Münzinsel', to: [0, -21.6], jump: 24, jumpAt: 3.6, within: 0.8 },
+      { to: [0, -28.2], within: 0.5 },
+      { name: 'rote Farb-Plattenbahn (alle golden)', plates: ['bahn'] },
+      { name: 'Zwischeninsel', to: [0, -88.6], within: 0.5, run: false },
+      { to: [0, -94.6], within: 0.3, run: false },
+      { name: 'Boost-Strecke auf Drehplatten', to: [0, -160.4], within: 0.8, run: true },
+      { name: 'Warp-Box zum Kontrollpunkt', warp: [0, -162] },
+      { expect: 'onCP' },
+      { name: 'Plattentreppe A', to: [-2, -181.4], within: 0.4, run: false }, { steps: 'treppe_a' },
+      { name: 'Plattentreppe B', to: [2, -190.4], within: 0.4, run: false }, { steps: 'treppe_b' },
+      { name: 'Plattentreppe C', to: [-2, -199.4], within: 0.4, run: false }, { steps: 'treppe_c' },
+      { name: 'Schachbrett: alle Platten golden', plates: ['schach_a', 'schach_b'], snake: true },
+      { until: 'zielwegDa', max: 300 },
+      { name: 'Zieltreppe', to: [0, -216.2], jump: 24, jumpAt: 2.4, within: 0.6, run: false },
+      { to: [0, -218.0], jump: 24, jumpAt: 2.4, within: 0.6, run: false },
+      { to: [0, -219.8], jump: 24, jumpAt: 2.4, within: 0.6, run: false },
+      { name: 'Zielmast', to: [0, -228.2], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Farb-Plattenbahn und Schachbrett ganz golden, drei Plattentreppen, Warp-Box', ok: (r) => r.mech.bahn && r.mech.schach && r.mech.treppen === 3 && r.mech.warps === 1 },
+      { name: 'Sternenglanz-Kostüm im Spielstand freigeschaltet', ok: (r) => r.mech.outfit === 'S-2' },
+    ],
+    targets: [
+      { name: 'Stern 0: über die rechten blauen Platten zum Sternstein-Sockel, Sternziegel anstoßen', star: 0, from: [2.6, 0, -6.6],
+        legs: [{ to: [2.6, -14.3], within: 0.6, run: true }, { to: [5.2, -14.3], jump: 14, jumpAt: 2.2, within: 0.35, run: false }, { hop: 30 }, { wait: 30 }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Anstoßen (auf dem Sockel stehen bleiben)', star: 0, expectNot: true, from: [5.2, 0, -14.3], heroes: ['lotti'], legs: [{ wait: 120 }] },
+      { name: 'Stern 1: auf der Drehplatte Spalte 1, Reihe 2 stehen bleiben – sie kippt, darunter das Versteck', star: 1, from: [-2.6, 0, -6.6],
+        legs: [{ to: [-2.6, -9.2], within: 0.6, run: true }, { to: [-2.6, -11.7], within: 0.25, run: false }, { wait: 240 }, { expect: 'imVersteck' }, { star: 1 },
+          { to: [-5.2, -11.7], within: 0.3, run: false, jump: 20 }, { crouch: 20 }, { expect: 'aufMuenzinsel' }], shot: 'stern1' },
+      { name: 'unter den anderen Platten ist kein Versteck (Spalte 1, Reihe 3: Absturz)', star: 1, expectNot: true, from: [-2.6, 0, -6.6], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [-2.6, -9.2], within: 0.6, run: true }, { to: [-2.6, -14.3], within: 0.25, run: false, max: 300 }, { wait: 360 }] },
+      { name: 'Stern 2: letzte Warp-Box hinab, alle blauen Platten umfärben', star: 2, from: [-4.2, 17.2, -205.6],
+        legs: [{ warp: [-6.2, -205.6] }, { expect: 'unten' }, { plates: ['blauplatten'], snake: true }, { until: 'stern2da', max: 300 }, { star: 2 }, { warp: [-8, -213.6] }, { expect: 'aufBrett' }], shot: 'stern2' },
+      { name: 'Stempel: oben auf der senkrechten Takt-Plattenwand', stamp: true, from: [6.6, 4, -181.6],
+        legs: [{ climbwall: 'stempelwand' }], shot: 'stempel' },
+      { name: 'Stempel nicht vom Boden aus (Wand zu hoch)', stamp: true, expectNot: true, from: [6.6, 4, -181.2], heroes: ['lotti'], legs: [{ hop: 40 }, { backflip: true }, { wait: 30 }] },
+    ],
+    extra: [
+      { name: 'Boost-Strecke: wer trödelt, stürzt ab', from: [0, 2, -96.2], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+        legs: [{ to: [0, -120], within: 0.6, run: false, slow: 0.35, max: 900 }], mech: (r) => r.dead || r.pos[1] < 0, mechText: (r) => (r.dead ? 'abgestürzt' : `y ${r.pos[1].toFixed(1)}`) },
+      { name: 'Krakenpilz spuckt Steinchen im Bogen (Kontrollpunkt)', from: [2, 4, -176], heroes: ['lotti'],
+        legs: [{ wait: 600 }], mech: (r) => r.mech.spits >= 1, mechText: (r) => `Spuckzüge ${r.mech.spits}` },
+      { name: 'Krakenpilz von oben besiegen (Münzinsel)', from: [0, 0.6, -21], heroes: ['lotti'],
+        legs: [{ stompAll: 'kp_muenz' }], mech: (r) => r.mech.stomped.includes('kp_muenz'), mechText: (r) => `besiegt ${r.mech.stomped.join(',')}` },
+      { name: 'Extraleben: unsichtbarer Block auf der Münzinsel', from: [3.4, 0.6, -25.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [3.4, -27.2], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: Absatz der Plattentreppe', from: [-4, 12.8, -199.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-6.2, -201.2], within: 0.3, run: false }] },
+      { name: 'Extraleben: Ende der Farb-Plattenbahn erscheint erst, wenn alle Platten golden sind', from: [0, 0.6, -28.2], heroes: ['lotti'], expectLives: 1,
+        legs: [{ plates: ['bahn'] }, { to: [BAHN_END_X + 2.6, -86.6], within: 0.3, run: false }] },
+    ],
+    shots: [
+      ['start', [0, 0, 6]],
+      ['kippfeld', [0, 0, -6]],
+      ['sockel', [5.2, 0, -14.3]],
+      ['versteck', [-4, -3, -11]],
+      ['muenz', [0, 0.6, -21]],
+      ['bahn', [0, 0.6, -32]],
+      ['bahn2', [0, 1.4, -58]],
+      ['zwischen', [0, 2, -88]],
+      ['boost', [0, 2, -110], 30, { y: 1, run: true }],
+      ['cp', [0, 4, -172]],
+      ['treppe', [0, 8.4, -188]],
+      ['brett', [0, 17.2, -204.4]],
+      ['unten', [-11, 11, -206]],
+      ['ziel', [0, 20, -222]],
     ],
   },
   'S-Kapitän': {
@@ -249,6 +325,13 @@ function install() {
     stern0da: () => starDa(0),
     stern1da: () => starDa(1),
     stern2da: () => starDa(2),
+    // S-2
+    onCP: () => at(-8, 8, 3.5, -170, -184),
+    imVersteck: () => P().pos.y < -2.5 && P().pos.y > -3.5 && P().mode === 'ground',
+    aufMuenzinsel: () => at(-5, 5, 0.3, -19.6, -29),
+    unten: () => P().pos.y > 10.5 && P().pos.y < 12 && P().pos.x < -6,
+    aufBrett: () => P().pos.y > 16.8,
+    zielwegDa: () => { const z = ent('zielweg'); return !!z && z.parts.every((q) => q.shown); },
     // S-Kapitän
     dreh1: () => ent('karussell')?.turn === 1 && !ent('karussell').turning,
     dreh2: () => ent('karussell')?.turn === 2 && !ent('karussell').turning,
@@ -463,6 +546,105 @@ function install() {
           if (!g?.done) log.push(['FEHLER: Felder nicht alle']);
           continue;
         }
+        // ------------------------------------------------ Farbplatten nacheinander betreten (Liste der Bausteine; snake: Reihen im Zickzack)
+        if (Lg.plates) {
+          let list = [];
+          for (const id of Lg.plates) for (const q of L.named.get(id)?.plates ?? []) list.push(q);
+          if (Lg.snake) {
+            const rows = [...new Set(list.map((q) => +q.z.toFixed(1)))].sort((a, b) => Math.abs(a - p.pos.z) - Math.abs(b - p.pos.z));
+            const out = [];
+            let fromLeft = true;
+            for (const z of rows) {
+              const r = list.filter((q) => Math.abs(q.z - z) < 0.06).sort((a, b) => a.x - b.x);
+              if (!out.length) fromLeft = Math.abs(r[0].x - p.pos.x) <= Math.abs(r[r.length - 1].x - p.pos.x);
+              out.push(...(fromLeft ? r : r.reverse()));
+              fromLeft = !fromLeft;
+            }
+            list = out;
+          }
+          for (const q of list) {
+            for (let n = 0; n < 500 && !p.dead; n++) {
+              const dx = q.x - p.pos.x, dz = q.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (d < 0.35 && p.mode === 'ground') break;
+              const up = q.y - p.pos.y > 0.35 && p.mode === 'ground' && d < 2.4;
+              tick({ ...(p.mode === 'air' ? this.airSteer(q.x, q.z, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.35, d / 1.2)))), run: false, jump: up });
+            }
+            for (let n = 0; n < 4; n++) tick({});
+          }
+          const done = Lg.plates.map((id) => !!L.named.get(id)?.done);
+          if (Lg.plates.includes('bahn')) mech.bahn = !!L.named.get('bahn')?.done;
+          if (Lg.plates.includes('schach_a')) mech.schach = done.every(Boolean);
+          log.push(['platten', Lg.plates.join('+'), list.length, JSON.stringify(done)]);
+          if (!done.every(Boolean)) log.push(['FEHLER: nicht alle Platten umgefärbt', Lg.plates.join('+')]);
+          continue;
+        }
+        // ------------------------------------------------ Plattentreppe (Plattenwand mode treppe): warten, bis alle Stufen draußen sind, Stufe für Stufe hinauf, dann auf die Wand
+        if (Lg.steps) {
+          const w = L.named.get(Lg.steps), seg = L.data.segments.find((x) => x.id === Lg.steps);
+          const dx = seg.dir?.[0] ?? 0, dz = seg.dir?.[1] ?? 1, depth = seg.depth ?? 1.6, thick = seg.thick ?? depth + 0.1;
+          let k = 0;
+          for (; k < 900 && !w.panels.every((q) => q.solid && q.k > 0.99); k++) tick({});
+          let ok = true;
+          for (const q of w.panels) {
+            const tx = q.cx + dx * depth * 0.5, tz = q.cz + dz * depth * 0.5;
+            let n = 0, air = false;
+            for (; n < 400 && !p.dead; n++) {
+              const ex = tx - p.pos.x, ez = tz - p.pos.z, d = Math.hypot(ex, ez);
+              if (air && p.mode === 'ground') break;
+              if (p.mode === 'air') { air = true; tick({ ...(p.vel.y < 4 || p.pos.y > q.y + 0.2 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : {}), jump: true }); continue; }
+              tick({ ...this.stick(ex, ez, Math.min(1, Math.max(0.3, d))), run: false, jump: n > 2 && q.y - p.pos.y > 0.3 });
+              if (d < 0.3 && Math.abs(q.y - p.pos.y) < 0.1) break;
+            }
+            if (Math.abs(p.pos.y - q.y) > 0.15) { ok = false; log.push(['FEHLER: Stufe verfehlt', Lg.steps, q.col, q.row, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); break; }
+          }
+          // auf die Wand: Mitte der Oberseite über der letzten Stufe
+          if (ok) {
+            const last = w.panels[w.panels.length - 1];
+            const tx = last.cx, tz = last.cz - dz * thick * 0.5, top = seg.pos[1] + seg.size[1];
+            let air = false;
+            for (let n = 0; n < 400 && !p.dead; n++) {
+              if (air && p.mode === 'ground') break;
+              if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > top + 0.1 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : {}), jump: true }); continue; }
+              tick({ jump: true });
+            }
+            for (let n = 0; n < 300 && !p.dead; n++) { const ex = tx - p.pos.x, ez = tz - p.pos.z - dz * 1.2; if (Math.hypot(ex, ez) < 0.3) break; tick({ ...this.stick(ex, ez, 0.6), run: false }); }
+            if (p.pos.y < top - 0.1) log.push(['FEHLER: Wand nicht erreicht', Lg.steps, +p.pos.y.toFixed(2)]);
+          }
+          mech.treppen = (mech.treppen ?? 0) + 1;
+          log.push(['plattentreppe', Lg.steps, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Takt-Plattenwand: Stufe für Stufe hinauf, sobald die nächste draußen ist
+        if (Lg.climbwall) {
+          const w = L.named.get(Lg.climbwall), seg = L.data.segments.find((x) => x.id === Lg.climbwall);
+          const dz = seg.dir?.[1] ?? 1, depth = seg.depth ?? 1.6, thick = seg.thick ?? depth + 0.1;
+          const rows = [...w.panels].sort((a, b) => a.row - b.row);
+          let ok = true;
+          for (const q of rows) {
+            const tx = q.cx, tz = q.cz + dz * depth * 0.55;
+            let k = 0;
+            for (; k < 1500 && !(q.solid && q.state === 'aussen' && q.t < 0.5); k++) { const ex = tx - p.pos.x, ez = tz + dz * 0.6 - p.pos.z; tick(p.mode === 'ground' && Math.hypot(ex, ez) > 0.25 && q.row === 0 ? this.stick(ex, ez, 0.5) : {}); }
+            let air = false;
+            for (let n = 0; n < 300 && !p.dead; n++) {
+              if (air && p.mode === 'ground') break;
+              if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > q.y + 0.1 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : this.airSteer(tx, tz + dz * 0.4, 0, 0, 2, 2)), jump: true }); continue; }
+              tick({ jump: true });
+            }
+            if (Math.abs(p.pos.y - q.y) > 0.15) { ok = false; log.push(['FEHLER: Takt-Stufe verfehlt', q.row, +p.pos.y.toFixed(2), q.y, q.state, +q.t.toFixed(2)]); break; }
+          }
+          if (ok) {
+            const top = seg.pos[1] + seg.size[1], tx = rows[0].cx, tz = rows[0].cz - dz * thick * 0.5;
+            let air = false;
+            for (let n = 0; n < 300 && !p.dead; n++) {
+              if (air && p.mode === 'ground') break;
+              if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > top + 0.1 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : {}), jump: true }); continue; }
+              tick({ jump: true });
+            }
+            for (let n = 0; n < 120; n++) tick({});
+          }
+          log.push(['taktwand', Lg.climbwall, ok, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
         // ------------------------------------------------ Schiebekugel über Wegpunkte rollen (Figur stellt sich dahinter)
         if (Lg.roll) {
           const ball = L.named.get(Lg.roll);
@@ -674,6 +856,8 @@ function install() {
       mech.mausSprung = L.entities.filter((e) => e.kind === 'huepfmaus').reduce((a, e) => a + (e.jumps ?? 0), 0) - mice0;
       mech.regen = L.named.get('regen')?.landed ?? 0;
       mech.turns = L.named.get('karussell')?.turns ?? 0;
+      mech.spits = L.entities.filter((e) => e.kind === 'krakenpilz').reduce((a, e) => a + (e.spits ?? 0), 0);
+      mech.outfit = JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').outfits?.stern?.from ?? null;
       mech.doorTurns = L.named.get('drehtuer')?.turns ?? 0;
       mech.saved = (JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').levels?.[L.id]?.stars ?? []).filter(Boolean).length;
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };

@@ -765,6 +765,88 @@ class Sternmauer extends CourseEntity {
   info() { return { broken: this.broken, by: this.by }; }
 }
 
+/**
+ * Sternziegel (Bauplan S-2 Stern 1 „Ziegel neben der rechten blauen Platte“): sieht aus wie ein Ziegel (Registry-Modell
+ * brick_block), schwebt; Kopfstoß von unten, Stampfen von oben, Tatze, Feuer, Riese zerbrechen ihn → Trümmer und Aktion
+ * onBreak (z. B. { star: 0, pos }). Glitzert leise (Hinweis).
+ *   { pos: [x, y, z] (Mitte der Unterseite), onBreak, id }   Laufzeit: broken, by, info().
+ */
+class Sternziegel extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'sternziegel');
+    this.touch = false;
+    this.broken = false;
+    this.by = null;
+    this.half.set(0.5, 0.5, 0.5);
+    const p = this.pos;
+    this.addShape({ type: 'box', min: [p.x - 0.5, p.y, p.z - 0.5], max: [p.x + 0.5, p.y + 1, p.z + 0.5], tag: 'sternziegel' });
+    this.glitter = 0;
+    if (level.view) {
+      const m = getModel(hasModel('brick_block') ? 'brick_block' : 'question_block');
+      this.setModel(m);
+    }
+  }
+  onBump() { this.breakUp('bump'); }
+  onPound() { this.breakUp('pound'); }
+  onHit(kind) { if (kind === 'claw' || kind === 'fire' || kind === 'mega' || kind === 'pound' || kind === 'bomb' || kind === 'shell') this.breakUp(kind); }
+  breakUp(by) {
+    if (this.broken) return;
+    this.broken = true;
+    this.by = by;
+    this.removeShapes();
+    const L = this.level, p = this.pos;
+    L.sfx('brickbreak');
+    L.effects?.debris({ x: p.x, y: p.y + 0.4, z: p.z }, 0xd8743a, 10);
+    L.effects?.sparks({ x: p.x, y: p.y + 0.6, z: p.z }, 18);
+    runAction(L, this.spec.onBreak, { pos: [p.x, p.y + 1, p.z], source: this });
+    this.kill();
+  }
+  update(dt) {
+    this.glitter -= dt;
+    if (this.glitter <= 0 && !this.broken) { this.glitter = 0.9; this.level.effects?.sparks({ x: this.pos.x, y: this.pos.y + 1.05, z: this.pos.z }, 1); }
+  }
+  info() { return { broken: this.broken, by: this.by }; }
+}
+
+/** Sternziegel anlegen: list [{ pos, onBreak, id }]. */
+export function sternziegel(level, list) {
+  return list.map((q) => {
+    const e = new Sternziegel(level, q);
+    level.entities.push(e);
+    if (q.id) level.named.set(q.id, e);
+    return e;
+  });
+}
+
+/**
+ * Planetoiden-Unterbauch (S-2): unter einer rechteckigen Grasinsel eine abgeflachte Halbkugel in den Erdfarben des
+ * Themas (lila Sternenerde mit Kraterchen) – die Inseln sehen aus wie kleine Planeten. Nur Optik, statisch.
+ *   list [{ x0, x1, z0, z1, top, h (Inselhöhe), depth: Tiefe der Kugel, color, crater }]
+ */
+export function planetenbauch(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  const rnd = new Rnd(97);
+  for (const q of list) {
+    const cx = (q.x0 + q.x1) / 2, cz = (q.z0 + q.z1) / 2, w = Math.abs(q.x1 - q.x0), d = Math.abs(q.z1 - q.z0);
+    const y0 = q.top - (q.h ?? 1);
+    const rx = w * 0.56, rz = d * 0.56, ry = q.depth ?? Math.min(6, Math.max(2, Math.min(w, d) * 0.55));
+    const A = new THREE.Color(q.color ?? 0x8a62c8), B = new THREE.Color(q.color2 ?? 0x4a2a88), c = new THREE.Color();
+    const g = new THREE.SphereGeometry(1, 20, 10, 0, TAU, Math.PI / 2, Math.PI / 2);
+    g.scale(rx, ry, rz);
+    g.translate(cx, y0 + 0.05, cz);
+    b.add(g, { v: (x, y) => c.copy(A).lerp(B, Math.min(1, (y0 - y) / ry)) });
+    // Kraterchen und Kristalle am Bauch
+    const n = q.crater ?? Math.max(2, Math.round((w + d) / 5));
+    for (let i = 0; i < n; i++) {
+      const a = rnd.real(0, TAU), t = rnd.real(0.35, 0.8);
+      const x = cx + Math.cos(a) * rx * Math.sqrt(1 - t * t) * 0.98, z = cz + Math.sin(a) * rz * Math.sqrt(1 - t * t) * 0.98, y = y0 - ry * t * 0.98;
+      b.sphere(rnd.real(0.25, 0.55), x, y, z, 0x6a48a8, { s: [1, 0.5, 1], ws: 8, hs: 5 });
+    }
+  }
+  b.flush(level, { castShadow: false });
+}
+
 /** Sternblock-Mauern anlegen: list [{ id, x0, x1, z0, z1, y, h, coins, onBreak }]. */
 export function sternmauern(level, list) {
   return list.map((q) => {
