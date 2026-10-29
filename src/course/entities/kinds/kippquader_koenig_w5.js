@@ -51,6 +51,7 @@ import { CourseEntity } from '../CourseEntity.js';
 import { spawnLoot } from '../Enemy.js';
 import { landingHint } from '../../blocks/w5kit.js';
 import { getModel, hasModel } from '../../models/index.js';
+import { bossManaged } from '../w6help.js';
 
 const W = 3.4, H = 3.6, D = 1.5;
 const LX0 = D / 2, LX1 = D / 2 + H, LH = D;
@@ -137,7 +138,8 @@ class KippquaderKoenig extends EnemyW2 {
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
-  get managed() { return !!this.level.archetype && this.level.data?.boss && (this.level.data.boss.id ?? 'baron') === this.spec.id; }
+  // LEVEL.boss wie bisher; additiv (Präzisierung Gegner Bonuswelten): auch LEVEL.bosses und Boss-Gruppen (bossManaged)
+  get managed() { return bossManaged(this.level, this.spec.id); }
   val(key, def) { return pick(this.spec[key], this.phase, def); }
   /** Lava/Absturz: der König bleibt auf der Insel (die Arenagrenze hält ihn). */
   checkLava() { return false; }

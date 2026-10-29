@@ -54,6 +54,12 @@
 //   Riese waves Ringe (Standard 2, der zweite waveGap s später: 0,45), Radius shockR (Standard 8), shockSpeed (Standard 8);
 //   die Würfelblase selbst (Sprung aus dem platzenden Riesen) eine kleine Welle (Radius 4). Alle 0,45 m hoch – überspringbar.
 //   Daten zusätzlich: color: 'gold', waves?: 2, waveGap?: 0.45. Laufzeit zusätzlich: gold, goldWaves (Wellen-Entitäten), waveHits.
+//
+// Bonuswelten – **Würfelblase im Boss-Marathon B-12** (Präzisierung Gegner Bonuswelten, additiv): steht waves (Zahl) auch ohne
+//   color 'gold' in den Daten, erzeugt jede Riesen-Landung waves Schockwellen-Entitäten in der Farbe waveColor (Standard 'weiss';
+//   Radius shockR, Standard 8; shockSpeed, Standard 9; Abstand waveGap) – „mehr, schnellere Schockwellen“; die Würfelblase
+//   selbst macht beim Sprung aus dem platzenden Riesen eine kleine Welle. Ohne waves (und ohne gold) bleibt alles wie 6-C.
+//   Daten zusätzlich: waves?: 3, waveGap?: 0.4, waveColor?: 'weiss' | 'gold'. Laufzeit: multi (mehrere Wellen aktiv).
 
 import * as THREE from 'three';
 import { EnemyW2, figures, activeFigure, clamp, sharedSlot } from '../EnemyW2.js';
@@ -302,6 +308,9 @@ class Wuerfelblase extends EnemyW2 {
     this.wakeR = spec.wakeR ?? 12;
     this.pools = new BitPools(level, 24);
     this.gold = spec.color === 'gold' || spec.variant === 'gold';
+    // Bonuswelten (B-12): mehrere Schockwellen-Entitäten auch ohne Gold
+    this.multi = this.gold || Number.isFinite(spec.waves);
+    this.waveColor = spec.waveColor ?? (this.gold ? 'gold' : 'weiss');
     this.goldWaves = [];
     this.waveQueue = [];
     this.waveHits = 0;
@@ -390,7 +399,7 @@ class Wuerfelblase extends EnemyW2 {
     if (this.grace > 0) this.grace -= dt;
     this.bits = this.bits.filter((b) => !b.removed);
     this.stepWaves(dt);
-    if (this.gold) this.stepGold(dt);
+    if (this.multi) this.stepGold(dt);
     if (this.splitT >= 0) {
       this.splitT += dt;
       if (this.splitT >= SPLIT) { this.splitT = -1; this.scatter(this.splitN); }
@@ -583,9 +592,10 @@ class Wuerfelblase extends EnemyW2 {
     }
     // Schockwelle (golden: waves Ringe als Entitäten 'schockwelle')
     this.wavesN++;
-    if (this.gold) {
-      const n = Math.max(1, this.spec.waves ?? 2), gap = this.spec.waveGap ?? 0.45;
-      for (let i = 0; i < n; i++) this.waveQueue.push({ t: i * gap, x: this.pos.x, y: this.arena.y, z: this.pos.z, r0: this.S / 2, R: this.spec.shockR ?? 8, speed: (this.spec.shockSpeed ?? 8) * (1 - i * 0.12) });
+    if (this.multi) {
+      const n = Math.max(1, this.spec.waves ?? 2), gap = this.spec.waveGap ?? (this.gold ? 0.45 : 0.4);
+      const sp0 = this.spec.shockSpeed ?? (this.gold ? 8 : 9);
+      for (let i = 0; i < n; i++) this.waveQueue.push({ t: i * gap, x: this.pos.x, y: this.arena.y, z: this.pos.z, r0: this.S / 2, R: this.spec.shockR ?? 8, speed: sp0 * (1 - i * 0.12) });
       return;
     }
     this.waves.push({ x: this.pos.x, z: this.pos.z, y: this.arena.y, r: this.S / 2, rMax: this.spec.shockR ?? 6, hit: new Set() });
@@ -599,7 +609,7 @@ class Wuerfelblase extends EnemyW2 {
       if (q.t > 0) continue;
       this.waveQueue.splice(i, 1);
       if (this.hp <= 0) continue;
-      const w = this.level.spawn('schockwelle', { pos: [q.x, q.y, q.z], radius: q.R, r0: q.r0, speed: q.speed, color: 'gold', owner: this });
+      const w = this.level.spawn('schockwelle', { pos: [q.x, q.y, q.z], radius: q.R, r0: q.r0, speed: q.speed, color: this.waveColor, owner: this });
       if (w) { this.goldWaves.push(w); this.level.sfx('slam'); }
     }
     for (const w of this.goldWaves) {
@@ -860,7 +870,7 @@ class Wuerfelblase extends EnemyW2 {
       state: this.state, hp: this.hp, maxHp: this.maxHp, phase: this.phase, giants: this.giants, giantSize: +(this.S || 0).toFixed(2),
       sizes: this.sizes.slice(), jumpsDone: this.jumpsDone, landings: this.landings, waves: this.wavesN, merged: this.merged,
       bits: this.liveBits.length, bitsDown: this.bitsDown, splits: this.splits, flees: this.flees, hits: this.hits,
-      bounces: this.bounces, misses: this.misses, vulnerable: this.vulnerable, gold: this.gold, waveHits: this.waveHits,
+      bounces: this.bounces, misses: this.misses, vulnerable: this.vulnerable, gold: this.gold, multi: this.multi, waveHits: this.waveHits,
       x: +this.pos.x.toFixed(2), y: +this.pos.y.toFixed(2), z: +this.pos.z.toFixed(2),
     };
   }

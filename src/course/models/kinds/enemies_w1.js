@@ -8,7 +8,7 @@
 // krallen_pilzling  ≈0,85 m Pilzling mit gestreifter Krallen-Mütze (runde Öhrchen), Katzenaugen, Krallen.
 //   state { anim: wie pilzling + 'pounce', speed }  pounce: 0–0,22 s ducken, danach gestreckter Sprung
 //   (der Motor bewegt root; das Modell zeigt nur die Pose).
-// pilzlingsturm     Stapel aus opts.count (3–5, Standard 4) Pilzlingen, je Stufe 0,62 m.
+// pilzlingsturm     Stapel aus opts.count (3–5, Standard 4) Pilzlingen, je Stufe 0,62 m. Bonuswelten (additiv): opts.tall → bis 30.
 //   opts { count }  state { anim: 'walk'|'idle'|'alert'|'stunned', speed, count (übrige Stufen, von unten;
 //   Stufen darüber verschwinden mit kleinem Plopp) }  Wackelt beim Laufen (Welle läuft nach oben).
 //   root.userData.height(count) → Höhe des Turms in m.
@@ -231,7 +231,9 @@ function pilzSolidGeos(withFeet) {
 }
 
 function buildTower(opts = {}) {
-  const n = clamp(Math.round(opts.count ?? 4), 3, 5);
+  // opts.tall (Bonuswelten, additiv): bis 30 Stufen (P-4), sanfteres Wackeln der oberen Stufen
+  const n = clamp(Math.round(opts.count ?? 4), 3, opts.tall ? 30 : 5);
+  const calm = n > 5 ? 5 / n : 1;
   const solid = pilzSolidGeos(false), footGeo = pilzFootGeo('plain');
   const mat = vcol(0.42);
   const root = new THREE.Group();
@@ -269,7 +271,7 @@ function buildTower(opts = {}) {
       L.pop = damp(L.pop, on ? 1 : 0, on ? 12 : 18, dt);
       // Welle läuft nach oben; jede Stufe kippt etwas gegen die untere
       const ph = phase - i * 0.9;
-      const k = amp * (0.35 + i * 0.25);
+      const k = amp * (0.35 + i * 0.25) * calm;
       L.lv.position.set(0, i === 0 ? 0 : TOWER_STEP, 0);
       L.lv.rotation.set(Math.sin(ph) * 0.07 * k + (anim === 'stunned' ? Math.sin(t * 5 + i) * 0.05 : 0), 0,
         Math.cos(ph * 0.5) * 0.035 * k - (walking ? 0.03 : 0));
