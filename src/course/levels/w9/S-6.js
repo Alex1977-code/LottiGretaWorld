@@ -90,11 +90,8 @@ function setup(level) {
 }
 
 const DECO = [
-  // Wabensäulen tief unten im All (weit weg vom Weg: von oben deutlich kleiner, keine Verwechslung mit Wegen)
-  ...[[-26, -10], [27, -48], [-28, -96], [26, -140], [-27, -196], [28, -250], [-25, -300]]
-    .map(([x, z], i) => ({ kind: 'wabe', pos: [x, -40, z], radius: 2.2 + (i % 3) * 0.6, height: 14, variant: i % 3 === 1 ? 'lava' : i % 3 === 2 ? 'eis' : 'normal' })),
   // Planeten in der Tiefe
-  { kind: 'planet', pos: [-24, -14, -20], radius: 6, variant: 'ring', color: 'gold' },
+  { kind: 'planet', pos: [-26, -16, 2], radius: 6, variant: 'ring', color: 'gold' },
   { kind: 'planet', pos: [22, -18, -86], radius: 7, variant: 'blume', color: 'rosa' },
   { kind: 'planet', pos: [-22, -16, -160], radius: 5, variant: 'eis', color: 'blau' },
   { kind: 'planet', pos: [24, -20, -232], radius: 8, variant: 'pilz', color: 'lila' },
@@ -111,6 +108,7 @@ const DECO = [
   { kind: 'komet', pos: [-17, -3, -186], size: 1, dir: [1, -0.3, -0.2] },
   { kind: 'kristall', pos: [-7.07, 0, -164.3], n: 4, color: 'lila', size: 0.7 },
   { kind: 'kristall', pos: [5.66, 0, -2.45], n: 3, color: 'gold', size: 0.6 },
+  { kind: 'kristall', pos: [-5.66, 0, 4.9], n: 3, color: 'rosa', size: 0.45 },            // Hinweis aufs Extraleben
 ];
 
 export const LEVEL = {
@@ -132,14 +130,14 @@ export const LEVEL = {
     { from: -282, to: -320, pitch: 40, dist: 16, fov: 40, height: 3.5, x: 0, xLock: 0.6 },
   ],
   segments: [
-    { type: 'draufsicht', id: 'oben', area: [-60, 14, 60, -284], height: 17, fov: 42, ahead: 3, blend: 7 },
+    { type: 'draufsicht', id: 'oben', area: [-60, 14, 60, -284], height: 15.5, fov: 44, ahead: 3, blend: 7 },
     ...WABEN,
     { type: 'platform', pos: [-10.2, 0.6, -4.2], size: [3, 0.7, 3], style: 'block', color: 'orange' },   // Schwebeblock links vom Start
     { type: 'glasspipe', id: 'roehre', path: [[0, 1.0, -88.6], [0, 1.0, -93], [0, 2.4, -101], [0, 1.0, -108], [0, 1.0, -112.4]], radius: 1, coins: 6, exitSpeed: 6 },
     // Stachelwalzen (rot, rundum bestachelt, drehen auf der Stelle) – mit Lücken über Lava/Eis daneben
-    { type: 'stachelwalze_rot', id: 'walze1', pos: [-2.4, 0.5, -62.6], axis: 'x', radius: 1.0, length: 12, speed: 1.3 },
-    { type: 'stachelwalze_rot', id: 'walze2', pos: [2.4, 0.5, -72.4], axis: 'x', radius: 1.0, length: 12, speed: -1.3 },
-    { type: 'stachelwalze_rot', id: 'walze3', pos: [0, 0.5, -79.8], axis: 'x', radius: 1.0, length: 9, speed: 1.6 },
+    { type: 'stachelwalze_rot', id: 'walze1', pos: [-2.4, 0.5, -62.6], axis: 'x', radius: 1.0, length: 12, speed: 1.3, shadow: false },
+    { type: 'stachelwalze_rot', id: 'walze2', pos: [2.4, 0.5, -72.4], axis: 'x', radius: 1.0, length: 12, speed: -1.3, shadow: false },
+    { type: 'stachelwalze_rot', id: 'walze3', pos: [0, 0.5, -79.8], axis: 'x', radius: 1.0, length: 9, speed: 1.6, shadow: false },
     // fliegende Blöcke mit Feuer-Schnappblumen zwischen den Splitterwegen
     { type: 'mover', id: 'flug1', path: [[-4.25, -0.3, -176], [-4.25, -0.3, -192]], size: [2.4, 0.6, 2.4], speed: 1.8, wait: 0.8, color: 'orange' },
     { type: 'mover', id: 'flug2', path: [[4.25, -0.3, -201], [4.25, -0.3, -185]], size: [2.4, 0.6, 2.4], speed: 1.8, wait: 0.8, color: 'orange', phase: 0.3 },
@@ -151,7 +149,7 @@ export const LEVEL = {
   blocks: [
     { kind: 'question', pos: [-2.83, 1.9, -4.9], content: 'sichel' },
     { kind: 'coinblock', pos: [2.83, 2.2, -4.9], count: 6 },
-    { kind: 'hidden', pos: [5.66, 2.4, 4.9], content: 'oneup' },                         // Extraleben hinter dem Start
+    { kind: 'hidden', pos: [-5.66, 2.4, 4.9], content: 'oneup' },                        // Extraleben hinter dem Start (links hinten)
     { kind: 'question', pos: [-2.83, 1.9, -122.6], content: 'sichel' },                 // Spiegelfrucht-Insel
     { kind: 'question', pos: [2.83, 1.9, -226.3], content: 'sichel' },                  // Kontrollpunkt 2
     { kind: 'question', pos: [0, 1.9, -139.6], content: 'coins:5' },

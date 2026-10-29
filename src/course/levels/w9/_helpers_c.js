@@ -348,14 +348,27 @@ export function muenzenFlach(level, lift = 0.42) {
 /**
  * Leuchtring unter jeder Figur (nur Darstellung): in der Draufsicht (Gewicht der draufsicht-Bereiche) liegt ein heller,
  * pulsierender Ring auf dem Boden unter Heldin und Klonen – so findet man die kleine Figur von oben sofort. Eine
- * Instanz-Gruppe, kein Schatten.  o { color 0xfff4c0, radius 0.8 }
+ * Instanz-Gruppe, kein Schatten. In der Luft liegt er auf dem Boden darunter – so sieht man von oben, wo man landet.
+ *   o { color 0x2ad8e8 (inneres Band), radius 0.85 }
  */
 export function leuchtring(level, o = {}) {
   if (!level.view) return;
   const N = 6;
-  const g = new THREE.RingGeometry((o.radius ?? 0.8) * 0.68, o.radius ?? 0.8, 32);
+  // zwei Bänder: außen weiß, innen türkis – auf Honig, Lava und Eis gleich gut zu sehen; dazu vier kleine Zacken
+  const R0 = o.radius ?? 0.85;
+  const band = (r0, r1, col) => { const g = new THREE.RingGeometry(r0, r1, 36).toNonIndexed(); const c = lin(col); return colorize(g, (pp, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; }); };
+  const ticks = [];
+  for (let k = 0; k < 4; k++) {
+    const tg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.13, R0 + 0.02, 0), new THREE.Vector3(0.13, R0 + 0.02, 0), new THREE.Vector3(0, R0 + 0.24, 0)]);
+    tg.computeVertexNormals();
+    tg.rotateZ(k * Math.PI / 2 + Math.PI / 4);
+    const c = lin(0xffffff);
+    colorize(tg, (pp, n, out) => { out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; });
+    ticks.push(tg);
+  }
+  const g = merge([band(R0 * 0.8, R0, 0xffffff), band(R0 * 0.6, R0 * 0.8, o.color ?? 0x2ad8e8), ...ticks]);
   g.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshBasicMaterial({ color: o.color ?? 0xfff4c0, transparent: true, opacity: 0.85, depthWrite: false });
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
   const mesh = new THREE.InstancedMesh(g, mat, N);
   mesh.frustumCulled = false;
   mesh.renderOrder = 3;
@@ -382,6 +395,6 @@ export function leuchtring(level, o = {}) {
     }
     mesh.count = n;
     mesh.instanceMatrix.needsUpdate = true;
-    mat.opacity = 0.65 + Math.sin(t * 5) * 0.15;
+    mat.opacity = 0.8 + Math.sin(t * 5) * 0.12;
   });
 }

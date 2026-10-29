@@ -72,12 +72,12 @@ const ROUTES = {
           { to: [-5.4, -26.2], within: 0.3, run: false }, { throwAt: [-11.6, -26.2] }], shot: 'stempel' },
     ],
     extra: [
-      { name: 'Extraleben: unsichtbarer Block hinter dem Start', from: [5.66, 0, 6], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [5.66, 4.9], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: unsichtbarer Block hinter dem Start (links hinten bei den rosa Kristallen)', from: [-4.3, 0, 3.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-5.0, 4.4], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', power: 'oneup', max: 1200 }] },
       { name: 'Extraleben: unsichtbarer Block über der hohen Wabe im Käferfeld', from: [5.66, 0, -152], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [7.07, -154.5], jump: 20, jumpAt: 2.5, within: 0.25, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
-      { name: 'Lava-Wabe: Draufspringen verletzt und schleudert hoch', from: [0, 0, -88.5], heroes: ['lotti'], invuln: false, allowFail: true,
-        legs: [{ to: [0, -92.6], within: 0.4, run: false, max: 200 }, { wait: 60 }],
+        legs: [{ to: [7.07, -154.5], jump: 20, jumpAt: 2.5, within: 0.25, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', power: 'oneup', max: 1200 }] },
+      { name: 'Lava-Wabe: Draufspringen verletzt und schleudert hoch', from: [3.4, 0, -88.8], heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ to: [3.4, -93.4], within: 0.4, run: false, max: 200 }, { wait: 60 }],
         mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
       { name: 'Stachelwalze: Hineinlaufen verletzt', from: [0, 0, -58.6], heroes: ['lotti'], invuln: false, allowFail: true,
         legs: [{ to: [-3, -62.6], within: 0.3, run: false, max: 240 }, { wait: 30 }],
@@ -239,7 +239,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]); continue; }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, jump: Lg.jump, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +P().pos.x.toFixed(1), +P().pos.y.toFixed(1), +P().pos.z.toFixed(1), P().power]); continue; }
+        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, jump: Lg.jump, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : Lg.power ? (e) => e.power === Lg.power : null }); log.push(['jagd', Lg.chaseKind, n, +P().pos.x.toFixed(1), +P().pos.y.toFixed(1), +P().pos.z.toFixed(1), P().power]); continue; }
         // ------------------------------------------------ in eine Glasröhren-Öffnung laufen (unterwegs Stick halten)
         if (Lg.pipe) {
           const [tx, tz] = Lg.pipe;
