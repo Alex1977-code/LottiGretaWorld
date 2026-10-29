@@ -813,8 +813,8 @@ async function haus() {
       for (const e of errors.slice(0, 8)) console.log('      ', e);
       check(`${id}: „Haus Krallenkraxel“, Welt 8, Archetyp house, Thema house, Musik course_house, 10 Räume à 10 s, 10 Sterne, fail 'exit'`,
         d.title === 'Haus Krallenkraxel' && d.world === 8 && d.arch === 'house' && d.theme === 'house' && d.music === 'course_house' && d.rooms === 10 && d.times.every((t) => t === 10) && d.fail === 'exit' && d.starCount === 10);
-      check(`${id}: Ziegel 75, Bröckel-Bauklötze 12, POW 1, Druckschalter 1, Pilzlinge 3 (${JSON.stringify(d.kinds)})`,
-        d.kinds.brick === 75 && d.kinds.bruchstueck === 12 && d.kinds.pow === 1 && d.kinds.pswitch === 1 && d.kinds.pilzling === 3);
+      check(`${id}: Ziegel 75, Bröckel-Bauklötze 8, POW 1, Druckschalter 1, Pilzlinge 3 (${JSON.stringify(d.kinds)})`,
+        d.kinds.brick === 75 && d.kinds.bruchstueck === 8 && d.kinds.pow === 1 && d.kinds.pswitch === 1 && d.kinds.pilzling === 3);
     }
     await sc(installHaus);
     const Z0 = await sc(() => window.__course.level.data._haus.Z0);
@@ -907,7 +907,7 @@ async function hausShots() {
   const KLETTERN = [[0, 5.2, 2.6], [0, 4.6, 3.2], [0, 6.6, 4.2], [2.75, 6.6, 4.4], [0, 5.4, 4.4], [0, 7.5, 4], [0, 5.6, 4.2], [0, 4.2, 2], [0, 7.5, 4.6], [0, 6.6, 4]];
   for (let i = 0; i < 10; i++) {
     if (SHOTS && !SHOTS.has(`raum${i + 1}`) && !SHOTS.has(`klettern${i + 1}`)) continue;
-    await sc((k) => { const c = window.__course; if (c.arch.info().room !== k) c.arch.enterRoom(k); window.__haus.waitPlay(k); c.player.invuln = 99; for (let q = 0; q < 6; q++) c.step(1); }, i);
+    await sc((k) => { const c = window.__course; if (c.arch.info().room !== k) c.arch.enterRoom(k); window.__haus.waitPlay(k); for (let q = 0; q < 6; q++) c.step(1); c.player.invuln = 0; }, i);
     if (!SHOTS || SHOTS.has(`raum${i + 1}`)) await shot(`${id}_raum${i + 1}`);
     // mitten an der Wand: Figur vor die Wand setzen und hinaufklettern lassen
     const [x, u, h] = KLETTERN[i];
@@ -916,6 +916,7 @@ async function hausShots() {
         const c = window.__course, p = c.player, W8 = window.__w8;
         p.invuln = 99; p.reset([px, 1, pz], Math.PI / 2);
         for (let q = 0; q < 160 && p.pos.y < 1 + n; q++) { c.setInput({ ...W8.stick(0, -1, 1), jump: q < 30 }); c.step(1); }
+        p.invuln = 0;
         c.setInput({});
       }, [i, x, Z0[i] - u, h]);
       await shot(`${id}_klettern${i + 1}`);

@@ -198,19 +198,19 @@ const CAMS = [
   cam({ pitch: 30, dist: 18, center: P(4, 0, 8, Y + 6), height: 2.4 }),
   cam({ pitch: 36, dist: 16, center: P(5, 0, 8, Y + 3) }),
   cam({ pitch: 32, dist: 18, center: P(6, 0, 9, Y + 6), height: 2.2 }),
-  cam({ pitch: 36, dist: 16, center: P(7, 0, 10, Y + 3) }),
+  cam({ pitch: 52, dist: 17, center: P(7, 0, 8, Y + 3), pull: 0.3 }),
   cam({ pitch: 36, dist: 16, center: P(8, 0, 7, Y + 3) }),
   cam({ pitch: 34, dist: 16, center: P(9, 0, 8, Y + 4) }),
 ];
 
-// Ziegel: Raum 6 (Sperre 5 × 6) und Raum 9 (Wand 5 × 9); Bröckel-Bauklötze in Raum 10 (3 × 4, darüber eine feste Kante)
+// Ziegel: Raum 6 (Sperre 5 × 6) und Raum 9 (Wand 5 × 9); Bröckel-Bauklötze in Raum 10 (2 × 4, darüber eine feste Kante)
 const ZIEGEL6 = [];
 for (let r = 0; r < 6; r++) for (let x = -2; x <= 2; x++) ZIEGEL6.push({ kind: 'brick', roomId: 'r6', pos: P(5, x, R6.ziegel, Y + r) });
 const ZIEGEL9 = [];
 for (let r = 0; r < 9; r++) for (let x = -2; x <= 2; x++) ZIEGEL9.push({ kind: 'brick', roomId: 'r9', pos: P(8, x, R9.ziegel, Y + r) });
 const KLOETZE = [];
-for (let r = 0; r < 4; r++) for (const [c, x] of [[0, -2], [1, 0], [2, 2]]) {
-  KLOETZE.push({ kind: 'bruchstueck', id: `r10_b${c}${r}`, roomId: 'r10', pos: P(9, x, R10.u, Y + 2 * r), size: [2, 2, 2], climbable: true, color: KLOTZ[(c * 2 + r) % KLOTZ.length], warn: 0.75 });
+for (let r = 0; r < 4; r++) for (const [c, x] of [[0, -1.5], [1, 1.5]]) {
+  KLOETZE.push({ kind: 'bruchstueck', id: `r10_b${c}${r}`, roomId: 'r10', pos: P(9, x, R10.u, Y + 2 * r), size: [3, 2, 2], climbable: true, color: KLOTZ[(c * 2 + r) % KLOTZ.length], warn: 0.75 });
 }
 
 export const LEVEL = {

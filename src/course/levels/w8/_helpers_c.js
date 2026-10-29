@@ -466,9 +466,33 @@ export function lavaRinnen(level, o) {
  */
 export function broeckelWand(level, prefix, o = {}) {
   const st = { touched: 0 };
+  // bunte Griffe auf der Vorderseite jedes Stücks (Kind am Modell; frisch erzeugte Stücke bekommen sie beim nächsten Schritt)
+  const griffeMat = level.view ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }) : null;
+  const griffeGeo = new Map();
+  const griffe = (e) => {
+    const root = e.model?.root;
+    if (!root || root.userData.griffe) return;
+    root.userData.griffe = true;
+    const key = `${e.size.x}|${e.size.y}|${e.size.z}`;
+    if (!griffeGeo.has(key)) {
+      const rnd = new Rnd(31), parts = [];
+      const nx = Math.max(1, Math.round(e.size.x / 0.9)), ny = Math.max(1, Math.round(e.size.y / 0.9));
+      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+        const g = sph(0.11 + rnd.frac() * 0.05, 0, 0, 0, GRIFFE[Math.floor(rnd.frac() * GRIFFE.length)], { ws: 6, hs: 4 });
+        g.scale(1.2, 0.8, 0.55);
+        g.translate(-e.size.x / 2 + (i + 0.5) * (e.size.x / nx) + (rnd.frac() - 0.5) * 0.3, (j + 0.5) * (e.size.y / ny) + (rnd.frac() - 0.5) * 0.25, e.size.z / 2);
+        parts.push(g);
+      }
+      griffeGeo.set(key, merge(parts));
+    }
+    const m = new THREE.Mesh(griffeGeo.get(key), griffeMat);
+    m.name = 'griffe';
+    root.add(m);
+  };
   level.onStep(() => {
     const p = level.player;
     if (!p || p.dead) return;
+    if (griffeMat) for (const e of level.entities) if (e.kind === 'bruchstueck' && !e.removed && e.model && !e.model.root.userData.griffe && String(e.spec?.id ?? '').startsWith(prefix)) griffe(e);
     const list = level.entities.filter((e) => e.kind === 'bruchstueck' && !e.removed && String(e.spec?.id ?? '').startsWith(prefix) && e.state === 'ganz');
     if (!list.length) return;
     let pt = null;
