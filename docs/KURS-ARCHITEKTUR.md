@@ -9501,8 +9501,9 @@ Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Beide: Arche
 - Abschnitte: **Startdeck** (Kanonen-Helme) → **Schienenbrett-Fahrt** (≈ 100 m, `schienenbrett` mit Bärenwand auf dem Gleis,
   Kanonenturm und Krakenpilz auf Seitendecks) → **Station M1** → zweites Brett mit **Weiche** (nicht umgeschossen: Kehrschleife
   zurück) → **Kugelwand-Platz** (Kontrollpunkt) → **Kugelwand** (`kanonenkugel_wand`, neun Reihen, ≈ 20 m hinauf) → Gipfel →
-  **Kopfsprung ins Sternenbecken** → **Unterwassertunnel** (≈ 60 m unter einer Glasdecke, Riff, Tintlinge; Wasser `show:
-  false` + eigene klare Darstellung `klaresWasser`) → **Kontrollpunkt-Deck** → **Schienennetz** (≈ 150 m, drei Weichen zum
+  **Kopfsprung ins Sternenbecken** → **Unterwassertunnel** (≈ 60 m unter einer Glasdecke knapp unter dem Wasserspiegel –
+  eine unsichtbare Sperre darüber verhindert das Überlaufen –, Riff, Tintlinge; Wasser `show: false` + eigene klare
+  Darstellung `klaresWasser`) → **Kontrollpunkt-Deck** → **Schienennetz** (≈ 150 m, drei Weichen zum
   Umschießen, zwei Kehrschleifen, Brett fällt am Ende) → Zieldeck.
 - Sterne: 0 **rissige Wand** rechts an Station M1 (`felsblock` look `wand`, nur Kanonenkugel/Bombe) sprengen · 1 im Tunnel
   abtauchen und die **Ziegel** in der Nische rechts wegschießen · 2 **Sternweiche** im Netz umschießen und die **Sternkapsel**
@@ -9530,7 +9531,9 @@ Schlüsseln, Tor, Floß, Nebelwellen, Boost-Steg und Warp-Box; S-9 mit drei Bret
 abgeschossenen Kanonentürmen, Kugelwand und Tauchstrecke), Messgang über die Route, alle Sterne und den Stempel mit
 Gegenproben (ohne Funkelstern, bloßes Draufspringen, Nebelschlucht, Gitter; ohne Helm, ohne Wegschießen, ohne Sternweiche,
 ohne Brücke) und Extras (Tor ohne Schlüssel, Treppe vor dem POW, unsichtbare Wolke, Ziegelwand, Kerzenkammer, Extraleben,
-Kreisgeist, Nebel-Absturz, Giftsumpf-Neustart; Kehrschleife, Bärenwand, Kugelwand-Sturz, Tintling). Routen (Bot): S-8
-≈ 99 s (Lotti) / 99 s (Greta), S-9 ≈ 95 s / 94 s. Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und
-Höchstwert, Bilder Höchstwert): S-8 Ø 66 / 147 k, max 82 / 244 k (Großblock-Treppe), Bilder ≤ 87 / 239 k; S-9 Ø 70 / 150 k,
-max 103 / 217 k (Kugelwand), Bilder ≤ 101 / 245 k. Grenzen < 120 / < 300 k.
+Kreisgeist, Nebel-Absturz, Giftsumpf-Neustart; Kehrschleife, Bärenwand, Kugelwand-Sturz, Sperre über der Glasdecke,
+Tintling); die Route muss jeden Wegpunkt erreichen (Protokoll ohne Fehler). Der Kanonen-Helm feuert von selbst – der Bot schaut
+auf dem Netz nach Turm 3 zur Seite (`hold`), sonst träfe er die Weiche voraus. Routen (Bot): S-8 ≈ 99 s (Lotti) / 99 s
+(Greta), S-9 ≈ 80 s / 76 s. Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und
+Höchstwert, Bilder Höchstwert): S-8 Ø 66 / 147 k, max 82 / 244 k (Großblock-Treppe), Bilder ≤ 87 / 239 k; S-9 Ø 73 / 156 k,
+max 102 / 218 k (Kugelwand), Bilder ≤ 101 / 245 k. Grenzen < 120 / < 300 k.
