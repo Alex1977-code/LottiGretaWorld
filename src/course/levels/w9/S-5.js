@@ -31,7 +31,7 @@ const pilz = (id, x, y, z, dx = 3, o = {}) => ({ kind: 'pilzling', id, pos: [x, 
 // Bunte Riesenblöcke (statische Geometrie + Form): [x, y, z, w, h, d, Farbe]
 const BLOECKE = [
   // Stufen von der hohen Insel hinab
-  [0, 4.0, -64.2, 3.2, 1.2, 3.2, 'blau'], [-2.6, 2.6, -69.2, 3.2, 1.2, 3.2, 'rot'],
+  [0, 4.0, -63.6, 3.4, 1.2, 3.4, 'blau'], [-1.6, 2.6, -67.6, 3.4, 1.2, 3.4, 'rot'],
   // Bitcoin-Insel (nur gleitend erreichbar)
   [18, 1.8, -77, 4.4, 1.2, 4.4, 'gelb'],
   // hohe Großblock-Stufen (Stern 2) und Plateau
@@ -41,7 +41,7 @@ const BLOECKE = [
   // Gebiet 2: Säule mit Schlüsselmünze, Trittblock
   [X2 + 6, 0, -203, 2.4, 4.4, 2.4, 'lila'], [X2 + 3.4, 0, -205.4, 2, 2.2, 2, 'orange'],
   // Gebiet 2: Sprungblöcke über die Lücke zur Schlüsselmünze 3
-  [X2 + 11.6, 0.6, -241, 2, 1.2, 2, 'gelb'], [X2 + 14.4, 1.6, -244.4, 2, 1.2, 2, 'gruen'], [X2 + 17.2, 2.6, -247.8, 2.4, 1.2, 2.4, 'rot'],
+  [X2 + 11.4, 0.6, -240.4, 2.2, 1.2, 2.2, 'gelb'], [X2 + 13.4, 1.6, -243.6, 2.2, 1.2, 2.2, 'gruen'], [X2 + 12.4, 2.6, -247.2, 2.4, 1.2, 2.4, 'rot'],
   // Gebiet 2: Nische der Pilzlinge (Wände)
   [X2 - 8.5, 0, -258, 1, 2.6, 8, 'weiss'], [X2 - 5.5, 0, -253.6, 5, 2.6, 0.8, 'weiss'],
   // Gebiet 2: hoher Block über dem Federfeld
@@ -114,7 +114,7 @@ export const LEVEL = {
     sign(-5.6, 0, 6.6, 'Riesenblock-\nWiese', { yaw: 0.25 }),
     isl(-6, 6, -20, -36, 0),
     isl(-7, 7, -36, -60, 7.2, 8),
-    isl(-8, 8, -72, -100, 2, 5),
+    isl(-8, 8, -71, -100, 2, 5),
     isl(-7, 7, -104, -130, 0),
     isl(-9, 9, -134, -168, 0),
     sign(-7.4, 0, -136.4, 'Stampf auf\nden Großblock!', { size: [2.6, 1.1], yaw: 0.25 }),
@@ -190,7 +190,7 @@ export const LEVEL = {
     { kind: 'schluesselmuenze', id: 'k1', group: 'ziel', pos: [X2 + 6, 4.7, -203], onAll: { reveal: 'zielbox' } },
     { kind: 'riesen_frageturm', id: 'k2turm', pos: [X2 + 5, 0, -222], size: 2.4, blocks: 2, trigger: ['pound', 'bomb', 'mega'], coins: 1, content: { reveal: 'k2' } },
     { kind: 'schluesselmuenze', id: 'k2', group: 'ziel', pos: [X2 + 5, 7.5, -222], hidden: true },
-    { kind: 'schluesselmuenze', id: 'k3', group: 'ziel', pos: [X2 + 17.2, 4.0, -247.8] },
+    { kind: 'schluesselmuenze', id: 'k3', group: 'ziel', pos: [X2 + 12.4, 4.0, -247.2] },
     { kind: 'schluesselmuenze', id: 'k4', group: 'ziel', pos: [X2 - 6.4, 0.3, -260.4] },
     { kind: 'schluesselmuenze', id: 'k5', group: 'ziel', pos: [X2 + 5.6, 6.7, -268] },
     { kind: 'warpbox', id: 'zielbox', pos: [X2, 0, -272], target: 'zielankunft', hidden: true },
@@ -198,7 +198,7 @@ export const LEVEL = {
     // Bitcoin-Pfade
     line([0, 0.6, 2], [0, 0.6, -12], 5),
     line([0, 0.6, -21], [0, 0.6, -30], 4), column(3.6, -34.6, 3.4, 6.6, 3),
-    line([0, 7.8, -38], [0, 7.8, -48], 4), ...arc([0, 7.8, -58], [-2.6, 4.4, -69.2], 4, 1.4),
+    line([0, 7.8, -38], [0, 7.8, -48], 4), ...arc([0, 7.8, -58], [-1.6, 4.4, -67.6], 4, 1.4),
     ring([18, 3.6, -77], 1.4, 6), ...arc([7.4, 8.2, -60], [16, 3.6, -75], 6, 2),
     line([-2, 2.6, -74], [2, 2.6, -86], 4), line([-7, 2.6, -97.4], [-4.8, 2.6, -99.2], 5),
     line([0, 0.6, -105], [0, 0.6, -130], 8),

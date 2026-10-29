@@ -247,6 +247,77 @@ ROUTES['S-4'] = {
   ],
 };
 
+const X2 = 70, X3 = -70;
+ROUTES['S-5'] = {
+  start: [0, 0, 6],
+  meta: { stars: 3, time: 400, theme: 'blockland', music: 'course_blockland', archetype: 'parcours', world: 9 },
+  enemies: { pilzling: 7, kickbombe: 3, riesen_frageturm: 6, felsblock: 1, schluesselmuenze: 5 },
+  main: [
+    { name: 'Startinsel', to: [0, -14.6], within: 0.5 },
+    { name: 'Sprung zur zweiten Insel', to: [0, -22.4], jump: 24, jumpAt: 7.4, within: 0.6 },
+    { to: [3.6, -30.6], within: 0.4, run: false },
+    { name: 'Aufzug-Riesen-?-Block: draufspringen und stampfen', pound: [3.6, -34.6] },
+    { until: '=ent(\'aufzug\').state === \'turm\'', max: 300 },
+    { name: 'auf die hohe Insel', to: [3, -38.6], within: 0.5, run: false },
+    { expect: '=at(-7, 7, 6.8, -36, -60)' },
+    { name: 'Pilzling auf der hohen Insel', stompAll: 'p3' },
+    { to: [-1, -58.8], within: 0.5 },
+    { name: 'Riesenblock-Stufen hinab', to: [0, -63.6], jump: 16, jumpAt: 9, within: 0.5, run: false },
+    { to: [-1.6, -67.6], jump: 16, jumpAt: 9, within: 0.5, run: false },
+    { to: [-1, -73.4], jump: 16, jumpAt: 9, within: 0.6, run: false },
+    { expect: '=at(-8, 8, 1.6, -72, -100)' },
+    { name: 'Riesentrank-Insel', to: [1, -99], within: 0.5 },
+    { to: [1.6, -107], jump: 24, jumpAt: 8, within: 0.6 },
+    { name: 'Riesen-?-Blöcke über der Wiese', to: [0.4, -130], within: 0.5 },
+    { to: [0, -137], jump: 20, jumpAt: 6.4, within: 0.6 },
+    { name: 'Ende Gebiet 1: Warp-Box zum Kontrollpunkt', warp: [0, -163] },
+    { expect: '=at(62, 78, -0.5, -186, -212)' },
+    { name: 'Schlüsselmünze 1: auf der Säule', to: [X2 + 3.4, -207.6], within: 0.4, run: false },
+    { to: [X2 + 3.4, -205.4], jump: 20, jumpAt: 9, within: 0.4, run: false },
+    { to: [X2 + 6, -203], jump: 24, jumpAt: 9, within: 0.4, run: false },
+    { to: [X2 + 1, -210], within: 0.6, run: false },
+    { to: [X2 + 2, -218], jump: 20, jumpAt: 6, within: 0.6 },
+    { name: 'Schlüsselmünze 2: Aufzug-?-Block stampfen', to: [X2 + 5, -219.6], within: 0.4, run: false },
+    { pound: [X2 + 5, -222] },
+    { until: '=ent(\'k2turm\').state === \'turm\'', max: 300 }, { wait: 40 },
+    { to: [X2 + 2, -226.4], within: 0.6, run: false },
+    { name: 'Schlüsselmünze 3: Sprungblöcke', to: [X2 + 8.4, -240.4], within: 0.4, run: false },
+    { to: [X2 + 11.4, -240.4], jump: 20, jumpAt: 9, within: 0.4, run: false },
+    { to: [X2 + 13.4, -243.6], jump: 24, jumpAt: 9, within: 0.4, run: false },
+    { to: [X2 + 12.4, -247.2], jump: 24, jumpAt: 9, within: 0.4, run: false },
+    { to: [X2 + 7.4, -250.6], jump: 20, jumpAt: 9, within: 0.8, run: false },
+    { expect: '=at(61, 79, -0.5, -248, -276)' },
+    { name: 'Schlüsselmünze 4: Nische der Pilzlinge', stompAll: 'p6' }, { stompAll: 'p7' },
+    { to: [X2 - 6.4, -260.4], within: 0.4, run: false },
+    { name: 'Schlüsselmünze 5: über das Federfeld auf den hohen Block', to: [X2 + 2.4, -264.6], within: 0.4, run: false },
+    { bounce: [X2 + 5.6, -268, 6.4], at: [X2 + 2.4, -268] },
+    { expect: '=L.keys?.ziel?.done' },
+    { to: [X2 + 2, -270.6], within: 0.6, run: false },
+    { name: 'Ziel-Warp-Box', warp: [X2, -272] },
+    { name: 'Zielmast', to: [X2, -310.4], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'fünf Schlüsselmünzen geöffnet, zwei Warp-Boxen, zwei Aufzug-Türme gewachsen', ok: (r) => r.mech.keys === 5 && r.mech.warps === 2 && r.mech.towers >= 2 },
+  ],
+  targets: [],
+  extra: [],
+  shots: [
+    ['start', [0, 0, 6]],
+    ['aufzug', [0, 0, -24]],
+    ['hoch', [0, 7.2, -40]],
+    ['stufen', [0, 7.2, -57]],
+    ['trank', [0, 2, -78]],
+    ['tuerme', [0, 0, -106]],
+    ['ende', [0, 0, -138]],
+    ['plateau', [13, 12, -153.5]],
+    ['cp', [X2, 0, -196]],
+    ['fels', [X2 + 2, 0, -226]],
+    ['nische', [X2, 0, -252]],
+    ['ziel', [X2, 0, -300]],
+    ['raum', [X3, 0, -88]],
+  ],
+};
+
 const PORT = 4945;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -541,13 +612,16 @@ function install() {
         if (Lg.pound) {
           const [tx, tz] = Lg.pound;
           let k = 0, pounded = false;
-          for (; k < 400 && !P().dead; k++) {
+          let air = 0;
+          for (; k < 600 && !P().dead; k++) {
             const q = P();
             const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz);
             if (q.mode === 'ground' && k > 4 && (pounded || q.state === 'groundpound')) break;
-            if (q.mode === 'air' && !pounded && d < 0.25 && q.vel.y < 1.5) pounded = true;
+            if (q.mode === 'air' && !pounded && d < (Lg.r ?? 0.45) && q.vel.y < 1.5 && q.pos.y > (Lg.above ?? -99)) pounded = true;
             if (pounded) { tick({ crouch: true }); continue; }
-            tick({ ...(q.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 6) : this.stick(dx, dz, 1)), jump: k < (Lg.hold ?? 30), run: false });
+            if (q.mode === 'air') air++; else air = 0;
+            // gelandet ohne Stampfen (z. B. oben auf dem Block): noch einmal hochspringen
+            tick({ ...(q.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 4, 6) : this.stick(dx, dz, d > 0.3 ? 1 : 0.2)), jump: q.mode === 'ground' ? (k < 6 || d < 0.6) : q.vel.y > 0 && air < (Lg.hold ?? 30), run: false });
           }
           for (let i = 0; i < 40; i++) tick({});
           log.push(['stampfen', `${Lg.pound}`, pounded, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
@@ -663,6 +737,68 @@ function install() {
           log.push(['weitsprung', az, longed, L.runtime.status, +(L.runtime.pole ?? 0).toFixed(2), +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
           continue;
         }
+        // ------------------------------------------------ Laufbombe (Id) in Richtung toward kicken: hinter sie stellen, hineinlaufen
+        if (Lg.kick) {
+          const e = L.entities.find((x) => x.spec?.id === Lg.kick);
+          const [gx, gz] = Lg.toward;
+          let k = 0;
+          const kicked = () => !e.alive || e.removed || e.exploded || e.state === 'kicked';
+          for (; k < 1500 && !P().dead && !kicked(); k++) {
+            const q = P();
+            const ux = gx - e.pos.x, uz = gz - e.pos.z, ul = Math.hypot(ux, uz) || 1;
+            const bx = e.pos.x - (ux / ul) * (Lg.back ?? 1.8), bz = e.pos.z - (uz / ul) * (Lg.back ?? 1.8);
+            const behind = (q.pos.x - e.pos.x) * ux + (q.pos.z - e.pos.z) * uz < -0.6 * ul && Math.abs((q.pos.x - e.pos.x) * uz - (q.pos.z - e.pos.z) * ux) / ul < 0.5;
+            if (!behind) { const dx = bx - q.pos.x, dz = bz - q.pos.z; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.4, Math.hypot(dx, dz)))), run: false }); continue; }
+            tick({ ...this.stick(e.pos.x - q.pos.x, e.pos.z - q.pos.z, 1), run: false });
+          }
+          // zurückweichen (Explosion)
+          for (let n = 0; n < (Lg.retreat ?? 240) && !P().dead; n++) { const q = P(); const [rx, rz] = Lg.away ?? [q.pos.x, q.pos.z + 4]; const dx = rx - q.pos.x, dz = rz - q.pos.z; tick(Math.hypot(dx, dz) > 0.3 ? { ...this.stick(dx, dz, 1), run: true } : {}); }
+          log.push(['kick', Lg.kick, e.state, !!e.exploded, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Schacht mit Wandsprüngen: zwischen zwei Wänden (x = a | b) hinauf bis top, dann auf land
+        if (Lg.chimney) {
+          const { a, b, z, top, land } = Lg.chimney;
+          let side = Lg.chimney.first ?? 1;     // +1 = zur Wand b (größeres x), −1 = zur Wand a
+          let k = 0, wj = 0, rel = 0;
+          for (; k < 1800 && !P().dead; k++) {
+            const q = P();
+            if (q.pos.y > top + 0.25) {
+              // über die Kante: auf die Landestelle lenken, bis sie steht
+              for (let n = 0; n < 300 && !P().dead; n++, k++) { const r = P(); if (r.mode === 'ground' && r.pos.y > top - 0.3) break; tick({ ...this.airSteer(land[0], land[1], 0, 0, 4, 6), jump: r.vel.y > 0 }); }
+              break;
+            }
+            const sx = side, sz = (z - q.pos.z) * 2;
+            if (q.mode === 'ground') { tick({ ...this.stick(sx, sz, 1), jump: true, run: false }); continue; }
+            if (q.mode === 'wall') {
+              if (rel < 2) { rel++; tick({ ...this.stick(sx, sz, 1), jump: false }); continue; }
+              side = -side; rel = 0; wj++;
+              tick({ ...this.stick(side, sz, 1), jump: true });
+              continue;
+            }
+            tick({ ...this.stick(sx, sz, 1), jump: q.vel.y > 0 });
+          }
+          log.push(['schacht', wj, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode]);
+          if (P().pos.y < top - 0.3) log.push(['FEHLER: Schacht nicht erklommen', top]);
+          void a; void b;
+          continue;
+        }
+        // ------------------------------------------------ Federfeld: aufs Trampolin (at) springen, Sprungtaste halten, über top zum Ziel lenken
+        if (Lg.bounce) {
+          const [bx, bz] = Lg.at, [tx, tz, top] = Lg.bounce;
+          let k = 0, high = false, done = false;
+          for (; k < 900 && !P().dead; k++) {
+            const q = P();
+            if (q.pos.y > top + 0.3) high = true;
+            if (high && q.mode === 'ground') { done = q.pos.y > top - 0.3; break; }
+            const [gx, gz] = high ? [tx, tz] : [bx, bz];
+            const dx = gx - q.pos.x, dz = gz - q.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(q.mode === 'air' ? this.airSteer(gx, gz, 0, 0, 3.5, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d)))), jump: q.mode === 'air' || d < 1.2, run: false });
+          }
+          log.push(['feder', done, k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          if (!done) log.push(['FEHLER: nicht oben', Lg.bounce]);
+          continue;
+        }
         // ------------------------------------------------ Boost-Lücke: über den Boost-Pfeil rennen, an der Kante (edge = z) abspringen
         if (Lg.boostGap !== undefined) {
           const [tx, tz] = Lg.to;
@@ -752,6 +888,8 @@ function install() {
       mech.revealed = L.revealedCoins ?? 0;
       mech.clocks = (ent('uhren')?.got ?? 0) - mech.clocks0;
       mech.figures = (L.players ?? []).length;
+      mech.keys = L.keys?.ziel?.n ?? 0;
+      mech.towers = L.entities.filter((e) => e.kind === 'riesen_frageturm' && e.state === 'turm').length;
       mech.side = L.entities.filter((e) => e.kind === 'coin' && e.alive && !e.removed && e.pos.x > 4 && e.pos.x < 6.5 && Math.abs(e.pos.z + 130) < 0.3).length;
       mech.pecks = L.entities.filter((e) => e.kind === 'hackvogel').map((e) => `${e.spec?.id}:${e.pecks ?? 0}`).join(' ');
       return { log, autoJumps, steps, time: steps / 120, pos: [q.pos.x, q.pos.y, q.pos.z], dead: q.dead, cause: q.deathCause ?? null, status: L.runtime.status, info: q.info(), rt: L.runtime.info(), mech, power: q.power, track };
