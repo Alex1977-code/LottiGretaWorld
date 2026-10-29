@@ -57,7 +57,7 @@ const ROUTES = {
       { name: 'goldenes Zelt aufgeschnitten (Blick in die Manege)', ok: (r) => r.mech.zelt },
     ],
     targets: [
-      { name: 'Stern 1: Hau den Lukas – Stampfattacke auf die Schlagplatte, die Glocke klingelt', star: 0, from: [-4.4, 0, 5.2],
+      { name: 'Stern 1: Hau den Lukas – Stampfattacke auf die Schlagplatte, die Glocke klingelt', star: 0, from: [-6.6, 0, 4.6],
         legs: [{ pound: [-6.6, 1.6] }, { wait: 150 }, { expect: 'stern1Sichtbar' }, { to: [-4.6, 5.6], within: 0.5 }, { star: 0 }],
         mech: (r) => r.mech.lukas?.rings >= 1 && r.mech.lukas.via === 'stampfen', mechText: (r) => `Lukas ${JSON.stringify(r.mech.lukas)}`, shot: 'stern1' },
       { name: 'Stern 1 nicht ohne Stampfen (Sprung auf die Platte, Darüberlaufen)', star: 0, expectNot: true, from: [-6.6, 0, 4.6], heroes: ['lotti'],
@@ -248,8 +248,8 @@ function install() {
           for (; k < 400; k++) {
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
             if (k > 5 && p.mode === 'ground') break;
-            if (!pounding && k > 8 && d < 0.35 && p.vel.y < 3) pounding = true;
-            tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 34, run: false });
+            if (!pounding && k > 8 && Math.abs(dx) < (Lg.r ?? 0.5) && Math.abs(dz) < (Lg.r ?? 0.5) && p.vel.y < 4) pounding = true;
+            tick(pounding ? { crouch: true } : { ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 5, 7) : this.stick(dx, dz, Math.min(1, d * 1.2))), jump: k < 34, run: false });
           }
           for (let i = 0; i < 12; i++) tick({});
           log.push(['stampfen auf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, pounding]);
