@@ -67,7 +67,7 @@ function push(level, e) {
  */
 export class Bld {
   constructor() { this.b = new Build(); this.n = 0; }
-  box(w, h, d, x, y, z, color, o = {}) { this.b.box(w, h, d, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, o.r ?? 0.04, o.seg ?? 1); this.n++; return this; }
+  box(w, h, d, x, y, z, color, o = {}) { this.b.box(w, h, d, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0], order: o.order }, o.r ?? 0.04, o.seg ?? 1); this.n++; return this; }
   cyl(rTop, rBot, h, x, y, z, color, seg = 10, o = {}) { this.b.cyl(rTop, rBot, h, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, seg, !!o.open); this.n++; return this; }
   sphere(r, x, y, z, color, o = {}) { this.b.sphere(r, color, { p: [x, y, z], s: o.s ?? 1, r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0] }, o.ws ?? 10, o.hs ?? 7); this.n++; return this; }
   cone(r, h, x, y, z, color, seg = 8, o = {}) { this.b.cone(r, h, color, { p: [x, y + h / 2, z], r: [o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0], s: o.s ?? 1 }, seg); this.n++; return this; }
@@ -594,7 +594,7 @@ export function graeber(level, list) {
     const w = 0.85 * k, h = 1.05 * k, d = 0.26 * k;
     level.world.add({ type: 'box', min: [x - w / 2 - 0.05, y, z - w / 2 - 0.05], max: [x + w / 2 + 0.05, y + h + 0.2 * k, z + w / 2 + 0.05], tag: 'grab' });
     if (!level.view) return;
-    const col = s.color ?? [0xb4b0d0, 0xa8b4cc, 0xc0b4c8, 0x9ca8c4][idx % 4];
+    const col = s.color ?? [0xc4b2ec, 0xa8d6d4, 0xe4b8d2, 0xaec0f0, 0xdccab4][idx % 5];
     const stone = litTop(col);
     const kind = s.kind ?? ['rund', 'kreuz', 'herz', 'rund', 'spitz'][idx % 5];
     b.box(w + 0.24, 0.16, d + 0.34, x, y, z, 0x8a90ac, { yaw, r: 0 });                       // Sockel
@@ -608,7 +608,7 @@ export function graeber(level, list) {
       const hh = kind === 'spitz' ? h * 0.75 : h * 0.8;
       b.box(w, hh, d, x, y + 0.16, z, stone, { yaw, r: 0 });
       if (kind === 'rund') {
-        b.add(new THREE.CylinderGeometry(w / 2, w / 2, d, 10, 1, false, 0, PI), col, { p: [x, y + 0.16 + hh, z], r: [PI / 2, yaw, PI / 2] });
+        b.add(new THREE.CylinderGeometry(w / 2, w / 2, d, 10, 1, false, 0, PI), col, { p: [x, y + 0.16 + hh, z], r: [PI / 2, yaw, PI / 2], order: 'YZX' });
         b.sphere(w * 0.5, x, y + 0.16 + hh + w * 0.3, z, 0xf8faff, { s: [1, 0.28, d / w * 1.4], yaw, ws: 8, hs: 4 });
       } else if (kind === 'spitz') {
         b.cone(w * 0.72, h * 0.42, x, y + 0.16 + hh, z, col, 4, { yaw: yaw + PI / 4, s: [1, 1, d / w * 1.5] });
@@ -965,6 +965,152 @@ export function steg(level, list) {
     }
   }
   b.flush(level, { castShadow: true });
+}
+
+/** Fünfzackiger Stern (flach extrudiert, Mitte im Ursprung, Fläche in XY). */
+function starGeo(r, depth) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = PI / 2 + (i / 10) * TAU, rr = i % 2 ? r * 0.45 : r;
+    if (i) sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+
+/** Weicher Leuchtpunkt (Textur für Irrlichter): heller Kern, sanfter Hof. */
+function softDot() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.2, 'rgba(255,255,255,1)'); gr.addColorStop(0.34, 'rgba(255,255,255,0.55)');
+  gr.addColorStop(0.62, 'rgba(255,255,255,0.16)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/**
+ * Irrlichter: schwebende, sanft wippende Lichtpunkte mit weichem Hof in bunten Farben – alle zusammen ein Points-Objekt
+ * (ein Zeichenaufruf, kein Schatten): list [{ pos, color }], o.size (1,3 m).
+ */
+export function irrlichter(level, list, o = {}) {
+  if (!level.view || !list.length) return;
+  const n = list.length, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), base = new Float32Array(n);
+  const c = new THREE.Color();
+  list.forEach((s, i) => {
+    pos[i * 3] = s.pos[0]; pos[i * 3 + 1] = s.pos[1]; pos[i * 3 + 2] = s.pos[2]; base[i] = s.pos[1];
+    c.set(s.color ?? 0x9af0ff); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.PointsMaterial({ size: o.size ?? 2.6, map: softDot(), vertexColors: true, transparent: true, depthWrite: false, sizeAttenuation: true });
+  const pts = new THREE.Points(geo, mat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 4;
+  pts.name = 'irrlichter';
+  const attr = geo.attributes.position;
+  addObject(level, pts, () => {
+    const t = level.time ?? 0;
+    for (let i = 0; i < n; i++) pos[i * 3 + 1] = base[i] + Math.sin(t * 1.5 + i * 1.7) * 0.2;
+    attr.needsUpdate = true;
+  });
+}
+
+/**
+ * Lichterketten: list [{ from: [x, y, z], to: [x, y, z], sag: 0.35 (Durchhang; negativ = Bogen nach oben), gap: 0.55,
+ * wire: true, posts: false | Fußhöhe (Pfosten an beiden Enden, ohne Kollision), star: false (goldener Stern in der Mitte) }]
+ * – bunte Birnchen (Leuchtmaterial) an einem dunklen Draht.
+ */
+export function lichterkette(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  let bi = 0;
+  for (const s of list) {
+    const [x0, y0, z0] = s.from, [x1, y1, z1] = s.to, sag = s.sag ?? 0.35;
+    const L = Math.hypot(x1 - x0, z1 - z0, y1 - y0), nb = Math.max(2, Math.round(L / (s.gap ?? 0.55)));
+    const at = (u) => [x0 + (x1 - x0) * u, y0 + (y1 - y0) * u - Math.sin(u * PI) * sag, z0 + (z1 - z0) * u];
+    const yawL = Math.atan2(x1 - x0, z1 - z0);
+    if (s.wire !== false) {
+      const ns = Math.max(4, Math.round(nb / 2));
+      for (let i = 0; i < ns; i++) {
+        const a = at(i / ns), c = at((i + 1) / ns);
+        const dl = Math.hypot(c[0] - a[0], c[1] - a[1], c[2] - a[2]), hz = Math.hypot(c[0] - a[0], c[2] - a[2]);
+        b.box(0.035, 0.035, dl, (a[0] + c[0]) / 2, (a[1] + c[1]) / 2 - 0.0175, (a[2] + c[2]) / 2, 0x2a2e48, { yaw: yawL, rx: -Math.atan2(c[1] - a[1], hz), order: 'YXZ', r: 0 });
+      }
+    }
+    for (let k = 1; k < nb; k++) {
+      const [px, py, pz] = at(k / nb);
+      g.sphere(0.075, px, py - 0.06, pz, BULBS[bi++ % BULBS.length], { s: [1, 1.25, 1], ws: 6, hs: 4 });
+    }
+    if (s.star) {
+      const [px, py, pz] = at(0.5);
+      g.add(starGeo(0.34, 0.08), 0xffd23a, { p: [px, py - 0.4, pz], r: [0, yawL + PI / 2, 0] });
+    }
+    if (s.posts !== undefined && s.posts !== false) {
+      for (const [px, py, pz] of [[x0, y0, z0], [x1, y1, z1]]) {
+        b.cyl(0.06, 0.08, py - s.posts + 0.1, px, s.posts, pz, 0x3a3a52, 6);
+        b.sphere(0.1, px, py + 0.14, pz, 0xf6f9ff, { s: [1.1, 0.6, 1.1], ws: 6, hs: 4 });
+      }
+    }
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow' });
+}
+
+/**
+ * Winterbeete (Kulisse ohne Kollision und Schatten): list [{ pos, r: 0.8, n: 6, kind: 'rosen' (Christrosen weiß/rosa) |
+ * 'krokus' (lila/gelb) | 'beeren' (Strauch mit roten Beeren und Schneehaube) }] – bringen Farbe auf den Schnee.
+ */
+const ROSE = [0xffffff, 0xffc8dc, 0xff8ab8, 0xfff0f6];
+const KROKUS = [0xb87aff, 0x9a5aff, 0xffd23a, 0xd8a8ff];
+export function winterbeete(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  list.forEach((s, idx) => {
+    const [x, y, z] = s.pos, r = s.r ?? 0.8, n = s.n ?? 6, kind = s.kind ?? ['rosen', 'krokus', 'beeren'][idx % 3];
+    if (kind === 'beeren') {
+      b.sphere(r * 0.7, x, y + r * 0.3, z, litTop(0x2a6a4e), { s: [1.2, 0.75, 1], ws: 10, hs: 6 });
+      b.sphere(r * 0.55, x, y + r * 0.62, z, 0xf8faff, { s: [1.25, 0.32, 1.05], ws: 10, hs: 5 });
+      for (let i = 0; i < n + 3; i++) {
+        const a = i * 2.4 + idx, rr = r * 0.62;
+        b.sphere(0.07, x + Math.cos(a) * rr * 1.15, y + r * 0.3 + Math.sin(i * 1.3) * 0.12, z + Math.sin(a) * rr * 0.95, 0xe8203a, { ws: 6, hs: 4 });
+      }
+      return;
+    }
+    for (let i = 0; i < n; i++) {
+      const a = i * 2.39996 + idx * 0.7, rr = r * Math.sqrt((i + 0.5) / n);
+      const px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr;
+      b.cone(0.09, 0.22, px, y, pz, 0x2a7a4a, 4);
+      if (kind === 'rosen') {
+        const c = ROSE[(i + idx) % ROSE.length];
+        b.sphere(0.17, px, y + 0.25, pz, c, { s: [1, 0.45, 1], ws: 7, hs: 4 });
+        b.sphere(0.06, px, y + 0.31, pz, 0xffd23a, { ws: 5, hs: 3 });
+      } else {
+        b.cone(0.12, 0.26, px, y + 0.18, pz, KROKUS[(i + idx) % KROKUS.length], 5);
+      }
+    }
+  });
+  b.flush(level, { castShadow: false });
+}
+
+/** Eiszapfen an einer Kante (Kulisse): list [{ from: [x, y, z], to: [x, y, z], gap: 0.45, len: 0.5 }] – hängen nach unten. */
+export function eiszapfen(level, list) {
+  if (!level.view) return;
+  const b = new Bld();
+  for (const s of list) {
+    const [x0, y0, z0] = s.from, [x1, y1, z1] = s.to;
+    const L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(L / (s.gap ?? 0.45)));
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, len = (s.len ?? 0.5) * (0.55 + ((i * 7) % 5) * 0.14);
+      b.cone(0.07 + ((i * 3) % 4) * 0.012, len, x0 + (x1 - x0) * u, y0 + (y1 - y0) * u - len, z0 + (z1 - z0) * u, i % 3 ? 0xc8ecff : 0xe8f8ff, 5, { rx: PI });
+    }
+  }
+  b.flush(level, { castShadow: false });
 }
 
 // =====================================================================================================================

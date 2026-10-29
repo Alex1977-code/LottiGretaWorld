@@ -23,12 +23,15 @@
 
 import { PI, line, ring, arc, column, sign, isl, Bld, litTop, grablicht, kruemelAngst, unsichtbareWolke, sternlaterne,
   friedhofstor, schneebaelle, eisenzaun, gruft, kapelle, schneemann, baenke, kerzen, steg, graeber, wege, tannen, laternen,
-  eisteiche } from './_helpers_d.js';
+  eisteiche, irrlichter, lichterkette, winterbeete, eiszapfen } from './_helpers_d.js';
 
 const XK = 100;           // Kerzenkammer (Nebenbereich hinter der Kapellentür)
 const XR = -100;          // Nebelkammer (Rätselbox)
 const XZ = 70;            // Kapellenhügel (Ziel)
 const YS = 3.2;           // Höhe des Boost-Stegs
+
+const FELS = { topColor: 0xc2c6e6, sideColor: 0x9296bc, color: 0x7c7ea8 };     // Schneefelsen (hell, bläulich)
+const MOOR = { topColor: 0xa898c8, sideColor: 0x7a6a9a, color: 0x5a4a7a };     // Grabinseln im Giftsumpf (lila Stein)
 
 const geist = (id, c, r, o = {}) => ({ kind: 'kreisgeist', id, center: c, radius: r, speed: o.speed ?? 1.4, cw: o.cw ?? false, phase: o.phase ?? 0 });
 const kreis = (id, p, count, r, o = {}) => ({ kind: 'kreisgeist_kreis', id, pos: p, count, radius: r, speed: o.speed ?? 1.2, cw: o.cw ?? false, phase: o.phase ?? 0 });
@@ -38,7 +41,7 @@ function reihe(x0, x1, z, n, o = {}) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const x = x0 + ((x1 - x0) * i) / Math.max(1, n - 1);
-    out.push({ pos: [x, o.y ?? 0, z + (i % 2 ? 0.3 : -0.2)], yaw: o.yaw ?? Math.sin(x * 3.1 + z) * 0.18, size: o.size ?? (0.9 + ((i * 7 + Math.round(z)) % 3) * 0.12) });
+    out.push({ pos: [x, o.y ?? 0, z + (i % 2 ? 0.3 : -0.2)], yaw: o.yaw ?? Math.sin(x * 3.1 + z) * 0.18, size: o.size ?? (1.1 + ((i * 7 + Math.round(z)) % 3) * 0.14) });
   }
   return out;
 }
@@ -51,16 +54,41 @@ const GRAEBER = [
   ...reihe(-26, -9, -52, 5), ...reihe(3.5, 8.5, -54, 2), ...reihe(22, 27, -54, 2),
   ...reihe(-26, -21, -76, 2), ...reihe(-12, -5, -77, 3), ...reihe(3.5, 8, -78, 2), ...reihe(19, 27, -79, 3),
   // Gräber direkt am Mittelweg (Lücken an den Seitenwegen)
-  ...reihe(-6.6, -4.4, 1.4, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.6, -2.6, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -14, 2, { yaw: PI / 2 }),
-  ...reihe(4.4, 6.4, -16, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -27, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.4, -24, 2, { yaw: -PI / 2 }),
-  ...reihe(-6.4, -4.4, -36, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.4, -44.6, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -52, 2, { yaw: PI / 2 }),
-  ...reihe(4.4, 6.4, -68, 2, { yaw: -PI / 2 }), ...reihe(-6.4, -4.4, -70.6, 2, { yaw: PI / 2 }), ...reihe(4.4, 6.4, -74, 2, { yaw: -PI / 2 }),
+  ...reihe(-6.6, -4.4, 1.4, 2, { yaw: 0.5, size: 1.05 }), ...reihe(4.4, 6.6, -2.6, 2, { yaw: -0.5, size: 1.05 }), ...reihe(-6.4, -4.4, -14, 2, { yaw: 0.5, size: 1.05 }),
+  ...reihe(4.4, 6.4, -16, 2, { yaw: -0.5, size: 1.05 }), ...reihe(-6.4, -4.4, -27, 2, { yaw: 0.5, size: 1.05 }), ...reihe(4.4, 6.4, -24, 2, { yaw: -0.5, size: 1.05 }),
+  ...reihe(-6.4, -4.4, -36, 2, { yaw: 0.5, size: 1.05 }), ...reihe(4.4, 6.4, -44.6, 2, { yaw: -0.5, size: 1.05 }), ...reihe(-6.4, -4.4, -52, 2, { yaw: 0.5, size: 1.05 }),
+  ...reihe(4.4, 6.4, -68, 2, { yaw: -0.5, size: 1.05 }), ...reihe(-6.4, -4.4, -70.6, 2, { yaw: 0.5, size: 1.05 }), ...reihe(4.4, 6.4, -74, 2, { yaw: -0.5, size: 1.05 }),
   // Grabinseln im Giftsumpf, Nebelstufen, Kapellenhügel, Nebelkammer
   { pos: [-11.5, 0.4, -118], size: 1 }, { pos: [-10.2, 0.4, -120.4], size: 0.8 }, { pos: [10.4, 0.4, -147.6], size: 1 }, { pos: [11.6, 0.4, -149.6], size: 0.8 },
   { pos: [-2.8, 0, -216.8], size: 0.8 }, { pos: [3.4, 0, -244.4], size: 0.8, kind: 'kreuz' },
   { pos: [XZ - 6, 0, -326], size: 0.9 }, { pos: [XZ + 6.4, 0, -328], size: 1, kind: 'herz' }, { pos: [XZ - 7, 0, -334], size: 0.8 },
   { pos: [XR - 5.6, -0.8, -191.6], size: 0.9 }, { pos: [-3.4, YS, -318], size: 0.8 }, { pos: [3.6, YS, -312.6], size: 0.7, kind: 'herz' },
 ];
+
+// Irrlichter (bunt, wippend; ein Points-Objekt)
+const IR = { rosa: 0xff8ad8, mint: 0x7affd0, lila: 0xc8a0ff, gelb: 0xffe27a, blau: 0x8ad8ff };
+const IRRLICHTER = [
+  [-14, 2.2, -14, 'mint'], [16, 2.8, -36, 'lila'], [-22, 2.4, -72, 'rosa'], [20, 3.2, -80, 'mint'], [10, 2.2, 0, 'lila'], [-20, 2.6, 10, 'gelb'],
+  [22, 2.4, -8, 'rosa'], [-16, 2.8, -50, 'gelb'], [-24, 2.2, -30, 'blau'], [10, 2.6, -60, 'rosa'],
+  [-8, 1.6, -132, 'lila'], [9, 1.8, -126, 'gelb'], [-6, 1.4, -164, 'mint'], [8, 1.6, -104, 'rosa'], [-9, 1.8, -146, 'blau'],
+  [-6, 1.4, -197, 'rosa'], [6.2, 1.8, -204, 'mint'], [-5.5, 2.2, -221, 'gelb'], [6, 1.6, -231, 'lila'], [-6, 2.6, -250, 'mint'], [6, 3, -257, 'rosa'],
+  [-4.8, 4.6, -272, 'gelb'], [4.8, 4.8, -286, 'rosa'], [-5.4, 4.4, -296, 'mint'], [5.8, 4.6, -308, 'lila'],
+  [XK - 4, 2.6, -60, 'gelb'], [XK + 4, 3, -62, 'lila'], [XR, 2.6, -190, 'mint'], [XR - 5, 2.2, -176, 'rosa'],
+  [XZ, 4.2, -344, 'mint'], [XZ - 6, 2.4, -338, 'rosa'], [XZ + 6, 2.6, -326, 'gelb'],
+].map(([x, y, z, c]) => ({ pos: [x, y, z], color: IR[c] }));
+
+// Winterbeete (Christrosen, Krokusse, Beerensträucher) – Farbe am Wegrand
+const BEETE = [
+  [-3.4, 8, 'rosen'], [3.4, 5.4, 'krokus'], [-3.4, -2.6, 'beeren'], [3.2, -12.6, 'rosen'], [-3.2, -16.4, 'krokus'], [3.3, -21.4, 'beeren'],
+  [-3.3, -30, 'rosen'], [3.3, -33.4, 'krokus'], [-3.3, -40.4, 'beeren'], [3.3, -49.6, 'rosen'], [-3.3, -54.4, 'krokus'], [3.3, -57.4, 'beeren'],
+  [-3.3, -64, 'rosen'], [3.3, -66.4, 'krokus'], [-3.3, -73.4, 'beeren'], [3.3, -79.6, 'rosen'],
+  [-9.2, 3.2, 'krokus'], [8.6, -7.8, 'rosen'], [-10.6, -22.2, 'beeren'], [-20.2, -18.2, 'rosen'], [14.6, -16.4, 'krokus'], [7.4, -35.4, 'beeren'],
+  [-19.6, -43.4, 'krokus'], [-13.4, -60.6, 'rosen'], [19.4, -59.4, 'beeren'], [-21.6, -26.4, 'krokus'],
+  [-5.4, -86.6, 'rosen'], [5.4, -86.6, 'beeren'], [-6.2, -178.4, 'krokus'], [6.6, -176.2, 'rosen'], [-3, -186.6, 'beeren'],
+  [2.8, -212.2, 'rosen'], [-2.8, -217.8, 'krokus'], [3.4, -241.8, 'beeren'], [-3.4, -242.6, 'rosen'],
+  [-4.4, -312.4, 'krokus'], [4.4, -310.6, 'rosen'],
+  [XZ - 3, -327, 'rosen'], [XZ + 3, -329, 'krokus'], [XZ - 3, -333, 'beeren'], [XZ + 3.2, -335.4, 'rosen'],
+].map(([x, z, kind]) => ({ pos: [x, z < -300 && z > -321 ? YS : 0, z], kind, r: kind === 'beeren' ? 0.6 : 0.85, n: 8 }));
 
 // Pflasterwege (Mittelweg und Abzweige zu den Schlüsseln)
 const WEGE = [
@@ -92,13 +120,47 @@ function build(level) {
   laternen(level, [
     { pos: [-2.6, 0, 2] }, { pos: [2.6, 0, -16] }, { pos: [-2.6, 0, -32] }, { pos: [2.6, 0, -48] }, { pos: [-2.6, 0, -66] },
     { pos: [-3.6, 0, -81.6], color: 'lila' }, { pos: [3.6, 0, -81.6], color: 'lila' }, { pos: [9.6, 0, -37.6], color: 'mint' }, { pos: [-14.6, 0, -24], color: 'lila' },
-    { pos: [-23.6, 0, -48.6], color: 'rosa' }, { pos: [35.2, 6.5, -54.6], color: 'mint' }, { pos: [20.4, 0, -64.6] }, { pos: [-13.6, 0, -59.6], color: 'rosa' },
+    { pos: [-23.6, 0, -48.6], color: 'rosa' }, { pos: [38.2, 6.5, -61.8], color: 'mint' }, { pos: [20.4, 0, -64.6] }, { pos: [-13.6, 0, -59.6], color: 'rosa' },
     { pos: [-2.6, 0, -89] }, { pos: [2.6, 0, -89] }, { pos: [-12.6, 0.4, -116], color: 'lila' }, { pos: [12, 0.4, -145.4], color: 'mint' },
     { pos: [-3.6, 0, -176.4] }, { pos: [3.6, 0, -188.6], color: 'lila' }, { pos: [3, 0, -212.4], color: 'mint' }, { pos: [-3.6, 0, -244.8] },
     { pos: [-4.4, YS, -317.4], color: 'lila' }, { pos: [4.4, YS, -317.4], color: 'lila' }, { pos: [XZ - 3, 0, -321.6] }, { pos: [XZ + 3, 0, -321.6] },
     { pos: [XR - 6, 0, -173.4], color: 'mint' }, { pos: [XR + 6, 0, -173.4], color: 'mint' }, { pos: [XK - 7, 0, -54], color: 'rosa' },
   ]);
   eisteiche(level, [{ pos: [16, 0, 3.4], r: 3.2 }, { pos: [XZ + 5.6, 0, -340], r: 2.2 }]);
+  // ------------------------------------------------ Farbe und Leben: Irrlichter, Lichterbögen, Winterbeete, Eiszapfen
+  irrlichter(level, IRRLICHTER);
+  lichterkette(level, [
+    // Lichterbögen über dem Mittelweg (mit Stern), über dem Steg-Platz und am Kapellenhügel
+    ...[12.4, -6, -28.4, -52.4, -76].map((z) => ({ from: [-2.3, 3.0, z], to: [2.3, 3.0, z], sag: -0.7, posts: 0, star: true, gap: 0.42 })),
+    { from: [-2.6, 3.5, -89], to: [2.6, 3.5, -89], sag: 0.45 },
+    { from: [XZ - 3, 3.5, -321.6], to: [XZ + 3, 3.5, -321.6], sag: 0.5 },
+    // Girlanden auf der Friedhofsmauer (Bögen zwischen den Mauerblenden)
+    ...[-1, 1].flatMap((sd) => [0, 1, 2, 3, 4, 5].map((i) => ({ from: [sd * (4.2 + i * 4.3), 3.7, -83.2], to: [sd * (4.2 + (i + 1) * 4.3), 3.7, -83.2], sag: 0.5, wire: false }))),
+    // Geländer-Lichter am Boost-Steg (Lücken: Balkon links, Stempel-Plattform rechts)
+    ...[[-266.6, -271.6], [-271.6, -277.6], [-284.4, -290], [-290, -295.6], [-295.6, -301]].map(([z0, z1]) => ({ from: [-1.0, YS + 1.0, z0], to: [-1.0, YS + 1.0, z1], sag: 0.22, posts: YS })),
+    ...[[-266.6, -271.6], [-271.6, -277.6], [-277.6, -283.6], [-283.6, -289.6], [-289.6, -295.2], [-295.2, -300.2]].map(([z0, z1]) => ({ from: [1.0, YS + 1.0, z0], to: [1.0, YS + 1.0, z1], sag: 0.22, posts: YS })),
+    // Kerzenkammer: Lichter über dem Altar
+    { from: [XK - 7.6, 4.2, -67.8], to: [XK + 7.6, 4.2, -67.8], sag: 0.7 },
+  ]);
+  winterbeete(level, BEETE);
+  eiszapfen(level, [
+    { from: [-29.8, 3.62, -83.32], to: [-4.2, 3.62, -83.32], len: 0.55 }, { from: [4.2, 3.62, -83.32], to: [29.8, 3.62, -83.32], len: 0.55 },
+  ]);
+  // ------------------------------------------------ Nebelfeld: Gräber, Laternen und Tannen ragen aus dem Nebel
+  graeber(level, [
+    { pos: [-8.6, -1.1, -196], size: 1.2 }, { pos: [9, -1.1, -201], size: 1.3, kind: 'kreuz' }, { pos: [-9.4, -1.1, -219], size: 1.25, kind: 'herz' },
+    { pos: [9.6, -1.1, -229], size: 1.2 }, { pos: [-8.8, -1.1, -244], size: 1.3, kind: 'spitz' }, { pos: [8.8, -1.1, -247], size: 1.1 },
+    { pos: [-9.2, -1.1, -256], size: 1.2, kind: 'kreuz' }, { pos: [9.4, -1.1, -262], size: 1.3 },
+  ]);
+  laternen(level, [
+    { pos: [-6.4, -1.2, -201], height: 3.4, color: 'lila' }, { pos: [6.6, -1.2, -224], height: 3.4, color: 'mint' }, { pos: [-6.6, -1.2, -229], height: 3.4, color: 'rosa' },
+    { pos: [6.4, -1.2, -252], height: 3.6 }, { pos: [-6.4, -1.2, -259], height: 3.8, color: 'lila' },
+  ]);
+  tannen(level, [
+    { pos: [-12.5, -1.4, -198], height: 6.5, solid: false }, { pos: [12.5, -1.4, -206], height: 7, solid: false }, { pos: [-13, -1.4, -232], height: 7.5, solid: false },
+    { pos: [13, -1.4, -238], height: 6, solid: false }, { pos: [-12, -1.4, -262], height: 6.8, solid: false }, { pos: [12, -1.4, -258], height: 7.2, solid: false },
+    { pos: [-10, -1.6, -284], height: 6.4, solid: false }, { pos: [10.5, -1.6, -296], height: 7, solid: false },
+  ]);
   // ------------------------------------------------ Grüfte, Kapelle, Mauer
   gruft(level, { pos: [-19, 0, -22], size: [5, 3, 4], face: '+z', door: 'zu' });                         // Westgruft (Dach → Wolke)
   gruft(level, { pos: [-27.5, 0, -46], size: [4, 3.2, 5], face: '+x', roof: 'kuppel' });                // Gruft am linken Zaun (Tür → Sims)
@@ -146,6 +208,14 @@ function build(level) {
     b.box(3.6, 1.2, 1.4, XK, 0, -66.6, 0x6a5a8a, { r: 0.08 });
     b.box(4, 0.2, 1.8, XK, 1.2, -66.6, 0xd8a840);
     b.box(2.2, 2.6, 0.2, XK, 2.0, -67.9, 0x4a3a6a);
+    // roter Läufer von der Tür zum Altar (goldene Borte), bunte Wandbehänge
+    b.box(2.2, 0.04, 11.4, XK, 0, -59.8, 0xd8a840, { r: 0 });
+    b.box(1.9, 0.06, 11.2, XK, 0, -59.8, 0xc8304a, { r: 0 });
+    for (const [sx, z, c] of [[-1, -57, 0xff6aa8], [-1, -62.5, 0x5ad8c8], [1, -57, 0x8a6aff], [1, -62.5, 0xffc83a]]) {
+      b.box(0.08, 2.2, 1.4, XK + sx * 7.96, 1.6, z, c, { r: 0 });
+      b.cone(0.7, 0.5, XK + sx * 7.96, 1.1, z, c, 3, { rx: PI, s: [0.12, 1, 1] });
+      b.box(0.12, 0.12, 1.6, XK + sx * 7.94, 3.8, z, 0xd8a840, { r: 0 });
+    }
     b.flush(level, { castShadow: false });
     level.world.add({ type: 'box', min: [XK - 9, 0, -69], max: [XK + 9, 6, -68] });
     for (const sx of [-1, 1]) level.world.add({ type: 'box', min: [XK + sx * 8.5 - 0.5, 0, -69], max: [XK + sx * 8.5 + 0.5, 6, -52.5] });
@@ -155,7 +225,7 @@ function build(level) {
   schneemann(level, [
     { pos: [6, 0, 6], yaw: PI * 0.75, lamp: true }, { pos: [-23, 0, -76], yaw: PI * 0.3, hat: 'muetze', scarf: 0x6ac8ff, size: 0.9 },
     { pos: [XZ - 6, 0, -330], yaw: PI * 0.6, lamp: true, scarf: 0xffd23a }, { pos: [XK - 5.5, 0, -63], yaw: PI * 0.4, size: 0.7, hat: 'muetze' },
-    { pos: [5.5, 0, -240.5], yaw: PI * 0.6, size: 0.7, hat: 'muetze', scarf: 0x9aff6a },
+    { pos: [-3.2, 0, -238.6], yaw: PI * 0.4, size: 0.7, hat: 'muetze', scarf: 0x9aff6a },
   ]);
   baenke(level, [{ pos: [-5, 0, -4], yaw: PI / 2 }, { pos: [5.2, 0, -30], yaw: PI / 2 }, { pos: [XZ + 5, 0, -332], yaw: 0 }, { pos: [-6, 0, -88] }]);
   kerzen(level, [
@@ -217,13 +287,13 @@ export const LEVEL = {
     // ================================================================ 1 Schneefriedhof
     isl(-30, 30, 16, -84.6, 0, 6),
     isl(-8, 8, -84.6, -94, 0, 4),                                                  // Steg-Platz hinter dem Tor
-    isl(-13.3, -10.7, 6.3, 3.7, 1.3, 1.3, { top: 'rock', under: 0 }),             // Felsen im Kreisgeist-Ring (Schlüssel a)
-    isl(31, 39, -53, -63, 6.5, 9, { top: 'rock', under: 4 }),                     // Felssims ganz rechts (Schlüssel e)
-    isl(-16.3, -14.9, -19.3, -20.7, 1.4, 1.4, { top: 'rock', under: 0 }),         // Grabsockel vor der Westgruft (Tritt zum Dach)
+    isl(-13.3, -10.7, 6.3, 3.7, 1.3, 1.3, { top: 'rock', under: 0, ...FELS }),             // Felsen im Kreisgeist-Ring (Schlüssel a)
+    isl(31, 39, -53, -63, 6.5, 9, { top: 'rock', under: 4, ...FELS }),                     // Felssims ganz rechts (Schlüssel e)
+    isl(-16.3, -14.9, -19.3, -20.7, 1.4, 1.4, { top: 'rock', under: 0, ...FELS }),         // Grabsockel vor der Westgruft (Tritt zum Dach)
     sign(-3.4, 0, 11.4, 'Nebelfriedhof', { yaw: 0.2 }),
     sign(3.6, 0, 11, '5 Schlüssel\nöffnen das Tor', { size: [2.6, 1.1], yaw: -0.2 }),
     sign(1.6, 0, -36.6, 'Stampf aufs\nGrablicht!', { size: [2.4, 1.05], yaw: 0.3 }),
-    sign(-6.2, 0, -55.4, 'Schneebälle:\nAktion = werfen', { size: [2.8, 1.05], yaw: 0.25 }),
+    sign(-3.8, 0, -60.6, 'Schneebälle:\nAktion = werfen', { size: [2.8, 1.05], yaw: 0.15 }),
     { type: 'pow', id: 'pow_treppe', pos: [13, 0, -12], uses: 3, radius: 4, onUse: { reveal: 'grosstreppe' } },
     { type: 'appear', id: 'grosstreppe', style: 'stone', parts: [
       { pos: [19, 0, -15.8], size: [2.4, 1.2, 2.4] }, { pos: [19, 0, -18.4], size: [2.4, 2.4, 2.4] },
@@ -234,24 +304,21 @@ export const LEVEL = {
       { kind: 'grabstein', pos: [5, 0, -40.4], size: 1.9, variant: 'kreuz', solid: true },   // großer Grabstein mit dem Grablicht (Lachgesicht)
       { kind: 'grabstein', pos: [-9.6, 0, 7.4], size: 0.9, variant: 'rund' }, { kind: 'grabstein', pos: [9.2, 0, -12.8], size: 0.9, variant: 'spitz' },
       { kind: 'grabstein', pos: [-5.6, 0, -24.2], size: 1, variant: 'rund' }, { kind: 'grabstein', pos: [-5.4, 0, -61.4], size: 0.9, variant: 'kreuz' },
-      // kahle Bäume, Schneehügel, Irrlichter, Nebelbänke
+      // kahle Bäume, Schneehügel, Nebelbänke
       { kind: 'kahler_baum', pos: [-24, 0, 7], height: 5.5 }, { kind: 'kahler_baum', pos: [23.6, 0, 8], height: 5 }, { kind: 'kahler_baum', pos: [-24, 0, -27.6], height: 6 },
       { kind: 'kahler_baum', pos: [8, 0, -72], height: 6.5 }, { kind: 'kahler_baum', pos: [25, 0, -46], height: 5 }, { kind: 'kahler_baum', pos: [-6.4, 0, -42.6], height: 4.5 },
       { kind: 'schneehuegel', pos: [-20, 0, 5], radius: 2.2 }, { kind: 'schneehuegel', pos: [23.4, 0, -19], radius: 2 }, { kind: 'schneehuegel', pos: [-4.6, 0, -70], radius: 1.8 },
       { kind: 'schneehuegel', pos: [24, 0, 2.4], radius: 1.8 },
-      { kind: 'irrlicht', pos: [-14, 2.2, -14] }, { kind: 'irrlicht', pos: [16, 2.8, -36], color: 0xc8b0ff }, { kind: 'irrlicht', pos: [-22, 2.4, -72] },
-      { kind: 'irrlicht', pos: [20, 3.2, -80], color: 0x9affd8 }, { kind: 'irrlicht', pos: [10, 2.2, 0], color: 0xc8b0ff },
       { kind: 'nebelbank', pos: [-16, 0, -8], size: [14, 8], opacity: 0.32 }, { kind: 'nebelbank', pos: [14, 0, -58], size: [14, 9], opacity: 0.3 },
     ] },
     // ================================================================ 2 Floßfahrt über den Giftsumpf
     { type: 'giftwasser', id: 'giftsumpf', pos: [0, -3, -134], size: [44, 2.4, 84], bubbles: true },
     { type: 'floss', id: 'floss', pos: [0, -0.6, -96.4], speed: 3.4, size: [3, 3], style: 'holz',
       path: [[0, -0.6, -96.4], [0, -0.6, -105], [-5, -0.6, -115], [-5, -0.6, -127], [3, -0.6, -139], [3, -0.6, -153], [0, -0.6, -162], [0, -0.6, -171.4]] },
-    isl(-14, -9, -114, -122, 0.4, 3, { top: 'rock', under: 0 }), isl(8, 13, -144, -151, 0.4, 3, { top: 'rock', under: 0 }),
-    isl(9, 14, -110, -116, 0.3, 3, { top: 'rock', under: 0 }), isl(-13, -8, -152, -158, 0.3, 3, { top: 'rock', under: 0 }),
+    isl(-14, -9, -114, -122, 0.4, 3, { top: 'rock', under: 0, ...MOOR }), isl(8, 13, -144, -151, 0.4, 3, { top: 'rock', under: 0, ...MOOR }),
+    isl(9, 14, -110, -116, 0.3, 3, { top: 'rock', under: 0, ...MOOR }), isl(-13, -8, -152, -158, 0.3, 3, { top: 'rock', under: 0, ...MOOR }),
     { type: 'deco_star', items: [
       { kind: 'kahler_baum', pos: [11.6, 0.3, -113], height: 5 }, { kind: 'kahler_baum', pos: [-10.6, 0.3, -155], height: 5.5 },
-      { kind: 'irrlicht', pos: [-8, 1.6, -132], color: 0xc8b0ff }, { kind: 'irrlicht', pos: [9, 1.8, -126] }, { kind: 'irrlicht', pos: [-6, 1.4, -164], color: 0x9affd8 },
       { kind: 'nebelbank', pos: [-12, -0.6, -134], size: [12, 10], opacity: 0.35 }, { kind: 'nebelbank', pos: [12, -0.6, -160], size: [12, 10], opacity: 0.35 },
     ] },
     // ================================================================ 3 Landeinsel
@@ -267,12 +334,12 @@ export const LEVEL = {
     isl(-4.5, 4.5, -237.5, -245.5, 0, 3, { under: 0 }),
     { type: 'nebelplattform', id: 'nebelC', depth: 3, up: 3.2, down: 1.4, move: 1.0,
       parts: [{ pos: [0, 0.7, -249], phase: 0 }, { pos: [0, 1.5, -253], phase: -1.1 }, { pos: [0, 2.3, -257], phase: -2.2 }, { pos: [0, 3.1, -261], phase: -3.3 }] },
-    isl(-1.5, 1.5, -263.6, -266.4, YS, 4, { top: 'rock', under: 0 }),
+    isl(-1.5, 1.5, -263.6, -266.4, YS, 4, { top: 'rock', under: 0, ...FELS }),
     { type: 'deco_star', items: [
-      { kind: 'irrlicht', pos: [-7, 1.6, -200] }, { kind: 'irrlicht', pos: [7, 1.4, -228], color: 0xc8b0ff },
-      { kind: 'irrlicht', pos: [-6, 2.4, -256], color: 0x9affd8 }, { kind: 'irrlicht', pos: [6, 4.4, -276] }, { kind: 'irrlicht', pos: [-7, 4.2, -296], color: 0xc8b0ff },
       { kind: 'kahler_baum', pos: [3.6, 0, -239.4], height: 4.2 },
-      { kind: 'nebelbank', pos: [0, -1, -226], size: [18, 10], opacity: 0.3 }, { kind: 'nebelbank', pos: [-6, -1, -280], size: [12, 12], opacity: 0.3 },
+      { kind: 'kahler_baum', pos: [-10.5, -1.2, -208], height: 5.5 }, { kind: 'kahler_baum', pos: [10.8, -1.2, -219], height: 6 }, { kind: 'kahler_baum', pos: [-10.4, -1.2, -250], height: 5 },
+      { kind: 'nebelbank', pos: [0, -1, -226], size: [18, 10], opacity: 0.3 }, { kind: 'nebelbank', pos: [-6, -1, -280], size: [12, 12], opacity: 0.3, color: 0xe0d0ff },
+      { kind: 'nebelbank', pos: [-9, -1, -204], size: [10, 10], opacity: 0.34, color: 0xdcc8ff }, { kind: 'nebelbank', pos: [9, -1, -248], size: [10, 10], opacity: 0.34, color: 0xc8f0ff },
     ] },
     // ================================================================ 5 Boost-Steg, Ende
     { type: 'boost', pos: [0, YS, -269.6], dir: [0, -1], speed: 15, size: [1.8, 2.4] },
@@ -284,18 +351,17 @@ export const LEVEL = {
     ] },
     // ================================================================ Kerzenkammer (Nebenbereich)
     isl(XK - 9, XK + 9, -52, -69, 0, 4),
-    { type: 'deco_star', items: [{ kind: 'irrlicht', pos: [XK - 4, 2.6, -60] }, { kind: 'irrlicht', pos: [XK + 4, 3, -62], color: 0xc8b0ff }] },
     // ================================================================ Nebelkammer (Rätselbox)
     isl(XR - 7, XR + 7, -172, -182, 0, 4),
     { type: 'nebelboden', pos: [XR, -1.6, -184], size: [14, 4], depth: 1.4, kill: 'fall', density: 0.7 },
     isl(XR - 7, XR + 7, -186, -193, -0.8, 3.2),
-    { type: 'deco_star', items: [{ kind: 'kahler_baum', pos: [XR + 5.6, -0.8, -191.4], height: 4.4 }, { kind: 'irrlicht', pos: [XR, 2.6, -190] }] },
+    { type: 'deco_star', items: [{ kind: 'kahler_baum', pos: [XR + 5.6, -0.8, -191.4], height: 4.4 }] },
     sign(XR - 4, 0, -174.6, 'Triff alle\nvier Scheiben!', { size: [2.6, 1.05], yaw: 0.2 }),
     // ================================================================ 6 Kapellenhügel (Ziel)
     isl(XZ - 10, XZ + 10, -318, -346, 0, 5),
     { type: 'deco_star', items: [
       { kind: 'kahler_baum', pos: [XZ - 7, 0, -342], height: 5 }, { kind: 'kahler_baum', pos: [XZ + 7.5, 0, -337], height: 5.5 },
-      { kind: 'schneehuegel', pos: [XZ + 6, 0, -320], radius: 1.8 }, { kind: 'irrlicht', pos: [XZ, 4.2, -344], color: 0x9affd8 },
+      { kind: 'schneehuegel', pos: [XZ + 6, 0, -320], radius: 1.8 },
     ] },
     { type: 'deco_star', kind: 'modell', pos: [XZ, 0, -343], name: 'sternen_torbogen', opts: { width: 7, height: 5.5 }, yaw: -PI / 2 },
   ],
