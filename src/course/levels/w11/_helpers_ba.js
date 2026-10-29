@@ -500,9 +500,9 @@ export function moorfackeln(level, groups, o = {}) {
   b.cyl(0.4, 0.4, 0.06, 0, 0.42, 0, litTop(0x8a849a), 9);
   b.cyl(0.11, 0.13, H - 0.45, 0, 0.45, 0, gradY(0x4a2e1a, 0x8a5a30, 0.45, H), 7);
   b.cyl(0.3, 0.16, 0.34, 0, H - 0.08, 0, litTop(0x3a3440), 9, { open: true });
-  b.torus(0.3, 0.035, 0, H + 0.26, 0, 0x5a5466, { rx: Math.PI / 2, ts: 14 });
-  for (let i = 0; i < 4; i++) { const a = i * TAU / 4; b.box(0.04, 0.34, 0.04, Math.cos(a) * 0.24, H - 0.08, Math.sin(a) * 0.24, 0x2a2430); }
-  for (let i = 0; i < 5; i++) { const a = i * 1.4; b.sphere(0.09, Math.cos(a) * 0.12, H + 0.16, Math.sin(a) * 0.12, 0x2a2026, { s: [1, 0.6, 1] }); }
+  b.torus(0.3, 0.035, 0, H + 0.26, 0, 0x5a5466, { rx: Math.PI / 2, ts: 10, rs: 4 });
+  for (let i = 0; i < 4; i++) { const a = i * TAU / 4; b.box(0.04, 0.34, 0.04, Math.cos(a) * 0.24, H - 0.08, Math.sin(a) * 0.24, 0x2a2430, { r: 0 }); }
+  for (let i = 0; i < 3; i++) { const a = i * 2.1; b.sphere(0.1, Math.cos(a) * 0.1, H + 0.16, Math.sin(a) * 0.1, 0x2a2026, { s: [1, 0.6, 1], ws: 6, hs: 4 }); }
   const bodyGeo = b.geometry();
   const bodyMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 });
   const body = new THREE.InstancedMesh(bodyGeo, bodyMat, torches.length);
@@ -516,7 +516,7 @@ export function moorfackeln(level, groups, o = {}) {
   const flame = new THREE.InstancedMesh(fb.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.92, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
   flame.name = 'moorfackeln-flamme';
   // ---- kalter Schimmer (Hinweis: hier gehört Feuer hinein)
-  const hint = new THREE.InstancedMesh(new THREE.TorusGeometry(0.36, 0.045, 6, 20), new THREE.MeshBasicMaterial({ color: 0x8ad0ff, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
+  const hint = new THREE.InstancedMesh(new THREE.TorusGeometry(0.36, 0.045, 4, 14), new THREE.MeshBasicMaterial({ color: 0x8ad0ff, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
   hint.name = 'moorfackeln-hinweis';
   // ---- warmer Lichthof um brennende Fackeln (additiv, Instanzen) und wenige Punktlichter bei den nächsten brennenden
   const glow = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff8a30, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);

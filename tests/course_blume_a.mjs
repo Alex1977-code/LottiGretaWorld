@@ -383,11 +383,11 @@ const ROUTES = {
       { crouch: 4 },
       { name: 'Oberland', to: [0, -190.6], within: 0.3, run: false },
       { to: [0, -191.5], within: 0.25, run: false },
-      { name: 'Plattform 1 (schneller, kleiner)', plat: 'mp1', when: { axis: 'z', gt: -196 }, until: { axis: 'z', lt: -203.1 } },
+      { name: 'Plattform 1 (schneller, kleiner)', plat: 'mp1', fresh: true, when: { axis: 'z', gt: -196 }, until: { axis: 'z', lt: -203.1 } },
       { name: 'Plattform 2', plat: 'mp2', when: { axis: 'x', lt: 0.4 }, until: { axis: 'x', gt: 6.3 }, run: false },
       { name: 'Rastinsel', to: [7.4, -212], jump: 24, within: 0.5, run: false },
       { to: [6.6, -213.8], within: 0.3, run: false },
-      { name: 'Plattform 3', plat: 'mp3', when: { axis: 'x', gt: 6.1 }, until: { axis: 'x', lt: -2.3 }, run: false },
+      { name: 'Plattform 3', plat: 'mp3', fresh: true, when: { axis: 'x', gt: 6.1 }, until: { axis: 'x', lt: -2.3 }, run: false },
       { name: 'Plattform 4', plat: 'mp4', when: { axis: 'z', gt: -221 }, until: { axis: 'z', lt: -227.1 }, run: false },
       { name: 'Sternring-Insel', to: [-4.4, -231.2], jump: 24, within: 0.6, run: false },
       { name: 'Zielröhre', to: [3, -235.6], jump: 30, within: 0.25, run: false },
@@ -407,8 +407,8 @@ const ROUTES = {
         shot: 'stern0', mech: (r) => r.mech.torches === 8, mechText: (r) => `Fackeln ${JSON.stringify(r.mech.fackeln?.groups)}` },
       { name: 'Stern 1: alle 12 Fackeln in Schlucht (auch oben auf dem Sims), Rückkehr und Moorsee', star: 1, from: [0, Y, -58.4],
         legs: [{ grab: [3.0, -61.2], hold: 80 }, { expect: 'funken' },
-          { torch: 8, from: [-3.0, -66.0] }, { torch: 9, from: [5.6, -63.4] }, { torch: 10, from: [-3.0, -80.6] },
-          { to: [0.2, -73], within: 0.4 }, { to: [3.4, -74.4], jump: 24, within: 0.3, run: false }, { wait: 10 }, { to: [3.6, -76.5], jump: 30, within: 0.3, run: false }, { wait: 10 },
+          { torch: 8, from: [-3.0, -66.0] }, { torch: 9, from: [5.6, -63.4] }, { to: [-1.0, -66.6], within: 0.5 }, { torch: 10, from: [-3.0, -80.6] },
+          { to: [-1.0, -73], within: 0.4 }, { to: [0.2, -73], within: 0.2, run: false }, { wait: 30 }, { to: [3.4, -74.4], jump: 24, within: 0.3, run: false }, { wait: 10 }, { to: [3.6, -76.5], jump: 30, within: 0.3, run: false }, { wait: 10 },
           { to: [3.8, -78.6], jump: 30, within: 0.3, run: false }, { wait: 10 }, { to: [4, -80.7], jump: 30, within: 0.3, run: false }, { wait: 10 },
           { to: [4.4, -83.6], jump: 30, within: 0.4, run: false }, { torch: 11, from: [6.4, -85.6] }, { to: [5.0, -91.0], within: 0.5, run: false },
           { torch: 12, from: [6.4, -96.0] }, { torch: 14, from: [-3.0, -91.0] }, { torch: 13, from: [-3.0, -96.0] }, { torch: 15, from: [2.0, -102.0] },
@@ -420,9 +420,9 @@ const ROUTES = {
         shot: 'stern1', mech: (r) => r.mech.torches === 12, mechText: (r) => `Fackeln ${JSON.stringify(r.mech.fackeln?.groups)}` },
       { name: 'Stern 2: alle 3 Fackeln im Oberland, auf der Rastinsel und der Zielröhren-Insel (Funkenblüte im Oberland)', star: 2, from: [3, U, -187],
         legs: [{ grab: [1.0, -188.8], hold: 80 }, { expect: 'funken' }, { torch: 20, from: [5.0, -186.0] }, { to: [0, -190.6], within: 0.3, run: false }, { to: [0, -191.5], within: 0.25, run: false },
-          { plat: 'mp1', when: { axis: 'z', gt: -196 }, until: { axis: 'z', lt: -203.1 } }, { plat: 'mp2', when: { axis: 'x', lt: 0.4 }, until: { axis: 'x', gt: 6.3 }, run: false },
+          { plat: 'mp1', fresh: true, when: { axis: 'z', gt: -196 }, until: { axis: 'z', lt: -203.1 } }, { plat: 'mp2', when: { axis: 'x', lt: 0.4 }, until: { axis: 'x', gt: 6.3 }, run: false },
           { to: [7.4, -212], jump: 24, within: 0.5, run: false }, { torch: 21, from: [6.6, -212.4] }, { to: [6.6, -213.8], within: 0.3, run: false },
-          { plat: 'mp3', when: { axis: 'x', gt: 6.1 }, until: { axis: 'x', lt: -2.3 }, run: false }, { plat: 'mp4', when: { axis: 'z', gt: -221 }, until: { axis: 'z', lt: -227.1 }, run: false },
+          { plat: 'mp3', fresh: true, when: { axis: 'x', gt: 6.1 }, until: { axis: 'x', lt: -2.3 }, run: false }, { plat: 'mp4', when: { axis: 'z', gt: -221 }, until: { axis: 'z', lt: -227.1 }, run: false },
           { to: [-4.4, -231.2], jump: 24, within: 0.6, run: false }, { torch: 22, from: [-6.0, -231.0] }, { until: '=starVisible(2)', max: 240 }, { star: 2 }],
         shot: 'stern2', mech: (r) => r.mech.torches === 3, mechText: (r) => `Fackeln ${JSON.stringify(r.mech.fackeln?.groups)}` },
       { name: 'Stern 0 nicht ohne Funkenblüte (Fackeln anspringen, Stampfattacke darauf, dagegen laufen)', star: 0, expectNot: true, from: [1.6, Y, -3.6], heroes: ['lotti'],
@@ -431,12 +431,12 @@ const ROUTES = {
     ],
     extra: [
       { name: 'Geheimgarten: vom Sims über drei unsichtbare Wolken auf die rechte Schluchtwand – Extraleben', from: [5.0, SH, -85.4], heroes: ['lotti', 'greta'], expectLives: 1,
-        legs: [{ expect: '=!ent(\'b3_wolke1\').shown' }, { to: [7.4, -85.6], y: 9.2, jump: 30, jumpAt: 2.2, within: 0.5 }, { expect: '=ent(\'b3_wolke1\').shown' },
+        legs: [{ expect: '=!ent(\'b3_wolke1\').shown' }, { to: [7.4, -85.6], y: 9.2, jump: 30, jumpAt: 2.2, within: 0.5 }, { wait: 20 }, { expect: '=ent(\'b3_wolke1\').shown' },
           { to: [9.4, -82.4], y: 11.0, jump: 34, jumpAt: 2.6, within: 0.5 }, { to: [8.0, -79.0], y: 12.8, jump: 34, jumpAt: 2.6, within: 0.5 },
           { to: [12.4, -78.8], y: 13.0, jump: 34, jumpAt: 3.6, within: 0.6 }, { chaseKind: 'powerup', max: 600 }],
         shot: 'garten', mech: (r) => r.pos[1] > 12.9, mechText: (r) => `Ende y ${r.pos[1].toFixed(2)}` },
-      { name: 'Geheimgarten nicht ohne die Wolken (Sprung vom Sims an die Wand)', from: [9.6, SH, -83.2], heroes: ['lotti', 'greta'], allowFail: true,
-        legs: [{ to: [12.4, -80.4], jump: 40, jumpAt: 1.4, within: 0.5, max: 300, y: 13, autoJump: false }, { wait: 60 }],
+      { name: 'Geheimgarten nicht ohne die Wolken (Sprung vom Sims an die Wand)', from: [9.4, SH, -87.0], heroes: ['lotti', 'greta'], allowFail: true,
+        legs: [{ to: [12.4, -87.0], jump: 60, jumpAt: 5, within: 0.5, max: 300, y: 13, autoJump: false }, { wait: 60 }, { to: [12.4, -87.0], jump: 60, jumpAt: 5, within: 0.5, max: 300, y: 13, autoJump: false }, { wait: 60 }],
         mech: (r) => r.mech.maxY < 12.5, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
       { name: 'Fackeln bleiben nach einem Neustart am Kontrollpunkt an', from: [2.0, Y, -102.0], heroes: ['lotti'], place: { power: 'funken' }, invuln: false, expectAlive: true,
         legs: [{ torch: 15, from: [2.0, -102.0] }, { die: 'fall' }, { expect: '=ent(\'fackeln\').torches[15].lit && !P().dead' }] },
@@ -1117,6 +1117,8 @@ function install() {
           const axisV = (c2) => (c2.axis === 'x' ? m.pm.pos.x : c2.axis === 'y' ? m.pm.pos.y : m.pm.pos.z);
           const ok = () => { const v = axisV(Lg.when); return (Lg.when.lt === undefined || v < Lg.when.lt) && (Lg.when.gt === undefined || v > Lg.when.gt); };
           let k = 0;
+          // fresh: eine frische Ankunft abwarten (nicht mitten in der Wartezeit losspringen)
+          if (Lg.fresh) for (; k < 3000 && ok(); k++) tick({});
           for (; k < 3000 && !ok(); k++) tick({});
           let j = 0, on = false, left = false;
           for (; j < 260; j++) {

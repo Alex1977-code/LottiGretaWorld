@@ -168,6 +168,8 @@ export const LEVEL = remixOf('4-2', {
     ],
   },
   build(level) {
+    // rechte Schluchtwand über dem Sims ohne Wandrutschen/Wandsprung (der Geheimgarten nur über die Wolken)
+    level.world.add({ type: 'box', min: [GARTEN.x0 - 0.18, SHELF.top - 2, -92], max: [GARTEN.x0, GARTEN.top - 0.1, -70], noWallSlide: true, tag: 'schluchtwand' });
     moorfackeln(level, {
       giftpfad: { list: FACKELN.giftpfad, onAll: { star: 0 }, at: STERNE[0] },
       schlucht: { list: FACKELN.schlucht, onAll: { star: 1 }, at: STERNE[1] },
