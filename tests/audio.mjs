@@ -101,9 +101,24 @@
 // S-Kapitän nutzt course_diorama. Hörproben: tests/out/stern_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_stern.wav
 // (alle zehn je 15 s ab dem Refrain).
 //
-// Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx (Standard: alles). „melodie“ läuft ohne Browser.
+// Übrige Bonuswelt-Themen (Level-Liste „Bonuswelten“ im Vertrag): die Karten Pilz „Pilz-Remix“, Blume „Blumen-Remix“ und
+// Krone „Kronen-Gipfel“, der Boss-Marathon B-12 und der Champion-Kurs K-1 mit denselben Messungen und derselben
+// Melodie-Prüfung, Hook und Kontur eigenständig gegen alle Themen (Welten 1–8, Halloween, Stern und untereinander); Tempo
+// Karten 126–128, Boss-Marathon 148, Champion 150 BPM, 16/24/32 Takte mit Refrain ab Takt 9 bzw. 13, Loop-Naht (Daten und
+// gerendert), Pegel wie Welt 5; Klangfarben aus den Daten (Stotter-Stabs und Scratch, Flöte und Glockenspiel, Fanfaren,
+// Chor und Pauken, Weltraum-Farben und Blitz-Einschläge, zweiter Refrain) und kein Baron-Brummbär-Motiv im Boss-Marathon.
+// Hörproben: tests/out/bonus_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_bonus.wav (alle fünf je 15 s ab dem
+// Refrain).
+//
+// Klang-Varianten des Musiksystems (Teil „varianten“, Remix-Level der Welten Pilz und Blume): music.play(thema, { variant })
+// mit nacht, abend, morgen, tag, dunkel, schnell, schwarzweiss – Schnittstelle, Gegenprobe ohne Variante (die bisherige
+// Kette aus den Bausteinen nachgebaut: gleiche Knoten, gleicher Pegel), Pegel je Variante wie ohne, Klangcharakter aus
+// Spektrum und Proben, Taktuhr je Variante (auch `schnell` +8 % und vorgemerkt bei angehaltenem Kontext). Hörproben
+// tests/out/varianten_<variante>.wav und tests/out/varianten_ohne.wav (course_grass ab Takt 5, je 15 s).
+//
+// Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx,varianten (Standard: alles). „melodie“ läuft ohne Browser.
 // AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31, 6 = Welt 6, 7 = Welt 7, 8 = Welt 8,
-// stern = Bonuswelt Stern 9)
+// stern = Bonuswelt Stern 9, bonus = übrige Bonuswelt-Themen)
 // beschränken die Offline-Messung der Kurs-Themen; die Kurs-Themen werden je zwei gleichzeitig gerendert. Unter hoher
 // Rechnerlast z.B. in zwei Läufen: AUDIO_PART=melodie,live,sfx und AUDIO_PART=render.
 import { writeFileSync } from 'node:fs';

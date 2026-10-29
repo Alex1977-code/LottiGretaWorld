@@ -9,6 +9,9 @@
 //
 // Die Bausteine stecken in der Klasse `Voices`, die an einen beliebigen Kontext gebunden wird:
 // im Spiel an den Live-AudioContext, im Test an einen OfflineAudioContext (messbarer Mix).
+//
+// Klang-Varianten der Musik (Remix-Welten): `MUSIC_VARIANTS` und `createVariantChain` – eine Klangkette (Filter, Hall per
+// Faltung, Brummen, Knistern, Mono, Vogel-Zwitschern) zwischen den Stimmen eines Themas und dem Musik-Kompressor.
 
 const MUTE_KEY = 'lotti-greta-muted';
 

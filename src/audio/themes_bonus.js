@@ -13,14 +13,28 @@
 // Hook-Profile (tests/audio.mjs vergleicht sie mit allen Themen der Welten 1–8, der Halloween-Welt, der Welt Stern und
 // untereinander – Einsatz + Intervall und Kontur ohne Rhythmus):
 //   Pilz-Remix      Stotter-Hook: „(-)Pi-Pi-Pilz“ – nach einer Sechzehntel Pause dreimal derselbe Ton in Sechzehnteln (wie
-//                   ein hängender Plattenspieler), Sprung hinauf, zwei Schritte zurück, Luft holen, in Achteln wieder hinauf
-//   Blumen-Remix    (siehe unten)
+//                   eine hängende Platte), ein Sprung, zwei Schritte zurück, Luft holen, dann hüpft die Antwort in Terzen
+//   Blumen-Remix    Blüten-Kreisel: eine kleine Drehung um den Ton in Sechzehnteln (untere Nebennote, Ton, obere), dann in
+//                   Achteln über die Terz hinauf zur Blüte und in Stufen zurück
 //   Kronen-Gipfel   Krönungs-Dreiklang: der Dreiklang steigt in Achteln zum langen Gipfelton, oben ein Doppelschlag von
-//                   unten in Sechzehnteln (die Krone wird aufgesetzt), dann eine Terz hinab
-//   Boss-Marathon   Blitz-Zickzack: die Melodie zuckt in Achteln wie ein Blitz hinab (Terz runter, Sekunde rauf …),
-//                   dann ein Seufzer auf den Grundton
-//   Champion        Siegerruf: Quinte hinauf in einen langen Ton, dann Stufe für Stufe bis zur Oktave; die Antwort fällt
-//                   vom Gipfel zurück
+//                   unten in Sechzehnteln (die Krone wird aufgesetzt); die Antwort fällt den Dreiklang hinab
+//   Boss-Marathon   Blitz-Zickzack: die Melodie zuckt in Achteln hinab (Terz runter, Sekunde rauf, Terz runter …) und
+//                   klettert punktiert zurück; im siebten Refrain-Takt zuckt der Blitz eine Terz tiefer weiter
+//   Champion        Siegerruf: Achtel, zwei Sechzehntel auf demselben Ton, Achtel-Paare die Stufen hinauf bis zum langen
+//                   Gipfelton („Cham-pi-on, Cham-pi-on!“); die Antwort steigt auf dieselbe Art hinab
+// Beim Komponieren aufgefallen und ersetzt: eine Stotter-Hook mit drei Tönen auf der Eins und Quartsprung hatte den Einsatz
+// des Baron-Express (45 %), eine Pilz-Antwort als Terzen-Leiter hinab die Kontur von course_desert (67 %), eine Blüten-Hook
+// mit Dreiklang hinab und wieder hinauf die von course_rollingride (62 %) bzw. mit Doppelschlag und Terz hinauf die von
+// course_sneak (54 %), eine Kronen-Hook mit Dreiklang und Stufe hinauf die von course_river (46 %), eine Champion-Hook mit
+// Quintsprung und Stufen bis zur Oktave die von course_canyon (75 %, dazu zu viele Sprünge). Sprünge über eine Quinte an den
+// Taktgrenzen (Boss-Strophe → Refrain, Blitz-Takte, Überleitungen, Blüten-Hook) sind geglättet. Nach einer Harmonie-Prüfung
+// (Melodietöne auf 1 und 3 und lange Töne gegen den Akkord) stehen auf den schweren Zählzeiten Akkordtöne; bewusst bleiben
+// die Septimen über der Dominante am Ende der Kronen-Strophe und der Boss-Überleitung (sie führen in den Loop).
+//
+// Welt-Farbe je Thema: Stotter-Stabs, Scratch-Anklänge und hüpfendes Piano (Pilz-Remix); Flöte, Glockenspiel und Schellen
+// (Blumen-Remix); Fanfaren, Chor-„Aah“ und Pauken (Kronen-Gipfel); Weltraum-Hörner, Arpeggiator, Weltraum-Hall,
+// Sternenglitzern, Sternschnuppen-Riser und Blitz-Einschläge (Boss-Marathon); Fanfaren, Chor, Chor-Pad, Pauken,
+// Siegesglocke und Glockenspiel (Champion).
 
 import {
   dr, K4, KH, CL, H8, H8O, HH, CR, rest, chordBar, bassBar, padBar, pat, voicing,
