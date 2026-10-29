@@ -433,10 +433,12 @@ function install() {
             for (; k < (Lg.max ?? 1500) && e && e.alive && !e.removed && !e.defeated && !p.dead; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
               // heran bis in den Lichtkegel (7 m), dann stehen bleiben und ihn anschauen (angeschaut ist er langsam)
+              // sitzt der Geist auf der Figur (anschauen unmöglich), erst ein Stück von ihm weg
+              if (d < 1.2 && !Lg.stay) { const ax = d > 0.05 ? -dx : 1, az = d > 0.05 ? -dz : 0; for (let q = 0; q < 24; q++, k++) tick({ ...this.stick(ax, az, 1), run: true }); continue; }
               if (d > (Lg.dist ?? 5.5) && !Lg.stay) tick({ ...this.stick(dx, dz, Math.min(1, (d - 3) / 1.5 + 0.3)), run: false });
               else tick(this.stick(dx, dz, 0.07));
             }
-            log.push(['licht', id, e ? e.vanishedBy ?? e.state : null, k]);
+            log.push(['licht', id, e ? e.vanishedBy ?? e.state : null, k, e ? +Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z).toFixed(1) : null, e ? +e.pos.y.toFixed(1) : null, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]);
             if (e && e.alive && !e.removed && !e.defeated) log.push(['FEHLER: Geist nicht besiegt', id]);
           }
           continue;
