@@ -76,11 +76,11 @@ export const LEVEL = remixOf('7-4', {
       // Walzeninsel (Stern 1) links von Zylinder 3
       isl(M7.INSEL.x0, M7.INSEL.x1, M7.INSEL.zA, M7.INSEL.zB, Y, Y + 2, { top: 'stone' }),
       { type: 'stachelwalze_rot', id: 'w_insel', pos: M7.WALZE, radius: 0.6, length: 5.6, axis: 'x', speed: 1.5, stand: true, shadow: false },
-      { type: 'sign', pos: [-3.6, Y, -180.4], text: 'Gleiten!', size: [1.8, 0.8], yaw: 0 },
+      { type: 'sign', pos: [4.2, Y, -180.6], text: 'Gleiten?', size: [1.8, 0.8], yaw: 0 },
     ],
     blocks: [
       { kind: 'question', pos: [3.5, Y + 2.2, -171.6], content: 'gleitblatt' },
-      { kind: 'question', pos: [-9.75, Y + 2.2, -148.6], content: 'coins:5' },
+      { kind: 'question', pos: [-11.4, Y + 2.2, -155.4], content: 'coins:5' },
     ],
     items: [
       // Sternkette am Start, Walzen-Seitenweg, Gleitspur hinter der Röhre

@@ -31,6 +31,107 @@ const PI = Math.PI;
 const Y7 = 1.5, PT7 = 1.0, FX7 = 60;
 
 const ROUTES = {
+  'P-5': {
+    base: '6-3',
+    start: [0, 1, 7],
+    meta: { title: 'Werfertrubel im Sonnensaal', stars: 3, time: 400, theme: 'fareast@tag', music: 'course_fareast', variant: null, archetype: 'parcours', light: 'tag' },
+    enemies: { feuer_werfer: 4, stachelwerfer: 0, pilzling: 2, rollpilz: 2, krallen_pilzling: 1, stachelkugel: 1, stampfstein: 3, schluesselmuenze: 5, wurfball: 3, goal: 0, fliegender_zielmast: 1 },
+    baseEnemies: { stachelwerfer: 3, pilzling: 3, schluesselmuenze: 5, goal: 1 },
+    remixChecks: [
+      { name: 'Werfer statt Stachelwerfern (Bumerang im Erdgeschoss, zwei Hammer im 1. Stock, Feuer im 2. Stock), Warp-Box hinaus versteckt bis zu fünf Schlüsselmünzen, kein Zielmast am Boden – er fliegt pendelnd',
+        ok: (r) => r.p5.werfer === 'bumerang,hammer,hammer,feuer' && r.p5.aussenHidden && r.p5.pole === 'pendel' && r.p5.keys === 5 && r.p5.plug && r.p5.schatten },
+    ],
+    main: [
+      { name: 'vor Tür 1', to: [0, -4.6], within: 0.4, run: false },
+      { name: 'Tür 1 antippen', tap: 'tuer1', after: 90 },
+      { to: [0, -11.2], within: 0.4, run: false },
+      { name: 'Tür 2 antippen', tap: 'tuer2', after: 90 },
+      { to: [0, -18.2], within: 0.4, run: false },
+      { name: 'Tür 3 antippen', tap: 'tuer3', after: 90 },
+      { to: [0, -24], within: 0.4, run: false },
+      { name: 'rote Röhre', to: [0, -25.5], jump: 24, within: 0.25, run: false },
+      { crouch: 4 },
+      { expect: 'inHall' },
+      { name: 'Pilz-Maske am Saaleingang', to: [-19.5, -43.4], within: 0.3, run: false },
+      { wait: 10 },
+      { expect: 'masked' },
+      { name: '?-Block mit Funkenblüte', to: [-14, -42.8], within: 0.2, run: false }, { hop: 26 }, { wait: 20 }, { chaseKind: 'powerup', max: 900 },
+      { expect: 'funken' },
+      { name: 'Erdgeschoss: Bumerang-Werfer, Rollpilz, Krallen-Pilzling mit Feuerbällen', shoot: ['w_eg_b', 'r1', 'k1'], z: -44.5 },
+      { name: 'Schlüssel 1 am Fuß der Treppe', to: [18.8, -45.8], within: 0.3, run: false },
+      { to: [24.4, -48.6], within: 0.4, run: false },
+      { name: 'Treppe zum 1. Stock', to: [16.5, -48.6], within: 0.5 },
+      { wait: 30 },
+      { expect: 'onF2' },
+      { name: '1. Stock: zwei Hammer-Werfer, Pilzling', shoot: ['w_1_h1', 'p2', 'w_1_h2'], z: -44.5 },
+      { to: [10, -46.4], within: 0.3 },
+      { name: 'Tür 1a antippen', tap: 't1a', after: 120 },
+      { name: 'Schlüssel 3 in der Nische', to: [10, -51.7], within: 0.3, run: false },
+      { to: [10, -46.2], within: 0.4, run: false },
+      { name: 'Schlüssel 2 zwischen den Hammer-Werfern', to: [-5, -44.5], within: 0.3, run: false },
+      { to: [-23, -44.5], within: 0.6 },
+      { to: [-24.4, -48.6], within: 0.4, run: false },
+      { name: 'Treppe zum 2. Stock', to: [-16.5, -48.6], within: 0.5 },
+      { wait: 30 },
+      { expect: 'onF3' },
+      { name: '2. Stock: Feuer-Werfer', shoot: ['w_2_f'], z: -44.5 },
+      { to: [-6, -46.4], within: 0.3, run: false },
+      { name: 'Tür 2a antippen: Schattenblock-Wand', tap: 't2a', after: 120 },
+      { expect: 'schattenDa' },
+      { name: 'Pilzling und Rollpilz', shoot: ['p3', 'r2'], z: -44.5 },
+      { to: [6, -46.4], within: 0.3, run: false },
+      { name: 'Tür 2c und zwei Scheinwände', tap: 't2c', after: 120 }, { tap: 'schein1', after: 110 }, { tap: 'schein2', after: 110 },
+      { name: 'Schlüssel 4 hinter den Scheinwänden', to: [6, -53.2], within: 0.4, run: false },
+      { to: [6, -46.4], within: 0.4, run: false },
+      { name: 'Gong im 2. Stock', to: [19.2, -44.5], within: 0.4, run: false }, { tap: 'gong', after: 90 },
+      { expect: 'schattenWeg' },
+      { to: [-6, -46.4], within: 0.4 },
+      { name: 'Schlüssel 5 hinter der Schattenblock-Wand', to: [-6, -52.1], within: 0.3, run: false },
+      { to: [-6, -46.4], within: 0.4, run: false },
+      { expect: 'keys5' }, { expect: 'aussenOffen' },
+      { to: [20.4, -46.9], within: 0.5 },
+      { name: 'Warp-Box zum Tempel', to: [23.4, -48.6], jump: 30, within: 0.3, run: false, stopIf: 'onExterior' },
+      { wait: 40 },
+      { expect: 'onExterior' },
+      { name: 'Checkpoint', to: [0, -76.8], within: 0.6 },
+      { to: [0, -83], within: 0.4, run: false },
+      { name: 'Dachfirst (zwischen den Stampfsteinen)', to: [0, -101.5], within: 0.4 },
+      { name: 'Propeller-Helm', to: [3, -105], within: 0.25, run: false },
+      { wait: 10 },
+      { expect: 'propeller' },
+      { to: [0, -109.3], within: 0.3, run: false },
+      { name: 'über die Lücke', prop: [0, -120.5], rise: 40 },
+      { expect: 'onE3' },
+      { to: [0, -126.6], within: 0.4, run: false },
+      { name: 'Dachstufe 1', to: [0, -129.8], jump: 30, within: 0.5, run: false },
+      { name: 'Dachstufe 2', to: [0, -133.3], jump: 30, within: 0.5, run: false },
+      { name: 'oberstes Dach', to: [0, -136.2], jump: 30, within: 0.6, run: false },
+      { to: [-5, -135.4], within: 0.4, run: false },
+      { name: 'Wolke', to: [-5, -138.2], jumpAt: 2.2, jump: 30, within: 0.6, run: false },
+      { expect: 'onMastWolke' },
+      { name: 'fliegenden Zielmast fangen', catchPole: 'flugmast', hold: [-5, -138.4], reach: 3.4 },
+    ],
+    routeChecks: [
+      { name: 'drei Schiebetüren, Röhre in den Saal, alle fünf Schlüsselmünzen, Schattenblock-Wand per Gong, Propeller-Flug, Zielmast im Flug gefangen', ok: (r) => r.mech.taps >= 9 && r.mech.props === 1 && r.mech.stomped.length >= 8 && r.rt.pole !== null && r.rt.pole !== undefined },
+      { name: 'ohne einen Treffer-Versuch (Pilz-Maske: zugewandte Werfer werfen nicht)', ok: (r) => r.mech.hurts === 0 },
+    ],
+    targets: [],
+    extra: [],
+    shots: [
+      ['start', [0, 1, 7]],
+      ['saal_eg', [-14, 1, -44.5]],
+      ['saal_1st', [6, 6, -44.5]],
+      ['saal_2st_rohr', [-10, 11, -44.5]],
+      ['nische_2a', [-6, 11, -47.5]],
+      ['saal_gong', [17, 11, -44.5]],
+      ['balkon', [-31, 11, -45]],
+      ['ankunft', [0, 12, -74]],
+      ['helme', [0, 12, -104]],
+      ['oberstes_dach', [0, 19.8, -136]],
+      ['wolke', [-5, 22.1, -138.2]],
+      ['muenzraum', [100, 0, -104]],
+    ],
+  },
   'P-7': {
     base: '7-4',
     start: [0, Y7, 6],
@@ -204,6 +305,36 @@ function install() {
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
   const onGround = () => P().mode === 'ground' && !P().dead;
   const COND = {
+    // P-5 (wie course_w6b für 6-3)
+    inHall: () => P().pos.z < -40 && P().pos.z > -53 && Math.abs(P().pos.x) < 26,
+    onF2: () => P().mode === 'ground' && Math.abs(P().pos.y - 6) < 0.3 && P().pos.z < -40,
+    onF3: () => P().mode === 'ground' && Math.abs(P().pos.y - 11) < 0.3 && P().pos.z < -40,
+    onExterior: () => P().pos.z < -66 && P().pos.y > 11.5 && Math.abs(P().pos.x) < 20,
+    propeller: () => P().helmet === 'propeller',
+    onE3: () => P().mode === 'ground' && Math.abs(P().pos.y - 12) < 0.3 && P().pos.z < -117.8 && P().pos.z > -128.2,
+    masked: () => P().helmet === 'maske' && !!P().masked,
+    funken: () => P().power === 'funken',
+    schattenDa: () => !!named('schattenwand') && named('schattenwand').want !== false,
+    schattenWeg: () => named('schattenwand')?.want === false,
+    keys5: () => (L.keys?.saal?.n ?? 0) >= 5,
+    aussenOffen: () => !named('aussen')?.hidden,
+    aussenZu: () => !!named('aussen')?.hidden,
+    onMastWolke: () => onGround() && P().pos.y > 21.5 && /wolke/.test(P().ground?.tag ?? ''),
+    pfropfenWeg: () => !!named('pfropfen:pfropfen')?.popped,
+    pfropfenDa: () => !named('pfropfen:pfropfen')?.popped,
+    onBalkon: () => onGround() && P().pos.x < -27.8 && Math.abs(P().pos.y - 11) < 0.3,
+    onF3back: () => onGround() && Math.abs(P().pos.y - 11) < 0.3 && P().pos.x > -18 && P().pos.z < -40,
+    muenzwarpZu: () => !!named('muenzwarp')?.hidden,
+    muenzwarpOffen: () => !named('muenzwarp')?.hidden,
+    inGarden: () => P().pos.x > 85 && P().pos.z < -95,
+    stern2Sichtbar: () => !!L.runtime.stars[2] || L.entities.some((e) => e.kind === 'star' && e.index === 2 && !e.hidden && !e.removed),
+    stern1Sichtbar: () => !!L.runtime.stars[1] || L.entities.some((e) => e.kind === 'star' && e.index === 1 && !e.hidden && !e.removed),
+    ringLaeuft: () => L.entities.some((e) => e.kind === 'starcoin' && !e.removed && !e.hidden),
+    hammerStill: () => (ent('w_1_h1')?.throws ?? 0) === (window.__thr0 ?? 0),
+    hammerWirft: () => (ent('w_1_h1')?.throws ?? 0) > (window.__thr0 ?? 0),
+    merkeWuerfe: () => { window.__thr0 = ent('w_1_h1')?.throws ?? 0; return true; },
+    goal: () => L.runtime.status === 'goal' || L.runtime.status === 'done',
+    playing: () => L.runtime.status === 'play',
     // P-7
     onFinale7: () => at(53, 67, 1, -175, -191),
     onStartYard: () => onGround() && at(-6, 6, 1.2, 10, -7),
@@ -422,9 +553,11 @@ function install() {
           log.push(['Propeller', k, +apex.toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.ground?.tag]);
           continue;
         }
-        // ------------------------------------------------ Gegner (Ids bzw. Id-Anfang) nacheinander von oben besiegen
+        // ------------------------------------------------ Gegner (Ids bzw. Id-Anfang) nacheinander von oben besiegen (wie course_w6b:
+        // Rollpilz per Stampfattacke; lineUp: Blick bleibt zum Gegner – mit Pilz-Maske sieht ein zugewandter Werfer die Figur nicht)
         if (Lg.stompAll) {
           const pre = Lg.stompAll;
+          const done = [];
           let guard = 0;
           for (; guard < 60; guard++) {
             const want = (e) => (Array.isArray(pre) ? pre.includes(e.spec?.id) : String(e.spec?.id ?? '').startsWith(pre));
@@ -433,22 +566,123 @@ function install() {
             if (Array.isArray(pre)) list.sort((a, b) => pre.indexOf(a.spec?.id) - pre.indexOf(b.spec?.id));
             else list.sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
             const e = list[0];
-            let k = 0, jl = false;
-            for (; k < (Lg.max ?? 1200) && e.alive && !e.defeated && !e.removed; k++) {
+            let k = 0, jl = false, pounds = 0, phase = 0;
+            // side (m): Werfer von vorn (zur Kamera, quer zu seinem Tänzeln) anspringen – vor ihm stehen bleiben, senkrecht
+            // hochspringen, im Fallen auf ihn lenken (mit Pilz-Maske sieht er die zugewandte Figur nicht)
+            const sideOn = Lg.side && e.kind === 'feuer_werfer';
+            for (; k < (Lg.max ?? 1800) && e.alive && !e.defeated && !e.removed; k++) {
               const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (sideOn) {
+                if (p.mode === 'ground' && phase === 2) phase = 0;
+                if (phase === 0) {
+                  const qx = e.pos.x - p.pos.x, qz = e.pos.z + Lg.side - p.pos.z, qd = Math.hypot(qx, qz);
+                  if (qd < 0.35 && p.mode === 'ground' && Math.hypot(p.vel.x, p.vel.z) < 0.4) { phase = 1; tick({ jump: true }); continue; }
+                  tick(p.mode === 'ground' ? (qd > 0.12 ? { ...this.stick(qx, qz, Math.max(0.2, Math.min(1, qd / 1.2))), run: false } : {}) : {}); continue;
+                }
+                if (phase >= 1) {
+                  phase = 2;
+                  const up = p.vel.y > 1.5;
+                  tick({ ...(up ? {} : this.airSteer(e.pos.x, e.pos.z, 0, 0, 4, 5)), jump: p.vel.y > 0 }); continue;
+                }
+              }
               // Flieger (Knochenflieger vom Podest, wie course_w7b): Sprung gehalten, sobald er nah ist
               if (Lg.fly && p.mode === 'ground') { tick(d < 2.0 ? { ...this.stick(dx, dz, 0.5), jump: true, run: false } : { ...this.stick(Lg.hold ? Lg.hold[0] - p.pos.x : 0, Lg.hold ? Lg.hold[1] - p.pos.z : 0, Lg.hold ? 0.6 : 0), run: false }); continue; }
-              if (p.mode === 'ground' && d < 2.2 && !e.overhead) { jl = !jl; tick({ ...this.stick(dx, dz, 0.5), jump: jl, run: false }); continue; }
+              if (p.mode === 'ground' && d < (Lg.near ?? 2.2) && !e.overhead) { jl = !jl; tick({ ...this.stick(dx, dz, 0.5), jump: jl, run: false }); continue; }
               jl = false;
+              // Rollpilz (und mit pound jeder Gegner): Stampfattacke – einfaches Draufspringen legt ihn nur auf den Rücken
+              if (p.mode === 'air' && (e.kind === 'rollpilz' || Lg.pound) && d < 0.55 && p.vel.y < 1.5 && p.pos.y > e.pos.y + 0.9) { pounds++; tick({ crouch: true }); continue; }
+              if (p.mode === 'air' && Lg.lineUp) { tick({ ...(d > 0.08 ? this.stick(dx, dz, Math.min(1, d / 1.5)) : {}), jump: p.vel.y > 0 }); continue; }
               if (p.mode === 'air') { const ev = e.vel ?? { x: 0, z: 0 }; tick({ ...this.airSteer(e.pos.x + ev.x * 0.2, e.pos.z + ev.z * 0.2, ev.x, ev.z, 3.6, 7), jump: p.vel.y > 0 }); continue; }
               if (d < 3 && e.overhead) { tick({}); continue; }
               tick({ ...this.stick(dx, dz, Math.min(1, d / 2)), run: false });
             }
-            if (!e.alive || e.defeated || e.removed) mech.stomped.push(e.spec?.id);
+            if (!e.alive || e.defeated || e.removed) { mech.stomped.push(e.spec?.id); done.push(e.spec?.id); }
             else break;
           }
           for (let i = 0; i < 60; i++) tick({});
-          log.push(['besiegt', mech.stomped.length, mech.stomped.join(' ')]);
+          log.push(['besiegt', done.join(' ')]);
+          if (!done.length && !Lg.partial) log.push(['FEHLER: nichts besiegt', `${pre}`]);
+          continue;
+        }
+        // ------------------------------------------------ mit der Funkenblüte schießen: auf gleicher Höhe Abstand dist halten, zum Gegner
+        // drehen, Feuerbälle werfen, bis er besiegt ist (Ids der Reihe nach)
+        if (Lg.shoot) {
+          const ids = Array.isArray(Lg.shoot) ? Lg.shoot : [Lg.shoot];
+          const done = [];
+          const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+          for (const id of ids) {
+            const e = ent(id);
+            if (!e) continue;
+            let k = 0, shots = 0, cool = 0;
+            for (; k < (Lg.max ?? 1500) && e.alive && !e.defeated && !e.removed && !p.dead; k++) {
+              if (cool > 0) cool--;
+              const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              const want = Lg.dist ?? 4.5;
+              // Stelle auf der Laufachse des Stockwerks (z der Figur bleibt, x im Abstand want vom Gegner, auf der Seite der Figur)
+              const sx = e.pos.x + Math.sign(p.pos.x - e.pos.x || 1) * want, sz = Lg.z ?? p.pos.z;
+              const ex = sx - p.pos.x, ez = sz - p.pos.z, ed = Math.hypot(ex, ez);
+              if (p.mode !== 'ground') { tick({}); continue; }
+              if (ed > 0.5 && d > want - 1) { tick({ ...this.stick(ex, ez, Math.max(0.25, Math.min(1, ed / 1.2))), run: false }); continue; }
+              const yawWant = Math.atan2(-dz, dx);
+              if (Math.abs(wrap(yawWant - p.yaw)) > 0.06) { tick({ ...this.stick(dx, dz, 0.12) }); continue; }
+              if (cool <= 0) { tick({ action: true }); shots++; cool = Lg.gap ?? 36; continue; }
+              tick({});
+            }
+            if (!e.alive || e.defeated || e.removed) { done.push(id); mech.stomped.push(id); }
+            log.push(['geschossen', id, !e.alive || e.defeated || e.removed, shots, k]);
+          }
+          for (let i = 0; i < 40; i++) tick({});
+          if (done.length < ids.length && !Lg.partial) log.push(['FEHLER: nicht alle besiegt', ids.filter((x) => !done.includes(x)).join(' ')]);
+          continue;
+        }
+        // ------------------------------------------------ Wurfball aufheben (hingehen, zu ihm drehen, Aktion)
+        if (Lg.grab) {
+          const b = named(Lg.grab) ?? ent(Lg.grab);
+          const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+          let n = 0;
+          for (; n < 600 && b && !p.holding && !p.dead; n++) {
+            const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.85 && p.mode === 'ground') {
+              const err = Math.abs(wrap(Math.atan2(-dz, dx) - p.yaw));
+              if (err > 0.08) { tick({ ...this.stick(dx, dz, 0.12) }); continue; }
+              tick({ action: true }); tick({});
+              continue;
+            }
+            tick({ ...this.stick(dx, dz, Math.max(0.3, Math.min(1, d))), run: false });
+          }
+          log.push(['ball', Lg.grab, p.holding === b, n]);
+          if (p.holding !== b) log.push(['FEHLER: Ball nicht aufgehoben', Lg.grab]);
+          continue;
+        }
+        // ------------------------------------------------ in Richtung des Ziels drehen und werfen (Ball bzw. mit fire: Feuerball)
+        if (Lg.throwAt || Lg.fire) {
+          const [tx, tz] = Lg.throwAt ?? Lg.fire;
+          const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+          for (let n = 0; n < 60; n++) {
+            const want = Math.atan2(-(tz - p.pos.z), tx - p.pos.x);
+            if (n >= 8 && Math.abs(wrap(want - p.yaw)) < 0.025) break;
+            tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, 0.35) });
+          }
+          for (let q = 0; q < (Lg.times ?? 1); q++) { tick({ action: true }); for (let w = 0; w < (Lg.gap ?? 2); w++) tick({}); }
+          mech.throws++;
+          for (let w = 0; w < (Lg.after ?? 90); w++) tick({});
+          log.push(['wurf', `${tx},${tz}`, Lg.fire ? 'feuer' : 'ball', +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ fliegenden Zielmast abpassen: warten, bis er heranschwingt, dann hochspringen
+        if (Lg.catchPole) {
+          const m = ent(Lg.catchPole);
+          let k = 0, jumped = 0;
+          for (; k < (Lg.max ?? 2400) && m && L.runtime.status === 'play' && !p.dead; k++) {
+            const px = m.pos.x, pz = m.pos.z, d = Math.hypot(px - p.pos.x, pz - p.pos.z);
+            const vx = (m.pos.x - (m.__px ?? m.pos.x)) * 120; m.__px = m.pos.x;
+            const coming = Math.sign(p.pos.x - px) === Math.sign(vx) || Math.abs(vx) < 0.1;
+            if (p.mode === 'ground' && d < (Lg.reach ?? 4.2) && coming && Math.abs(px + vx * 0.45 - p.pos.x) < 1.2) { jumped++; tick({ ...this.stick(px - p.pos.x, pz - p.pos.z, 0.8), jump: true }); continue; }
+            if (p.mode === 'air') { tick({ ...this.airSteer(px + vx * 0.2, pz, 0, 0, 3, 6), jump: true }); continue; }
+            const hx = Lg.hold?.[0] ?? p.pos.x, hz = Lg.hold?.[1] ?? p.pos.z, hd = Math.hypot(hx - p.pos.x, hz - p.pos.z);
+            tick(hd > 0.3 ? this.stick(hx - p.pos.x, hz - p.pos.z, Math.min(1, hd)) : {});
+          }
+          log.push(['zielmast', Lg.catchPole, k, jumped, L.runtime.status, m?.state]);
           continue;
         }
         // ------------------------------------------------ Schubser in Richtung dir stoßen (wie course_w7b)
@@ -649,6 +883,11 @@ function install() {
         qSichel: d.blocks.filter((b) => b.kind === 'question' && b.content === 'sichel').length,
         rbTask: !!d.items.find((i) => i.id === 'rb2')?.task,
         house: L.house ? { rooms: L.house.rooms } : null,
+        p5: d.id === 'P-5' ? {
+          werfer: L.entities.filter((e) => e.kind === 'feuer_werfer' && !e.removed).sort((a, b) => a.pos.y - b.pos.y || a.pos.x - b.pos.x).map((e) => e.weapon ?? e.spec.weapon ?? e.spec.kind?.replace('_werfer', '')).join(','),
+          aussenHidden: !!named('aussen')?.hidden, pole: ent('flugmast')?.mode ?? null, keys: L.entities.filter((e) => e.kind === 'schluesselmuenze' && !e.removed).length,
+          plug: !!ent('pfropfen') && !named('pfropfen:pfropfen')?.popped, schatten: !!named('schattenwand'),
+        } : null,
       };
     },
   };

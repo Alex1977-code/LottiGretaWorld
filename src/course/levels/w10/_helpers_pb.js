@@ -23,6 +23,96 @@ export { Bld, litTop, isl, line, ring, arc };
 const TAU = Math.PI * 2;
 
 // =====================================================================================================================
+// P-5: Sonnensaal (Werfer im Saal, verstopfte Glasröhre, Sternbalkon)
+// =====================================================================================================================
+
+/**
+ * Verstopfte Glasröhre (P-5 Geheimnis „Glasröhre im 3. Stock durch Stachelkugel verstopft (Ball oder Funkenblüte)“): die
+ * Stachelkugel mit Daten-Id `id` steckt in der Röhrenmündung; ein Riegel (unsichtbarer Quader `block`) verschließt die
+ * Öffnung. Wurfball ('throw') oder Feuerball ('fire') – auch Funkelstern, Riesentrank, Explosion – sprengen sie heraus: sie
+ * zerplatzt, der Riegel verschwindet, Signal 'pfropfen' { id, by }. Andere Angriffe prallen wie gewohnt ab.
+ * o: { block: { min, max }, by: [...], name } → level.named.get(name ?? `${id}:pfropfen`) = { popped, by, info() }.
+ */
+export function pfropfen(level, id, o = {}) {
+  const st = { popped: false, by: null };
+  st.info = () => ({ popped: st.popped, by: st.by });
+  level.named.set(o.name ?? `${id}:pfropfen`, st);
+  const e = level.entities.find((x) => x.spec?.id === id && !x.removed);
+  if (!e) return st;
+  const bid = o.block ? level.world.add({ type: 'box', min: o.block.min, max: o.block.max, camIgnore: true, noWallSlide: true, tag: 'pfropfen' }) : null;
+  const by = new Set(o.by ?? ['throw', 'fire', 'star', 'mega', 'bomb']);
+  const orig = e.onHit.bind(e);
+  e.onHit = (kind, src) => {
+    if (st.popped) return;
+    if (!by.has(kind)) { orig(kind, src); return; }
+    st.popped = true; st.by = kind;
+    if (bid !== null && bid >= 0) level.world.remove(bid);
+    const c = e.center();
+    level.sfx('brickbreak');
+    level.sfx('pipe');
+    level.effects?.debris(c, 0x9aa0b0, 12);
+    level.effects?.sparks(c, 16);
+    e.kill();
+    level.signal?.('pfropfen', { id, by: kind });
+  };
+  return st;
+}
+
+/**
+ * Werfer im Saal sehen nur ihr eigenes Stockwerk, damit Hammer und Bumerang nicht durch die Decken auf die Figur im Stockwerk
+ * darunter fliegen: ein Werfer zielt nur, wenn die Figur zuletzt auf seinem Stockwerk stand (floors: Bodenhöhen, aufsteigend;
+ * Stockwerk = höchster Boden ≤ y + 0,5). kinds: Arten der Werfer. Wirkt auch auf später erscheinende Werfer.
+ */
+export function werferStockwerk(level, kinds, floors) {
+  const set = new Set(kinds), done = new WeakSet();
+  const floorOf = (y) => { let k = -1; floors.forEach((f, i) => { if (y >= f - 0.5) k = i; }); return k; };
+  let figFloor = -1;
+  const apply = () => {
+    for (const e of level.entities) {
+      if (!set.has(e.kind) || done.has(e) || typeof e.canSee !== 'function') continue;
+      done.add(e);
+      const own = floorOf(e.spec?.pos?.[1] ?? e.pos.y);
+      const orig = e.canSee.bind(e);
+      e.canSee = (range, h) => own === figFloor && orig(range, h);
+    }
+  };
+  apply();
+  let t = 0;
+  level.onStep((d) => {
+    const p = level.player;
+    if (p && p.mode === 'ground' && !p.dead) figFloor = floorOf(p.pos.y);
+    t += d; if (t > 0.5) { t = 0; apply(); }
+  });
+}
+
+/** Sternbalkon außen am Saal (P-5 Stern 0): rotes Geländer an drei Seiten, Laternen, Blumenkästen (nur Optik, verschmolzen). */
+export function sternBalkon(level, o) {
+  if (!level.view) return;
+  const { x0, x1, zA, zB, y } = o;
+  const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB);
+  const b = new Bld();
+  const rail = litTop(0xd8443a, 0.7), gold = 0xffc84a;
+  const side = (ax, az, bx, bz) => {
+    const len = Math.hypot(bx - ax, bz - az), n = Math.max(2, Math.round(len / 1.1));
+    for (let i = 0; i <= n; i++) { const t = i / n; b.box(0.12, 0.95, 0.12, ax + (bx - ax) * t, y, az + (bz - az) * t, rail, { r: 0.02 }); }
+    const yaw = Math.atan2(-(bz - az), bx - ax);
+    b.box(len + 0.12, 0.12, 0.16, (ax + bx) / 2, y + 0.86, (az + bz) / 2, gold, { yaw, r: 0.03 });
+  };
+  for (const s of o.sides ?? ['l', 'f', 'b']) {
+    if (s === 'l') side(x0, z0, x0, z1);
+    if (s === 'r') side(x1, z0, x1, z1);
+    if (s === 'f') side(x0, z0, x1, z0);
+    if (s === 'b') side(x0, z1, x1, z1);
+  }
+  b.box(x1 - x0 - 0.3, 0.05, z0 - z1 - 0.3, (x0 + x1) / 2, y, (z0 + z1) / 2, litTop(0xc8323a, 0.85), { r: 0 });   // Läufer
+  for (const [x, z] of o.boxes ?? []) {
+    b.box(1.1, 0.4, 0.45, x, y, z, litTop(0x8a5a3a, 0.7), { r: 0.04 });
+    for (let k = 0; k < 4; k++) b.sphere(0.13, x - 0.4 + k * 0.27, y + 0.48, z, [0xff7ac0, 0xffd23d, 0xffffff, 0xff9a3a][k]);
+  }
+  b.flush(level, { castShadow: false });
+}
+
+// =====================================================================================================================
 // P-7: sinkende Schollen über der blauen Lava
 // =====================================================================================================================
 
