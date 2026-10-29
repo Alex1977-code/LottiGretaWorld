@@ -335,3 +335,29 @@ export function stempelBlock(level, pos) {
   if (!level.named.has('stempelblock')) level.named.set('stempelblock', h);
   return h;
 }
+
+/**
+ * Sanddunst (8-2): Der lange Blick die Düne hinab zeigt sonst sämtliche Abschnitte bis zum Horizont. Nebel etwas näher
+ * (Dunst über dem Sand) und statische Abschnitte, deren Quader weiter als dist m von der Kamera entfernt liegt, werden
+ * nicht gezeichnet (nur Darstellung; Kollision und Kulisse am Himmel bleiben). Nur dieses Level.
+ */
+export function sandDunst(level, o = {}) {
+  const v = level.view;
+  if (!v) return;
+  const fog = v.three.fog;
+  if (fog) { fog.near = o.near ?? 45; fog.far = o.far ?? 175; }
+  const dist = o.dist ?? 130;
+  let list = null;
+  v.onFrame(() => {
+    if (!list) {
+      list = [];
+      for (const m of v.three.children) {
+        if (!m.isMesh || typeof m.name !== 'string' || !m.name.startsWith('statisch:')) continue;
+        if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+        list.push({ m, box: m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld) });
+      }
+    }
+    const cp = v.camera.position;
+    for (const it of list) it.m.visible = it.box.distanceToPoint(cp) < dist;
+  });
+}

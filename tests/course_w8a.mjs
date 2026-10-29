@@ -132,7 +132,7 @@ const ROUTES = {
   '8-2': {
     start: 'start',
     meta: { stars: 3, time: 400, theme: 'dunes', music: 'course_dunes', archetype: 'ride' },
-    enemies: { sandflosser: 10, flatterkaefer: 1, baron_sandstatue: 12, pilzling_sandskulptur: 6 },
+    enemies: { sandflosser: 10, flatterkaefer: 1, baron_sandstatue: 10, pilzling_sandskulptur: 6 },
     main: [
       { name: 'Aufsteigen am Steg', mount: true },
       { name: 'Startmulde und erste Abfahrt', pflaume: 'main', lat: 0, z: -105 },

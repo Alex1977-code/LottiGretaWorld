@@ -18,7 +18,7 @@
 
 import { RiverChannel } from '../../archetypes/RiverNet.js';
 import { riverBankHeight } from '../../blocks/types/river.js';
-import { isl, duenenThema, sandAnsicht, sandStrom, stempelBlock } from './_helpers_a.js';
+import { isl, duenenThema, sandAnsicht, sandStrom, stempelBlock, sandDunst } from './_helpers_a.js';
 
 const Y0 = 20;                 // Sandstrom am Start
 const BANK_H = 2.6;            // Dünenkämme links und rechts
@@ -95,6 +95,38 @@ const WOLKEN = [[-3, YB + 2.2, -317.6], [0, YB + 4.4, -319.6], [3, YB + 6.6, -31
 const QBLOCK = [0, YB + 8.8 + 1.65, -315.6];
 const STAMP = [0, QBLOCK[1] + 1.05, -315.6];
 
+// ---------------------------------------------------------------- Kulisse entlang des Stroms (deterministisch)
+const KAKTUS = ['saeule', 'kugel', 'feige', 'gruppe'];
+const UFER = (() => {
+  const palmen = [], kakteen = [], wimpel = [];
+  let i = 0;
+  for (let z = -30; z > -292; z -= 11) {
+    i++;
+    for (const side of [-1, 1]) {
+      if (side < 0 && z < -150 && z > -214) continue;          // links liegt hier der Felsentor-Arm
+      const zz = z + side * 2.2, k = (i * 5 + (side > 0 ? 2 : 0)) % 6;
+      if (k === 0 || k === 3) palmen.push({ kind: 'palm', pos: BANK(main, zz, side, 1.4 + (i % 3) * 0.8), size: 4.2 + (i % 4) * 0.5, lean: 0.28, yaw: side > 0 ? 2.6 + (i % 3) * 0.3 : -0.4 - (i % 3) * 0.3 });
+      else kakteen.push({ kind: 'kaktus', pos: BANK(main, zz, side, 1.8 + (i % 4) * 0.9), variant: KAKTUS[(i + k) % 4], size: 0.9 + (i % 3) * 0.2, yaw: i * 1.3 });
+      if (i % 3 === side + 1) kakteen.push({ kind: 'ruine', pos: BANK(main, zz - 3, side, 7 + (i % 4) * 2), height: 2.2 + (i % 3) * 0.8 });
+      if (i % 4 === 1) palmen.push({ kind: 'bloom', pos: BANK(main, zz + 1.5, side, 0.9) });
+    }
+  }
+  // Seitenarm: Kakteen und Palmen auf dem Kamm zwischen den Strömen und links außen
+  for (const [z, side, palm] of [[-170, 1, true], [-182, 1, false], [-194, 1, true], [-168, -1, false], [-180, -1, true], [-196, -1, false]]) {
+    if (palm) palmen.push({ kind: 'palm', pos: BANK(arm, z, side, 1.2), size: 4.4, lean: 0.3, yaw: side > 0 ? 2.8 : -0.6 });
+    else kakteen.push({ kind: 'kaktus', pos: BANK(arm, z, side, 1.6), variant: 'saeule', size: 1.1 });
+  }
+  // Wimpelketten quer über den Strom (Schubfelder, Kontrollpunkte, Statuenfeld)
+  for (const z of [-36, -84, CP1_Z + 2, -166, CP2_Z + 2, -238, -284]) {
+    const a = BANK(main, z, -1, 0.4), b = BANK(main, z, 1, 0.4), y = +(Math.max(a[1], b[1]) + 3.4).toFixed(2);
+    wimpel.push({ kind: 'wimpel', from: [a[0], y, a[2]], to: [b[0], y, b[2]], sag: 1.1 });
+  }
+  return { palmen, kakteen, wimpel };
+})();
+/** Große Dünen auf der Tiefebene beiderseits der Abfahrt. */
+const DUENEN = [[-12, -1], [-40, 1], [-75, -1], [-110, 1], [-150, -1], [-190, 1], [-230, -1], [-262, 1]]
+  .map(([z, side], i) => { const q = P(main, z, side * (34 + (i % 3) * 8)); return { kind: 'duene', pos: [q[0], LOWLAND, q[2]], size: 2.4 + (i % 4) * 0.5, seed: 10 + i, yaw: side > 0 ? -1.4 + (i % 3) * 0.3 : 1.6 - (i % 3) * 0.3 }; });
+
 export const LEVEL = {
   id: '8-2',
   world: 8,
@@ -104,7 +136,13 @@ export const LEVEL = {
   music: 'course_dunes',
   timeLimit: 400,
   killY: -60,
-  start: { pos: [0, Y0 + 0.62, 13.5], yaw: Math.PI / 2 },
+  // Leistung: ferne Gegner/Sandfiguren nicht zeichnen, Münzen ohne Schatten (Präzisierung Leistung und Level-Haken 2)
+  farHide: 55,
+  instances: {
+    baron_sandstatue: { farHide: 46, shadowDist: 10 }, pilzling_sandskulptur: { farHide: 54, shadowDist: 24 },
+    sandflosser: { farHide: 52, shadowDist: 24 }, coin: { farHide: 46, shadow: false },
+  },
+  start: { pos: [0, Y0 + 0.62, 23], yaw: Math.PI / 2 },
   ride: {
     raft: [0, Y0, 5.4],
     raftYaw: -Math.PI / 2,     // Pflaume schaut der Heldin entgegen, dreht beim Aufsteigen um
@@ -122,17 +160,18 @@ export const LEVEL = {
   },
   setup: (level, scene) => {
     sandAnsicht(level, scene);
+    sandDunst(level, { dist: 112, near: 42, far: 165 });
     sandStrom(level);
     stempelBlock(level, QBLOCK);
   },
   camera: [
-    { from: 60, to: 4, pitch: 38, dist: 12, ahead: 2.5, height: 1 },
-    { from: 4, to: -26, pitch: 44, dist: 12.5, ahead: 2.2, height: 1, fov: 42 },
-    { from: -26, to: -110, pitch: 34, dist: 11, ahead: 2.8, height: 1, fov: 42 },
-    { from: -110, to: -142, pitch: 30, dist: 11.5, ahead: 2.6, height: 1.4, fov: 42 },
-    { from: -142, to: -226, pitch: 34, dist: 11, ahead: 2.8, height: 1, fov: 42 },
-    { from: -226, to: -291, pitch: 38, dist: 12.5, ahead: 3, height: 1.1, fov: 42 },
-    { from: -291, to: -360, pitch: 27, dist: 13, ahead: 2.5, height: 2.4 },
+    { from: 60, to: 4, pitch: 22, dist: 12.5, ahead: 3, height: 2.2 },
+    { from: 4, to: -26, pitch: 30, dist: 12.5, ahead: 2.6, height: 1.5, fov: 44 },
+    { from: -26, to: -110, pitch: 27, dist: 11, ahead: 3, height: 1.3, fov: 44 },
+    { from: -110, to: -142, pitch: 25, dist: 11.5, ahead: 2.8, height: 1.7, fov: 44 },
+    { from: -142, to: -226, pitch: 27, dist: 11, ahead: 3, height: 1.3, fov: 44 },
+    { from: -226, to: -291, pitch: 30, dist: 12.5, ahead: 3.2, height: 1.4, fov: 44 },
+    { from: -291, to: -360, pitch: 21, dist: 12.5, ahead: 2.5, height: 2.8 },
   ],
   segments: [
     // ---------------- Sandstrom (beide Kanäle in einem Aufruf: Dünenkämme öffnen sich an Gabelung und Mündung)
@@ -143,23 +182,48 @@ export const LEVEL = {
         { id: 'arm', points: ARM, bank: { height: BANK_H, out: 14 }, deco: 0 },
       ],
       lowland: { y: LOWLAND, trees: 0 },
+      life: { butterflies: 26, dragonflies: 0 },
     },
-    // ---------------- 1 Dünenkamm: Sandstein-Plateau, Holzsteg, Rahmen der Startmulde
-    isl(-30, 30, 15.6, 44, Y0 + 0.62, 4, { top: 'sand' }),
-    isl(-30, -8.6, 15.6, 22, Y0 + BANK_H, 5, { top: 'sand' }),
-    isl(8.6, 30, 15.6, 22, Y0 + BANK_H, 5, { top: 'sand' }),
+    // ---------------- 1 Dünenkamm: Sandstein-Plateau, Holzsteg unter dem Rummel-Torbogen, Rahmen der Startmulde
+    isl(-30, 30, 15.6, 44, Y0 + 0.62, 4, { top: 'grass' }),
+    isl(-30, -8.6, 15.6, 22, Y0 + BANK_H, 5, { top: 'grass' }),
+    isl(8.6, 30, 15.6, 22, Y0 + BANK_H, 5, { top: 'grass' }),
     { type: 'river_deco', items: [
       { kind: 'dock', from: [0, Y0 + 0.62, 17.5], to: [0, Y0 + 0.62, 6.8], width: 2.4 },
       { kind: 'sign', pos: [2.2, Y0 + 0.62, 18.6], yaw: Math.PI / 2 },
-      { kind: 'palm', pos: [-4, Y0 + 0.62, 21.5], size: 5.2, lean: 0.25, yaw: -1.2 }, { kind: 'palm', pos: [6.5, Y0 + 0.62, 25], size: 5.6, lean: 0.2, yaw: 2.4 },
-      { kind: 'palm', pos: [-11, Y0 + 0.62, 28], size: 5 }, { kind: 'bloom', pos: [2.6, Y0 + 0.62, 23] },
+      { kind: 'palm', pos: [-4.6, Y0 + 0.62, 21.5], size: 5.2, lean: 0.25, yaw: -1.2 }, { kind: 'palm', pos: [6.5, Y0 + 0.62, 25], size: 5.6, lean: 0.2, yaw: 2.4 },
+      { kind: 'palm', pos: [-11, Y0 + 0.62, 28], size: 5 }, { kind: 'palm', pos: [12.5, Y0 + BANK_H, 19.5], size: 4.6, lean: 0.3, yaw: 0.6 },
+      { kind: 'palm', pos: [-12.5, Y0 + BANK_H, 18.8], size: 4.8, lean: 0.3, yaw: 2.2 },
+      { kind: 'bloom', pos: [2.6, Y0 + 0.62, 23] }, { kind: 'bloom', pos: [-2.8, Y0 + 0.62, 24.5] },
     ] },
     { type: 'deco_w2', items: [
-      { kind: 'kakteen', pos: [-14, Y0 + 0.62, 32], size: [16, 10], n: 7, seed: 82 },
-      { kind: 'kakteen', pos: [15, Y0 + 0.62, 31], size: [14, 10], n: 6, seed: 83 },
-      { kind: 'ruine', pos: [9, Y0 + 0.62, 20.5], height: 2.6 }, { kind: 'ruine', pos: [-8.5, Y0 + 0.62, 24], height: 3.2 },
+      { kind: 'kakteen', pos: [-16, Y0 + 0.62, 33], size: [16, 10], n: 4, seed: 82 },
+      { kind: 'kakteen', pos: [17, Y0 + 0.62, 33], size: [14, 10], n: 4, seed: 83 },
+      { kind: 'ruine', pos: [9, Y0 + 0.62, 21], height: 2.6 }, { kind: 'ruine', pos: [-9, Y0 + 0.62, 25], height: 3.2 },
       { kind: 'kaktus', pos: [-6.5, Y0 + 0.62, 17.6], variant: 'gruppe', size: 1.1 },
+      { kind: 'pyramide', pos: [0, Y0 + 0.62, 40], size: 9, steps: 5 },
     ] },
+    { type: 'deco_w8', items: [
+      { kind: 'torbogen', pos: [0, Y0 + 0.62, 16.2], width: 5.6, height: 4.6, yaw: Math.PI / 2 },
+      { kind: 'bude', pos: [-8.5, Y0 + 0.62, 30], width: 3.4, color: 'rot', yaw: -Math.PI / 2 + 0.3 },
+      { kind: 'bude', pos: [8.5, Y0 + 0.62, 30.5], width: 3.4, color: 'blau', yaw: -Math.PI / 2 - 0.3 },
+      { kind: 'wimpel', from: [-2.8, Y0 + 4.9, 16.2], to: [-10.5, Y0 + 4.9, 22], sag: 0.8 },
+      { kind: 'wimpel', from: [2.8, Y0 + 4.9, 16.2], to: [10.5, Y0 + 4.9, 22], sag: 0.8 },
+      { kind: 'ballons', pos: [5.6, Y0 + 0.62, 20.5], n: 5, height: 3.2, color: 'gelb' },
+    ] },
+    // Dünenmeer ringsum (Kulisse auf der Tiefebene), Pyramiden und Tafelberge in der Ferne
+    { type: 'deco_w8', castShadow: false, items: DUENEN },
+    { type: 'deco_w2', castShadow: false, items: [
+      { kind: 'pyramide', pos: [-62, LOWLAND, -120], size: 22, steps: 7, yaw: 0.3 },
+      { kind: 'pyramide', pos: [70, LOWLAND, -40], size: 18, steps: 6, yaw: -0.2 },
+      { kind: 'pyramide', pos: [58, LOWLAND, -250], size: 20, steps: 7, yaw: 0.5 },
+      { kind: 'felsen', pos: [-70, LOWLAND, -250], size: [40, 60], n: 5, height: [8, 18], seed: 828 },
+      { kind: 'felsen', pos: [80, LOWLAND, -150], size: [30, 70], n: 4, height: [8, 16], seed: 829 },
+    ] },
+    // Dünenkämme: Palmen, Kakteen, Ruinen; bunte Wimpelketten über dem Strom
+    { type: 'river_deco', items: UFER.palmen },
+    { type: 'deco_w2', castShadow: false, items: UFER.kakteen },
+    { type: 'deco_w8', castShadow: false, items: UFER.wimpel },
     // ---------------- 2–6 Schubfelder, Rampe
     schub('schub1', main, -36, 0, 'rosa'),
     schub('schub2', main, -84, -1, 'tuerkis'),
@@ -172,17 +236,27 @@ export const LEVEL = {
       { kind: 'bogen', pos: P(arm, -186.5, 0, -0.1), width: 7.6, height: 4.6, thickness: 1.2, yaw: Math.PI / 2 + 0.25 },
     ] },
     // ---------------- 7 Oase (zu Fuß): Strand rund um das Becken
-    isl(-8.5, 26, -293.6, -346, YB, 6, { top: 'sand' }),
-    isl(-26, -8.5, -293.6, -325.5, YB, 6, { top: 'sand' }),
-    isl(-26, -8.5, -334.5, -346, YB, 6, { top: 'sand' }),
-    isl(-26, -19.5, -325.5, -334.5, YB, 6, { top: 'sand' }),
-    { type: 'oase', pos: [-14, YB, -330], size: [7, 5], depth: 1.4, rim: 2, base: 1, palms: 3 },
+    isl(-6, 26, -293.6, -346, YB, 6, { top: 'grass' }),
+    isl(-26, -6, -293.6, -302.6, YB, 6, { top: 'grass' }),
+    isl(-26, -6, -313.4, -346, YB, 6, { top: 'grass' }),
+    isl(-26, -18, -302.6, -313.4, YB, 6, { top: 'grass' }),
+    { type: 'oase', pos: [-12, YB, -308], size: [8, 6.8], depth: 1.4, rim: 2, base: 1, palms: [[-17.2, -303.6, 5.2], [-6.8, -304, 4.6], [-16.8, -312.6, 4.4]] },
     ...WOLKEN.map(([x, y, z], i) => ({ type: 'wolkenlift', id: `wolke${i}`, pos: [x, y - 0.55, z], width: 2.8, reveal: 'touch' })),
     { type: 'deco_w2', items: [
-      { kind: 'palmen', pos: [16, YB, -312], size: [12, 22], n: 4, seed: 821 },
-      { kind: 'kakteen', pos: [18, YB, -336], size: [10, 12], n: 5, seed: 822 },
-      { kind: 'kakteen', pos: [-20, YB, -305], size: [10, 12], n: 4, seed: 823 },
-      { kind: 'ruinen', pos: [-19, YB, -342], size: [12, 6], n: 3, seed: 824 },
+      { kind: 'palmen', pos: [17, YB, -312], size: [10, 18], n: 2, seed: 821 },
+      { kind: 'kakteen', pos: [18, YB, -336], size: [10, 12], n: 3, seed: 822 },
+      { kind: 'duenen', pos: [0, YB, -343], size: [48, 5], n: 6, height: [0.8, 1.8], seed: 825 },
+    ] },
+    { type: 'deco_w8', items: [
+      { kind: 'torbogen', pos: [0, YB, -331], width: 6, height: 5, yaw: Math.PI / 2 },
+      { kind: 'wimpel', from: [-3, YB + 5.2, -331], to: [-11, YB + 5.2, -336], sag: 0.9 },
+      { kind: 'wimpel', from: [3, YB + 5.2, -331], to: [11, YB + 5.2, -336], sag: 0.9 },
+      { kind: 'bude', pos: [10.5, YB, -303], width: 3.2, color: 'gelb', yaw: -Math.PI / 2 - 0.5 },
+      { kind: 'picknick', pos: [6.5, YB, -307.5], size: 2.6 },
+      { kind: 'ballons', pos: [3.6, YB, -339], n: 5, height: 3.2, color: 'blau' },
+      { kind: 'duene', pos: [-38, YB - 4, -318], size: 2.2, seed: 3, yaw: 1.2 },
+      { kind: 'duene', pos: [40, YB - 4, -322], size: 2.4, seed: 4, yaw: -1.4 },
+      { kind: 'duene', pos: [0, YB - 5, -362], size: 3, seed: 5, yaw: 0.1 },
     ] },
   ],
   blocks: [
@@ -211,9 +285,9 @@ export const LEVEL = {
     skulptur('sk1', main, -40, -2.6), skulptur('sk2', main, -59, 2.4), skulptur('sk3', main, -80, -2.4), skulptur('sk4', main, -101, 3),
     skulptur('sk5', main, -181, -2.2), skulptur('sk6', main, -203, 2.6),
     statue('st1', main, -236, -5, 1.0, { content: { coins: 2 } }), statue('st2', main, -241, 5, 1.1, { content: { coins: 2 } }),
-    statue('st3', main, -249, -1.5, 1.2, { content: { coins: 2 } }), statue('st4', main, -253, -7.5, 1.0, { content: { coins: 2 } }),
-    statue('st5', main, -256, 6.5, 1.1, { content: { coins: 2 } }), statue('st6', main, -263, -4.5, 1.2, { content: { coins: 2 } }),
-    statue('st7', main, -265, 4, 1.0, { content: { coins: 2 } }), statue('st8', main, -280, -6, 1.0, { content: { coins: 2 } }),
+    statue('st3', main, -249, -1.5, 1.2, { content: { coins: 2 } }),
+    statue('st5', main, -256, 6.5, 1.1, { content: { coins: 2 } }), statue('st6', main, -264, -4.5, 1.2, { content: { coins: 2 } }),
+    statue('st8', main, -280, -6, 1.0, { content: { coins: 2 } }),
     // Stern 3: große Statue kurz vor dem Ende – der Stern fällt vor Pflaume in den Strom
     statue('st_stern', main, STAR_STATUE_Z, STAR_STATUE_LAT, 1.4, { star: { index: 2, pos: P(main, STAR_STATUE_Z - 2.5, STAR_STATUE_LAT, 2.8) } }),
     // 7 Oase (zu Fuß): drei Statuen, dazwischen die unsichtbaren Wolken
@@ -256,7 +330,7 @@ export const LEVEL = {
   stamp: STAMP,
   goal: { pos: [0, YB, -338], height: 7 },
   marks: {
-    start: [0, Y0 + 0.62, 13.5], raft: [0, Y0, 5.4], basin: P(main, 2, 0), neck: P(main, -26, 0), cp1: P(main, CP1_Z, 0),
+    start: [0, Y0 + 0.62, 23], raft: [0, Y0, 5.4], basin: P(main, 2, 0), neck: P(main, -26, 0), cp1: P(main, CP1_Z, 0),
     ramp: P(main, RAMP_Z + 7, 0), gorge: P(main, -112, 0), descent2: P(main, -145, 0), fork: P(main, -156, 0), arm: P(arm, -164, 0),
     cp2: P(main, CP2_Z, 0), field: P(main, -229, 0), starStatue: P(main, STAR_STATUE_Z, STAR_STATUE_LAT), kaefer: P(main, KAEFER_Z, -2.6), beach: [0, YB, -300], goal: [0, YB, -338],
     wolken: WOLKEN, qblock: QBLOCK, stamp: STAMP, yB: YB,
