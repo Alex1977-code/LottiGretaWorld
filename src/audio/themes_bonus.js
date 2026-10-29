@@ -251,7 +251,7 @@ export const BONUS_THEMES = {
       lead: { ...SYNTH, cutoff: 5200, volume: 0.17 },
       organ: { volume: 0.06, cutoff: 2800, gate: 0.9 },     // Fanfaren
       whistle: AAH,                                            // Chor
-      bell: { type: 'sine', volume: 0.08, decay: 0.5, ratio: 2.76, partial: 0.4 },
+      bell: { type: 'sine', volume: 0.09, decay: 1.3, ratio: 2.4, partial: 0.5 },   // Siegesglocke
       arp: { type: 'sine', volume: 0.06, decay: 0.3 },        // Glockenspiel im zweiten Refrain
       piano: { volume: 0.09 },
       stabs: { volume: 0.12, cutoff: 6000, cutoffEnd: 1600 },
@@ -270,7 +270,7 @@ export const BONUS_THEMES = {
     lead: [...rest(4), ...chVerse, ...chChorus, ...chBridge, ...chChorus],
     whistle: bySection(chProg, CHAMP, { chorus: (c) => `${tones(c, 'D5')[0]}:16`, bridge: (c, i) => chChoir[i], chorus2: (c) => `${tones(c, 'D5')[0]}:16` }),
     arp: bySection(chProg, CHAMP, { chorus2: (c, i) => (i < 6 ? chChorus[i].replace(/([A-G][#b]?)(\d)/g, (m, n, o) => `${n}${+o + 1}`) : '-:16') }),
-    bell: chProg.map((c, i) => ([0, 12, 20, 24].includes(i) ? 'D6:16' : '-:16')),
+    bell: chProg.map((c, i) => ([0, 12, 20, 24].includes(i) ? 'D5:16' : '-:16')),
     stabs: bySection(chProg, CHAMP, { verse: (c) => chordBar(c, '.... ..x. .... ..x.'), chorus: (c) => chordBar(c, ST24), chorus2: (c) => chordBar(c, ST24) }),
     piano: bySection(chProg, CHAMP, { chorus: (c) => chordBar(c, OFF, 'F#4'), bridge: (c) => chordBar(c, LONG, 'F#4'), chorus2: (c) => chordBar(c, OFF, 'F#4') }),
     pad: chProg.map((c) => padBar(c)),
