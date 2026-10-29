@@ -667,9 +667,10 @@ export function wege(level, list) {
   b.flush(level, { castShadow: false });
 }
 
-/** Verschneite Tannen (Kulisse; solid: Stamm-Kollision): list [{ pos, height: 5, solid }]. */
+/** Verschneite Tannen (Kulisse; solid: Stamm-Kollision; lights: bunte Lichterkette rundherum): list [{ pos, height: 5, solid, lights }]. */
 export function tannen(level, list) {
-  const b = new Bld();
+  const b = new Bld(), g = new Bld();
+  let bi = 0;
   for (const s of list) {
     const [x, y, z] = s.pos, h = s.height ?? 5;
     if (s.solid !== false) level.world.add({ type: 'cyl', x, z, r: 0.5, y0: y, y1: y + h, tag: 'tanne' });
@@ -681,8 +682,18 @@ export function tannen(level, list) {
       b.cone(r * 0.62, hh * 0.45, x, y0 + hh * 0.55, z, 0xf6f9ff, 8);
     }
     b.sphere(0.12 * h / 5, x, y + h + 0.05, z, 0xfff6c0);
+    if (s.lights) {
+      // Lichterkette als Spirale um die Tanne, goldener Stern an der Spitze
+      const n = 26;
+      for (let i = 0; i < n; i++) {
+        const u = i / n, yy = y + h * (0.2 + u * 0.72), rr = h * 0.36 * (1 - u * 0.86) + 0.06, a = u * TAU * 3.2;
+        g.sphere(0.075 * h / 5 + 0.03, x + Math.cos(a) * rr, yy, z + Math.sin(a) * rr, BULBS[bi++ % BULBS.length], { ws: 6, hs: 4 });
+      }
+      g.add(starGeo(0.32 * h / 5, 0.08), 0xffd23a, { p: [x, y + h + 0.3, z], r: [0, 0, 0] });
+    }
   }
   b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow' });
 }
 
 /**

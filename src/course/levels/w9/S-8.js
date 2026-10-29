@@ -111,11 +111,11 @@ function build(level) {
   graeber(level, GRAEBER);
   wege(level, WEGE);
   tannen(level, [
-    { pos: [-27.4, 0, 14] }, { pos: [27.4, 0, 13.4], height: 5.6 }, { pos: [-27.6, 0, -20], height: 6 }, { pos: [27.4, 0, -14], height: 5 },
-    { pos: [-27.6, 0, -62], height: 5.5 }, { pos: [27.6, 0, -40], height: 6.2 }, { pos: [27.4, 0, -60], height: 4.8 }, { pos: [-27.4, 0, -80], height: 5.4 },
-    { pos: [27.4, 0, -81], height: 5.8 }, { pos: [-6.6, 0, -91.6], height: 4.2 }, { pos: [6.6, 0, -91.6], height: 4.4 },
-    { pos: [-8.4, 0, -188.2], height: 4.4 }, { pos: [8.4, 0, -175.4], height: 4.8 }, { pos: [XZ - 8.4, 0, -320], height: 5.4 }, { pos: [XZ + 8.4, 0, -344], height: 6 },
-    { pos: [XK + 7.4, 0, -67.2], height: 3.6, solid: false }, { pos: [XK - 7.4, 0, -67.2], height: 3.6, solid: false },
+    { pos: [-27.4, 0, 14], lights: true }, { pos: [27.4, 0, 13.4], height: 5.6, lights: true }, { pos: [-27.6, 0, -20], height: 6 }, { pos: [27.4, 0, -14], height: 5 },
+    { pos: [-27.6, 0, -62], height: 5.5 }, { pos: [27.6, 0, -40], height: 6.2, lights: true }, { pos: [27.4, 0, -60], height: 4.8 }, { pos: [-27.4, 0, -80], height: 5.4 },
+    { pos: [27.4, 0, -81], height: 5.8 }, { pos: [-6.6, 0, -91.6], height: 4.2, lights: true }, { pos: [6.6, 0, -91.6], height: 4.4, lights: true },
+    { pos: [-8.4, 0, -188.2], height: 4.4 }, { pos: [8.4, 0, -175.4], height: 4.8 }, { pos: [XZ - 8.4, 0, -320], height: 5.4, lights: true }, { pos: [XZ + 8.4, 0, -344], height: 6, lights: true },
+    { pos: [XK + 7.4, 0, -67.2], height: 3.6, solid: false, lights: true }, { pos: [XK - 7.4, 0, -67.2], height: 3.6, solid: false, lights: true },
   ]);
   laternen(level, [
     { pos: [-2.6, 0, 2] }, { pos: [2.6, 0, -16] }, { pos: [-2.6, 0, -32] }, { pos: [2.6, 0, -48] }, { pos: [-2.6, 0, -66] },
