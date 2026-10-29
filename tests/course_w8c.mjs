@@ -237,6 +237,13 @@ function install() {
     sims: () => P().pos.x < -2 && P().pos.y > 8.5 && P().pos.z < -139 && !P().dead,
     treppe: () => named('stempeltreppe')?.info?.().hidden === false,
     jagd: () => L.entities.find((e) => e.spec?.id === 'grossspuk2')?.hunting === true,
+    // 8-Haus
+    schalter1: () => named('r1_schalter')?.state === 'active' || named('r1_schalter')?.state === 'done',
+    rotFest: () => { const q = named('r3_rot')?.info?.()?.[0]; return !!q && q.on && !q.warn && q.solid > 0 && q.pending === 0; },
+    blauFest: () => { const q = named('r3_blau')?.info?.()?.[0]; return !!q && q.on && !q.warn && q.solid > 0 && q.pending === 0; },
+    rotAus: () => { const q = named('r3_rot')?.info?.()?.[0]; return !!q && !q.on && !q.warn; },
+    ziegel6: () => L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === 'r6').length <= 14,
+    ziegel9: () => L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === 'r9').length === 0,
     // 8-7
     plateau1: () => at(-7, 7, -0.5, -57.5, -67),
     festland: () => at(-11, 13, -6.5, -127.5, -183),
@@ -306,7 +313,7 @@ function install() {
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
         if (window.__trace && steps % 10 === 0) log.push(['spur', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.power, p.ground?.tag ?? '']);
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist)]); }
-        if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript) {
+        if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead && !o.keepScript && !o.house) {
           let n = 0;
           const kind = p.script?.kind ?? p.script?.type ?? '?';
           while (p.mode === 'script' && n++ < 2400 && !p.dead && L.runtime.status === 'play') { if (hold) p.invuln = Math.max(p.invuln, 5); c.setInput({}); c.step(1); steps++; }
@@ -315,6 +322,8 @@ function install() {
         }
       };
       const settle = () => { for (let k = 0; k < 300 && p.mode !== 'ground' && !p.dead; k++) tick({}); };
+      // Prüfungs-Haus: Beine enden, sobald der Raum geschafft (Jubel, Überblendung) oder verloren ist
+      const stop = () => p.dead || L.runtime.status !== 'play' || (o.house && L.house && L.house.phase !== 'play');
       const walk = (tx, tz, within = 0.4, max = 600, o2 = {}) => {
         let k = 0;
         for (; k < max && !p.dead; k++) {
@@ -326,8 +335,8 @@ function install() {
       };
       for (let li = 0; li < legs.length; li++) {
         const Lg = legs[li];
-        if (p.dead || L.runtime.status !== 'play') break;
-        if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
+        if (stop()) break;
+        if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait && !stop(); i++) tick({}); continue; }
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
         if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !COND[Lg.until](); k++) tick({}); log.push(['bis', Lg.until, k]); if (!COND[Lg.until]()) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.hop) {
@@ -430,6 +439,16 @@ function install() {
             log.push(['licht', id, e ? e.vanishedBy ?? e.state : null, k]);
             if (e && e.alive && !e.removed && !e.defeated) log.push(['FEHLER: Geist nicht besiegt', id]);
           }
+          continue;
+        }
+        // ------------------------------------------------ Tatzenhieb (Krallen-Anzug) in Richtung [x, z]
+        if (Lg.swipe) {
+          const [tx, tz] = Lg.swipe;
+          const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+          for (let q = 0; q < 60; q++) { const want = Math.atan2(-(tz - p.pos.z), tx - p.pos.x); if (q > 4 && Math.abs(wrap(want - p.yaw)) < 0.05) break; tick(this.stick(tx - p.pos.x, tz - p.pos.z, 0.1)); }
+          tick({ action: true }); tick({});
+          for (let q = 0; q < 30; q++) tick({});
+          log.push(['tatzenhieb', +p.pos.x.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
         // ------------------------------------------------ Lücke zwischen kreisenden Gegnern (Art gap nahe near) abwarten
@@ -577,7 +596,7 @@ function install() {
         let best = Infinity, still = 0, auto = 0, j0 = Lg.jumpAt ? null : 0;
         if (holdJ) for (let w = 0; w < 240 && p.mode === 'air'; w++) tick({});
         for (; i < max; i++) {
-          if (p.dead || L.runtime.status !== 'play') break;
+          if (stop()) break;
           const dx = tx - p.pos.x, dz = tz - p.pos.z;
           const dist = Math.hypot(dx, dz);
           if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
@@ -726,6 +745,183 @@ async function shot(name, wait = 600) {
   return s;
 }
 
+// ====================================================================== 8-Haus: Raum-Bot (Beine wie die Route, echte Eingaben)
+const HAUS_NAMES = ['Bauklotzturm (hinüber, Stern unten, Druckschalter oben)', 'Kristallhöhle (zwei Felsstufen)', 'Piep-Wand (rot, dann blau im Takt)',
+  'Glutwand (Gasse zwischen den Lavarinnen)', 'Leuchtturm (zwei Stufen, Stern oben)', 'Ziegelsperre (Tatzenhieb, dann klettern)', 'Doppelwand (hinauf, hinüber, hinauf)',
+  'Lavaquerung (zwei Basaltsäulen)', 'POW-Wand (POW-Block zerschlägt die Ziegel)', 'Bröckelturm (Bauklötze brechen hinter der Figur)'];
+/** Beine je Raum (i, Z0 = Raumanfang): R(x, u) = Punkt u m in den Raum hinein. */
+function hausLegs(i, Z0) {
+  const R = (x, u) => [x, Z0 - u];
+  const L = [
+    [{ to: R(0, 5.2), within: 0.3, run: false }, { name: 'Turm hinauf', to: R(0, 8), jump: 40, within: 0.6, run: false }, { pound: R(0, 8) }, { expect: 'schalter1' },
+      { to: R(0, 11.6), within: 0.5, run: false }, { to: R(0, 13), within: 0.3, run: false }],
+    [{ to: R(0, 4.2), within: 0.3, run: false }, { name: 'Felsstufe 1', to: R(0, 6.4), jump: 40, within: 0.6, run: false }, { name: 'Felsstufe 2', to: R(0, 9.2), jump: 40, within: 0.6, run: false },
+      { to: R(0, 11.5), within: 0.3 }],
+    [{ to: R(0, 4.0), within: 0.3, run: false }, { until: 'rotFest', max: 900 }, { name: 'rote Blöcke hinauf', to: R(0, 7), jump: 40, within: 0.5, run: false },
+      { until: 'blauFest', max: 900 }, { name: 'blaue Blöcke hinauf', to: R(0, 10.4), jump: 40, within: 0.6, run: false }, { to: R(0, 12.5), within: 0.3 }],
+    [{ to: R(2.75, 3.7), within: 0.25, run: false }, { name: 'über den Graben an die Wand (Gasse rechts)', to: R(2.75, 8.6), jump: 40, within: 0.6, run: true }, { to: R(0, 12), within: 0.3 }],
+    [{ to: R(0, 4.6), within: 0.3, run: false }, { name: 'untere Stufe', to: R(0, 6.5), jump: 40, within: 0.35, run: false }, { name: 'obere Stufe', to: R(0, 8.5), jump: 40, within: 0.5, run: false }],
+    [{ to: R(0, 4.3), within: 0.2, run: false }, { swipe: R(0, 5.5) }, { wait: 24 }, { expect: 'ziegel6' }, { to: R(0, 7.2), within: 0.3, run: false },
+      { name: 'Bauwand hinauf', to: R(0, 10), jump: 40, within: 0.6, run: false }, { to: R(0, 12), within: 0.3 }],
+    [{ to: R(0, 4.6), within: 0.3, run: false }, { name: 'vordere Wand', to: R(0, 7), jump: 40, within: 0.5, run: false }, { to: R(0, 7.65), within: 0.2, run: false, slow: 0.4 },
+      { name: 'hinüber an die hintere Wand', to: R(0, 11), jump: 40, within: 0.6, run: false }, { to: R(2.5, 14), within: 0.3 }],
+    [{ to: R(0, 2.8), within: 0.25, run: false }, { name: 'Säule 1', to: R(0, 5.75), jump: 40, within: 0.5, run: false }, { to: R(0, 6.2), within: 0.2, run: false, slow: 0.4 },
+      { name: 'Säule 2', to: R(0, 9.75), jump: 40, within: 0.5, run: true }, { to: R(0, 10.2), within: 0.2, run: false, slow: 0.4 },
+      { name: 'Zielpodest', to: R(0, 15), jump: 40, within: 0.6, run: true }, { to: R(0, 16.5), within: 0.3 }],
+    [{ name: 'auf den POW-Block', to: R(0, 3.6), jump: 22, within: 0.35, run: false }, { wait: 20 }, { expect: 'ziegel9' }, { to: R(0, 6.9), within: 0.3, run: false },
+      { name: 'Kletterspalte hinauf', to: R(0, 9.6), jump: 40, within: 0.6, run: false }, { to: R(0, 12), within: 0.3 }],
+    [{ to: R(0, 5.4), within: 0.3, run: false }, { name: 'Bauklötze hinauf', to: R(0, 10), jump: 40, within: 0.6, run: false }, { to: R(0, 12.5), within: 0.3 }],
+  ];
+  return L[i];
+}
+
+function installHaus() {
+  const c = window.__course, W8 = window.__w8, L = c.level;
+  const A = () => c.arch.info();
+  const waitPlay = (i, max = 1500) => { let n = 0; while (!(A().room === i && A().phase === 'play') && n++ < max) { c.setInput({}); c.step(1); } return A().room === i && A().phase === 'play'; };
+  const waitClear = (i, max = 1600) => { let n = 0; while (A().room === i && A().phase === 'play' && !L.player.dead && n++ < max) { c.setInput({}); c.step(1); } for (let k = 0; k < 240 && A().flying; k++) c.step(1); return n; };
+  window.__haus = {
+    A, waitPlay, waitClear,
+    solve(i, legs) {
+      if (!waitPlay(i)) return { error: 'kein Start', a: A() };
+      const t0 = L.time, h0 = L.player.hurtTries ?? 0;
+      const res = W8.drive(legs, { invuln: false, house: true });
+      const t = +(L.time - t0).toFixed(2);
+      waitClear(i);
+      const got = !!L.runtime.stars[i];
+      return { t, got, log: res.log, hurts: (L.player.hurtTries ?? 0) - h0, a: A(), dead: L.player.dead, power: L.player.power };
+    },
+  };
+  return true;
+}
+
+async function haus() {
+  const id = '8-Haus';
+  console.log(`\n${id}: zehn Kletterräume mit dem Krallen-Anzug`);
+  for (const hero of HEROES) {
+    if (!(await load(id, { fresh: true, hero }))) { check(`${id} lädt`, false); return; }
+    await sc((h) => { window.__course.player.setHero(h); }, hero);
+    if (hero === HEROES[0] && PARTS.has('load')) {
+      const d = await sc(() => {
+        const c = window.__course, L = c.level, D = L.data;
+        return { title: D.title, theme: D.theme, music: D.music, arch: D.archetype, world: D.world, rooms: D.house.rooms.length, goals: D.house.rooms.map((r) => r.goal),
+          times: D.house.rooms.map((r) => r.time), fail: D.house.fail, starCount: L.runtime.starCount, kinds: window.__w8.kinds(),
+          kletter: (() => { let n = 0; L.world.forEach((s) => { if (s.climbable) n++; }); return n; })() };
+      });
+      console.log(`  „${d.title}“, Welt ${d.world}, Thema ${d.theme}, Musik ${d.music}, Räume ${d.rooms} (${d.goals.join(', ')}), Arten ${JSON.stringify(d.kinds)}, Kletterformen ${d.kletter}`);
+      check(`${id}: lädt ohne Konsolenfehler/-warnungen`, errors.length === 0);
+      for (const e of errors.slice(0, 8)) console.log('      ', e);
+      check(`${id}: „Haus Krallenkraxel“, Welt 8, Archetyp house, Thema house, Musik course_house, 10 Räume à 10 s, 10 Sterne, fail 'exit'`,
+        d.title === 'Haus Krallenkraxel' && d.world === 8 && d.arch === 'house' && d.theme === 'house' && d.music === 'course_house' && d.rooms === 10 && d.times.every((t) => t === 10) && d.fail === 'exit' && d.starCount === 10);
+      check(`${id}: Ziegel 65, Bröckel-Bauklötze 12, POW 1, Druckschalter 1, Pilzlinge 3 (${JSON.stringify(d.kinds)})`,
+        d.kinds.brick === 65 && d.kinds.bruchstueck === 12 && d.kinds.pow === 1 && d.kinds.pswitch === 1 && d.kinds.pilzling === 3);
+    }
+    await sc(installHaus);
+    const Z0 = await sc(() => window.__course.level.data._haus.Z0);
+    const RAUM = process.env.RAUM ? Number(process.env.RAUM) - 1 : null;
+    const out = [];
+    for (let i = 0; i < 10; i++) {
+      if (RAUM !== null && i !== RAUM) continue;
+      const r = await sc(([k, legs, R]) => {
+        const c = window.__course;
+        if (R !== null && c.arch.info().room !== k) c.arch.enterRoom(k);
+        return window.__haus.solve(k, legs);
+      }, [i, hausLegs(i, Z0[i]), RAUM]);
+      out.push(r);
+      const ok = r.got && !r.error && r.t < 10;
+      check(`${id}: ${hero} Raum ${i + 1} ${HAUS_NAMES[i]} in ${r.t} s (< 10 s, Treffer ${r.hurts})`, ok);
+      if (VERBOSE || !ok) { console.log(`       ${JSON.stringify(r.a)} tot ${r.dead} Anzug ${r.power}`); for (const l of r.log ?? []) console.log('      ', JSON.stringify(l)); }
+      if (!ok) break;
+    }
+    if (RAUM === null) {
+      const fin = await sc(() => { const c = window.__course; for (let k = 0; k < 2400 && !c.finished; k++) c.step(1); return { finished: c.finished, res: c.lastResult ?? null, a: c.arch.info(), save: window.__w8.save().levels?.['8-Haus'] ?? null }; });
+      check(`${id}: ${hero} Ergebnis 10/10 gespeichert (${(fin.res?.stars ?? []).map(Number).join('')})`, fin.finished && fin.res?.stars?.filter(Boolean).length === 10 && fin.save?.stars?.filter(Boolean).length === 10 && !fin.a.exited);
+    }
+  }
+}
+
+/** Gegenproben im Krallen-Haus: ohne Anzug kommt man nirgends hinauf, Takt der Piep-Wand, Lavarinne, Ziegel, POW, Bröckeln, Zeitablauf. */
+async function hausExtra() {
+  const id = '8-Haus';
+  console.log(`\n${id}: Gegenproben`);
+  if (!(await load(id, { fresh: true, hero: 'lotti' }))) { check(`${id} lädt`, false); return; }
+  await sc(installHaus);
+  const Z0 = await sc(() => window.__course.level.data._haus.Z0);
+  const run = (i, legs, o = {}) => sc(([k, lg, oo]) => {
+    const c = window.__course, L = c.level, H = window.__haus, p = L.player;
+    if (c.arch.info().room !== k) c.arch.enterRoom(k);
+    H.waitPlay(k);
+    const kr = L.named.get('krallen');
+    if (oo.ohne) { kr.off = true; p.setPower('none'); }
+    if (oo.before) new Function('L', 'p', oo.before)(L, p);
+    const y0 = p.pos.y;
+    const res = window.__w8.drive(lg, { invuln: oo.invuln ? undefined : false, house: true });
+    for (let q = 0; q < (oo.wait ?? 60); q++) c.step(1);
+    const out = { star: !!L.runtime.stars[k], maxY: +Math.max(...res.track.map((t) => t[1]), p.pos.y).toFixed(2), y0: +y0.toFixed(2), dead: p.dead, cause: p.deathCause ?? null, a: c.arch.info(),
+      bricks: L.entities.filter((e) => e.kind === 'brick' && !e.removed && e.spec?.roomId === `r${k + 1}`).length,
+      broke: L.entities.filter((e) => e.kind === 'bruchstueck' && (e.state === 'fall' || e.state === 'weg' || e.removed)).length, piep: L.named.get('r3_rot')?.info?.()?.[0] ?? null };
+    kr.off = false;
+    return out;
+  }, [i, legs, o]);
+  const R = (i, x, u) => [x, Z0[i] - u];
+  const g = {};
+  g.ohne2 = await run(1, [{ to: R(1, 0, 4.2), within: 0.3, run: false }, { to: R(1, 0, 6.4), jump: 40, within: 0.6, run: false, max: 400 }, { hop: 40 }], { ohne: true });
+  g.ohne5 = await run(4, [{ to: R(4, 0, 4.6), within: 0.3, run: false }, { to: R(4, 0, 6.5), jump: 40, within: 0.35, run: false, max: 400 }, { hop: 40 }], { ohne: true });
+  g.rotAus = await run(2, [{ to: R(2, 0, 4.0), within: 0.3, run: false }, { until: 'rotAus', max: 900 }, { to: R(2, 0, 7), jump: 40, within: 0.5, run: false, max: 200, autoJump: false }]);
+  g.rinne = await run(3, [{ to: R(3, 0, 3.7), within: 0.25, run: false }, { to: R(3, 0, 8.6), jump: 40, within: 0.6, run: true, max: 400 }], { wait: 30 });
+  g.ziegel = await run(5, [{ to: R(5, 0, 4.3), within: 0.2, run: false }, { to: R(5, 0, 10), jump: 40, within: 0.6, run: false, max: 360, autoJump: false }]);
+  g.pow = await run(8, [{ to: R(8, 1.4, 6.9), within: 0.3, run: false }, { to: R(8, 0, 9.6), jump: 40, within: 0.6, run: false, max: 360, autoJump: false }], { invuln: true });
+  g.broeckel = await run(9, [{ to: R(9, 0, 5.4), within: 0.3, run: false }, { to: R(9, 0, 10), jump: 40, within: 0.6, run: false }, { wait: 120 }], { invuln: true, wait: 120 });
+  console.log('      ', JSON.stringify(g));
+  const Y = 1;
+  check(`${id}: ohne Krallen-Anzug nicht auf die erste Felsstufe (Raum 2, höchstens y ${g.ohne2.maxY} < ${Y + 6})`, !g.ohne2.star && g.ohne2.maxY < Y + 5.5);
+  check(`${id}: ohne Krallen-Anzug nicht auf den Leuchtturm (Raum 5, höchstens y ${g.ohne5.maxY} < ${Y + 7})`, !g.ohne5.star && g.ohne5.maxY < Y + 6.5);
+  check(`${id}: rote Piep-Blöcke aus → kein Halt an der Wand (höchstens y ${g.rotAus.maxY})`, g.rotAus.maxY < Y + 4.5);
+  check(`${id}: mittlere Lavarinne ist tödlich (${g.rinne.cause})`, g.rinne.dead && g.rinne.cause === 'lava');
+  check(`${id}: ohne Tatzenhieb versperren die Ziegel die Wand (Ziegel ${g.ziegel.bricks}, höchstens y ${g.ziegel.maxY})`, g.ziegel.bricks === 20 && g.ziegel.maxY < Y + 4.5 && !g.ziegel.star);
+  check(`${id}: ohne POW-Block bleibt die Kletterspalte zu (Ziegel ${g.pow.bricks}, höchstens y ${g.pow.maxY})`, g.pow.bricks === 45 && !g.pow.star && g.pow.maxY < Y + 5);
+  check(`${id}: Bröckelturm – berührte Bauklötze brechen (${g.broeckel.broke}), Stern oben (${g.broeckel.star})`, g.broeckel.broke >= 3 && g.broeckel.star);
+
+  // Zeitablauf: zwei Räume lösen, im dritten nichts tun → Haus verlassen, Ergebnis 2 von 10 gespeichert
+  if (!(await load(id, { fresh: true, hero: 'greta' }))) return;
+  await sc(installHaus);
+  const z = await sc(([l0, l1]) => {
+    const c = window.__course, H = window.__haus;
+    const r = [H.solve(0, l0), H.solve(1, l1)].map((o) => [o.t, o.got]);
+    H.waitPlay(2);
+    let n = 0;
+    for (; n < 2400 && !c.finished; n++) { c.setInput({}); c.step(1); }
+    return { r, n, a: c.arch.info(), res: c.lastResult ?? null, save: window.__w8.save().levels?.['8-Haus'] ?? null, finished: c.finished };
+  }, [hausLegs(0, Z0[0]), hausLegs(1, Z0[1])]);
+  console.log('      ', JSON.stringify({ r: z.r, n: z.n, exited: z.a.exited, timeouts: z.a.timeouts, stars: z.res?.stars, save: z.save?.stars }));
+  check(`${id}: Zeitablauf in Raum 3 → Haus verlassen, Ergebnis 2 von 10 Sternen gespeichert`, z.finished && z.a.exited && z.a.timeouts === 1 && z.res?.stars?.filter(Boolean).length === 2 && z.save?.stars?.filter(Boolean).length === 2);
+}
+
+/** Bilder je Raum (Raumstart nach der Überblendung) und je Raum eines mitten im Klettern. */
+async function hausShots() {
+  const id = '8-Haus';
+  if (!(await load(id, { fresh: true, hero: 'lotti' }))) return;
+  await sc(installHaus);
+  const Z0 = await sc(() => window.__course.level.data._haus.Z0);
+  const KLETTERN = [[0, 5.2, 2.6], [0, 4.6, 3.2], [0, 6.6, 4.2], [2.75, 6.6, 4.4], [0, 5.4, 4.4], [0, 7.5, 4], [0, 5.6, 4.2], [0, 4.2, 2], [0, 7.5, 4.6], [0, 6.6, 4]];
+  for (let i = 0; i < 10; i++) {
+    if (SHOTS && !SHOTS.has(`raum${i + 1}`) && !SHOTS.has(`klettern${i + 1}`)) continue;
+    await sc((k) => { const c = window.__course; if (c.arch.info().room !== k) c.arch.enterRoom(k); window.__haus.waitPlay(k); c.player.invuln = 99; for (let q = 0; q < 6; q++) c.step(1); }, i);
+    if (!SHOTS || SHOTS.has(`raum${i + 1}`)) await shot(`${id}_raum${i + 1}`);
+    // mitten an der Wand: Figur vor die Wand setzen und hinaufklettern lassen
+    const [x, u, h] = KLETTERN[i];
+    if (!SHOTS || SHOTS.has(`klettern${i + 1}`)) {
+      await sc(([k, px, pz, n]) => {
+        const c = window.__course, p = c.player, W8 = window.__w8;
+        p.invuln = 99; p.reset([px, 1, pz], Math.PI / 2);
+        for (let q = 0; q < 160 && p.pos.y < 1 + n; q++) { c.setInput({ ...W8.stick(0, -1, 1), jump: q < 30 }); c.step(1); }
+        c.setInput({});
+      }, [i, x, Z0[i] - u, h]);
+      await shot(`${id}_klettern${i + 1}`);
+    }
+  }
+}
+
 // ====================================================================== Parcours (8-6, 8-7)
 async function parcours(id) {
   const R = ROUTES[id];
@@ -854,8 +1050,9 @@ async function parcours(id) {
 
 for (const id of LEVELS) {
   if (id === '8-Haus') {
-    if (globalThis.haus && (PARTS.has('haus') || PARTS.has('load'))) await globalThis.haus();
-    if (globalThis.hausExtra && PARTS.has('haus-extra')) await globalThis.hausExtra();
+    if (PARTS.has('haus') || PARTS.has('load')) await haus();
+    if (PARTS.has('haus-extra')) await hausExtra();
+    if (PARTS.has('shots') && !ONLY) await hausShots();
     continue;
   }
   await parcours(id);

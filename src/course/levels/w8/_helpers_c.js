@@ -337,3 +337,153 @@ export function helmRegal(level, o) {
   bakeParts(level, glow, { material: 'glow', castShadow: false });
   level.world.add({ type: 'box', min: [x - W / 2, y, z - 0.95], max: [x + W / 2, y + 1.5, z - 0.55], tag: 'helmregal' });
 }
+
+// ====================================================================== 4) Krallen-Haus (8-Haus)
+
+const GRIFFE = [0xff5a5a, 0xffd23d, 0x4aa8ff, 0x5ac85a, 0xc87aff, 0xff9a3a, 0xff7ac8];
+const LOOK = {
+  kletter: { body: 0x4a6ab8, alt: 0x5a7ac8, top: 0xe8e0d0, line: 0x34508a },     // Kletterwand (Platten mit Fugen)
+  fels: { body: 0x7a5a48, alt: 0x8a6a52, top: 0x9a8a6a, line: 0x5a4234 },        // Höhlenfels
+  turm: { body: 0xf4f0ea, alt: 0xe8323a, top: 0xfff6e0, line: 0xc8c0b8 },        // Leuchtturm (rot-weiß geringelt)
+  bauklotz: { body: 0xffc21a, alt: 0xff5a5a, top: 0xfff0a0, line: 0xc8901a },    // Riesen-Bauklotz
+  glatt: { body: 0xb8c4d8, alt: 0xc8d4e8, top: 0xe8eef8, line: 0x9aa8c0 },       // glatter Marmor (nicht kletterbar)
+  holz: { body: 0x9a6a3e, alt: 0x8a5a32, top: 0xc8945a, line: 0x6a4422 },
+};
+
+/**
+ * Kraxel-Block (8-Haus): Quader x0..x1 × zA..zB × y0..y1 als Kollision und Kulisse. climb: true → Krallen-Kletterwand
+ * (Form climbable; bunte Griffe auf den Seiten faces, Standard alle vier) – sonst glatt (noWallSlide: kein Wandrutschen, kein
+ * Wandsprung; „hier geht's nicht hoch“). look: kletter | fels | turm | bauklotz | glatt | holz; color überschreibt den
+ * Grundton; stripes: Ringel-Höhe (turm). Statisch (bakeParts), Kollision ein Quader.
+ */
+export function kraxelBlock(level, o) {
+  const x0 = Math.min(o.x0, o.x1), x1 = Math.max(o.x0, o.x1), z0 = Math.min(o.zA, o.zB), z1 = Math.max(o.zA, o.zB);
+  const y0 = o.y0, y1 = o.y1, climb = o.climb !== false;
+  const lk = { ...(LOOK[o.look ?? (climb ? 'kletter' : 'glatt')] ?? LOOK.kletter) };
+  if (o.color !== undefined) lk.body = o.color;
+  if (o.alt !== undefined) lk.alt = o.alt;
+  level.world.add({ type: 'box', min: [x0, y0, z0], max: [x1, y1, z1], climbable: climb || undefined, noWallSlide: !climb || undefined, camIgnore: o.camIgnore ?? undefined, tag: climb ? 'kraxelwand' : 'glattwand' });
+  if (!level.view || o.visual === false) return;
+  const parts = [];
+  const w = x1 - x0, d = z1 - z0, h = y1 - y0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const rnd = new Rnd(Math.round(Math.abs(cx * 17 + cz * 7 + y0 * 3)) + 5);
+  // Körper in Lagen (Ringel/Platten): je Lage abwechselnd Grund- und Zweitton
+  const band = o.stripes ?? (lk === LOOK.turm || o.look === 'turm' ? 1.4 : 2);
+  const nb = Math.max(1, Math.round(h / band));
+  for (let k = 0; k < nb; k++) {
+    const ya = y0 + (h * k) / nb, yb = y0 + (h * (k + 1)) / nb;
+    const col = o.look === 'turm' || o.look === 'bauklotz' ? (k % 2 ? lk.alt : lk.body) : (k % 2 ? lk.alt : lk.body);
+    parts.push(blk(w, yb - ya, d, cx, ya, cz, col, { top: k === nb - 1 ? lk.top : undefined }));
+    if (k > 0) parts.push(blk(w + 0.04, 0.05, d + 0.04, cx, ya - 0.025, cz, lk.line));
+  }
+  // Griffe (kletterbar) bzw. Glanzstreifen (glatt) auf den Seitenflächen
+  const faces = o.faces ?? ['+z', '-z', '+x', '-x'];
+  for (const f of faces) {
+    const along = f === '+z' || f === '-z' ? w : d;
+    const nx = Math.max(1, Math.floor(along / (o.step ?? 0.95))), ny = Math.max(1, Math.floor(h / (o.step ?? 0.95)));
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+      if (!climb && (i + j) % 5) continue;
+      const u = -along / 2 + (i + 0.5) * (along / nx) + (rnd.frac() - 0.5) * 0.35, v = y0 + (j + 0.5) * (h / ny) + (rnd.frac() - 0.5) * 0.3;
+      if (v > y1 - 0.25 || v < y0 + 0.2) continue;
+      const pos = f === '+z' ? [cx + u, v, z1] : f === '-z' ? [cx - u, v, z0] : f === '+x' ? [x1, v, cz + u] : [x0, v, cz - u];
+      if (climb) {
+        const r = 0.09 + rnd.frac() * 0.07;
+        const col = o.look === 'fels' ? (rnd.frac() < 0.5 ? 0x5a4234 : 0x6a5040) : GRIFFE[Math.floor(rnd.frac() * GRIFFE.length)];
+        const g = sph(r, 0, 0, 0, col, { ws: 6, hs: 4 });
+        g.scale(f === '+x' || f === '-x' ? 0.55 : 1.2, 0.8, f === '+z' || f === '-z' ? 0.55 : 1.2);
+        g.translate(...pos);
+        parts.push(g);
+      } else {
+        const g = quadG(pos[0], pos[1] - 0.4, pos[2] + (f === '+z' ? 0.01 : f === '-z' ? -0.01 : 0), 0.08, 0.8, f === 'y' ? '+z' : f, 0xffffff);
+        if (f === '+x' || f === '-x') g.translate(f === '+x' ? 0.01 : -0.01, 0, 0);
+        parts.push(g);
+      }
+    }
+  }
+  bakeParts(level, parts, { castShadow: o.shadow ?? false });
+}
+
+/**
+ * Krallen-Anzug je Raum (8-Haus): zu Beginn jedes Raums (Phase play) trägt die Figur den Krallen-Anzug; geht er verloren
+ * (Treffer), springt nach `every` s am Raumstart ein neuer aus der Kapsel (Kulisse: goldene Kapsel mit Pfote je Raum).
+ * starts: [[x, y, z], …] (Raumstarts). Liefert { given, refills, info() }.
+ */
+export function krallenHaus(level, starts, o = {}) {
+  const st = { given: 0, refills: 0, t: 0, lastRoom: -1, off: false };
+  level.onStep((dt) => {
+    const h = level.house, p = level.player;
+    if (!h || !p || p.dead || st.off) return;    // off: Gegenprobe ohne Anzug (Tests)
+    if (h.phase === 'fadein' || (h.phase === 'play' && h.room !== st.lastRoom)) {
+      if (p.power !== 'krallen') { p.setPower('krallen'); st.given++; }
+      st.lastRoom = h.room; st.t = 0;
+      return;
+    }
+    if (h.phase !== 'play' || p.power === 'krallen') { st.t = 0; return; }
+    const s = starts[h.room];
+    if (!s) return;
+    if (level.entities.some((e) => e.kind === 'powerup' && !e.removed && e.power === 'krallen' && Math.hypot(e.pos.x - s[0], e.pos.z - s[2]) < 3)) return;
+    st.t += dt;
+    if (st.t < (o.every ?? 1.2)) return;
+    st.t = 0; st.refills++;
+    level.spawn('powerup', { pos: [s[0] + 1.6, s[1] + 0.05, s[2]], power: 'krallen', emerge: true });
+    level.sfx('powerup_appear');
+  });
+  if (level.view) {
+    const P = [], G = [];
+    for (const [x, y, z] of starts) {
+      const kx = x + 1.6;
+      P.push(cyl(0.55, 0.62, 0.12, kx, y, z, 0xc8901a, 16, { top: 0xffd860 }));
+      P.push(blk(1.1, 1.6, 0.18, kx, y, z - 0.75, 0x5a6476, { top: 0x8a92a8 }));
+      for (const [dx, dy, r] of [[0, -0.08, 0.17], [-0.17, 0.12, 0.07], [-0.06, 0.2, 0.07], [0.06, 0.2, 0.07], [0.17, 0.12, 0.07]]) P.push(sph(r, kx + dx, y + 1.25 + dy, z - 0.64, 0xff8a2a, { sy: 0.6, ws: 8, hs: 5 }));
+      G.push([kx - 0.4, y + 1.62, z - 0.62], [kx + 0.4, y + 1.62, z - 0.62]);
+    }
+    bakeParts(level, P, { castShadow: false });
+    glowPoints(level, G, 0xffc21a, 0.5, { name: 'kapsel-lampen' });
+  }
+  st.info = () => ({ given: st.given, refills: st.refills });
+  return st;
+}
+
+/**
+ * Lavarinnen an einer Kletterwand (8-Haus Raum 4): senkrechte Lavaströme vor der Wandfläche (z = Fläche, Blick +Z):
+ * tödliche Form (kill 'lava') d m vor der Wand, Lavafall-Kulisse. list [[x, w]] (Mitte, Breite), y0..y1.
+ */
+export function lavaRinnen(level, o) {
+  const d = o.d ?? 0.45;
+  for (const [x, w] of o.list) {
+    level.world.add({ type: 'box', min: [x - w / 2, o.y0 - 1, o.z], max: [x + w / 2, o.y1, o.z + d], kill: 'lava', lava: true, solid: false, camIgnore: true, tag: 'lavarinne' });
+  }
+  lavaFaelle(level, o.list.map(([x, w]) => ({ pos: [x, o.y0, o.z + 0.12], width: w * 1.1, height: o.y1 - o.y0, yaw: 0 })), { glow: 3.6 });
+  // Glutrand oben, wo die Lava aus der Wand quillt
+  const parts = o.list.map(([x, w]) => blk(w + 0.5, 0.35, 0.6, x, o.y1 - 0.35, o.z + 0.2, 0x3a2a30, { top: 0xff8a2a }));
+  bakeParts(level, parts, { castShadow: false });
+}
+
+/**
+ * Bröckelwand (8-Haus Raum 10): Bruchstücke (Gegner-Baustein `bruchstueck`, climbable) wackeln los, sobald eine Figur an ihnen
+ * klettert (nicht beim Draufstehen), und brechen nach `warn` s (startWarn). Sucht die Stücke je Schritt neu (Raum-Neustart erzeugt
+ * sie frisch). prefix = Id-Anfang. Liefert { touched, info() }.
+ */
+export function broeckelWand(level, prefix, o = {}) {
+  const st = { touched: 0 };
+  level.onStep(() => {
+    const p = level.player;
+    if (!p || p.dead) return;
+    const list = level.entities.filter((e) => e.kind === 'bruchstueck' && !e.removed && String(e.spec?.id ?? '').startsWith(prefix) && e.state === 'ganz');
+    if (!list.length) return;
+    let pt = null;
+    if (p.mode === 'wall') {
+      const n = p.wallNormal;
+      pt = { x: p.pos.x - n.x * (p.half.x + 0.12), y: p.pos.y + p.half.y, z: p.pos.z - n.z * (p.half.z + 0.12) };
+    }   // nur beim Klettern (wer oben steht, bleibt heil – ein brechendes Stück würde ihn treffen)
+    if (!pt) return;
+    for (const e of list) {
+      const h = e.half;
+      if (Math.abs(pt.x - e.pos.x) <= h.x + 0.05 && Math.abs(pt.z - e.pos.z) <= h.z + 0.05 && pt.y >= e.pos.y - 0.05 && pt.y <= e.pos.y + 2 * h.y + 0.05) {
+        if (e.startWarn(o.warn ?? 0.75)) st.touched++;
+      }
+    }
+  });
+  st.info = () => ({ touched: st.touched });
+  return st;
+}
