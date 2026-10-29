@@ -5,7 +5,7 @@
 //   2   Krakenpilz: links patrouilliert/jagt · rechts Stachelkugler oben an einer Rampe (rollt hinab, pendelt im Gehege)
 //   3   Stachelkugler: links Pendel · rechts Bahn (Runde)
 //   4   Tintling: links Becken mit zwei Tintlingen · rechts Becken mit Strömung
-//   5   Riesenhase (B-5): links Riesenhase mit Stern und Items · rechts kleiner und großer Hase (unverändert)
+//   5   Hasen (B-5): links Lauf-Gehege (leer, Riesenhase siehe 14) · rechts kleiner und großer Hase (unverändert)
 //   6   links Laufbomben (Motor-Art 'laufbombe', zünden bei Nähe) vor einem Felsblock (Motor) · rechts Pilzlingsturm aus 30
 //       Pilzlingen (P-4)
 //   7   links Pilzlingsturm mit Feuer-Werfer obenauf (B-9) · rechts Topfpflanze und Wuschel (K-1 „frisst Wuschel“)
@@ -13,7 +13,8 @@
 //        9 Flieger (Flatterkäfer, Brummer) | Bumerang-Werfer, 10 Münzmarder | Pilzlingstürme, 11 Funkenflämmchen | Zauberkröten,
 //        12 Rankenschnapper | Hammer-Werfer
 //   13  Bestand geprüft: links Glotzfisch (Becken mit Löchern) und Kreisgeist-Ring · rechts Großrollpilz, Hackbeil-Pilz, Wuschel
-//   Ziel bei z −272. Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
+//   14  offenes Feld (z −270 … −300, ohne Gehege): Riesenhase mit Stern und Items (Bereich r 13)
+//   Ziel bei z −312. Hilfe Z(r, dz) = z der Reihe r, dz Meter hinter ihrer Vorderkante (auch in den Tests).
 // Thema 'starspace' (Welt Stern), Musik course_galaxy.
 
 const Y = 1;
@@ -32,7 +33,7 @@ const L = (r, h) => pen(-19, -4, Z(r, 0), Z(r, 14), h);
 const R = (r, h) => pen(4, 19, Z(r, 0), Z(r, 14), h);
 const sign = (x, r, text) => ({ type: 'sign', pos: [x, Y, Z(r, -0.8)], text, size: [2.8, 0.8] });
 const at = (x, r, dz, y = Y) => [x, y, Z(r, dz)];
-/** Boden in Streifen (x0 … x1) von z 14 bis −282, ausgespart: holes [[zOben, zUnten], …] (Becken). */
+/** Boden in Streifen (x0 … x1) von z 14 bis −320, ausgespart: holes [[zOben, zUnten], …] (Becken). */
 function strips(x0, x1, holes) {
   const out = [];
   let z = 14;
@@ -40,7 +41,7 @@ function strips(x0, x1, holes) {
     if (z > a) out.push({ type: 'island', pos: [(x0 + x1) / 2, -1, (z + a) / 2], size: [x1 - x0, Y + 1, z - a], top: 'grass', under: 1.5 });
     z = b;
   }
-  if (z > -282) out.push({ type: 'island', pos: [(x0 + x1) / 2, -1, (z - 282) / 2], size: [x1 - x0, Y + 1, z + 282], top: 'grass', under: 1.5 });
+  if (z > -320) out.push({ type: 'island', pos: [(x0 + x1) / 2, -1, (z - 320) / 2], size: [x1 - x0, Y + 1, z + 320], top: 'grass', under: 1.5 });
   return out;
 }
 /** Kampfraum über einem Gehege (links x < 0, rechts x > 0). */
@@ -57,7 +58,7 @@ export const LEVEL = {
   music: 'course_galaxy',
   timeLimit: 999,
   start: { pos: [0, Y, 6], yaw: Math.PI / 2 },
-  camera: [{ from: 14, to: -290, pitch: 45, dist: 13, yaw: 0 }],
+  camera: [{ from: 14, to: -330, pitch: 45, dist: 13, yaw: 0 }],
   segments: [
     ...strips(-4, 4, []), ...strips(-21, -4, [[Z(4, 0), Z(4, 14)], [Z(13, 0), Z(13, 14)]]), ...strips(4, 21, [[Z(4, 0), Z(4, 14)]]),
     { type: 'killplane', y: -16 },
@@ -82,7 +83,7 @@ export const LEVEL = {
     sign(-11.5, 2, 'Krakenpilz\npatrouilliert'), sign(11.5, 2, 'Stachelkugler\nHang'),
     sign(-11.5, 3, 'Stachelkugler\nPendel'), sign(11.5, 3, 'Stachelkugler\nBahn'),
     sign(-11.5, 4, 'Tintlinge'), sign(11.5, 4, 'Tintling\nStrömung'),
-    sign(-11.5, 5, 'Riesenhase'), sign(11.5, 5, 'Hasen'),
+    sign(-11.5, 5, 'Hasen-Gehege'), sign(11.5, 5, 'Hasen'),
     sign(-11.5, 6, 'Laufbomben\nFelsblock'), sign(11.5, 6, 'Pilzlingsturm 30'),
     sign(-11.5, 7, 'Turm mit\nFeuer-Werfer'), sign(11.5, 7, 'Topfpflanze\nfrisst Wuschel'),
     sign(-11.5, 8, 'Kampfraum\nRammbock-Bullen'), sign(11.5, 8, 'Kampfraum\nSchneesäulen'),
@@ -139,7 +140,7 @@ export const LEVEL = {
   ],
   items: [
     // 5 Hasen
-    { kind: 'bunny', id: 'riesenhase', size: 'giant', pos: at(-11.5, 5, 7), area: { min: [-18.5, Z(5, 13.5)], max: [-4.5, Z(5, 0.5)] }, star: 0, items: ['wachstumsbeere', 'funken', 'krallen', 'coins:5'] },
+    { kind: 'bunny', id: 'riesenhase', size: 'giant', pos: [0, Y, -288], area: { pos: [0, Y, -288], r: 13 }, star: 0, items: ['wachstumsbeere', 'funken', 'krallen', 'coins:5'] },
     { kind: 'bunny', id: 'hase_klein', pos: at(8, 5, 7), area: { min: [4.5, Z(5, 13.5)], max: [11, Z(5, 0.5)] } },
     { kind: 'bunny', id: 'hase_gross', size: 'big', pos: at(15, 5, 7), area: { min: [11.5, Z(5, 13.5)], max: [18.5, Z(5, 0.5)] } },
     // 6 Felsblock (Motor) hinter den Laufbomben – sprengbar
@@ -151,5 +152,5 @@ export const LEVEL = {
     raum('raum_marder', -1, 10), raum('raum_tuerme', 1, 10), raum('raum_funken', -1, 11), raum('raum_kroeten', 1, 11),
     raum('raum_ranken', -1, 12), raum('raum_hammer', 1, 12),
   ],
-  goal: [0, Y, -272],
+  goal: [0, Y, -312],
 };

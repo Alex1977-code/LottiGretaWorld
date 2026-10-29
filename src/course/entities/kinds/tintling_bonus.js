@@ -69,11 +69,11 @@ class Tintling extends EnemyW2 {
     switch (this.state) {
       case 'idle': case 'home': {
         // zum Platz zurück, dort wiegen
+        // zurück zum Platz: Tempo wächst mit dem Abstand (höchstens 1,4 m/s) – eine Strömung treibt ihn ein Stück ab
         const dx = this.home.x - this.pos.x, dy = this.home.y - this.pos.y, dz = this.home.z - this.pos.z, d = Math.hypot(dx, dy, dz);
-        const s = Math.min(d, 1.4 * dt);
-        if (d > 0.05) { this.vel.set((dx / d) * 1.4, (dy / d) * 1.4, (dz / d) * 1.4); this.faceToward(dx, dz, dt, 4); }
+        const v = Math.min(1.4, d * 1.2);
+        if (d > 0.02) { this.vel.set((dx / d) * v, (dy / d) * v + Math.sin(this.level.time * 1.7) * 0.15, (dz / d) * v); if (d > 0.3) this.faceToward(dx, dz, dt, 4); }
         else this.vel.set(0, Math.sin(this.level.time * 1.7) * 0.15, 0);
-        void s;
         this.swimMove(dt, 1);
         if (near) { this.setState('chase'); this.leg = 0; this.clock = Math.min(this.clock, 0.2); }
         break;

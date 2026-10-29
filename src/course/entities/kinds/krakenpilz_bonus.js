@@ -10,8 +10,8 @@
 //   (er landet wieder auf seinem Block, entities/bonushelp.js Ride).
 // Konter: **von oben besiegbar** (Draufspringen/Stampfen: platt, Abprall), ebenso Feuer, Tatze, Wurfsichel, Panzer, Wurf, Kanone,
 //   Explosion, Riese, Stern, Rutschen (fliegt weg). Seitliche Berührung verletzt. Lava/Absturz = besiegt.
-// Daten: { kind: 'krakenpilz', pos, dir?, yaw?, path?, loop?, behavior?: 'hop' | 'patrol' | 'chase', hop?: 0.6 (m je Hüpfer;
-//          'hop' auf der Stelle: 0), height?: 0.45, every?: 0.8 (s Pause), sight?: 11, interval?: 2.6, first?: 0.9 (s bis zum
+// Daten: { kind: 'krakenpilz', pos, dir?, yaw?, path?, loop?, behavior?: 'hop' | 'patrol' | 'chase', hop?: 0.9 (m je Hüpfer;
+//          'hop' auf der Stelle: 0), height?: 0.45, every?: 0.7 (s Pause), sight?: 11, interval?: 2.6, first?: 0.9 (s bis zum
 //          ersten Spucken), flight?: 1.0 (s Flug des Steinchens), lead?: 0.45, range?: 12, max?: 2 (Steinchen zugleich),
 //          spit?: true, stone?: { bounce: 0.35, life: 3.5 }, wake?, edges?, drop?, id? }
 //   Beispiel: { kind: 'krakenpilz', pos: [0, 2.5, -20], sight: 10 }   // auf einem gleitenden Block (mover)
@@ -37,9 +37,9 @@ class Krakenpilz extends EnemyW2 {
     this.half.set(0.36, 0.42, 0.36);
     this.shadow = 0.45;
     this.behavior = spec.behavior ?? (this.path ? 'patrol' : 'hop');
-    this.hopLen = spec.hop ?? (this.behavior === 'hop' ? 0 : 0.6);
+    this.hopLen = spec.hop ?? (this.behavior === 'hop' ? 0 : 0.9);
     this.hopH = spec.height ?? 0.45;
-    this.every = spec.every ?? 0.8;
+    this.every = spec.every ?? 0.7;
     this.sight = spec.sight ?? 11;
     this.interval = spec.interval ?? 2.6;
     this.flight = spec.flight ?? 1.0;
