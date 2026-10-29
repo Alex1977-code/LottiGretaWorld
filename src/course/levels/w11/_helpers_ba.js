@@ -11,7 +11,8 @@
 //   B-2  hohlraum (Felsquader der Schachtdaten um Hohlräume beschneiden), kletterpfeiler (Felspfeiler mit Kletterranken:
 //        nur mit dem Krallen-Anzug hinauf), schwebewuerfel (schwebende Wasserwürfel, die sanft auf und ab wippen)
 //   B-3  moorfackeln (Fackeln in Gruppen: nur Feuerbälle der Funkenblüte zünden sie; alle einer Gruppe an → Aktion; alle
-//        Fackeln des Levels als drei Instanz-Gruppen – Sockel, Flammen, Hinweis-Schimmer)
+//        Fackeln des Levels als vier Instanz-Gruppen – Sockel, Flammen, Lichthof, Hinweis-Schimmer – und drei Punktlichter
+//        bei den nächsten brennenden)
 //   B-4  leuchtfleck (beleuchtete Bodenplatte unter einem Lichtkegel: Stampfattacke bricht sie auf → Aktion)
 //
 // Daten-Helfer (alle Level): stage (Zirkusbühne wie in 1-5), line, ring, arc.
@@ -449,10 +450,12 @@ export function schwebewuerfel(level, spec) {
  * mit Eisenkorb auf einem Steinsockel. Nur ein Feuerball der Funkenblüte zündet sie – er prallt an den Pfahl (fester Körper
  * mit owner = Fackel → onHit('fire')); Anspringen, Tatze, Stampfen zünden nicht. Einmal an, brennt sie für immer (auch nach
  * einem Neustart am Kontrollpunkt). Sind alle Fackeln einer Gruppe an, läuft deren Aktion (einmal). Zündet eine Fackel,
- * leuchtet ein Laternenlicht (view.addLantern) über ihr.
- * Darstellung: alle Fackeln als drei Instanz-Gruppen (Sockel/Pfahl/Korb, Flammen, kalter Hinweis-Schimmer) – 3 Zeichenaufrufe
- * (+ 1 im Schattenpass) für das ganze Level.
- *   groups: { name: { list: [[x, y, z] …] (Fußpunkt), onAll: Aktion, at?: [x, y, z] } }, o { id: 'fackeln', h: 1.3 }
+ * leuchtet ein Laternenlicht (view.addLantern, wo das Thema Laternen hat) über ihr.
+ * Darstellung: alle Fackeln als vier Instanz-Gruppen (Sockel/Pfahl/Korb, Flammen, warmer Lichthof, kalter Hinweis-Schimmer
+ * über den unangezündeten) – 4 Zeichenaufrufe (+ 1 im Schattenpass) für das ganze Level; dazu o.lights (3) Punktlichter, die
+ * den nächsten brennenden Fackeln am Kameraziel folgen (einmal angelegt, nur Lage/Stärke ändern sich).
+ *   groups: { name: { list: [[x, y, z] …] (Fußpunkt), onAll: Aktion, at?: [x, y, z] } },
+ *   o { id: 'fackeln', h: 1.3, lights: 3, lightColor, lightDist: 9, lightPower: 14 }
  *   level.named.get(id) = { torches [{ x, y, z, group, lit, hits }], groups { name: { lit, of, done } }, light(i), info() }
  */
 export function moorfackeln(level, groups, o = {}) {
@@ -515,6 +518,14 @@ export function moorfackeln(level, groups, o = {}) {
   // ---- kalter Schimmer (Hinweis: hier gehört Feuer hinein)
   const hint = new THREE.InstancedMesh(new THREE.TorusGeometry(0.36, 0.045, 6, 20), new THREE.MeshBasicMaterial({ color: 0x8ad0ff, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
   hint.name = 'moorfackeln-hinweis';
+  // ---- warmer Lichthof um brennende Fackeln (additiv, Instanzen) und wenige Punktlichter bei den nächsten brennenden
+  const glow = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff8a30, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending }), torches.length);
+  glow.name = 'moorfackeln-schein';
+  const lights = [];
+  for (let i = 0; i < (o.lights ?? 3); i++) {
+    const pl = new THREE.PointLight(o.lightColor ?? 0xffa050, 0, o.lightDist ?? 9, 2);
+    lights.push(pl);
+  }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
   for (const t of torches) { m4.makeTranslation(t.x, t.y, t.z); body.setMatrixAt(t.i, m4); }
   body.instanceMatrix.needsUpdate = true;
@@ -522,13 +533,25 @@ export function moorfackeln(level, groups, o = {}) {
   let mx = Infinity, Mx = -Infinity, my = Infinity, My = -Infinity, mz = Infinity, Mz = -Infinity;
   for (const t of torches) { mx = Math.min(mx, t.x); Mx = Math.max(Mx, t.x); my = Math.min(my, t.y); My = Math.max(My, t.y + H + 1.4); mz = Math.min(mz, t.z); Mz = Math.max(Mz, t.z); }
   const sph = new THREE.Sphere(new THREE.Vector3((mx + Mx) / 2, (my + My) / 2, (mz + Mz) / 2), Math.hypot(Mx - mx, My - my, Mz - mz) / 2 + 2);
-  for (const m of [body, flame, hint]) { m.boundingSphere = sph.clone(); m.frustumCulled = true; }
+  for (const m of [body, flame, hint, glow]) { m.boundingSphere = sph.clone(); m.frustumCulled = true; }
   bodyGeo.boundingSphere = sph.clone();
   const root = new THREE.Group();
-  root.add(body, flame, hint);
+  root.add(body, flame, hint, glow, ...lights);
   const holder = {};
+  const tgt = new THREE.Vector3();
   addObject(level, root, (dt, time) => {
     visDt(level, holder, dt);
+    // Punktlichter: die nächsten brennenden Fackeln am Kameraziel (bzw. der Figur)
+    const fp = level.view?.rig?.target ?? level.player?.pos;
+    if (fp) tgt.set(fp.x, fp.y, fp.z);
+    const near = torches.filter((t) => t.lit).sort((a, b) => ((a.x - tgt.x) ** 2 + (a.z - tgt.z) ** 2) - ((b.x - tgt.x) ** 2 + (b.z - tgt.z) ** 2));
+    lights.forEach((pl, k) => {
+      const t = near[k];
+      if (!t || Math.hypot(t.x - tgt.x, t.z - tgt.z) > 30) { pl.intensity = 0; return; }
+      const grow = Math.min(1, (level.time - (t.litT ?? 0)) / 0.35);
+      pl.position.set(t.x, t.y + H + 0.6, t.z);
+      pl.intensity = (o.lightPower ?? 14) * grow * (1 + 0.08 * Math.sin(time * 11 + t.i));
+    });
     for (const t of torches) {
       if (t.lit) {
         const k = 1 + 0.13 * Math.sin(time * 13 + t.x * 3) + 0.06 * Math.sin(time * 23 + t.z);
@@ -538,9 +561,12 @@ export function moorfackeln(level, groups, o = {}) {
         p.set(t.x, t.y + H + 0.18, t.z);
         m4.compose(p, q, s);
         flame.setMatrixAt(t.i, m4);
+        const gs = grow * (1.15 + 0.06 * Math.sin(time * 9 + t.i));
+        q.identity(); s.set(gs, gs, gs); p.set(t.x, t.y + H + 0.5, t.z);
+        m4.compose(p, q, s); glow.setMatrixAt(t.i, m4);
         m4.makeScale(0, 0, 0); hint.setMatrixAt(t.i, m4);
       } else {
-        m4.makeScale(0, 0, 0); flame.setMatrixAt(t.i, m4);
+        m4.makeScale(0, 0, 0); flame.setMatrixAt(t.i, m4); glow.setMatrixAt(t.i, m4);
         const a = 0.85 + 0.15 * Math.sin(time * 3 + t.z);
         e.set(Math.PI / 2, 0, 0); q.setFromEuler(e); s.set(a, a, a); p.set(t.x, t.y + H + 0.34, t.z);
         m4.compose(p, q, s); hint.setMatrixAt(t.i, m4);
@@ -548,6 +574,7 @@ export function moorfackeln(level, groups, o = {}) {
     }
     flame.instanceMatrix.needsUpdate = true;
     hint.instanceMatrix.needsUpdate = true;
+    glow.instanceMatrix.needsUpdate = true;
   });
   return handle;
 }

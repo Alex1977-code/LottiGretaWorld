@@ -29,6 +29,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 //   { climb: [x, z], top } (Krallen-Anzug) · { long: [x, z] } (Weitsprung) · { die } · { upOnto: [x, z, top] }
 const Y = 1;
 const PI = Math.PI;
+const U = 5, SH = 7.2, GOAL_B3 = 8.5;   // B-3: Oberland, Sims über dem Giftbecken, Zielinsel
 const ROUTES = {
   // ================================================================================================ B-1 (Basis 1-5)
   'B-1': {
@@ -349,6 +350,181 @@ const ROUTES = {
       ['deck', [0, 78, -69], 0, null, PI / 2, 77],
     ],
   },
+  // ================================================================================================ B-3 (Basis 4-2)
+  'B-3': {
+    base: '4-2',
+    start: [0, Y, 6],
+    meta: { stars: 3, time: 400, theme: 'poison@nacht', music: 'course_poison', variant: 'nacht', archetype: 'parcours', title: 'Fackelnacht am Lila Nebelmoor' },
+    enemies: { rankenschnapper: 18, brummer: 3 },
+    baseEnemies: { rankenschnapper: 26, brummer: 3, stamp: 1 },
+    main: [
+      { name: 'Start', to: [0, -5] },
+      { name: 'Giftpfad', to: [0, -15.6] },
+      { to: [-7.4, -17.6] },
+      { to: [-7.4, -33] },
+      { to: [3, -34.2] },
+      { to: [3, -45.4] },
+      { to: [0, -50] },
+      { name: 'Schlucht (offen, Nacht)', to: [-3, -62] },
+      { to: [-3, -98] },
+      { name: 'Checkpoint', to: [0, -104.4] },
+      { name: 'warten, bis die große Ranke zurück ist', until: 'grossWeg', max: 1200 },
+      { name: 'Brücke', to: [0, -125] },
+      { name: 'Insel 1', to: [0, -134], jump: 24, jumpAt: 3.6 },
+      { to: [-1.4, -135.4], within: 0.4 },
+      { name: 'Insel 2', to: [-4.6, -141.8], jump: 34, jumpAt: 5.4 },
+      { to: [-3.4, -143.8], within: 0.4 },
+      { name: 'Insel 3', to: [2.8, -150.2], jump: 34, jumpAt: 6.6 },
+      { to: [1.6, -152.4], within: 0.4 },
+      { name: 'Insel 4', to: [-3.4, -159.2], jump: 34, jumpAt: 6.6 },
+      { to: [-2.2, -161.4], within: 0.4 },
+      { name: 'Insel 5', to: [0.4, -168.6], jump: 34, jumpAt: 6.2 },
+      { name: 'Röhre hinauf', to: [2, -175.4], jump: 30, within: 0.25, run: false },
+      { crouch: 4 },
+      { name: 'Oberland', to: [0, -190.6], within: 0.3, run: false },
+      { to: [0, -191.5], within: 0.25, run: false },
+      { name: 'Plattform 1 (schneller, kleiner)', plat: 'mp1', when: { axis: 'z', gt: -196 }, until: { axis: 'z', lt: -203.1 } },
+      { name: 'Plattform 2', plat: 'mp2', when: { axis: 'x', lt: 0.4 }, until: { axis: 'x', gt: 6.3 }, run: false },
+      { name: 'Rastinsel', to: [7.4, -212], jump: 24, within: 0.5, run: false },
+      { to: [6.6, -213.8], within: 0.3, run: false },
+      { name: 'Plattform 3', plat: 'mp3', when: { axis: 'x', gt: 6.1 }, until: { axis: 'x', lt: -2.3 }, run: false },
+      { name: 'Plattform 4', plat: 'mp4', when: { axis: 'z', gt: -221 }, until: { axis: 'z', lt: -227.1 }, run: false },
+      { name: 'Sternring-Insel', to: [-4.4, -231.2], jump: 24, within: 0.6, run: false },
+      { name: 'Zielröhre', to: [3, -235.6], jump: 30, within: 0.25, run: false },
+      { crouch: 4 },
+      { name: 'Zielmast', to: [0, -259.8], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'vier Schiebeplattformen gefahren, zwei Röhren', ok: (r) => r.mech.plats === 4 && r.mech.pipes >= 2, text: (r) => `Plattformen ${r.mech.plats}, Röhren ${r.mech.pipes}` },
+    ],
+    targets: [
+      { name: 'Stern 0: alle 8 Fackeln im Giftpfad mit Feuerbällen der Funkenblüte (?-Block am Start)', star: 0, from: [0, Y, 6],
+        legs: [{ grab: [0, -2.4], hold: 80 }, { expect: 'funken' },
+          { torch: 1, from: [-2.0, 0.4] }, { torch: 0, from: [1.6, -3.6] }, { to: [0, -10], within: 0.5 }, { torch: 2, from: [-2.0, -19.4] }, { torch: 3, from: [-7.4, -18.8] },
+          { to: [-7.4, -30], within: 0.5 }, { torch: 5, from: [1.0, -33.6] }, { torch: 4, from: [-5.0, -34.6] }, { to: [3, -38], within: 0.5 }, { to: [3, -45.0], within: 0.5 },
+          { torch: 6, from: [-1.0, -46.0] }, { to: [5.6, -47.6], within: 0.4 }, { to: [9.4, -47.2], jump: 24, jumpAt: 3.6, within: 0.5, y: 0.9 }, { torch: 7, from: [9.4, -46.4] },
+          { to: [5.4, -48.4], jump: 24, jumpAt: 3.6, within: 0.6, y: 0.9 }, { until: 'stern0da', max: 240 }, { star: 0 }],
+        shot: 'stern0', mech: (r) => r.mech.torches === 8, mechText: (r) => `Fackeln ${JSON.stringify(r.mech.fackeln?.groups)}` },
+      { name: 'Stern 1: alle 12 Fackeln in Schlucht (auch oben auf dem Sims), Rückkehr und Moorsee', star: 1, from: [0, Y, -58.4],
+        legs: [{ grab: [3.0, -61.2], hold: 80 }, { expect: 'funken' },
+          { torch: 8, from: [-3.0, -66.0] }, { torch: 9, from: [5.6, -63.4] }, { torch: 10, from: [-3.0, -80.6] },
+          { to: [0.2, -73], within: 0.4 }, { to: [3.4, -74.4], jump: 24, within: 0.3, run: false }, { wait: 10 }, { to: [3.6, -76.5], jump: 30, within: 0.3, run: false }, { wait: 10 },
+          { to: [3.8, -78.6], jump: 30, within: 0.3, run: false }, { wait: 10 }, { to: [4, -80.7], jump: 30, within: 0.3, run: false }, { wait: 10 },
+          { to: [4.4, -83.6], jump: 30, within: 0.4, run: false }, { torch: 11, from: [6.4, -85.6] }, { to: [5.0, -91.0], within: 0.5, run: false },
+          { torch: 12, from: [6.4, -96.0] }, { torch: 14, from: [-3.0, -91.0] }, { torch: 13, from: [-3.0, -96.0] }, { torch: 15, from: [2.0, -102.0] },
+          { to: [0, -104.4] }, { until: 'grossWeg', max: 1200 }, { to: [0, -125] }, { torch: 16, from: [-2.0, -127.6] },
+          { to: [0, -127.6], within: 0.4 }, { to: [0, -134], jump: 24, jumpAt: 3.6 }, { to: [-1.4, -135.4], within: 0.4 }, { to: [-4.6, -141.8], jump: 34, jumpAt: 5.4 },
+          { torch: 17, from: [-4.2, -141.6] }, { to: [-3.4, -143.8], within: 0.4 }, { to: [2.8, -150.2], jump: 34, jumpAt: 6.6 }, { torch: 18, from: [2.2, -151.0] },
+          { to: [1.6, -152.4], within: 0.4 }, { to: [-3.4, -159.2], jump: 34, jumpAt: 6.6 }, { torch: 19, from: [-2.6, -160.0] }, { to: [-2.2, -161.4], within: 0.4 },
+          { to: [0.4, -168.6], jump: 34, jumpAt: 6.2 }, { until: '=starVisible(1)', max: 240 }, { star: 1 }],
+        shot: 'stern1', mech: (r) => r.mech.torches === 12, mechText: (r) => `Fackeln ${JSON.stringify(r.mech.fackeln?.groups)}` },
+      { name: 'Stern 2: alle 3 Fackeln im Oberland, auf der Rastinsel und der Zielröhren-Insel (Funkenblüte im Oberland)', star: 2, from: [3, U, -187],
+        legs: [{ grab: [1.0, -188.8], hold: 80 }, { expect: 'funken' }, { torch: 20, from: [5.0, -186.0] }, { to: [0, -190.6], within: 0.3, run: false }, { to: [0, -191.5], within: 0.25, run: false },
+          { plat: 'mp1', when: { axis: 'z', gt: -196 }, until: { axis: 'z', lt: -203.1 } }, { plat: 'mp2', when: { axis: 'x', lt: 0.4 }, until: { axis: 'x', gt: 6.3 }, run: false },
+          { to: [7.4, -212], jump: 24, within: 0.5, run: false }, { torch: 21, from: [6.6, -212.4] }, { to: [6.6, -213.8], within: 0.3, run: false },
+          { plat: 'mp3', when: { axis: 'x', gt: 6.1 }, until: { axis: 'x', lt: -2.3 }, run: false }, { plat: 'mp4', when: { axis: 'z', gt: -221 }, until: { axis: 'z', lt: -227.1 }, run: false },
+          { to: [-4.4, -231.2], jump: 24, within: 0.6, run: false }, { torch: 22, from: [-6.0, -231.0] }, { until: '=starVisible(2)', max: 240 }, { star: 2 }],
+        shot: 'stern2', mech: (r) => r.mech.torches === 3, mechText: (r) => `Fackeln ${JSON.stringify(r.mech.fackeln?.groups)}` },
+      { name: 'Stern 0 nicht ohne Funkenblüte (Fackeln anspringen, Stampfattacke darauf, dagegen laufen)', star: 0, expectNot: true, from: [1.6, Y, -3.6], heroes: ['lotti'],
+        legs: [{ to: [4.6, -3.6], jump: 30, jumpAt: 2.6, within: 0.3 }, { pound: [4.6, -3.6] }, { wait: 30 }, { to: [1.6, -3.6], within: 0.3 }, { to: [4.6, -3.6], within: 0.2, max: 120, autoJump: false }, { wait: 60 }],
+        mech: (r) => r.mech.fackeln?.lit === 0, mechText: (r) => `angezündet ${r.mech.fackeln?.lit}` },
+    ],
+    extra: [
+      { name: 'Geheimgarten: vom Sims über drei unsichtbare Wolken auf die rechte Schluchtwand – Extraleben', from: [5.0, SH, -85.4], heroes: ['lotti', 'greta'], expectLives: 1,
+        legs: [{ expect: '=!ent(\'b3_wolke1\').shown' }, { to: [7.4, -85.6], y: 9.2, jump: 30, jumpAt: 2.2, within: 0.5 }, { expect: '=ent(\'b3_wolke1\').shown' },
+          { to: [9.4, -82.4], y: 11.0, jump: 34, jumpAt: 2.6, within: 0.5 }, { to: [8.0, -79.0], y: 12.8, jump: 34, jumpAt: 2.6, within: 0.5 },
+          { to: [12.4, -78.8], y: 13.0, jump: 34, jumpAt: 3.6, within: 0.6 }, { chaseKind: 'powerup', max: 600 }],
+        shot: 'garten', mech: (r) => r.pos[1] > 12.9, mechText: (r) => `Ende y ${r.pos[1].toFixed(2)}` },
+      { name: 'Geheimgarten nicht ohne die Wolken (Sprung vom Sims an die Wand)', from: [9.6, SH, -83.2], heroes: ['lotti', 'greta'], allowFail: true,
+        legs: [{ to: [12.4, -80.4], jump: 40, jumpAt: 1.4, within: 0.5, max: 300, y: 13, autoJump: false }, { wait: 60 }],
+        mech: (r) => r.mech.maxY < 12.5, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
+      { name: 'Fackeln bleiben nach einem Neustart am Kontrollpunkt an', from: [2.0, Y, -102.0], heroes: ['lotti'], place: { power: 'funken' }, invuln: false, expectAlive: true,
+        legs: [{ torch: 15, from: [2.0, -102.0] }, { die: 'fall' }, { expect: '=ent(\'fackeln\').torches[15].lit && !P().dead' }] },
+    ],
+    rules: [
+      { name: 'Licht: Nacht über dem Moor (Thema poison@nacht, Mond, Figurenlicht), Musik-Variante nacht; Gegenprobe Basis poison ohne Variante',
+        fn: () => { const c = window.__course, th = c.view.theme, base = window.__courseLevels.raw('4-2'); return { theme: c.level.data.theme, light: th.light, pl: !!th.playerLight, moon: !!c.view.sky.lightMoon, variant: c.level.data.musicVariant, baseTheme: base.theme, baseVariant: base.musicVariant ?? null }; },
+        ok: (r) => r.theme === 'poison@nacht' && r.light === 'nacht' && r.pl && r.variant === 'nacht' && r.baseTheme === 'poison' && r.baseVariant === null, text: (r) => JSON.stringify(r) },
+      { name: 'Kein Untergrund-Teil: Schlucht offen (keine Decke über dem Weg, keine Höhlen-Stimmung), keine hängenden Ranken, keine Warp-Box/Sternkammer/Moorkeller; Gegenprobe Basis',
+        fn: () => {
+          const c = window.__course, L = c.level, W = window.__ba, base = window.__courseLevels.raw('4-2');
+          W.place([-3, 1, -80], { settle: 30 });
+          for (let i = 0; i < 240; i++) c.step(1);
+          const up = [];
+          let seen = 0;
+          for (const sh of c.world.shapes.values()) {
+            const y0 = sh.y0 ?? sh.bottom ?? sh.min?.[1];
+            if (y0 === undefined || sh.x0 === undefined) continue;
+            if (sh.x1 > -7 && sh.x0 < 10.5 && sh.z1 > -100 && sh.z0 < -58) seen++;
+            const tag = String(sh.tag ?? sh.owner?.kind ?? '?');
+            if (/fackel|wolkenlift|ranken/.test(tag) || sh.owner?.kind === 'rankenschnapper') continue;
+            if (sh.x1 > -7 && sh.x0 < 10.5 && sh.z1 > -100 && sh.z0 < -58 && y0 > 4 && sh.solid !== false && !sh.water && !sh.kill) up.push(tag);
+          }
+          const inG = (q) => q.pos[0] > -8 && q.pos[0] < 11 && q.pos[2] < -58 && q.pos[2] > -100;
+          return { up: up.length, seen, walls: L.data.segments.filter((q) => q.type === 'wall' && inG(q)).length, baseWalls: base.segments.filter((q) => q.type === 'wall' && inG(q)).length, upTags: [...new Set(up)].slice(0, 6), mood: c.view.mood?.moodName ?? null, moodNow: L.moodNow ?? null,
+            hang: L.entities.filter((e) => e.kind === 'rankenschnapper' && e.spec?.hang).length, warp: L.entities.filter((e) => e.kind === 'warpbox').length,
+            far: L.data.segments.filter((s) => s.pos && s.pos[0] > 55).length, keller: !!L.named.get('p_keller_ein'),
+            baseHang: base.enemies.filter((e) => e.hang).length, baseWarp: base.items.filter((i) => i.kind === 'warpbox').length, baseFar: base.segments.filter((s) => s.pos && s.pos[0] > 55).length };
+        },
+        ok: (r) => r.up === 0 && r.seen > 5 && r.walls === 0 && r.baseWalls === 6 && !r.mood && r.hang === 0 && r.warp === 0 && r.far === 0 && !r.keller && r.baseHang === 7 && r.baseWarp === 2 && r.baseFar > 4,
+        text: (r) => `Formen über der Schlucht ${r.up} ${JSON.stringify(r.upTags)} (von ${r.seen}), Überhänge ${r.walls} (Basis ${r.baseWalls}), Stimmung ${r.mood}, hängend ${r.hang} (Basis ${r.baseHang}), Warp-Boxen ${r.warp} (Basis ${r.baseWarp}), Räume ${r.far} (Basis ${r.baseFar})` },
+      { name: '23 Fackeln in drei Bereichen (8/12/3), alle unangezündet; Stern erst mit der letzten Fackel eines Bereichs (7/8 → kein Stern, 8/8 → Stern)',
+        fn: () => {
+          const c = window.__course, L = c.level, F = L.named.get('fackeln');
+          const g = Object.fromEntries(Object.entries(F.groups).map(([k, v]) => [k, v.of]));
+          const lit0 = F.torches.filter((t) => t.lit).length;
+          const vis = (i) => L.entities.some((e) => e.kind === 'star' && e.index === i && !e.hidden && e.alive);
+          for (let i = 0; i < 7; i++) F.light(i);
+          c.step(10);
+          const seven = vis(0);
+          F.light(7); c.step(10);
+          return { g, lit0, seven, eight: vis(0), other: vis(1) || vis(2) };
+        },
+        ok: (r) => r.g.giftpfad === 8 && r.g.schlucht === 12 && r.g.oberland === 3 && r.lit0 === 0 && !r.seven && r.eight && !r.other, text: (r) => JSON.stringify(r) },
+      { name: 'Schiebeplattformen schneller (mp1/mp3 1,35×), kleiner (2,3 statt 3 m) und 0,5–1 m weiter auseinander, Paare im selben Takt; Gegenprobe Basis',
+        fn: () => {
+          const L = window.__course.level, base = window.__courseLevels.raw('4-2');
+          const get = (d, id) => d.segments.find((s) => s.id === id);
+          const len = (q) => { let l = 0; for (let i = 1; i < q.path.length; i++) l += Math.hypot(...q.path[i].map((v, k) => v - q.path[i - 1][k])); return l; };
+          // Lücken (Kante zu Kante) an den sechs Anschlüssen: Oberland→mp1, mp1→mp2, mp2→Rastinsel, Rastinsel→mp3, mp3→mp4 (Ecke), mp4→Zielröhren-Insel
+          const gaps = (d) => {
+            const m = (id) => get(d, id), h = (id) => m(id).size[0] / 2;
+            const p1 = m('mp1').path, p2 = m('mp2').path, p3 = m('mp3').path, p4 = m('mp4').path;
+            return [
+              -p1[0][2] - h('mp1') - 192, -p2[1][2] - h('mp2') - (-p1[1][2] + h('mp1')), 209.6 - (-p2[0][2] + h('mp2')), -p3[0][2] - h('mp3') - 214.4,
+              Math.hypot(Math.max(0, -p4[1][0] - h('mp4') - (-p3[1][0] + h('mp3'))), Math.max(0, -p4[1][2] - h('mp4') - (-p3[1][2] + h('mp3')))), 229 - (-p4[0][2] + h('mp4')),
+            ].map((v) => +v.toFixed(2));
+          };
+          const g = gaps(L.data), gb = gaps(base);
+          const per = ['mp1', 'mp2', 'mp3', 'mp4'].map((id) => +(len(get(L.data, id)) / get(L.data, id).speed).toFixed(3));
+          return { g, gb, d: g.map((v, i) => +(v - gb[i]).toFixed(2)), k: [+(get(L.data, 'mp1').speed / get(base, 'mp1').speed).toFixed(3), +(get(L.data, 'mp3').speed / get(base, 'mp3').speed).toFixed(3)], size: get(L.data, 'mp1').size[0], per };
+        },
+        ok: (r) => r.d.every((v) => v >= 0.5 && v <= 1.0) && r.k.every((k) => Math.abs(k - 1.35) < 0.001) && r.size === 2.3 && Math.abs(r.per[0] - r.per[1]) < 0.01 && Math.abs(r.per[2] - r.per[3]) < 0.01,
+        text: (r) => `Lücken ${r.g.join('/')} m (Basis ${r.gb.join('/')}, +${r.d.join('/')}), Tempo ×${r.k.join('/')}, Fahrzeit je Weg ${r.per.join('/')} s` },
+      { name: 'Geheimröhre ersetzt: keine Moorkeller-Röhre, drei unsichtbare Wolken (vor dem Betreten unsichtbar), Extraleben im Geheimgarten; Welt-Warp entfällt',
+        fn: () => {
+          const L = window.__course.level;
+          const w = [1, 2, 3].map((i) => L.named.get(`b3_wolke${i}`));
+          return { roehre: !!L.named.get('p_keller_ein'), wolken: w.filter(Boolean).length, hidden: w.every((x) => x && !x.shown), oneup: L.entities.filter((e) => e.kind === 'powerup' && e.power === 'oneup' && e.pos.y > 12).length,
+            warp: L.data.segments.some((s) => s.warpWorld), baseWarp: window.__courseLevels.raw('4-2').segments.some((s) => s.warpWorld) };
+        },
+        ok: (r) => !r.roehre && r.wolken === 3 && r.hidden && r.oneup === 1 && !r.warp && r.baseWarp, text: (r) => JSON.stringify(r) },
+    ],
+    shots: [
+      ['start', [0, Y, 6]],
+      ['giftpfad', [-7.4, Y, -24]],
+      ['schlucht', [-3, Y, -64]],
+      ['stufen', [0.2, Y, -73]],
+      ['sims', [5.0, SH, -85.4]],
+      ['rueckkehr', [0, Y, -106]],
+      ['see', [0, 0.6, -133.4]],
+      ['hinauf', [0.4, 0.6, -170]],
+      ['oberland', [0, U, -188]],
+      ['plattformen', [0, U, -192]],
+      ['final', [-2, U, -231]],
+      ['ziel', [0, GOAL_B3, -256]],
+    ],
+  },
 };
 
 const PORT = 5005;
@@ -422,6 +598,10 @@ function install() {
     ziegelKaputt: () => (L.named.get('b2_ziegel')?.broken ?? 0) >= 1,
     ringAn2: () => ent('b2_ring')?.state === 'active',
     stern2da: () => starVisible(2),
+    // B-3 (wie course_w4a)
+    grossDa: () => { const e = L.named.get('rs_gross'); return !!e && !e.defeated && e.grow > 0.98 && e.state !== 'hit'; },
+    grossWeg: () => { const e = L.named.get('rs_gross'); return !e || e.defeated || e.grow < 0.2; },
+    stern0da: () => starVisible(0),
   };
   /** Bedingung: Name aus COND oder Ausdruck '=…' (Variablen P, L, ent, at, starVisible). */
   const cond = (k) => (typeof k === 'string' && k.startsWith('=') ? new Function('P', 'L', 'ent', 'at', 'starVisible', 'Y', `return (${k.slice(1)});`)(P, L, ent, at, starVisible, 1) : COND[k]());
@@ -931,6 +1111,56 @@ function install() {
           if (!wasSwim) { log.push(['FEHLER: nicht im Wasser vor dem Aussprung', Lg.leap]); break; }
           continue;
         }
+        // ------------------------------------------------ bewegte Plattform (wie course_w4a): abwarten (when), aufspringen, mitfahren (until)
+        if (Lg.plat) {
+          const m = L.named.get(Lg.plat);
+          const axisV = (c2) => (c2.axis === 'x' ? m.pm.pos.x : c2.axis === 'y' ? m.pm.pos.y : m.pm.pos.z);
+          const ok = () => { const v = axisV(Lg.when); return (Lg.when.lt === undefined || v < Lg.when.lt) && (Lg.when.gt === undefined || v > Lg.when.gt); };
+          let k = 0;
+          for (; k < 3000 && !ok(); k++) tick({});
+          let j = 0, on = false, left = false;
+          for (; j < 260; j++) {
+            const mv = m.mover ?? { vx: 0, vz: 0 };
+            const tx = m.pm.pos.x, tz = m.pm.pos.z;
+            const st = p.mode === 'air' ? this.airSteer(tx, tz, mv.vx ?? 0, mv.vz ?? 0, 2.8, 9) : this.stick(tx - p.pos.x, tz - p.pos.z);
+            tick({ ...st, jump: j < (Lg.jump ?? 26), run: Lg.run ?? true });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground') { on = p.ground?.mover === m.mover || p.ground === m.shape; break; }
+          }
+          log.push([Lg.name ?? `auf ${Lg.plat}`, k, j, on, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!on) { log.push(['FEHLER: nicht auf der Plattform', Lg.plat]); break; }
+          if (Lg.until) {
+            const done = () => { const v = axisV(Lg.until); return (Lg.until.lt === undefined || v < Lg.until.lt) && (Lg.until.gt === undefined || v > Lg.until.gt); };
+            let r = 0;
+            for (; r < 3000 && !done() && !p.dead; r++) {
+              const dx = m.pm.pos.x - p.pos.x, dz = m.pm.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              tick(d > 0.2 ? { ...this.stick(dx, dz, Math.min(0.5, d)), run: false } : {});
+              if (p.mode === 'ground' && p.ground !== m.shape && p.ground?.mover !== m.mover) { log.push(['FEHLER: von der Plattform gefallen', Lg.plat]); break; }
+            }
+          }
+          mech.plats = (mech.plats ?? 0) + 1;
+          continue;
+        }
+        // ------------------------------------------------ Fackel (Index) mit einem Feuerball anzünden: hingehen, zur Fackel drehen, werfen
+        if (Lg.torch !== undefined) {
+          const F = L.named.get('fackeln'), t = F.torches[Lg.torch];
+          if (Lg.from) goTo(Lg.from[0], Lg.from[1], 0.25, 900);
+          let tries = 0;
+          for (; tries < (Lg.tries ?? 5) && !t.lit && !p.dead; tries++) {
+            for (let k = 0; k < 160; k++) {
+              const dx = t.x - p.pos.x, dz = t.z - p.pos.z, d = Math.hypot(dx, dz);
+              const fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (d || 1);
+              if (dot > 0.999 && p.hSpeed() < 0.2) break;
+              tick(dot > 0.999 ? {} : { ...this.stick(dx, dz, 0.12), run: false });
+            }
+            tick({ action: true }); tick({});
+            for (let k = 0; k < 150 && !t.lit; k++) tick({});
+          }
+          mech.torches = (mech.torches ?? 0) + (t.lit ? 1 : 0);
+          log.push(['fackel', Lg.torch, t.lit, tries, t.hits, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.power]);
+          if (!t.lit && !Lg.allowFail) log.push(['FEHLER: Fackel nicht angezündet', Lg.torch]);
+          continue;
+        }
         // ------------------------------------------------ Weitsprung: Anlauf Richtung Ziel, ducken, springen; in der Luft zum Ziel lenken
         if (Lg.long) {
           const [tx, tz] = Lg.long;
@@ -997,6 +1227,7 @@ function install() {
       mech.ring = L.entities.find((e) => e.kind === 'sternring')?.got ?? 0;
       mech.waters = [...waters];
       mech.ziegel = L.named.get('b2_ziegel')?.broken ?? 0;
+      mech.fackeln = L.named.get('fackeln')?.info?.() ?? null;
       mech.ringLeft = L.entities.filter((e) => e.kind === 'sternmuenze' && e.alive && !e.removed).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]);
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
