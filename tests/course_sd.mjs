@@ -175,6 +175,113 @@ const ROUTES = {
   },
 };
 
+const YT = 20;
+const broken = (id) => `=(() => { const e = L.entities.find((x) => x.spec?.id === '${id}'); return !e || e.removed || e.defeated || e.broken || e.state === 'broken' || e.alive === false; })()`;
+ROUTES['S-9'] = {
+  start: [0, 0, 6],
+  meta: { stars: 3, time: 400, theme: 'cosmic', music: 'course_cosmic', archetype: 'parcours', world: 9 },
+  enemies: { kanone_turm: 3, krakenpilz: 3, tintling: 3, helm_kanone: 6, sternkapsel: 1 },
+  main: [
+    { name: 'Kanonen-Helm aufsetzen', to: [-2.2, 1.6], within: 0.4, run: false },
+    { expect: '=P().helmet === \'kanone\'' },
+    { name: 'Schienenbrett 1: Bärenwand, Kanonenturm, Krakenpilz', brett: 'brett1', off: [-8, -66.4],
+      aims: [{ target: 'baerenwand', done: broken('baerenwand') }, { target: 'turm1', z: -12, until: -31, done: broken('turm1') }, { target: 'kp1', z: -14, until: -27, done: broken('kp1') }] },
+    { expect: '=at(-13, -3, -0.5, -63, -76)' },
+    { name: 'Station M1: Krakenpilz von oben', stompAll: 'kp3' },
+    { to: [-8, -75.2], within: 0.4, run: false },
+    { expect: '=P().helmet === \'kanone\'' },
+    { name: 'Schienenbrett 2: Weiche umschießen, Kanonenturm 2', brett: 'brett2', off: [-4.4, -116],
+      aims: [{ target: { weiche: 'F' }, name: 'weiche F', z: -77, until: -88, done: '=ent(\'brett2:F\').state === 1' }, { target: 'turm2', z: -85, until: -94, done: broken('turm2') }] },
+    { expect: '=at(-16, 8, -0.5, -113, -136)' },
+    { name: 'Kugelwand 20 m hinauf', to: [-10.6, -115.8], within: 0.3, run: false },
+    { kugeln: { rows: 9, y0: 0.6, rise: 2.2, z0: -117.5, step: -1.4 }, stand: [-10.6, -115.8], top: YT, land: [-6, -133] },
+    { expect: '=at(-15, 4, 19.5, -130, -138)' },
+    { name: 'Sprungbrett → Sternenbecken', to: [-6, -137.8], within: 0.4, run: false },
+    { to: [-6, -141], within: 0.6, max: 300 },
+    { until: '=P().mode === \'swim\'', max: 900 },
+    { name: 'Unterwassertunnel', swim: [[-6, -1.6, -150], [-6, -1.6, -176], [-6, -1.6, -200], [-6, null, -209], [-6, null, -213]] },
+    { until: '=P().pos.y > -0.9', max: 300 },
+    { name: 'Ausstieg am Kontrollpunkt-Deck', to: [-6, -217.8], jump: 30, jumpAt: 2.6, within: 0.6, max: 600 },
+    { expect: '=at(-14, 2, 0.3, -216, -230)' },
+    { to: [-2.4, -221], within: 0.4, run: false },
+    { expect: '=P().helmet === \'kanone\'' },
+    { name: 'Schienennetz: zwei Weichen umschießen, Kanonenturm 3, am Ende aufs Zieldeck', to: [-6, -229.6], within: 0.3, run: false },
+    { brett: 'netz', off: [-6, -351.6], aims: [
+      { target: { weiche: 'N1' }, name: 'weiche N1', z: -231, until: -243, done: '=ent(\'netz:N1\').state === 1' },
+      { target: { weiche: 'N3' }, name: 'weiche N3', z: -256, until: -266, done: '=ent(\'netz:N3\').state === 1' },
+      { target: 'turm3', z: -270, until: -284, done: broken('turm3') }] },
+    { expect: '=at(-16, 4, 0.3, -347, -362)' },
+    { name: 'Zielmast', to: [-6, -355.2], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'drei Bretter gefahren, drei Weichen richtig gestellt, Kugelwand erklommen', ok: (r) => (r.mech.bretter ?? 0) >= 3 && r.log.some((l) => l[0] === 'kugelwand') },
+  ],
+  targets: [
+    { name: 'Stern 0: rissige Wand an Station M1 mit dem Kanonen-Helm sprengen', star: 0, from: [-6.4, 0, -69.5], place: { helm: 'kanone' },
+      legs: [{ aim: [-3, 1, -69.5], shots: 4, until: broken('risswand') }, { to: [0.6, -69.5], within: 0.3 }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht ohne Helm (Stampfen prallt ab, keine Lücke darüber)', star: 0, expectNot: true, from: [-6, 0, -69.5], heroes: ['lotti'], allowFail: true,
+      legs: [{ pound: [-3.2, -69.5] }, { to: [0.6, -69.5], jump: 40, jumpAt: 4, within: 0.3, max: 300 }, { wait: 30 }] },
+    { name: 'Stern 1: im Unterwassertunnel abtauchen und die Ziegel rechts wegschießen', star: 1, from: [-6, -1.6, -174], place: { helm: 'kanone' },
+      legs: [{ swim: [[-4.6, -2.3, -178, { face: [0, -178], shots: 3, hold: 20 }], [-4.6, -3.3, -178, { face: [0, -178], shots: 3, hold: 20 }]] },
+        { expect: '=L.entities.filter((e) => e.kind === \'brick\' && e.alive && !e.removed && Math.abs(e.pos.z + 178) < 0.2).length === 0' },
+        { swim: [[-3, -2.9, -178], [0.4, -2.9, -178]] }, { star: 1 }], shot: 'stern1' },
+    { name: 'Stern 1 nicht ohne Wegschießen (Ziegel fest)', star: 1, expectNot: true, from: [-6, -1.6, -174], heroes: ['lotti'], allowFail: true,
+      legs: [{ swim: [[-3, -2.9, -178], [0.4, -2.9, -178]] }, { wait: 60 }] },
+    { name: 'Stern 2: Sternweiche umschießen, Kapsel abschießen, bevor das Brett fällt; Rettungsplattform und Warp-Box zurück', star: 2, from: [-6, 0.6, -229.4], place: { helm: 'kanone' },
+      legs: [{ brett: 'netz', off: null, stay: 240, aims: [
+        { target: { weiche: 'N1' }, name: 'weiche N1', z: -231, until: -243, done: '=ent(\'netz:N1\').state === 1' },
+        { target: { weiche: 'N3' }, name: 'weiche N3', z: -256, until: -266, done: '=ent(\'netz:N3\').state === 1' },
+        { target: { weiche: 'N5' }, name: 'weiche N5', z: -281, until: -290, done: '=ent(\'netz:N5\').state === 1' }] },
+        { expect: '=ent(\'kapsel\').broken' }, { wait: 200 }, { expect: '=P().pos.y > -8 && P().pos.y < -5' }, { warp: [-3, -314] }, { expect: '=P().pos.z > -232' }], shot: 'stern2' },
+    { name: 'Stern 2 nicht ohne die Sternweiche (Brett bleibt auf dem Hauptgleis)', star: 2, expectNot: true, from: [-6, 0.6, -229.4], heroes: ['lotti'], place: { helm: 'kanone' },
+      legs: [{ brett: 'netz', off: [-6, -351.6], aims: [
+        { target: { weiche: 'N1' }, name: 'weiche N1', z: -231, until: -243, done: '=ent(\'netz:N1\').state === 1' },
+        { target: { weiche: 'N3' }, name: 'weiche N3', z: -256, until: -266, done: '=ent(\'netz:N3\').state === 1' }] }] },
+    { name: 'Stempel: auf dem Gipfel drei ?-Blöcke über dem All beschießen → Brücke zum Stempel-Planetoiden', stamp: true, from: [3.2, YT, -133.5], place: { helm: 'kanone' },
+      legs: [{ aim: [19.5, YT + 1, -131], shots: 3, until: '=ent(\'qb1\')?.kind === \'used\' || L.entities.find((e) => e.spec?.id === \'qb1\')?.kind === \'used\'' },
+        { aim: [19.5, YT + 1, -133.5], shots: 3 }, { aim: [19.5, YT + 1, -136], shots: 3 }, { until: '=ent(\'sternbruecke\').shown', max: 300 },
+        { to: [17, -133.5], within: 0.5 }, { stamp: true }], shot: 'stempel' },
+    { name: 'Stempel nicht ohne Brücke (14 m Lücke)', stamp: true, expectNot: true, from: [2, YT, -133.5], heroes: ['lotti', 'greta'], invuln: false, allowFail: true,
+      legs: [{ to: [22, -133.5], within: 0.6, max: 400 }, { wait: 120 }] },
+  ],
+  extra: [
+    { name: 'Weiche nicht umgeschossen: Brett 2 dreht eine Kehrschleife und kommt wieder', from: [-8, 0, -75.2], heroes: ['lotti'],
+      legs: [{ brett: 'brett2', off: null, max: 1500, stopIf: '=ent(\'brett2\').route.includes(\'H2\') && ent(\'brett2\').route.filter((n) => n === \'F\').length >= 2' }],
+      mech: (r) => r.log.some((l) => l[0] === 'brett' && String(l[4]).includes('FHH2EF')), mechText: (r) => `Route ${r.log.find((l) => l[0] === 'brett')?.[3] ?? '-'}` },
+    { name: 'Ohne Helm: die Bärenwand auf dem Gleis schiebt vom Brett (Absturz)', from: [0, 0, -7.6], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+      legs: [{ brett: 'brett1', off: null, max: 700 }], mech: (r) => r.dead || r.log.some((l) => l[0] === 'TOD'), mechText: (r) => `tot ${r.dead}` },
+    { name: 'Von der Kugelwand fallen ist harmlos (Platz darunter)', from: [-8, 9, -122], heroes: ['lotti'], invuln: false,
+      legs: [{ wait: 200 }, { expect: '=P().pos.y < 0.5 && !P().dead' }] },
+    { name: 'Extraleben: versteckter Block auf dem Startdeck', from: [3.4, 0, 3], heroes: ['lotti'], expectLives: 1,
+      legs: [{ to: [3.4, 1], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+    { name: 'Extraleben: versteckter Block unter der Kugelwand', from: [-8, 0, -120.6], heroes: ['lotti'], expectLives: 1,
+      legs: [{ to: [-8, -122.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+    { name: 'Tintling: die Kanonenkugel besiegt ihn auch unter Wasser', from: [-6, -1.6, -156], heroes: ['lotti'], place: { helm: 'kanone' },
+      legs: [{ swim: [[-6, -1.6, -160], [-6, -3.9, -161, { face: [-6, -170], shots: 4 }]] }, { wait: 60 }],
+      mech: (r) => r.log.length > 0, mechText: () => '' },
+  ],
+  shots: [
+    ['start', [0, 0, 6]],
+    ['helme', [0, 0, 3.5]],
+    ['brett1', [0, 0, -7.6], 0, null, Math.PI / 2, { helm: 'kanone' }],
+    ['fahrt1', [0, 0, -7.6], 260, { y: 1 }, Math.PI / 2, { helm: 'kanone' }],
+    ['m1', [-8, 0, -66]],
+    ['riss', [-6.4, 0, -69.5], 0, null, 0],
+    ['weiche', [-8, 0, -75.6]],
+    ['platz', [-4, 0, -116]],
+    ['kugelwand', [-6, 0, -114.6], 200],
+    ['gipfel', [-6, YT, -131.6]],
+    ['bloecke', [3, YT, -133.5], 0, null, 0],
+    ['becken', [-6, YT, -137.4]],
+    ['tunnel', [-6, -1.6, -170]],
+    ['ziegel', [-4.6, -2.4, -178], 0, null, 0],
+    ['cp', [-6, 0.6, -222]],
+    ['netz', [-6, 0.6, -228]],
+    ['weiche3', [-6, 0.6, -280]],
+    ['ziel', [-6, 0.6, -350]],
+  ],
+};
+
 const PORT = 4965;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -490,6 +597,145 @@ function install() {
           for (let j = 0; j < 30 && !P().dead; j++) { const r = P(); const dx = q.x - r.pos.x, dz = q.z - r.pos.z; tick(Math.hypot(dx, dz) > 0.2 ? { ...this.stick(dx, dz, 0.4), run: false } : {}); }
           log.push(['nebel', `${Lg.nebel}:${Lg.i}`, k, n, P().ground?.tag ?? '-', +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
           if (P().ground?.tag !== 'nebelplattform' || Math.abs(P().pos.y - top) > 0.6) log.push(['FEHLER: Nebelplattform verfehlt', Lg.nebel, Lg.i]);
+          continue;
+        }
+        // ------------------------------------------------ S-9: Schienenbrett fahren (mittig stehen, Ziele anpeilen und schießen, aussteigen)
+        if (Lg.brett) {
+          const h = ent(Lg.brett), mb = h.mb;
+          // aufsteigen
+          let k = 0;
+          for (; k < 900 && !P().dead; k++) {
+            const q = P();
+            if (q.mode === 'ground' && q.ground?.tag === 'schienenbrett') break;
+            const dx = mb.pos.x - q.pos.x, dz = mb.pos.z - q.pos.z, d = Math.hypot(dx, dz);
+            const up = mb.pos.y + 0.35 - q.pos.y;
+            tick({ ...(q.mode === 'air' ? this.airSteer(mb.pos.x, mb.pos.z, 0, 0, 3, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d)))), jump: q.mode === 'ground' && up > 0.25 && d < 2.4, run: false });
+          }
+          const aims = (Lg.aims ?? []).map((a) => ({ ...a, state: 'wait' }));
+          const posOf = (t) => {
+            if (Array.isArray(t)) return { x: t[0], y: t[1], z: t[2] };
+            if (t && typeof t === 'object' && t.weiche) { const w = ent(`${Lg.brett}:${t.weiche}`); return w ? w.pos : null; }
+            const e = ent(t) ?? L.entities.find((x) => x.spec?.id === t);
+            if (!e) return null;
+            if (e.pos && e.half) return { x: e.pos.x, y: e.pos.y + e.half.y, z: e.pos.z };
+            return e.pos ? { x: e.pos.x, y: e.pos.y, z: e.pos.z } : null;
+          };
+          let last = { x: mb.pos.x, z: mb.pos.z }, dir = { x: 0, z: -1 };
+          let n = 0, fired = 0, offT = -1;
+          const doneAim = (a) => (a.done ? cond(a.done) : false);
+          for (; n < (Lg.max ?? 9000) && !P().dead && L.runtime.status === 'play'; n++) {
+            const q = P();
+            const vx = mb.pos.x - last.x, vz = mb.pos.z - last.z, vl = Math.hypot(vx, vz);
+            if (vl > 1e-4) dir = { x: vx / vl, z: vz / vl };
+            last = { x: mb.pos.x, z: mb.pos.z };
+            // Ende: halt → aussteigen; fällt → aufs Deck davor laufen
+            if (h.state === 'ende' || h.state === 'faellt' || h.state === 'weg') {
+              if (offT < 0) offT = n;
+              if (!Lg.off) { tick({}); if (n - offT > (Lg.stay ?? 0)) break; continue; }
+              const [ox, oz] = Lg.off, dx = ox - q.pos.x, dz = oz - q.pos.z;
+              if (Math.hypot(dx, dz) < 0.5 && q.mode === 'ground') break;
+              tick({ ...this.stick(dx, dz, 1), run: true, jump: !!Lg.offJump && q.mode === 'ground' && n - offT < 3 });
+              continue;
+            }
+            if (Lg.stopIf && cond(Lg.stopIf)) break;
+            // aktuelles Ziel
+            const a = aims.find((x) => x.state !== 'done' && (x.z === undefined || q.pos.z < x.z) && (x.node === undefined || h.route.includes(x.node)));
+            if (a && (doneAim(a) || (a.until !== undefined && q.pos.z < a.until))) { a.state = 'done'; log.push(['ziel', a.name ?? String(a.target), doneAim(a), n]); continue; }
+            let want = dir;
+            if (a) { const t = posOf(a.target); if (t) { const dx = t.x - q.pos.x, dz = t.z - q.pos.z, l = Math.hypot(dx, dz) || 1; want = { x: dx / l, z: dz / l }; } }
+            const fv = q.facingVec(), dot = fv.x * want.x + fv.z * want.z;
+            const cx = mb.pos.x - q.pos.x, cz = mb.pos.z - q.pos.z, cd = Math.hypot(cx, cz);
+            if (q.mode === 'air') { tick(this.airSteer(mb.pos.x, mb.pos.z, 0, 0, 3, 6)); continue; }
+            if (dot < (a ? 0.996 : 0.97)) { tick({ ...this.stick(want.x, want.z, 0.12), run: false }); continue; }
+            if (cd > 0.45) { tick({ ...this.stick(cx, cz, 0.3), run: false }); continue; }
+            if (a && a.state !== 'shot' && (n - fired) > 18) { fired = n; tick({ action: true }); mech.shots++; continue; }
+            tick({});
+          }
+          log.push(['brett', Lg.brett, h.state, h.route?.join?.('') ?? '', k, n, aims.map((x) => `${x.name ?? x.target}:${x.state}`).join(' '), +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          mech.bretter = (mech.bretter ?? 0) + 1;
+          if (Lg.off) goTo(Lg.off[0], Lg.off[1], 0.5);
+          continue;
+        }
+        // ------------------------------------------------ S-9: Kanonenkugel-Wand hinauf (von Kugel zu Kugel, zuletzt auf die Gipfelplattform)
+        if (Lg.kugeln) {
+          const { rows, y0, rise, z0, step, speed = 3 } = Lg.kugeln;
+          const balls = () => { const out = []; L.world.forEach?.((s) => { if (s.tag === 'kanonenkugel') out.push(s); }); return out; };
+          const bot = (s) => s.bot ?? s.y0;
+          let row = -1, k = 0;
+          const T = Lg.lead ?? 0.42;
+          for (; k < 6000 && !P().dead && row < rows - 1; k++) {
+            const q = P();
+            // stehe ich auf einer Kugel? → Reihe bestimmen
+            if (q.mode === 'ground' && q.ground?.tag === 'kanonenkugel') row = Math.round(((q.ground.bot ?? q.ground.y0) - y0) / rise);
+            else if (q.mode === 'ground' && q.pos.y < y0 + 0.5) row = -1;
+            const r1 = row + 1, by = y0 + rise * r1, bz = z0 + step * r1;
+            const cand = balls().filter((s) => Math.abs(bot(s) - by) < 0.15 && s.x1 - s.x0 > 0.5)
+              .map((s) => ({ s, x: (s.x0 + s.x1) / 2 + speed * T, z: (s.z0 + s.z1) / 2 }))
+              .filter((c) => c.x < (Lg.xMax ?? 0) && Math.hypot(c.x - q.pos.x, c.z - q.pos.z) < (Lg.reach ?? 2.8))
+              .sort((a, b) => Math.hypot(a.x - q.pos.x, a.z - q.pos.z) - Math.hypot(b.x - q.pos.x, b.z - q.pos.z));
+            if (q.mode !== 'ground' || !cand.length) { if (q.mode === 'ground' && row < 0) { const [fx, fz] = Lg.stand ?? [q.pos.x, q.pos.z]; const dx = fx - q.pos.x, dz = fz - q.pos.z; tick(Math.hypot(dx, dz) > 0.2 ? { ...this.stick(dx, dz, 0.5), run: false } : {}); } else tick({}); continue; }
+            const c = cand[0];
+            // springen und zur mitfliegenden Kugel lenken
+            let n = 0, air = false;
+            for (; n < 240 && !P().dead; n++) {
+              const r = P();
+              if (air && r.mode === 'ground') break;
+              if (r.mode === 'air') air = true;
+              const tx = (c.s.x0 + c.s.x1) / 2, tz = (c.s.z0 + c.s.z1) / 2;
+              // erst hoch genug (über die Kugel), dann auf ihre Mitte lenken und mitfliegen
+              tick({ ...(r.mode === 'air' ? (r.pos.y > by + 1.0 ? this.airSteer(tx, tz, speed, 0, 4, 8) : this.airSteer(tx, r.pos.z + (tz - r.pos.z) * 0.2, speed, 0, 4, 8)) : {}), jump: n < 18 });
+            }
+            log.push(['kugel', r1, n, P().ground?.tag ?? '-', +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          }
+          // auf die Gipfelplattform
+          const [lx, lz] = Lg.land;
+          let n = 0, air = false;
+          for (; n < 300 && !P().dead; n++) {
+            const r = P();
+            if (air && r.mode === 'ground') break;
+            if (r.mode === 'air') air = true;
+            tick({ ...(r.mode === 'air' ? (r.pos.y > Lg.top + 0.3 ? this.airSteer(lx, lz, 0, 0, 3, 6) : this.airSteer(r.pos.x, r.pos.z - 0.3, 3, 0, 3, 6)) : {}), jump: n < 22 });
+          }
+          goTo(lx, lz, 0.5);
+          log.push(['kugelwand', row, k, n, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          if (P().pos.y < Lg.top - 0.3) log.push(['FEHLER: Gipfel nicht erreicht', +P().pos.y.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ S-9: unter Wasser einer Bahn folgen (Ducken taucht, Auftrieb hebt); fire: Aktion je Punkt
+        if (Lg.swim) {
+          let k = 0;
+          for (const pt of Lg.swim) {
+            const [px, py, pz, opt] = pt;
+            for (let n = 0; n < 900 && !P().dead; n++, k++) {
+              const q = P();
+              const dx = px - q.pos.x, dz = pz - q.pos.z, d = Math.hypot(dx, dz);
+              const dy = py - q.pos.y;
+              if (d < (Lg.within ?? 0.6) && (py === null || Math.abs(dy) < 0.35)) break;
+              const inWater = q.mode === 'swim';
+              tick({ ...(d > 0.15 ? this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.5))) : {}), crouch: inWater && py !== null && dy < -0.25, jump: inWater && py !== null && dy > 0.9 && (n % 30) < 4 });
+            }
+            if (opt?.face) {
+              const [fx, fz] = opt.face;
+              for (let n = 0; n < 240 && !P().dead; n++, k++) {
+                const q = P(); const fv = q.facingVec(), ddx = fx - q.pos.x, ddz = fz - q.pos.z, l = Math.hypot(ddx, ddz) || 1;
+                const dy = py - q.pos.y;
+                const ok = (fv.x * ddx + fv.z * ddz) / l > 0.995;
+                if (ok && Math.abs(dy) < 0.3 && n > (opt.hold ?? 0)) break;
+                tick({ ...(ok ? {} : this.stick(ddx, ddz, 0.12)), crouch: dy < -0.15 });
+              }
+              for (let s = 0; s < (opt.shots ?? 0); s++) { for (let w = 0; w < 30; w++) { const dy = py - P().pos.y; tick({ crouch: dy < -0.12, action: w === 0 }); } mech.shots++; }
+            }
+          }
+          log.push(['tauchen', Lg.swim.length, k, P().mode, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ S-9: auf der Stelle zu einem Punkt drehen und feuern (Kanonen-Helm)
+        if (Lg.aim) {
+          const [tx, , tz] = Lg.aim;
+          face(tx - P().pos.x, tz - P().pos.z, 0.998, 90);
+          for (let s = 0; s < (Lg.shots ?? 1); s++) { tick({ action: true }); for (let w = 0; w < (Lg.gap ?? 30); w++) tick({}); mech.shots++; if (Lg.until && cond(Lg.until)) break; }
+          log.push(['feuer', `${Lg.aim}`, Lg.until ? cond(Lg.until) : '-']);
+          if (Lg.until && !cond(Lg.until)) log.push(['FEHLER: Ziel nicht getroffen', Lg.until]);
           continue;
         }
         // ------------------------------------------------ senkrecht neben einem Block hochspringen, erst über seiner Oberkante hinüberlenken
