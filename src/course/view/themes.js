@@ -134,4 +134,7 @@ import { INFERNO_THEME } from './theme_inferno.js'; THEMES.inferno ??= INFERNO_T
 import { BARONPARK_THEME } from './theme_baronpark.js'; THEMES.baronpark ??= BARONPARK_THEME;
 import { ABSPANN_THEME } from './theme_abspann.js'; THEMES.abspann ??= ABSPANN_THEME;
 
-export function getTheme(name) { return THEMES[name] ?? THEMES.grass; }
+// Themen-Varianten der Remix-Level (Präzisierung „Motor und Bausteine Bonuswelten“, view/themeVariants.js): Namen wie
+// 'grass@nacht' oder 'space@tag+sw' legt der Varianten-Haken beim ersten Abruf an (auch für ?theme=<name>@<licht>)
+export const THEME_HOOKS = { resolve: null };
+export function getTheme(name) { return THEMES[name] ?? THEME_HOOKS.resolve?.(name) ?? THEMES.grass; }

@@ -10,11 +10,14 @@
 //           'dunkel'  stockdunkel: fast schwarzer Himmel, naher Nebel, kaum Grundlicht, kräftiges Figuren- und Laternenlicht
 //   filter  'schwarzweiss'  nur Kennzeichnung im Thema (theme.filter); den Filter legt der Remix-Haken als CSS-Filter über
 //                     die 3D-Leinwand (level/remix.js applyFilter)
-// Die Kulisse des Grundthemas (buildBackdrop) wird übernommen und für nacht/dunkel/abend gedämpft bzw. getönt (unbeleuchtete
-// Materialien der Kulisse, geklont); Gelände-Farben bleiben (das Licht färbt sie um). LIGHTS = Werte je Beleuchtung.
+// Die Kulisse des Grundthemas (buildBackdrop bzw. Hügel) wird übernommen und für nacht/dunkel/abend gedämpft bzw. getönt
+// (unbeleuchtete Materialien der Kulisse, geklont); die Gelände-Farben des Themas (Gras, Erde, Stein, Holz, Wasser – die
+// Bausteine lesen sie beim Bauen) werden in die Lichtfarbe gezogen (LIGHTS[licht].terrain), wie bei den eigenen
+// Nacht-Themen. LIGHTS = Werte je Beleuchtung. themeFromName('thema@licht[+sw]') ist als Haken in getTheme (themes.js
+// THEME_HOOKS) eingetragen: jede Variante lässt sich auch ohne Remix mit ?theme=grass@nacht bzw. ?theme=honeycomb@tag ansehen.
 
 import * as THREE from 'three';
-import { THEMES } from './themes.js';
+import { THEMES, THEME_HOOKS } from './themes.js';
 import { starField } from './backdrop_w2.js';
 
 const GRASS_SKY = [[1, 0x2b8de8], [0.45, 0x47aefb], [0.15, 0x8cd3ff], [0.03, 0xcbeeff], [0, 0xe6f7ff], [-0.1, 0xc6e0f2], [-1, 0xa6c6dc]];
@@ -179,3 +182,16 @@ export function remixTheme(name, { light = null, filter = null } = {}) {
   }
   return key;
 }
+
+/** Name 'thema@licht' bzw. 'thema@licht+sw' (auch 'thema@grund+sw') → Variante anlegen (getTheme-Haken). */
+export function themeFromName(name) {
+  if (typeof name !== 'string' || !name.includes('@')) return null;
+  const i = name.lastIndexOf('@');
+  const base = name.slice(0, i), rest = name.slice(i + 1);
+  const sw = rest.endsWith('+sw');
+  const light = sw ? rest.slice(0, -3) : rest;
+  if (!THEMES[base] && !base.includes('@')) return null;
+  if (light !== 'grund' && !LIGHTS[light]) return null;
+  return THEMES[remixTheme(base, { light: light === 'grund' ? null : light, filter: sw ? 'schwarzweiss' : null })] ?? null;
+}
+THEME_HOOKS.resolve ??= themeFromName;
