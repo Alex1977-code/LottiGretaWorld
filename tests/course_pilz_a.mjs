@@ -23,6 +23,10 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 // (Power-up aus einem ?-Block) · { tiles: [[x, z] …] } · { plank: Id, pick } / { toPlank } / { ridePlank, until } (Riesenrad) ·
 // { long: [x, z] } (Weitsprung) · { throwAt: [x, z] } (Wurfsichel) · { timeLeft: s } (Restzeit setzen, nur Ziele)
 const YU = 6, YD = -14, YG = 10;
+// P-1: Sternmünzen rund um den Stufenhügel (7, −74) und hinauf auf die oberste Terrasse
+const RING_COINS = [141.4, 192.9, 244.3, 295.7, 347.1, 38.6, 90].map((a) => [7 + 4.4 * Math.cos(a * Math.PI / 180), -74 + 4.4 * Math.sin(a * Math.PI / 180)]);
+const RING_CLIMB = [{ to: [7, -68.8], within: 0.3, run: false }, { to: [7, -70.9], jump: 16, within: 0.3, run: false },
+  { to: [7, -71.8], jump: 16, within: 0.3, run: false }, { to: [7, -73.8], jump: 20, within: 0.3, run: false }, { to: [7, -74], within: 0.2, run: false }];
 const ROUTES = {
   'P-1': {
     base: '2-4',
@@ -70,11 +74,11 @@ const ROUTES = {
       { name: 'Zeit-Uhren unterwegs eingesammelt (Ideallinie), Restzeit am Ziel > 0', ok: (r) => r.mech.clocks >= 7 && r.rt.time > 0 },
     ],
     targets: [
-      { name: 'Stern 0: Sternring über der dritten Hügelwalze anspringen, acht Sternmünzen auf dem Hügel in 12 s', star: 0, from: [0, YU, -55.5], timeLeft: 30,
-        legs: [{ to: [0, -59.6], within: 0.5 }, { to: [0, -62], jump: 30, within: 0.6, land: false }, { until: '=ent(\'sternring\').state === \'active\'', max: 200 },
-          { coins: 'starcoin', max: 2400 }, { star: 0 }], shot: 'stern0' },
-      { name: 'Stern 0 nicht ohne Sprung (über die Walze laufen berührt den Ring nicht)', star: 0, expectNot: true, from: [0, YU, -55.5], heroes: ['lotti'], timeLeft: 30,
-        legs: [{ to: [0, -67], within: 0.5 }, { wait: 30 }], mech: (r) => r.named?.state === 'idle', named: 'sternring' },
+      { name: 'Stern 0: Sternring über der dritten Hügelwalze anspringen, acht Sternmünzen rund um den Stufenhügel und oben drauf in 12 s', star: 0, from: [0, YU, -55.5], timeLeft: 30,
+        legs: [{ to: [0, -60.6], within: 0.4 }, { to: [0, -63.6], jump: 30, within: 0.5, land: false }, { until: '=ent(\'sternring\').state === \'active\'', max: 200 },
+          ...RING_COINS.map((q) => ({ to: q, within: 0.4 })), ...RING_CLIMB, { expect: '=ent(\'sternring\').state === \'done\'' }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Sternring (gleiche Runde um den Hügel, Ring nicht berührt)', star: 0, expectNot: true, from: [0, YU, -66], heroes: ['lotti'], timeLeft: 30,
+        legs: [...RING_COINS.map((q) => ({ to: q, within: 0.4 })), ...RING_CLIMB, { wait: 60 }], mech: (r) => r.named?.state === 'idle', mechText: (r) => `Ring ${r.named?.state}`, named: 'sternring' },
       { name: 'Stern 1: oberer Weg im Mühlenkeller – Kiste, Sims und Bretter an der rechten Wand', star: 1, from: [3.5, YD, -244], timeLeft: 30,
         legs: [{ to: [5.2, -246.2], within: 0.3, run: false }, { to: [6.4, -247.6], jump: 24, within: 0.4, run: false },
           { to: [6.5, -251.2], jump: 30, within: 0.4, run: false }, { to: [6.5, -255.6], jump: 30, within: 0.4, run: false },
@@ -83,7 +87,8 @@ const ROUTES = {
       { name: 'Stern 1 nicht vom unteren Weg (Zahnrad 3, Sprung zu kurz)', star: 1, expectNot: true, from: [1, YD - 0.3, -266.5], heroes: ['lotti'], timeLeft: 30,
         legs: [{ to: [6.5, -268.8], jump: 40, within: 0.4, max: 200, land: false }, { wait: 90 }] },
       { name: 'Stern 2: unterer Weg – Kristalldeckel stampfen, Röhre, alle Farbfelder', star: 2, from: [1.8, YD, -290], timeLeft: 30,
-        legs: [{ pound: [5, -290], above: -12.6 }, { wait: 40 }, { expect: '=!ent(\'deckel\') || ent(\'deckel\').broken || ent(\'deckel\').state === \'broken\' || true' },
+        legs: [{ to: [5, -290], jump: 34, within: 0.25, run: false }, { to: [5, -290], within: 0.1, run: false, slow: 0.4 }, { wait: 40 },
+          { stomp: true }, { wait: 40 },
           { to: [5, -290], jump: 26, within: 0.2, run: false }, { wait: 10 }, { crouch: 4 }, { wait: 30 }, { expect: '=P().pos.x > 50' },
           ...[-287.6, -289.6, -291.6, -293.6].flatMap((z, r) => [57, 59, 61, 63].map((x) => ({ to: [r % 2 ? 63 - (x - 57) : x, z], within: 0.4, run: false }))),
           { wait: 40 }, { star: 2 }], shot: 'stern2' },
@@ -91,7 +96,7 @@ const ROUTES = {
     extra: [
       { name: 'Zeitdruck: ohne Zeit-Uhren ist die Zeit vor dem Ziel um (gleiche Route, Uhren schon weg)', heroes: ['lotti'], from: [0, YU, -26.5], noClocks: true, legsFrom: 'main', expectAlive: false, allowFail: true,
         mech: (r) => r.deathCause === 'time' && r.status !== 'goal' && r.status !== 'done', mechText: (r) => `${r.deathCause} bei z ${r.pos[2].toFixed(0)}` },
-      { name: 'Zeit-Uhr: +6 s Restzeit (Gegenprobe daneben: nur die Zeit läuft)', heroes: ['lotti'], from: [3, YU, -31], probe: 'clock' },
+      { name: 'Zeit-Uhr: +5 s Restzeit (Gegenprobe daneben: nur die Zeit läuft)', heroes: ['lotti'], from: [3, YU, -31], probe: 'clock' },
       { name: 'Stachel-Hüpfmaus: Draufspringen verletzt', from: [-5, YU, -27.6], heroes: ['lotti'], invuln: false, allowFail: true, timeLeft: 30,
         legs: [{ jumpOnKind: 'huepfmaus_stachel', max: 600 }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
       { name: 'Stachelkugler: rollt den Grashügel hinab', from: [-1, YU, -70], heroes: ['lotti'], probe: 'kugler' },
@@ -159,7 +164,7 @@ function install() {
     p.__hurtWrapped = true;
     p.hurtTries = 0;
     const orig = p.hurt.bind(p);
-    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
+    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? src?.type ?? src?.constructor?.name ?? String(src); return orig(src); };
   };
   wrapHurt();
   const ent = (id) => L.named.get(id) ?? L.entities.find((e) => e.spec?.id === id && !e.removed) ?? null;
@@ -252,7 +257,7 @@ function install() {
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); settle(); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.expect) { const ok = cond(Lg.expect); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.until) { let k = 0; for (; k < (Lg.max ?? 1200) && !cond(Lg.until); k++) tick({}); log.push(['bis', Lg.until, k]); if (!cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
+        if (Lg.until && !Lg.ridePlank) { let k = 0; for (; k < (Lg.max ?? 1200) && !cond(Lg.until); k++) tick({}); log.push(['bis', Lg.until, k]); if (!cond(Lg.until)) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.hop) {
           for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
           for (let k = 0; k < Lg.hop; k++) tick({ jump: true });
@@ -271,9 +276,10 @@ function install() {
         if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, jump: Lg.jump, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         // ------------------------------------------------ Münzen einer Herausforderung (Art) der Reihe nach einsammeln (nächste zuerst)
         if (Lg.coins) {
-          let k = 0;
+          let k = 0, nPrev = -1;
           const alive = () => L.entities.filter((e) => e.kind === Lg.coins && e.alive && !e.removed && !e.hidden);
           for (; k < (Lg.max ?? 2400) && alive().length && !p.dead; k++) {
+            if (alive().length !== nPrev) { nPrev = alive().length; log.push(['münze', nPrev, k, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), alive().map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]).slice(0, 3)]); }
             const list = alive();
             list.sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
             const e = list[0];
@@ -356,7 +362,7 @@ function install() {
         if (Lg.plank) {
           const h = L.named.get(Lg.plank);
           let n = 0, idx = -1;
-          for (; n < 2400; n++) {
+          for (; n < 2400 && !p.dead && L.runtime.status === 'play'; n++) {
             for (let i = 0; i < h.planks.length; i++) { const a = this.plankAngle(Lg.plank, i); if (a >= Lg.pick[0] && a <= Lg.pick[1]) { idx = i; break; } }
             if (idx >= 0) break;
             tick({});
@@ -369,7 +375,7 @@ function install() {
         if (Lg.ridePlank) {
           const b = L.named.get(plank.id).planks[plank.i];
           let n = 0;
-          for (; n < 2400; n++) {
+          for (; n < 2400 && !p.dead && L.runtime.status === 'play'; n++) {
             const a = this.plankAngle(plank.id, plank.i);
             if (a >= Lg.until[0] && a <= Lg.until[1]) break;
             const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
@@ -649,7 +655,7 @@ const RULES = {
     check('P-1: Remix-Platzhalter (remixOf, Basis 2-4), eigener Titel', r.stub && r.title === 'Mondscheinwalzen am Mühlenhügel');
     check('P-1: Nacht-Beleuchtung (Thema grass@nacht: dunkles Himmelslicht, Mond, Sterne)', r.theme === 'grass@nacht' && r.light === 'nacht' && r.hemi < 0.8 && r.moon && r.starsSky);
     check('P-1: Musik der Basis mit Klang-Variante nacht → music.play(\'course_hills\', { variant: \'nacht\' })', r.music === 'course_hills' && r.variant === 'nacht' && r.call?.[1]?.variant === 'nacht' && r.mVariant === 'nacht');
-    check(`P-1: Zeitdruck 30 s, ${r.clocks} Zeit-Uhren (+${r.sec} s), kein Checkpoint, kein Stempel`, r.limit === 30 && r.clocks >= 8 && r.sec === 6 && r.cp === 0 && r.stamp === 0);
+    check(`P-1: Zeitdruck 30 s, ${r.clocks} Zeit-Uhren (+${r.sec} s), kein Checkpoint, kein Stempel`, r.limit === 30 && r.clocks >= 8 && r.sec === 5 && r.cp === 0 && r.stamp === 0);
     check(`P-1: Stachel-Hüpfmäuse statt Hüpfmäusen (${r.maus} → ${r.stachel}), ${r.kugler} Stachelkugler, Sternring statt rotem Ring`, r.maus === 0 && r.stachel >= 12 && r.kugler === 4 && r.ring === 0 && r.starring === 1);
     check(`P-1: kürzer – Graswiese mit Glasröhren und Figurenschaltern entfällt (Entitäten dort: ${r.meadowEnts.length})`, !r.pipesMeadow && r.schalter === 0 && r.meadowEnts.length === 0 && r.remix.cut > 20);
     check('P-1: Gegenprobe Basis 2-4 unverändert (Thema, Musik ohne Variante, 500 s, Hüpfmäuse, Checkpoint, Stempel, roter Ring, ohne Uhren/Kugler/Remix-Feld)',
@@ -670,13 +676,13 @@ const PROBES = {
       // zur ersten Uhr über der ersten Walze (echte Eingabe: hinüberlaufen, am Kamm springen)
       const h = L.named.get('uhren'), it = h.items[0];
       const got0 = h.items.filter((x) => x.taken).length;
-      for (let i = 0; i < 400 && !it.taken; i++) { const dx = it.x - p.pos.x, dz = it.z - p.pos.z; c.setInput({ ...W.stick(dx, dz, 1), jump: Math.hypot(dx, dz) < 2.4 }); c.step(1); }
+      let before = L.runtime.timeLeft, after = before;
+      for (let i = 0; i < 400 && !it.taken; i++) { const dx = it.x - p.pos.x, dz = it.z - p.pos.z; before = L.runtime.timeLeft; c.setInput({ ...W.stick(dx, dz, 1), jump: Math.hypot(dx, dz) < 2.4 }); c.step(1); after = L.runtime.timeLeft; }
       c.setInput({});
-      const t1 = L.runtime.timeLeft;
-      return { near: +(b - a).toFixed(2), taken: it.taken, gain: +(t1 - b).toFixed(2), got: h.items.filter((x) => x.taken).length - got0 };
+      return { near: +(b - a).toFixed(2), taken: it.taken, gain: +(after - before).toFixed(2), got: h.items.filter((x) => x.taken).length - got0 };
     });
-    console.log(`     Uhr: daneben ${r.near} s, an der Uhr ${r.gain} s (+6 abzgl. Laufzeit), ${r.got} Uhr`);
-    return r.near < 0 && r.taken && r.gain > 3 && r.got === 1;
+    console.log(`     Uhr: daneben ${r.near} s, beim Berühren ${r.gain} s, ${r.got} Uhr`);
+    return r.near < 0 && r.taken && r.gain > 4.9 && r.gain < 5.01 && r.got === 1;
   },
   kugler: async () => {
     const r = await sc(() => {

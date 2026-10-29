@@ -6,7 +6,7 @@
 // Ablauf (≈ 175 m nach −Z): Start oben auf dem Rollhügel (die Graswiese mit Glasröhren und Kletterfels entfällt) → drei
 //   Hügelwalzen, rollender Baumstamm, Stufenhügel → Röhre an der Mühle hinab → Mühlenkeller (y −14): Zahnrad-Drehteller
 //   (unterer Weg) oder Bretter an der rechten Wand (oberer Weg) → Kristalldeckel → Riesenräder → Röhre hinauf → Zielkuppe.
-//   Kein Checkpoint: 30 s Startzeit, jede Zeit-Uhr +6 s; nach einem Neustart sind alle Uhren wieder da (_helpers_pa.js).
+//   Kein Checkpoint: 30 s Startzeit, jede Zeit-Uhr +5 s; nach einem Neustart sind alle Uhren wieder da (_helpers_pa.js).
 // Sterne (Index): 0 Sternring über der dritten Hügelwalze (anspringen → acht Sternmünzen auf dem Hügel, 12 s),
 //   1 oberer Weg im Mühlenkeller (Bretter über dem Zahnrad-Schacht), 2 unterer Weg bis zur Röhre unter dem Kristalldeckel
 //   (stampfen) → Farbfeld-Raum: alle 16 Felder färben (wie in der Basis).
@@ -42,7 +42,7 @@ export const LEVEL = remixOf('2-4', {
   start: { pos: [0, YU, -26.5], yaw: Math.PI / 2 },
   // Zeit-Uhren = Ideallinie (über die Walzenkämme, an der Mühle, durch den Keller und über die Räder)
   clocks: {
-    id: 'uhren', sec: 6, list: [
+    id: 'uhren', sec: 5, list: [
       [0, YU + 2.6, -36], [0, YU + 2.6, -49], [0, YU + 3.0, -62], [-1, YU + 1.0, -86],
       [0, YD + 1.0, -241], [1, YD + 1.4, -266.5], [0, YD + 1.0, -284], [0, YD + 2.4, -314], [0, YD + 1.0, -327],
     ],
@@ -69,10 +69,11 @@ export const LEVEL = remixOf('2-4', {
       { kind: 'huepfmaus_stachel', id: 'hm_neu2', pos: [-3, YD, -278.6], path: [[-6, YD, -278.6], [2, YD, -278.6]] },
     ],
     items: [
-      // Sternring über der dritten Hügelwalze: anspringen → acht Sternmünzen auf dem Hügel (12 s) → Stern 0
+      // Sternring über der dritten Hügelwalze: anspringen → acht Sternmünzen rund um den Stufenhügel und oben drauf (12 s)
+      // → Stern 0 erscheint vor der Mühle
       { kind: 'starring', id: 'sternring', pos: [0, YU + 2.9, -62], star: 0, time: 12, coins: [
-        [-8, YU + 0.6, -66], [8, YU + 0.6, -66.5], [7, YU + 3.6, -74], [3, YU + 0.6, -78.5],
-        [-6, YU + 1.7, -82], [-9, YU + 0.6, -88], [9, YU + 0.6, -86], [0, YU + 0.6, -92],
+        ...[90, 141.4, 192.9, 244.3, 295.7, 347.1, 38.6].map((a) => [7 + 4.4 * Math.cos(a * Math.PI / 180), YU + 0.6, -74 + 4.4 * Math.sin(a * Math.PI / 180)]),
+        [7, YU + 3.6, -74],
       ] },
       line([6.5, YD + 3.6, -255.6], [6.5, YD + 4.4, -264.4], 3),
     ],
