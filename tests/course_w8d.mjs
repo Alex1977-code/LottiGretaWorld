@@ -89,6 +89,9 @@ const ROUTES = {
       { name: 'Goldene Schockwelle trifft, wer am Boden stehen bleibt', from: [0, 8, -80], heroes: ['lotti'], invuln: false,
         legs: [{ to: [0, -82], within: 0.6 }, { welle: 'blase' }],
         mech: (r) => r.mech.waveHits >= 1 && r.mech.hurts >= 1, mechText: (r) => `Wellentreffer ${r.mech.waveHits}, Treffer ${r.mech.hurts}`, expectAlive: true },
+      { name: 'Tod im Kampf: die goldene Würfelblase beginnt von vorn (3/3), Neustart am Zeltplateau', from: [0, 8, -80], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [0, -84], within: 0.6 }, { until: 'blaseRiese', max: 120 * 20 }, { die: true }, { expect: 'kampfZurueckA' }],
+        mech: (r) => r.mech.blaseInfo?.hp === 3, mechText: (r) => `Blase ${JSON.stringify(r.mech.blaseInfo)}` },
       { name: 'Wer vom Rummelplatz fällt, stürzt in die Tiefe', from: [10, 0, -12], heroes: ['lotti'], invuln: false, expectAlive: false,
         legs: [{ to: [16.5, -12], within: 0.3, max: 300, autoJump: false }, { wait: 300 }], mech: (r) => r.mech.died && r.mech.deathCause === 'fall', mechText: (r) => `Tod ${r.mech.deathCause}` },
     ],
@@ -237,6 +240,8 @@ function install() {
     welleTrifft: () => (P().hurtTries ?? 0) > 0,
     // 8-B
     krallen: () => P().power === 'krallen',
+    blaseRiese: () => (named('blase')?.giants ?? 0) >= 1,
+    kampfZurueckA: () => { const b = named('blase'); return !!b && b.state === 'wait' && b.hp === 3 && !L.archetype?.started && !P().dead && P().pos.z > -66; },
     anTalstationB: () => { const p = P(); return !p.dead && L.runtime.status === 'play' && Math.abs(p.pos.z + 41.8) < 1.2 && Math.abs(p.pos.y - 4.5) < 0.4; },
     regenTrifft: () => (P().hurtTries ?? 0) > 0 && (named('regen')?.impacts ?? 0) > 0,
     pfuetze: () => (named('koenig')?.puddlesMade ?? 0) > 0 && L.entities.some((e) => e.kind === 'lavapfuetze' && !e.removed),
@@ -702,7 +707,7 @@ function install() {
       const lk = named('lukas');
       if (lk?.info) mech.lukas = lk.info();
       const bl = named('blase');
-      if (bl) mech.waveHits = bl.waveHits ?? 0;
+      if (bl) { mech.waveHits = bl.waveHits ?? 0; mech.blaseInfo = { state: bl.state, hp: bl.hp, giants: bl.giants }; }
       const rg = named('regen');
       if (rg?.info) mech.regen = rg.info();
       const kg = named('koenig');
