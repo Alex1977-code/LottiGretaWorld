@@ -559,53 +559,54 @@ export function feuerwerk(level, center, o = {}) {
   const f = glowField(level);
   const SP = 22, R = o.rockets ?? 3;
   const COLS = [0xff5a8a, 0xffd04a, 0x6ad0ff, 0x8aff7a, 0xc87aff, 0xffffff];
+  const rnd = new Rnd(o.seed ?? 2024);
   const rockets = Array.from({ length: R }, () => ({ live: false, t: 0, x: 0, y: 0, z: 0, vy: 0, burst: -1, col: 0 }));
-  let dyn = null;
-  if (f) {
-    dyn = f.alloc(R * (SP + 1), { color: 0xffffff, size: 1.3, opacity: 0.9 }, null);
-    // Farbe je Rakete: Tönung der Punkte setzen
-    dyn.update = (dt) => {
-      if (!st.on) return;
-      const d = Math.min(0.05, dt);
-      st.t += d;
-      st.next -= d;
-      if (st.next <= 0 && st.bursts < (o.n ?? 24)) {
-        const r = rockets.find((q) => !q.live);
-        if (r) {
-          r.live = true; r.t = 0; r.burst = -1;
-          r.x = center[0] + (Math.random() - 0.5) * (o.spread ?? 16); r.z = center[2] + (Math.random() - 0.5) * (o.spread ?? 16) * 0.5;
-          r.y = center[1]; r.vy = 16 + Math.random() * 4;
-          r.col = COLS[st.bursts % COLS.length];
+  // Raketen fliegen auf der Level-Uhr (deterministisch, auch ohne Bilder); das Leuchtfeld zeigt den Stand je Bild
+  const dyn = f ? f.alloc(R * (SP + 1), { color: 0xffffff, size: 1.3, opacity: 0.9 }, () => {}) : null;
+  const set = (i, x, y, z) => dyn?.set(i, x, y, z);
+  const hide = (i) => dyn?.hide(i);
+  level.onStep((dt) => {
+    if (!st.on) return;
+    st.t += dt;
+    st.next -= dt;
+    if (st.next <= 0 && st.bursts < (o.n ?? 24)) {
+      const r = rockets.find((q) => !q.live);
+      if (r) {
+        r.live = true; r.t = 0; r.burst = -1;
+        r.x = center[0] + rnd.real(-0.5, 0.5) * (o.spread ?? 16); r.z = center[2] + rnd.real(-0.5, 0.5) * (o.spread ?? 16) * 0.5;
+        r.y = center[1]; r.vy = 16 + rnd.real(0, 4);
+        r.col = COLS[(st.bursts + rockets.indexOf(r)) % COLS.length];
+        if (f && dyn) {
           const c = new THREE.Color(r.col).multiplyScalar(0.9), k0 = (dyn.i0 + rockets.indexOf(r) * (SP + 1)) * 3;
           for (let q = 0; q < SP + 1; q++) f.tint.set([c.r, c.g, c.b], k0 + q * 3);
           f.geo.attributes.tint.needsUpdate = true;
-          level.sfx('swoop');
-          st.next = o.every ?? 0.7;
         }
+        level.sfx('swoop');
+        st.next = o.every ?? 0.7;
       }
-      rockets.forEach((r, ri) => {
-        const i0 = ri * (SP + 1);
-        if (!r.live) { for (let q = 0; q <= SP; q++) dyn.hide(i0 + q); return; }
-        r.t += d;
-        if (r.burst < 0) {
-          r.y += r.vy * d; r.vy -= 9 * d;
-          dyn.set(i0, r.x, r.y, r.z);
-          for (let q = 1; q <= SP; q++) dyn.hide(i0 + q);
-          if (r.vy < 3) { r.burst = 0; st.bursts++; level.sfx('poof'); }
-        } else {
-          r.burst += d;
-          const k = r.burst, rad = 7 * (1 - Math.exp(-k * 3));
-          dyn.hide(i0);
-          for (let q = 1; q <= SP; q++) {
-            const a = (q / SP) * TAU, b = Math.acos(1 - 2 * ((q * 0.618) % 1));
-            if (k > 1.6) dyn.hide(i0 + q);
-            else dyn.set(i0 + q, r.x + Math.cos(a) * Math.sin(b) * rad, r.y + Math.cos(b) * rad - k * k * 2.2, r.z + Math.sin(a) * Math.sin(b) * rad);
-          }
-          if (k > 1.6) r.live = false;
+    }
+    rockets.forEach((r, ri) => {
+      const i0 = ri * (SP + 1);
+      if (!r.live) { for (let q = 0; q <= SP; q++) hide(i0 + q); return; }
+      r.t += dt;
+      if (r.burst < 0) {
+        r.y += r.vy * dt; r.vy -= 9 * dt;
+        set(i0, r.x, r.y, r.z);
+        for (let q = 1; q <= SP; q++) hide(i0 + q);
+        if (r.vy < 3) { r.burst = 0; st.bursts++; level.sfx('poof'); }
+      } else {
+        r.burst += dt;
+        const k = r.burst, rad = 7 * (1 - Math.exp(-k * 3));
+        hide(i0);
+        for (let q = 1; q <= SP; q++) {
+          const a = (q / SP) * TAU, b = Math.acos(1 - 2 * ((q * 0.618) % 1));
+          if (k > 1.6) hide(i0 + q);
+          else set(i0 + q, r.x + Math.cos(a) * Math.sin(b) * rad, r.y + Math.cos(b) * rad - k * k * 2.2, r.z + Math.sin(a) * Math.sin(b) * rad);
         }
-      });
-    };
-  }
+        if (k > 1.6) r.live = false;
+      }
+    });
+  });
   st.start = () => { st.on = true; };
   return st;
 }

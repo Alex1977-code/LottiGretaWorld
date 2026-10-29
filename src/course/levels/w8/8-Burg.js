@@ -115,10 +115,10 @@ function build(level) {
   // Autowrack (fest), Kamin mit Geheimnis auf Dach 4, Grube unter dem Riesenrad
   W.add({ type: 'box', min: [-6.4, Y0, -4.1], max: [-2.2, Y0 + 1.5, -0.3], tag: 'autowrack' });
   W.add({ type: 'box', min: [-4.0, 8.6, -94.2], max: [-2.8, 10.6, -93.0], tag: 'kamin' });
-  W.add({ type: 'box', min: [-13.8, 4, -142], max: [-5, 9, -141], tag: 'grube' });
-  W.add({ type: 'box', min: [5, 4, -142], max: [13.8, 9, -141], tag: 'grube' });
-  W.add({ type: 'box', min: [-13.8, 4, -142], max: [-13, 9, -134.2], tag: 'grube' });
-  W.add({ type: 'box', min: [13, 4, -142], max: [13.8, 9, -134.2], tag: 'grube' });
+  W.add({ type: 'box', min: [-13.8, 4, -142.4], max: [-5, 9, -141.6], tag: 'grube' });
+  W.add({ type: 'box', min: [5, 4, -142.4], max: [13.8, 9, -141.6], tag: 'grube' });
+  W.add({ type: 'box', min: [-13.8, 4, -142.4], max: [-13, 9, -134.2], tag: 'grube' });
+  W.add({ type: 'box', min: [13, 4, -142.4], max: [13.8, 9, -134.2], tag: 'grube' });
 
   // ---- Kulisse (verschmolzen)
   // b: große Kulisse ohne Sonnenschatten (Fassaden, Turmkörper, Vulkan), bs: kleine Teile auf begehbaren Flächen (mit Schatten)
@@ -324,9 +324,9 @@ export const LEVEL = {
 
     // ================================================================ C Riesenrad
     dach(-13, 13, -110.6, -134.2, PZ, { top: 'stone', h: 8 }),
-    dach(-13, 13, -134.4, -141, 4, { top: 'stone', h: 1 }),
+    dach(-13, 13, -134.4, -141.6, 4, { top: 'stone', h: 1 }),
     dach(-5, 5, -138.9, -146.3, ST, { top: 'stone', h: 30 }),
-    { type: 'stairs', pos: [10.6, 4, -139.2], dir: '+z', steps: 4, rise: 1, run: 1, width: 2.4, style: 'stone' },
+    { type: 'ramp', pos: [11.4, 4, -137.4], size: [2.6, 4, 6.0], axis: 'z', dir: 1, top: 'stone' },
     { type: 'riesenrad', id: 'rad', pos: [RAD.x, RAD.y, RAD.z], radius: RAD.r, gondolas: 8, speed: 0.16, angle: -Math.PI / 2, ground: 4 },
     { type: 'deco_w8', items: [
       { kind: 'bude', pos: [-10.6, PZ, -119.5], width: 3.4, color: 'blau', yaw: 0, solid: true, seed: 3 },
@@ -478,7 +478,7 @@ export const LEVEL = {
   stars: [
     [9, 14.1, -40],                                    // 0: oben auf dem Uhrturm des ersten Hauses (rechts nach Seilbahn 1)
     { pos: [0, PZ + 1.2, -129.4], hidden: true },      // 1: alle vier Schubser vom Riesenrad gestoßen
-    { pos: [6.2, G + 1, ZG + 7.6], hidden: true },     // 2: Sternenring in der ersten Finalphase
+    { pos: [6.2, G + 0.3, ZG + 7.6], hidden: true },   // 2: Sternenring in der ersten Finalphase
   ],
   stamp: [-4.6, ZIEL.y + 7.4, -291.3],
   goal: { pos: [0, ZIEL.y, -295.6], height: 8 },

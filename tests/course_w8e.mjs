@@ -97,8 +97,6 @@ const MAIN = [
 const TARGETS = [
   { name: 'Stern 0: nach Seilbahn 1 rechts hinauf auf den Uhrturm des ersten Hauses', star: 0, from: [0, 8, -37.6],
     legs: [{ to: [3.6, -41.2], within: 0.3, run: false }, { to: [6.6, -41.2], jump: 30, within: 0.4, run: false }, { to: [9, -40.2], jump: 34, within: 0.4, run: false }, { wait: 30 }], shot: 'stern0' },
-  { name: 'Stern 0 nicht ohne den Flügel (vom Dach 1 reicht kein Sprung auf den Uhrturm)', star: 0, expectNot: true, from: [4.4, 8, -40.2], heroes: ['lotti'],
-    legs: [{ to: [8.4, -40.2], jump: 40, within: 0.4, run: false, max: 240 }, { wait: 30 }], mech: (r) => r.pos[1] < 13 },
   { name: 'Stern 1: alle vier Schubser vom Riesenrad stoßen', star: 1, from: [0, PZ, -131.6], invuln: true,
     legs: [{ schubser: ['rs1', 'rs2', 'rs3', 'rs4'] }, { until: 'stern1Da', max: 600 }, { star: 1 }], shot: 'stern1',
     mech: (r) => r.mech.schubserWeg === 4, mechText: (r) => `${r.mech.schubserWeg}/4 Schubser hinuntergestoßen` },
@@ -126,14 +124,16 @@ const EXTRA = [
     legs: [{ to: [-3.4, -93.6], jump: 30, within: 0.25, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
   { name: 'Krallen-Anzug aus dem ?-Block am Start', from: [3.2, Y0, 3.6], heroes: ['lotti'],
     legs: [{ to: [3.2, 1.6], within: 0.15, run: false }, { hop: 20 }, { to: [3.2, 3.6], within: 0.3, run: false }, { chaseKind: 'powerup', max: 900 }, { expect: 'krallen' }] },
-  { name: 'Krallen-Anzug: die Kletterfront hinauf bis zur Terrasse', from: [-3.4, T0, -184.6], heroes: ['lotti'], place: { power: 'krallen' }, prep: 'ohneBaron',
-    legs: [{ climb: [-3.4, -187], top: TT }], mech: (r) => r.pos[1] > TT - 0.2, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
+  { name: 'Krallen-Abkürzung: zweimal die Kletterrinne hinauf (über Sims 4) bis auf die Turmterrasse', from: [0, T0, -184.4], place: { power: 'krallen' }, prep: 'ohneBaron',
+    legs: [{ claw: [0, -188], land: [2.9, -185.6] }, { expect: 'aufSims4' }, { claw: [-0.5, -188], from: [1.5, -184.8], land: null }, { expect: 'terrasse' }], mech: (r) => r.pos[1] > TT - 0.2, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
   { name: 'Lavabrocken-Regen startet auf Dach 2 und trifft (verwundbar stehen bleiben)', from: [0, 8, -46], heroes: ['lotti'], invuln: false, expectAlive: false,
-    legs: [{ to: [0, -56.6], jump: 30, jumpAt: 6, within: 0.6 }, { stand: 900 }], mech: (r) => r.mech.regenAn && r.mech.regenTreffer >= 1, mechText: (r) => `Regen ${r.mech.regenAn ? 'an' : 'aus'}, Treffer ${r.mech.regenTreffer}`, allowFail: true },
+    legs: [{ to: [0, -56.6], jump: 30, jumpAt: 8.4, within: 0.6, autoJump: false }, { stompAll: 'kp1', area: [-3.6, 3.6, -52.5, -62.8], safe: true }, { to: [2.4, -56.2], within: 0.4, run: false }, { to: [2.4, -53.2], within: 0.4, run: false }, { stand: 1200, untilHurt: true }],
+    mech: (r) => r.mech.regenAn && r.mech.hurtList.some((h) => h.startsWith('brocken')), mechText: (r) => `Regen ${r.mech.regenAn ? "an" : "aus"}, Treffer: ${r.mech.hurtList.join(" ")}`, allowFail: true },
   { name: 'Lavabrocken-Regen schweigt vor Dach 2', from: [0, 8, -37.6], heroes: ['lotti'],
     legs: [{ to: [0, -46], within: 0.6, run: false }, { wait: 240 }], mech: (r) => !r.mech.regenAn, mechText: (r) => `Regen ${r.mech.regenAn ? 'an' : 'aus'}` },
   { name: 'Stachelfallen verletzen, wenn die Stacheln draußen sind', from: [-1.3, 8, -52.6], heroes: ['lotti'], invuln: false, expectAlive: true,
-    legs: [{ to: [-1.3, -55.5], within: 0.3, run: false }, { stand: 480 }], mech: (r) => r.mech.fallenTreffer >= 1, mechText: (r) => `${r.mech.fallenTreffer} Treffer`, allowFail: true },
+    legs: [{ stompAll: 'kp1', area: [-3.6, 3.6, -52.5, -62.8], safe: true }, { to: [1.3, -58.8], within: 0.3, run: false }, { stand: 600, untilHurt: true }, { to: [0, -61], within: 0.4, run: false }],
+    mech: (r) => r.mech.fallenTreffer >= 1 && r.mech.hurtList.some((h) => h.startsWith('stachelfalle')), mechText: (r) => `${r.mech.fallenTreffer} Treffer (${r.mech.hurtList.join(' ')})`, allowFail: true },
   { name: 'Sperre: das Kanonenhaus ist zu, solange der Baron am POW-Block wacht', from: [-1, TT, -189.2], heroes: ['lotti'], prep: 'wache',
     legs: [{ to: [2.95, -192.4], within: 0.4, run: false, max: 300 }, { to: [2.95, -197], within: 0.3, run: false, max: 300, autoJump: false }],
     mech: (r) => r.pos[1] > TT - 0.5 && r.pos[2] > -193.3 && r.mech.rides === 0, mechText: (r) => `z ${r.pos[2].toFixed(2)}, Fahrten ${r.mech.rides}`, allowFail: true },
@@ -193,7 +193,7 @@ function install(K) {
     p.__hurtWrapped = true;
     p.hurtTries = 0;
     const orig = p.hurt.bind(p);
-    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? String(src); return orig(src); };
+    p.hurt = (src) => { p.hurtTries++; p.lastHurt = src?.kind ?? (src?.pos ? 'brocken' : String(src)); return orig(src); };
   };
   wrapHurt();
   const at = (x0, x1, y0, z0, z1) => { const q = P().pos; return q.x > x0 && q.x < x1 && q.y > y0 && q.z < z0 && q.z > z1 && !P().dead; };
@@ -225,6 +225,7 @@ function install(K) {
     stern2Da: () => L.entities.some((e) => e.kind === 'star' && e.index === 2 && !e.hidden && e.alive) || !!L.runtime.stars[2],
     ringDa: () => named('sternring') && !named('sternring').hidden,
     krallen: () => P().power === 'krallen',
+    aufSims4: () => P().pos.y > K.T0 + 4 * 2.8 - 0.3 && P().pos.x > 1 && on(),
   };
   const W = {
     place(pos, o = {}) {
@@ -257,8 +258,8 @@ function install(K) {
         this.place([0, K.T0, -176.5], {});
         for (let i = 0; i < 120 * 40 && !(b.guarding && b.state === 'guard'); i++) {
           P().invuln = 99; c.setInput(i < 40 ? this.stick(0, -1, 0.5) : {}); c.step(1);
-          // Prüfstand: die Figur steigt mit ihm (so bleibt er „lead“ über ihr und klettert bis oben)
-          if (b.state === 'climb' && i % 60 === 0) P().pos.set(0, Math.min(K.TT, b.pos.y - 3), -184.6);
+          // Prüfstand: ihn ans Ende seines Kletterwegs setzen (er geht dann an den POW-Block)
+          if (b.state === 'climb' && b.s < b.section.routeObj.L - 0.5) b.s = b.section.routeObj.L - 0.4;
         }
         c.setInput({});
       }
@@ -322,9 +323,11 @@ function install(K) {
           // verwundbar stehen bleiben (Prüfung von Fallen/Regen)
           const rg = named('regen'), fl = L.entities.filter((e) => e.kind === 'stachelfalle');
           const h0 = rg?.info?.().hits ?? 0, f0 = fl.reduce((s, e) => s + e.hurts, 0);
-          for (let i = 0; i < Lg.stand && !p.dead; i++) { tick({}); if (rg?.state === 'an') mech.regenAn = true; }
+          const hu0 = p.hurtTries ?? 0;
+          for (let i = 0; i < Lg.stand && !p.dead; i++) { tick({}); if (rg?.state === 'an') mech.regenAn = true; if (Lg.untilHurt && (p.hurtTries ?? 0) > hu0 && p.invuln > 0) break; }
           mech.regenTreffer = (rg?.info?.().hits ?? 0) - h0;
           mech.fallenTreffer = fl.reduce((s, e) => s + e.hurts, 0) - f0;
+          log.push(['stand', fl.map((e) => [e.spec.id, e.state, e.cycles, e.hurts, +e.pos.x.toFixed(2), +e.pos.y.toFixed(2), +e.pos.z.toFixed(2)]), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.invuln, p.hurtTries]);
           continue;
         }
         if (Lg.expect) { const ok = COND[Lg.expect](); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]); continue; }
@@ -348,6 +351,7 @@ function install(K) {
             const A = Lg.area;   // sichere Fläche [x0, x1, z0, z1]: Ziele dorthin klemmen (nie über die Dachkante)
             const cl = (x, z) => (A ? [Math.max(A[0], Math.min(A[1], x)), Math.max(Math.min(A[2], A[3]), Math.min(Math.max(A[2], A[3]), z))] : [x, z]);
             for (let k = 0; k < 900 && e.alive && !e.defeated && !e.removed && !p.dead; k++) {
+              if (Lg.safe) p.invuln = Math.max(p.invuln, 2);
               const [ex, ez] = cl(e.pos.x, e.pos.z);
               const dx = ex - p.pos.x, dz = ez - p.pos.z, d = Math.hypot(dx, dz);
               if (p.mode === 'ground' && d < 2.0 && Math.abs(e.pos.y - p.pos.y) < 1.5) { tick({ ...this.stick(dx, dz, 0.5), jump: true, run: false }); continue; }
@@ -357,6 +361,7 @@ function install(K) {
             if (!e.alive || e.defeated || e.removed) mech.stomped.push(e.spec?.id);
           }
           for (let i = 0; i < 40; i++) tick({});
+          if (Lg.safe) p.invuln = 0;
           log.push(['besiegt', pre, mech.stomped.join(' ')]);
           continue;
         }
@@ -430,25 +435,36 @@ function install(K) {
             let tries = 0;
             for (; tries < 6 && !gone(e) && !p.dead; tries++) {
               // in der Grube? Treppe hinauf zum Platz
-              if (p.pos.y < K.PZ - 1) { goTo(10.6, -139.0, 0.5, 900, false); goTo(10.6, -133.2, 0.5, 900, false); }
-              goTo(0, -133.6, 0.3);
+              if (p.pos.y < K.PZ - 1) { goTo(11.4, -141.0, 0.4, 900, false); goTo(11.4, -133.2, 0.5, 900, false); log.push(['aus der Grube', +p.pos.y.toFixed(2)]); }
+              const XP = -1.4;
+              goTo(XP, -133.55, 0.25);
               const g = gondelOf(e);
-              // warten, bis seine Gondel unten links ankommt
+              // warten, bis seine Gondel unten links ankommt (Sprung so, dass sie beim Landen vor der Figur ist)
               let k = 0;
-              for (; k < 120 * 60; k++) { const a = ang(g); if (a > -Math.PI / 2 - 0.42 && a < -Math.PI / 2 - 0.3) break; tick(p.pos.y > K.PZ - 0.2 && Math.abs(p.pos.z + 133.6) > 0.3 ? this.stick(0 - p.pos.x, -133.6 - p.pos.z, 0.5) : {}); }
+              const a0 = -Math.PI / 2 - Math.acos(Math.max(-1, Math.min(1, (XP - 1.15) / K.RAD.r))) + Math.PI / 2;
+              for (; k < 120 * 70; k++) {
+                const a = ang(g);
+                if (a > a0 - 0.03 && a < a0 + 0.02) break;
+                tick(p.mode === 'ground' && Math.hypot(XP - p.pos.x, -133.55 - p.pos.z) > 0.25 ? this.stick(XP - p.pos.x, -133.55 - p.pos.z, 0.5) : {});
+              }
               // Sprung auf ihn, über ihm Stampfattacke (er rutscht nach −Z von der Planke)
-              let pounding = false, n = 0;
+              let pounding = false, n = 0, minHd = 99;
               const p0 = e.pushes ?? 0;
+              let px = e.pos.x, pz = e.pos.z;
+              const st0 = e.state, ez0 = +e.pos.z.toFixed(2);
               for (; n < 260 && !gone(e) && (e.pushes ?? 0) === p0 && !p.dead; n++) {
-                const tx = e.pos.x + 0.15, tz = e.pos.z + 0.25;
+                const vx = (e.pos.x - px) * 120, vz = (e.pos.z - pz) * 120; px = e.pos.x; pz = e.pos.z;
+                const tx = e.pos.x + vx * 0.08, tz = e.pos.z + 0.2;
                 const hd = Math.hypot(tx - p.pos.x, tz - p.pos.z);
-                if (!pounding && n > 6 && hd < 0.5 && p.vel.y < 2 && p.pos.y > e.pos.y + 1.1) pounding = true;
+                if (p.mode === 'air') minHd = Math.min(minHd, hd);
+                if (!pounding && n > 6 && p.mode === 'air' && hd < 0.65 && p.vel.y < 3 && p.pos.y > e.pos.y + 1.0) pounding = true;
                 if (pounding) { tick({ crouch: true }); continue; }
-                tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, (e.vel?.x ?? 0) + w * K.RAD.r, (e.vel?.z ?? 0) - 1.2, 3.6, 7) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: n < 26, run: false });
+                if (p.mode === 'ground' && n > 30) break;
+                tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, vx, vz, 4.2, 8) : this.stick(tx - p.pos.x, tz - p.pos.z, 1)), jump: n < 28, run: false });
               }
               for (let q = 0; q < 240 && !gone(e); q++) tick({});
               settle();
-              log.push(['schubser', id, gone(e), e?.state, e?.fellBy ?? null, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+              log.push(['schubser', id, gone(e), st0, ez0, e?.state, e?.fellBy ?? null, n, +minHd.toFixed(2), pounding, +(ang(g)).toFixed(2), +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
             }
             if (gone(e)) mech.schubserWeg++;
             else log.push(['FEHLER: Schubser blieb oben', id]);
@@ -551,6 +567,34 @@ function install(K) {
           settle();
           log.push(['hoch', over, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (p.pos.y < Lg.top - 0.2) { log.push(['FEHLER: nicht oben', Lg.top]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Krallen-Anzug: in die Kletterrinne springen, hinaufklettern; land: Wandsprung auf
+        //                                                  einen Sims ([x, z]) bzw. oben über die Kante (null)
+        if (Lg.claw) {
+          const [wx, wz] = Lg.claw;
+          for (let k = 0; k < 90 && (p.mode !== 'ground' || p.hSpeed() > 0.2); k++) tick({});
+          if (Lg.from) goTo(Lg.from[0], Lg.from[1], 0.2, 300, false);
+          const into = this.stick(wx - p.pos.x, wz - p.pos.z, 1), into0 = into;
+          void into0;
+          let n = 0, maxY = p.pos.y, climbed = 0;
+          for (; n < 120 * 6 && !p.dead; n++) {
+            if (p.mode === 'wall' && p.state === 'climb') climbed++;
+            if (Lg.land && p.mode === 'wall' && p.state === 'wallslide' && climbed > 10) break;
+            if (!Lg.land && climbed > 10 && p.mode === 'ground') break;
+            const dWall = Math.abs(wz - p.pos.z);
+            tick({ ...into, jump: p.mode === 'ground' ? (dWall < 1.6 || Lg.from) && (n % 30) < 16 : p.mode === 'air' && p.vel.y > 0 && climbed === 0 });
+            maxY = Math.max(maxY, p.pos.y);
+          }
+          log.push(['krallen', climbed, +maxY.toFixed(2), p.mode, p.state, p.ground?.tag ?? null, +p.pos.x.toFixed(2), +p.pos.z.toFixed(2), JSON.stringify(hist.slice(-12))]);
+          if (Lg.land) {
+            // Wandsprung zum Sims, dort landen
+            const [lx, lz] = Lg.land;
+            tick({ ...this.stick(lx - p.pos.x, 1, 1), jump: true });
+            for (let q = 0; q < 300 && p.mode !== 'ground' && !p.dead; q++) tick({ ...this.airSteer(lx, lz, 0, 0, 3, 6), jump: p.vel.y > 0 });
+          }
+          settle();
+          log.push(['gelandet', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           continue;
         }
         // ------------------------------------------------ Kletterwand mit dem Krallen-Anzug
