@@ -229,8 +229,9 @@ if (want('remix')) {
       return { before, ok, after: c.view.canvas.style.filter };
     });
     await shot('remix_schwarzweiss', 900);
-    await sc(() => { window.__oldCourse = window.__course; window.__course.restartLevel(); });
-    await page.waitForFunction(() => window.__course && window.__course !== window.__oldCourse && window.__course.level, null, { timeout: 60000 });
+    // Phaser startet dieselbe Szene neu (gleiches Objekt) → auf ein neues Level-Objekt warten
+    await sc(() => { window.__oldLevel = window.__course.level; window.__course.restartLevel(); });
+    await page.waitForFunction(() => window.__course?.level && window.__course.level !== window.__oldLevel, null, { timeout: 60000 });
     const bw2 = await sc(() => window.__course.view.canvas.style.filter);
     check('Remix filter schwarzweiss: Graustufen-Filter über der 3D-Ansicht, beim Szenenende wieder aus (Gegenprobe vorher/nachher ohne)', !bw.before && bw.ok && bw.after.includes('grayscale') && !bw2);
   }
