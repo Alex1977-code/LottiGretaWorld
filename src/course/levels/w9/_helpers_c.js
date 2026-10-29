@@ -403,13 +403,15 @@ export function leuchtring(level, o = {}) {
 // 4) Mechanik S-7
 // =====================================================================================================================
 
-let GROSS = null;
+const GROSS = new Map();
 /**
  * Riesenziegel 2 × 2 × 2 m: gerundeter Würfel mit Bild-Atlas (links Ziegelmauer in warmem Terrakotta mit hellen Fugen und
  * Moosrand oben, rechts Mooskissen mit Blümchen für die Oberseite) – ein Material, ein Zeichenaufruf für alle Blöcke.
+ * kind 'stein': grauer Riesen-Steinblock (nur Riesentrank/Bombe) mit Nieten, Rissen und Moosflecken.
  */
-function grossLook(S) {
-  if (GROSS?.S === S) return GROSS;
+function grossLook(S, kind = 'ziegel') {
+  const key = `${kind}:${S}`;
+  if (GROSS.has(key)) return GROSS.get(key);
   const g0 = roundedBox(S * 0.98, S * 0.98, S * 0.98, 0.16, SIDE.ALL, 0, 3);
   const g = g0.index ? g0.toNonIndexed() : g0;
   const pos = g.attributes.position, nor = g.attributes.normal;
@@ -430,6 +432,28 @@ function grossLook(S) {
   const W = 512, H = 256;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
+  if (kind === 'stein') {
+    // Seite: hellgraue Platte mit dunklerem Rahmen, Nieten in den Ecken, ein Riss; Oberseite: Stein mit Moosflecken
+    x.fillStyle = '#8c94a2'; x.fillRect(0, 0, 256, 256);
+    x.fillStyle = '#b8c0cc'; x.beginPath(); x.roundRect(16, 16, 224, 224, 22); x.fill();
+    x.fillStyle = '#a4acba'; x.beginPath(); x.roundRect(40, 40, 176, 176, 16); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.25)'; x.beginPath(); x.roundRect(26, 22, 150, 12, 6); x.fill();
+    for (const [px, py] of [[34, 34], [222, 34], [34, 222], [222, 222]]) { x.fillStyle = '#6a7282'; x.beginPath(); x.arc(px, py, 9, 0, TAU); x.fill(); x.fillStyle = '#dfe4ea'; x.beginPath(); x.arc(px - 2, py - 2, 4, 0, TAU); x.fill(); }
+    x.strokeStyle = '#5a6272'; x.lineWidth = 5; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(150, 60); x.lineTo(132, 104); x.lineTo(150, 128); x.lineTo(126, 176); x.stroke();
+    x.fillStyle = '#58c03a';
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(256, 0); x.lineTo(256, 12);
+    for (let i = 16; i >= 0; i--) x.lineTo(i * 16, 10 + (i % 3 ? 4 : 16));
+    x.closePath(); x.fill();
+    x.fillStyle = '#a4acba'; x.fillRect(256, 0, 256, 256);
+    x.fillStyle = '#c4ccd6'; x.beginPath(); x.roundRect(276, 20, 216, 216, 20); x.fill();
+    for (let i = 0; i < 14; i++) { const px = 256 + ((i * 89) % 230) + 13, py = ((i * 53) % 230) + 13; x.fillStyle = i % 2 ? 'rgba(90,200,58,0.75)' : 'rgba(150,232,100,0.6)'; x.beginPath(); x.arc(px, py, 12 + (i % 3) * 6, 0, TAU); x.fill(); }
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const look = { S, g, mat: new THREE.MeshStandardMaterial({ map: tex, roughness: 0.82, metalness: 0.05 }), debris: 0x9aa2ae };
+    GROSS.set(key, look);
+    return look;
+  }
   // Ziegel (linke Hälfte: 256 × 256 = eine Blockseite)
   x.fillStyle = '#f2c89a'; x.fillRect(0, 0, 256, 256);
   const cols = ['#e2703c', '#ec8448', '#d26234', '#e87a42', '#dc6a38'];
@@ -465,21 +489,22 @@ function grossLook(S) {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 });
-  GROSS = { S, g, mat };
-  return GROSS;
+  const look = { S, g, mat: new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 }), debris: 0xd8683a };
+  GROSS.set(key, look);
+  return look;
 }
 
 /**
  * Großblöcke (S-7): Riesenziegel (2 m). Fest; **Stampfen von oben**, der **Riesentrank** (Riesenkörper), Explosionen und
  * Kanonenkugeln zerbrechen einen Block (Tatze, Feuer, Kopfstoß prallen ab). Eine Instanz-Gruppe für alle Blöcke einer Gruppe.
  *   spec { id, blocks: [[x, y, z], …] (Mitte der Unterseite), size 2, content: { index: Inhalt } ('coins:3', Power-up, …),
- *          onBreak (Aktion beim ersten Bruch), by: ['pound', 'mega', 'bomb', 'cannon'] }
+ *          onBreak (Aktion beim ersten Bruch), by: ['pound', 'mega', 'bomb', 'cannon'], look: 'ziegel' | 'stein' (grauer
+ *          Riesen-Steinblock; Standard dann by ['mega', 'bomb']), shadow true }
  *   level.named.get(id) = { blocks [{ x, y, z, broken }], broken (Zahl), info() }
  */
 export function grossbloecke(level, spec) {
   const S = spec.size ?? 2;
-  const by = new Set(spec.by ?? ['pound', 'mega', 'bomb', 'cannon']);
+  const by = new Set(spec.by ?? (spec.look === 'stein' ? ['mega', 'bomb'] : ['pound', 'mega', 'bomb', 'cannon']));
   const blocks = spec.blocks.map((p, i) => ({ x: p[0], y: p[1], z: p[2], i, broken: false, id: null }));
   const handle = { blocks, broken: 0, kind: 'grossbloecke', info: () => ({ blocks: blocks.length, broken: handle.broken }) };
   let mesh = null;
@@ -489,7 +514,7 @@ export function grossbloecke(level, spec) {
     b.broken = true;
     handle.broken++;
     if (b.id) level.world.remove(b.id);
-    level.effects?.debris({ x: b.x, y: b.y + S * 0.5, z: b.z }, 0xd8683a, 12);
+    level.effects?.debris({ x: b.x, y: b.y + S * 0.5, z: b.z }, spec.look === 'stein' ? 0x9aa2ae : 0xd8683a, 12);
     level.effects?.debris({ x: b.x, y: b.y + S * 0.9, z: b.z }, 0x5ac83a, 5);
     level.sfx('brickbreak');
     level.shake?.(0.12);
@@ -504,14 +529,14 @@ export function grossbloecke(level, spec) {
   };
   for (const b of blocks) {
     b.onHit = (kind) => { if (by.has(kind)) brk(b); };
-    b.id = level.world.add({ type: 'box', min: [b.x - S / 2, b.y, b.z - S / 2], max: [b.x + S / 2, b.y + S, b.z + S / 2], breakable: true, owner: b, tag: 'block:gross' });
+    b.id = level.world.add({ type: 'box', min: [b.x - S / 2, b.y, b.z - S / 2], max: [b.x + S / 2, b.y + S, b.z + S / 2], ...(spec.look === 'stein' ? { mega: true } : { breakable: true }), owner: b, tag: 'block:gross' });
   }
   if (spec.id) level.named.set(spec.id, handle);
   if (!level.view || !blocks.length) return handle;
-  const look = grossLook(S);
+  const look = grossLook(S, spec.look ?? 'ziegel');
   mesh = new THREE.InstancedMesh(look.g, look.mat, blocks.length);
   mesh.name = 'grossbloecke';
-  mesh.castShadow = true; mesh.receiveShadow = true;
+  mesh.castShadow = spec.shadow !== false; mesh.receiveShadow = true;
   for (const b of blocks) { m4.makeTranslation(b.x, b.y, b.z); mesh.setMatrixAt(b.i, m4); }
   mesh.instanceMatrix.needsUpdate = true;
   const sp = sphereOf(blocks.map((b) => ({ x: b.x, y: b.y + S / 2, z: b.z })), S);
@@ -672,4 +697,129 @@ export function wurzelsaeulen(level, list) {
     }
   }
   if (level.view && parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: true });
+}
+
+/** Geometrie in Weltlage bringen (Maßstab s, Gier yaw, Ort p) – gibt g zurück. */
+const place = (g, p, yaw = 0, s = 1) => { if (s !== 1) g.scale(s, s, s); if (yaw) g.rotateY(yaw); g.translate(p[0], p[1], p[2]); return g; };
+const fillC = (g, col) => { const c = C3(col); return colorize(g.index ? g.toNonIndexed() : g, (p, n, o) => { o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; }); };
+
+/**
+ * Dschungel-Kleinigkeiten in Riesengröße (S-7, Kulisse, statisch verschmolzen): Riesengras-Büschel, Kleeblätter am Boden,
+ * Marienkäfer, Schneckenhäuser, Beeren, bemooste Felsen, Riesen-Eicheln. Alles im Spielzeug-Look mit kräftigen Farben;
+ * solid: true gibt einen Kollisionsquader (Käfer, Felsen, Schneckenhaus als Hindernis/Stufe).
+ *   list [{ kind: 'gras' | 'klee' | 'kaefer' | 'schnecke' | 'beeren' | 'fels' | 'eichel', pos: [x, y, z], s (Maßstab), yaw,
+ *           color, solid }]
+ */
+export function dschungelDeko(level, list) {
+  const parts = [], glow = [];
+  const rnd = new Rnd(31337);
+  for (const it of list) {
+    const p = it.pos, s = it.s ?? 1, yaw = it.yaw ?? rnd.real(0, TAU);
+    switch (it.kind) {
+      case 'gras': {   // Büschel aus 5–7 hohen, gebogenen Halmen
+        const n = 5 + (rnd.int(0, 2));
+        for (let k = 0; k < n; k++) {
+          const h = (3.2 + rnd.real(0, 2.6)) * s, w = 0.36 * s;
+          const g = new THREE.PlaneGeometry(w, h, 1, 5).toNonIndexed();
+          const pos = g.attributes.position;
+          for (let i = 0; i < pos.count; i++) {
+            const y = pos.getY(i) + h / 2, t = y / h;
+            pos.setX(i, pos.getX(i) * (1 - t * 0.92));
+            pos.setZ(i, t * t * 1.2 * s);
+            pos.setY(i, y);
+          }
+          g.computeVertexNormals();
+          const lo = C3(0x2a8a2a), hi = C3(k % 2 ? 0xa8f070 : 0x7ad84a);
+          colorize(g, (q, nn, o) => mixc(lo, hi, Math.min(1, q.y / h * 1.2), o));
+          parts.push(place(g, p, yaw + (k / n) * TAU + rnd.real(-0.3, 0.3)));
+        }
+        break;
+      }
+      case 'klee': {   // drei herzförmige Blätter flach am Boden
+        for (let k = 0; k < 3; k++) {
+          const a = (k / 3) * TAU;
+          for (const side of [-1, 1]) {
+            const g = new THREE.CircleGeometry(0.75 * s, 14); g.rotateX(-Math.PI / 2);
+            g.translate(Math.cos(a) * 0.9 * s + Math.cos(a + side * 0.6) * 0.35 * s, 0.05 + k * 0.01, Math.sin(a) * 0.9 * s + Math.sin(a + side * 0.6) * 0.35 * s);
+            parts.push(place(fillC(g, k === 1 ? 0x4ac83a : 0x3ab832), p, yaw));
+          }
+        }
+        const st = new THREE.CylinderGeometry(0.06 * s, 0.08 * s, 0.1, 6); st.translate(0, 0.05, 0);
+        parts.push(place(fillC(st, 0x2a8a2a), p, yaw));
+        break;
+      }
+      case 'kaefer': {   // Riesen-Marienkäfer (≈ 1,6 m lang): rote Kuppel mit schwarzen Punkten, schwarzer Kopf, Fühler
+        const body = new THREE.SphereGeometry(0.9 * s, 16, 10, 0, TAU, 0, Math.PI / 2).toNonIndexed(); body.scale(1, 0.75, 1.2);
+        const red = C3(it.color ?? 0xe8282a), blk = C3(0x1a1a22);
+        colorize(body, (q, nn, o) => {
+          const a = Math.atan2(q.z, q.x), dots = [[0.4, 0.3], [-0.4, 0.3], [0.45, -0.35], [-0.45, -0.35], [0, 0.7], [0, -0.75]];
+          const dot = dots.some(([dx, dz]) => Math.hypot(q.x / s - dx, q.z / s - dz) < 0.2) || Math.abs(q.x) < 0.03 * s;
+          const c = dot ? blk : red; const k = 0.75 + 0.25 * nn.y; o[0] = c[0] * k; o[1] = c[1] * k; o[2] = c[2] * k; void a;
+        });
+        parts.push(place(body, p, yaw));
+        const head = new THREE.SphereGeometry(0.42 * s, 12, 8); head.translate(0, 0.25 * s, 1.05 * s);
+        parts.push(place(fillC(head, 0x22222c), p, yaw));
+        for (const sx of [-1, 1]) {
+          const eye = new THREE.SphereGeometry(0.13 * s, 8, 6); eye.translate(sx * 0.18 * s, 0.38 * s, 1.36 * s);
+          glow.push(place(fillC(eye, 0xffffff), p, yaw));
+          const ant = new THREE.CylinderGeometry(0.025 * s, 0.025 * s, 0.6 * s, 4); ant.rotateX(0.7); ant.rotateZ(-sx * 0.4); ant.translate(sx * 0.22 * s, 0.75 * s, 1.35 * s);
+          parts.push(place(fillC(ant, 0x22222c), p, yaw));
+        }
+        if (it.solid) level.world.add({ type: 'cyl', x: p[0], z: p[2], r: 0.95 * s, y0: p[1], y1: p[1] + 0.68 * s, tag: 'marienkaefer' });
+        break;
+      }
+      case 'schnecke': {   // Schneckenhaus: Spirale aus Ringen in Karamell/Creme
+        for (let k = 0; k < 7; k++) {
+          const r = (0.9 - k * 0.11) * s, a = k * 0.9;
+          const t = new THREE.TorusGeometry(r, 0.32 * s * (1 - k * 0.09), 8, 18); t.translate(Math.cos(a) * 0.08 * k * s, 1.0 * s + k * 0.06 * s, 0);
+          parts.push(place(shadeY(t, k % 2 ? 0xc87a3a : 0xe8b070, k % 2 ? 0xf0b070 : 0xfff0c8), p, yaw));
+        }
+        const foot = new THREE.CapsuleGeometry(0.32 * s, 1.6 * s, 4, 8); foot.rotateZ(Math.PI / 2); foot.translate(0.3 * s, 0.32 * s, 0);
+        parts.push(place(shadeY(foot, 0xb8d070, 0xe8f8a8), p, yaw));
+        if (it.solid) level.world.add({ type: 'cyl', x: p[0], z: p[2], r: 1.1 * s, y0: p[1], y1: p[1] + 1.9 * s, tag: 'schnecke' });
+        break;
+      }
+      case 'beeren': {   // Beerenstrauch: dicke, glänzende Beeren an Stängeln
+        const col = it.color ?? (rnd.frac() < 0.5 ? 0xe8284a : 0x5a4ae8);
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * TAU + rnd.real(0, 0.5), r = 0.55 * s, h = (0.5 + rnd.real(0, 0.9)) * s;
+          const b = new THREE.SphereGeometry(0.42 * s, 12, 8).toNonIndexed();
+          const c0 = C3(col), dk = [c0[0] * 0.5, c0[1] * 0.5, c0[2] * 0.5], wh = C3(0xffffff);
+          colorize(b, (q, nn, o) => { mixc(dk, c0, smooth(-0.8, 0.5, nn.y * 0.7 + nn.z * 0.3), o); if (nn.y > 0.75 && nn.z > 0.15) mixc(o, wh, 0.7, o); });
+          b.translate(Math.cos(a) * r, h, Math.sin(a) * r);
+          parts.push(place(b, p, yaw));
+        }
+        for (let k = 0; k < 4; k++) {
+          const l = new THREE.SphereGeometry(0.6 * s, 8, 5); l.scale(1, 0.18, 0.5); l.rotateZ(0.3); l.translate(Math.cos(k * 1.6) * 0.8 * s, 0.25 * s, Math.sin(k * 1.6) * 0.8 * s);
+          parts.push(place(shadeY(l, 0x2a9a3a, 0x8ae86a), p, yaw));
+        }
+        break;
+      }
+      case 'fels': {   // bemooster Riesenfelsen
+        const g = new THREE.DodecahedronGeometry(1.2 * s, 1); g.scale(1.3, 0.75, 1);
+        const pos = g.attributes.position;
+        for (let i = 0; i < pos.count; i++) { const y = pos.getY(i); if (y < 0) pos.setY(i, y * 0.3); }
+        g.computeVertexNormals();
+        const st = C3(0x8a8a7a), sh = C3(0xc8c8b0), mo = C3(0x5ab83a);
+        colorize(g, (q, nn, o) => { mixc(st, sh, smooth(-0.5, 0.9, nn.y * 0.6 + nn.z * 0.3), o); if (nn.y > 0.55) mixc(o, mo, 0.8, o); });
+        parts.push(place(g, [p[0], p[1] + 0.25 * s, p[2]], yaw));
+        if (it.solid) level.world.add({ type: 'box', min: [p[0] - 1.2 * s, p[1], p[2] - 1.0 * s], max: [p[0] + 1.2 * s, p[1] + 1.1 * s, p[2] + 1.0 * s], tag: 'fels' });
+        break;
+      }
+      case 'eichel': {   // Riesen-Eichel mit Hütchen
+        const nut = new THREE.SphereGeometry(0.7 * s, 14, 10); nut.scale(1, 1.25, 1); nut.translate(0, 0.85 * s, 0);
+        parts.push(place(shadeY(nut, 0xb8783a, 0xf0b870), p, yaw));
+        const cap = new THREE.SphereGeometry(0.78 * s, 14, 7, 0, TAU, 0, Math.PI / 2); cap.scale(1, 0.55, 1); cap.translate(0, 1.45 * s, 0);
+        parts.push(place(shadeY(cap, 0x6a4424, 0xa87a4a), p, yaw));
+        const st = new THREE.CylinderGeometry(0.08 * s, 0.1 * s, 0.4 * s, 6); st.translate(0, 1.95 * s, 0);
+        parts.push(place(fillC(st, 0x5a3a20), p, yaw));
+        if (it.solid) level.world.add({ type: 'cyl', x: p[0], z: p[2], r: 0.72 * s, y0: p[1], y1: p[1] + 1.9 * s, tag: 'eichel' });
+        break;
+      }
+      default: break;
+    }
+  }
+  if (!level.view) return;
+  if (parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: true });
+  if (glow.length) level.view.addStatic(merge(glow), { material: 'glow', castShadow: false });
 }

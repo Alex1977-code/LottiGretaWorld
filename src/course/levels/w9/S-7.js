@@ -10,8 +10,8 @@
 //   2. Rutschhang (z −34 … −66): eine Schlucht hinab bis y −10.
 //   3. Riesen-Pilzlingstürme (z −66 … −100): zwei hohe Türme (7 und 9 Pilzlinge) patrouillieren zwischen Riesenpilzen, von deren
 //      Hüten man sie von oben abträgt.
-//   4. Riesentrank-Feld (z −100 … −150): Riesentrank-Quelle (füllt sich wieder), Großrollpilze, graue Steinblock-Wände (nur
-//      Riesentrank oder Bombe) – eine Schatzkammer ganz aus Stein mit Extraleben.
+//   4. Riesentrank-Feld (z −100 … −150): Riesentrank-Quelle (füllt sich wieder), Großrollpilze, graue Riesen-Steinblöcke (2 m,
+//      nur Riesentrank oder Bombe) als Wände – eine Schatzkammer ganz aus Stein mit Extraleben.
 //   5. Gleitblatt und Blockwächter-Wand (z −150 … −190): versteckter Gleitblatt-Block; die Wand hinauf über Lauerblöcke, die im
 //      Takt herausfahren; oben der Kontrollpunkt. Links hinter der Wand die Blätterinsel mit Stern 0 – nur im Gleitflug.
 //   6. Tintenteich (z −190 … −291): 100 m unter Wasser; Riesenstämme auf der Oberfläche (darunter durchtauchen), Strömungen nach
@@ -22,7 +22,7 @@
 //      blaue Münzen in Steinkäfigen – nur als Riese alle in 12 s (Stern 2). Die Röhre bringt einen zum Zielplatz.
 
 import {
-  line, ring, arc, grossbloecke, riesentrankQuelle, riesenpilzPlattform, riesenstaemme, riesenbaeume, wurzelsaeulen,
+  line, ring, arc, grossbloecke, riesentrankQuelle, riesenpilzPlattform, riesenstaemme, riesenbaeume, wurzelsaeulen, dschungelDeko,
 } from './_helpers_c.js';
 
 const PI = Math.PI;
@@ -46,11 +46,43 @@ const STEINE = KAEFIGE.flatMap(([x, z]) => {
   return out;
 });
 
+// Riesen-Kleinigkeiten am Wegrand (Gras, Klee, Käfer, Schnecken, Beeren, Felsen, Eicheln) – Ränder je Abschnitt
+const RAND = [
+  // [x0, x1, y, zA, zB, Abstand] – Grasbüschel entlang der Kanten (links und rechts)
+  [-9.3, 9.3, 0, 6, -32, 4.6], [-11.3, 11.3, Y1, -68, -98, 4.4], [-9.3, 9.3, Y1, -102, -148, 4.8], [-11.3, 11.3, Y1, -152, -170, 4.4],
+  [-9.3, 9.3, YG, -296, -330, 4.4], [-6.3, 6.3, 0, -343, -359, 4],
+];
+const KLEIN = [
+  ...RAND.flatMap(([x0, x1, y, zA, zB, d]) => {
+    const out = [];
+    for (let z = zA, i = 0; z >= zB; z -= d, i++) { out.push({ kind: 'gras', pos: [x0 + (i % 2) * 0.4, y, z], s: 1 + (i % 3) * 0.15 }); out.push({ kind: 'gras', pos: [x1 - (i % 2) * 0.4, y, z - d / 2], s: 0.95 + (i % 2) * 0.2 }); }
+    return out;
+  }),
+  { kind: 'kaefer', pos: [-3.5, 0, 0.5], s: 1.2, yaw: 0.5, solid: true }, { kind: 'schnecke', pos: [7.5, 0, 3], s: 1.1, yaw: 2.6 },
+  { kind: 'klee', pos: [4.5, 0.02, -2], s: 1.2 }, { kind: 'klee', pos: [-1.5, 0.02, -22], s: 1 }, { kind: 'beeren', pos: [-8.2, 0, -31], s: 1.1 },
+  { kind: 'eichel', pos: [6.5, 0, -33], s: 1.2, solid: true }, { kind: 'fels', pos: [8.3, 0, -18], s: 1, solid: true },
+  { kind: 'eichel', pos: [-5.5, 1.5, -40], s: 1.3 }, { kind: 'eichel', pos: [5.5, 1.5, -48], s: 1.1 }, { kind: 'beeren', pos: [-5.6, 1.5, -58], s: 1, color: 0x5a4ae8 },
+  { kind: 'gras', pos: [5.5, 1.5, -54], s: 1.1 }, { kind: 'gras', pos: [-5.5, 1.5, -50], s: 1.2 },
+  { kind: 'kaefer', pos: [10, Y1, -76], s: 1.4, yaw: -2.2 }, { kind: 'fels', pos: [-10.5, Y1, -88], s: 1.3, solid: true }, { kind: 'klee', pos: [2.5, Y1 + 0.02, -72], s: 1.4 },
+  { kind: 'klee', pos: [-2, Y1 + 0.02, -97], s: 1.1 }, { kind: 'beeren', pos: [10.5, Y1, -97], s: 1.2 }, { kind: 'schnecke', pos: [-10.6, Y1, -68.5], s: 1.2, yaw: 1 },
+  { kind: 'fels', pos: [-8.8, Y1, -140], s: 1.1, solid: true }, { kind: 'beeren', pos: [-8.6, Y1, -101.5], s: 1 }, { kind: 'klee', pos: [-5, Y1 + 0.02, -121], s: 1.2 },
+  { kind: 'eichel', pos: [8.6, Y1, -104], s: 1.1, solid: true }, { kind: 'kaefer', pos: [-8.3, Y1, -147], s: 1.1, yaw: 0.9 },
+  { kind: 'schnecke', pos: [10.5, Y1, -160], s: 1.3, yaw: 3.6 }, { kind: 'klee', pos: [2, Y1 + 0.02, -153], s: 1.3 }, { kind: 'fels', pos: [-10, Y1, -168], s: 1.2 },
+  { kind: 'beeren', pos: [10.6, YW, -177], s: 1.1, color: 0xe8284a }, { kind: 'klee', pos: [8, YW + 0.02, -186], s: 1.1 }, { kind: 'eichel', pos: [-23.6, YW, -186], s: 0.9 },
+  { kind: 'gras', pos: [-24.4, YW, -190.5], s: 0.8 }, { kind: 'gras', pos: [-20.4, YW, -185.4], s: 0.8 },
+  { kind: 'kaefer', pos: [8.5, YG, -328], s: 1.3, yaw: -0.4 }, { kind: 'fels', pos: [-8.8, YG, -306], s: 1.1, solid: true }, { kind: 'beeren', pos: [8.6, YG, -300], s: 1 },
+  { kind: 'klee', pos: [4, YG + 0.02, -314], s: 1.3 }, { kind: 'schnecke', pos: [5.5, 0, -357], s: 1, yaw: 2 }, { kind: 'klee', pos: [-3, 0.02, -349], s: 1.1 },
+];
+
 function build(level) {
   grossbloecke(level, { id: 'kaefig', blocks: KAEFIG });
   grossbloecke(level, { id: 'deckel', blocks: [[KX, 2, KZ]] });
   grossbloecke(level, { id: 'lage1', blocks: LAGE1 });
   grossbloecke(level, { id: 'lage2', blocks: LAGE2 });
+  // Steinwände im Riesentrank-Feld (nur Riesentrank/Bombe): Wand A quer (Ränder frei), Wand B mit Lücke rechts, Schatzkammer
+  grossbloecke(level, { id: 'wandA', look: 'stein', blocks: [-6, -4, -2, 0, 2, 4, 6].map((x) => [x, Y1, -114]) });
+  grossbloecke(level, { id: 'wandB', look: 'stein', blocks: [-9, -7, -5, -3, -1, 1, 3].map((x) => [x, Y1, -126]) });
+  grossbloecke(level, { id: 'kammer', look: 'stein', blocks: [[3, -137.5], [5, -137.5], [7, -137.5], [3, -139.5], [7, -139.5], [3, -141.5], [5, -141.5], [7, -141.5]].flatMap(([x, z]) => [[x, Y1, z], [x, Y1 + 2, z]]) });
   riesentrankQuelle(level, { id: 'quelle1', pos: [0, Y1 + 1.9, -104] });
   riesentrankQuelle(level, { id: 'quelle2', pos: [-4, YG + 1.9, -298] });
   riesentrankQuelle(level, { id: 'quelle3', pos: [-4, YB + 1.9, -319] });
@@ -61,6 +93,7 @@ function build(level) {
   // Tintenteich: Stämme quer auf dem Wasser, Wurzelsäulen
   riesenstaemme(level, [{ x: 0, y: WS - 0.1, z: -206, length: 20 }, { x: 0, y: WS - 0.1, z: -233, length: 20 }, { x: 0, y: WS - 0.1, z: -259, length: 20 }, { x: 0, y: WS - 0.1, z: -281, length: 20 }]);
   wurzelsaeulen(level, [{ x: -4, z: -222, y0: WB, y1: WS + 1.2 }, { x: 5, z: -245, y0: WB, y1: WS + 1.4 }, { x: -2.5, z: -270, y0: WB, y1: WS + 1.2 }, { x: 6.5, z: -214, y0: WB, y1: WS + 1.0, r: 0.6 }]);
+  dschungelDeko(level, KLEIN);
   // Riesenbäume am Rand (Kulisse)
   riesenbaeume(level, [
     { x: -15, z: -6, r: 2.2, h: 20 }, { x: 16, z: -20, r: 2.6, h: 22 }, { x: -17, z: -58, y: Y1, r: 2.4, h: 26 }, { x: 18, z: -84, y: Y1, r: 3, h: 28 },
@@ -74,16 +107,16 @@ const DECO = [
   // Dschungelstart
   { kind: 'riesenpflanze', pos: [-9, 0, 4], size: 4 }, { kind: 'riesenpflanze', pos: [9, 0, -4], size: 3.5 },
   { kind: 'riesenblume', pos: [-9.2, 0, -20.5], height: 6, color: 'rosa' }, { kind: 'riesenblume', pos: [5, 0, -32], height: 5, color: 'gold' },
-  { kind: 'liane', from: [-10, 12, -4], to: [10, 13, -14], sag: 2 }, { kind: 'liane', from: [-10, 13, -30], to: [10, 12, -22], sag: 1.5 },
+  { kind: 'liane', from: [-9.6, 11, 6], to: [-9.6, 10, -10], sag: 2.5 }, { kind: 'liane', from: [9.6, 10, -12], to: [9.6, 11, -30], sag: 2.5 },
   // Rutschhang
   { kind: 'riesenpflanze', pos: [-6, 1.5, -36], size: 3 }, { kind: 'riesenpflanze', pos: [6, 1.5, -40], size: 3 },
-  { kind: 'liane', from: [-6, 6, -46], to: [6, 4, -54], sag: 2 },
+  { kind: 'liane', from: [-5.6, 8, -38], to: [-5.6, 6, -58], sag: 2 }, { kind: 'liane', from: [5.6, 7, -42], to: [5.6, 5, -62], sag: 2 },
   // Riesen-Pilzlingstürme
   { kind: 'riesenblume', pos: [-10, Y1, -70], height: 7, color: 'lila' }, { kind: 'riesenpflanze', pos: [10, Y1, -72], size: 4.5 },
   { kind: 'riesenpflanze', pos: [-10.5, Y1, -96], size: 4 },
   // Riesentrank-Feld
   { kind: 'riesenpflanze', pos: [-9, Y1, -104], size: 3.5 }, { kind: 'riesenblume', pos: [9.5, Y1, -112], height: 6, color: 'rosa' },
-  { kind: 'riesenpflanze', pos: [9, Y1, -148], size: 4 }, { kind: 'liane', from: [-10, Y1 + 9, -118], to: [10, Y1 + 10, -134], sag: 3 },
+  { kind: 'riesenpflanze', pos: [9, Y1, -148], size: 4 }, { kind: 'liane', from: [-9.6, Y1 + 10, -104], to: [-9.6, Y1 + 9, -124], sag: 2.5 }, { kind: 'liane', from: [9.6, Y1 + 9, -128], to: [9.6, Y1 + 10, -148], sag: 2.5 },
   // Blockwächter-Wand, Plateau
   { kind: 'riesenblume', pos: [-10.5, Y1, -158], height: 6.5, color: 'gold' }, { kind: 'riesenpflanze', pos: [10.5, Y1, -166], size: 3.5 },
   { kind: 'riesenpflanze', pos: [10, YW, -188], size: 3 }, { kind: 'riesenblume', pos: [-24, YW, -190], height: 4, color: 'rosa' },
@@ -109,10 +142,10 @@ export const LEVEL = {
   build,
   start: { pos: [0, 0, 4], yaw: PI / 2 },
   camera: [
-    { from: 12, to: -34, pitch: 42, dist: 13.5, fov: 40 },
+    { from: 12, to: -34, pitch: 38, dist: 14, fov: 42 },
     { from: -34, to: -66, pitch: 40, dist: 13, fov: 40, height: 1.2 },
-    { from: -66, to: -100, pitch: 42, dist: 15, fov: 40 },
-    { from: -100, to: -150, pitch: 44, dist: 15.5, fov: 40 },
+    { from: -66, to: -100, pitch: 38, dist: 15.5, fov: 42 },
+    { from: -100, to: -150, pitch: 40, dist: 15.5, fov: 42 },
     { from: -150, to: -171, pitch: 28, dist: 15, fov: 42, height: 3.5 },
     { from: -171, to: -191, pitch: 44, dist: 14, fov: 40, area: [-16, 30] },
     { from: -171, to: -195, pitch: 40, dist: 15, fov: 40, area: [-40, -16] },
@@ -130,13 +163,6 @@ export const LEVEL = {
     // ================================================================ 3/4 Lichtung und Riesentrank-Feld
     isl(-12, 12, -66, -100, Y1, 5),
     isl(-10, 10, -100, -150, Y1, 5),
-    { type: 'megawall', id: 'wandA', pos: [0, Y1, -114], size: [16, 2, 1] },
-    { type: 'megawall', id: 'wandB', pos: [-2, Y1, -126], size: [12, 3, 1] },
-    // Schatzkammer aus Stein (vier Wände, 4 m hoch)
-    { type: 'megawall', id: 'kammer1', pos: [5, Y1, -136.5], size: [5, 4, 1] },
-    { type: 'megawall', id: 'kammer2', pos: [5, Y1, -142.5], size: [5, 4, 1] },
-    { type: 'megawall', id: 'kammer3', pos: [3, Y1, -139.5], size: [1, 4, 5] },
-    { type: 'megawall', id: 'kammer4', pos: [7, Y1, -139.5], size: [1, 4, 5] },
     // ================================================================ 5 Gleitblatt und Blockwächter-Wand
     isl(-12, 12, -150, -172, Y1, 5),
     isl(-12, -6, -172, -174, YW, 10, { top: 'rock' }),                                  // Wandstück links (dahinter Schlucht)
@@ -210,7 +236,7 @@ export const LEVEL = {
     line([0, 1.0, -36], [0, Y1 + 1.0, -64], 10),
     ring([-7.5, Y1 + 5, -80], 1.6, 6), ring([7.5, Y1 + 5.6, -90], 1.8, 6),
     line([-9, Y1 + 0.5, -110], [-9, Y1 + 0.5, -128], 6), line([7.5, Y1 + 0.5, -118], [7.5, Y1 + 0.5, -130], 4),
-    { kind: 'coins', pos: [5, Y1 + 0.4, -139.5], r: 1.1, n: 6 },                       // in der Schatzkammer
+    { kind: 'coins', pos: [5, Y1 + 0.4, -139.5], r: 0.6, n: 4 },                       // in der Schatzkammer (innen 2 × 2 m)
     { kind: 'powerup', pos: [5, Y1, -139.5], power: 'oneup' },
     { kind: 'coins', pos: [-5, Y1 + 0.3, -160], r: 1.0, n: 5 },                        // unter dem versteckten Gleitblatt-Block
     ...arc([-7, YW + 0.6, -186.5], [-19.5, YW + 0.6, -187.5], 6, 2.4),                // Gleitflug-Bogen zur Blätterinsel
