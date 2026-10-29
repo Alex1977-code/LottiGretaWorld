@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import { v3, addObject, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { banner } from '../w3kit.js';
-import { star, figures } from '../starkit.js';
+import { star, figures, cullSphere } from '../starkit.js';
 
 const COL = { gold: [0xffc83a, 0xfff2b0, 0xb07a10], silber: [0xd8e0f0, 0xffffff, 0x7a8496], rosa: [0xff8ac8, 0xffe4f4, 0xa83a7a] };
 
@@ -113,6 +113,7 @@ export function buildZeituhren(level, spec) {
     mesh.instanceMatrix.needsUpdate = true;
   };
   place(0);
+  cullSphere(mesh, null, 0, 2);
   addObject(level, mesh, (dt) => place(visDt(level, holder, dt)));
   return handle;
 }

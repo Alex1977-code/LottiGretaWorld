@@ -175,8 +175,24 @@ export class PlateSet {
     const holder = {};
     fn(0);
     this.commit();
+    // Hüllkugel aus der Grundlage + Spielraum (Kippen/Ausklappen) – Sichtprüfung statt immer zeichnen
+    const pad = Math.max(...this.size) + 0.5;
+    cullSphere(this.mesh, null, 0, pad);
+    if (this.frameMesh) { this.frameMesh.boundingSphere = this.mesh.boundingSphere; this.frameMesh.frustumCulled = true; }
     this.level.view.onFrame((dt) => { fn(visDt(this.level, holder, dt)); this.commit(); });
   }
+}
+
+/**
+ * Sichtprüfung für Instanz-Gruppen: feste Hüllkugel (Weltkoordinaten; die Gruppe selbst steht im Ursprung) über alle Lagen,
+ * die ihre Exemplare einnehmen können – so zeichnet die Gruppe nur, wenn ihr Bereich im Bild ist. Ohne center/radius: aus den
+ * aktuellen Exemplaren + pad.
+ */
+export function cullSphere(mesh, center = null, radius = 0, pad = 0) {
+  if (!mesh) return;
+  if (center) mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(center.x, center.y, center.z), radius + pad);
+  else { mesh.computeBoundingSphere(); if (mesh.boundingSphere) mesh.boundingSphere.radius += pad; }
+  mesh.frustumCulled = true;
 }
 
 /** Steht eine Figur (am Boden) auf einer Form mit diesem owner? → Figur | null */

@@ -425,7 +425,9 @@ class RiesenFrageturm extends Gimmick {
       const body = new THREE.InstancedMesh(qBodyGeo(spec.color), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), this.n + 1);
       const decal = new THREE.InstancedMesh(qDecalGeo(), new THREE.MeshStandardMaterial({ map: qTexture(), transparent: true, alphaTest: 0.2, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), this.n + 1);
       body.castShadow = true; body.receiveShadow = true;
-      body.frustumCulled = false; decal.frustumCulled = false;
+      // Hülle über den ganzen (gewachsenen) Turm, lokal zur Wurzel (Turmfuß)
+      const hs = new THREE.Sphere(new THREE.Vector3(0, this.S * (this.n + 1) / 2, 0), this.S * (this.n + 1) / 2 + this.S);
+      body.boundingSphere = hs; decal.boundingSphere = hs;
       const root = new THREE.Group();
       root.add(body, decal);
       this.inst = { body, decal };

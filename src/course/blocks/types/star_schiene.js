@@ -27,7 +27,7 @@
 import * as THREE from 'three';
 import { v3, addObject, box, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { defineHandle, star, MovingBox, figures, onRespawn, figureInside, clamp, TAU } from '../starkit.js';
+import { defineHandle, star, MovingBox, figures, onRespawn, figureInside, clamp, TAU, cullSphere } from '../starkit.js';
 
 const BOARD = { cyan: [0x3ad8ff, 0xe8fbff, 0x1a6a9a], orange: [0xff9a2e, 0xffe8c8, 0xa8500a] };
 
@@ -284,7 +284,8 @@ export function buildKanonenkugelWand(level, spec) {
   const mesh = new THREE.InstancedMesh(ballGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.4 }), balls.length);
   mesh.name = 'kanonenkugeln';
   mesh.castShadow = true;
-  mesh.frustumCulled = false;
+  { const top = cannons[cannons.length - 1], mid = (muzzle + range) / 2;
+    cullSphere(mesh, { x: (p.x + top.x) / 2 + dx * mid, y: (p.y + top.y) / 2, z: (p.z + top.z) / 2 + dz * mid }, Math.hypot(range / 2 + S, (top.y - p.y) / 2 + S, Math.hypot(top.x - p.x, top.z - p.z) / 2 + S)); }
   const m4 = new THREE.Matrix4(), zero = new THREE.Matrix4().makeScale(0, 0, 0), q4 = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
   const holder = {};
   let t = 0;

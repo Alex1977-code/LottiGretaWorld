@@ -41,7 +41,7 @@
 import * as THREE from 'three';
 import { v3, addObject, box } from '../kit.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
-import { star, PlateSet, plateColor, standerOn, figureInside, cycle, ease, clamp, figures } from '../starkit.js';
+import { star, PlateSet, plateColor, standerOn, figureInside, cycle, ease, clamp, figures, cullSphere } from '../starkit.js';
 
 const DEG = Math.PI / 180;
 
@@ -152,9 +152,10 @@ function addArrows(level, plates, size, dir, ks) {
   g.rotateX(-Math.PI / 2);
   const mat = new THREE.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: 0.95, depthWrite: false });
   const mesh = new THREE.InstancedMesh(g, mat, plates.length);
-  mesh.frustumCulled = false;
   mesh.renderOrder = 2;
   mesh.name = 'drehplatten_pfeile';
+  { const xs = plates.map((q) => q.x), zs = plates.map((q) => q.z); const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
+    cullSphere(mesh, { x: cx, y: plates[0].y, z: cz }, Math.hypot(Math.max(...xs) - cx, Math.max(...zs) - cz) + Math.max(...size)); }
   const yaw = Math.atan2(-dir[1], dir[0]) - Math.PI / 2;
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
   const holder = {};

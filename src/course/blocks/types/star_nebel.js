@@ -25,7 +25,7 @@ import * as THREE from 'three';
 import { v3, addObject, box, lin, mixc, smooth, colorize, merge } from '../kit.js';
 import { visDt } from '../../entities/gimmick.js';
 import { buildNebel } from './hw_glibber.js';
-import { star, MovingBox, figureInside, cycle, ease, figures } from '../starkit.js';
+import { star, MovingBox, figureInside, cycle, ease, figures, cullSphere } from '../starkit.js';
 
 const STONE = {
   lila: [0xb8a8e8, 0xe8e0ff, 0x6a5aa8, 0xd0c0ff],
@@ -115,6 +115,8 @@ export function buildNebelplattform(level, spec) {
   mesh.frustumCulled = false;
   const fogC = new THREE.Color(spec.fogColor ?? 0xdfe6f8), base = new THREE.Color(1, 1, 1), tmp = new THREE.Color();
   for (let i = 0; i < parts.length; i++) mesh.setColorAt(i, base);
+  { const xs = parts.map((q) => q.x), zs = parts.map((q) => q.z), ys = parts.map((q) => q.top); const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2 - depth / 2;
+    cullSphere(mesh, { x: cx, y: cy, z: cz }, Math.hypot(Math.max(...xs) - cx, Math.max(...zs) - cz, Math.max(...ys) - cy) + depth + Math.max(...size)); }
   const m4 = new THREE.Matrix4(), v = new THREE.Vector3(), q4 = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3();
   const holder = {};
   let t = 0;
