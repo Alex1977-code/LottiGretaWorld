@@ -311,6 +311,24 @@ if (want('mech')) {
     if (miss.length) console.log('   fehlen:', miss.join(', '));
     const deco = await sc(() => { const n = {}; window.__course.level.world.forEach((s) => { if (String(s.tag).startsWith('deco_star:')) n[s.tag] = (n[s.tag] ?? 0) + 1; }); return n; });
     check('Kulisse deco_star: alle Arten gebaut, solid-Arten mit Kollision (Rakete, Holzkiste, Riesenpilz, Riesenblock, Röhre)', ['rakete', 'holzkiste', 'riesenpilz', 'riesenblock', 'roehre_deko'].every((k) => deco[`deco_star:${k}`] === 1));
+    // Registry-Modelle der Bonuswelten angebunden (Instanz-Varianten, ModelSet-Gruppen, Einzelmodelle); Gegenprobe look: 'eigen'
+    const mod = await sc(() => {
+      const c = window.__course, L = c.level, names = new Set(), models = new Set();
+      c.view.three.traverse((o) => { if (o.name) names.add(o.name.split(':')[0] + (o.name.includes(':') ? ':' : '')); if (o.userData?.modelName) models.add(o.userData.modelName); });
+      for (const e of L.entities) if (e.model?.root?.userData?.modelName) models.add(e.model.root.userData.modelName);
+      const has = (n) => names.has(n);
+      const own0 = [...names].filter((n) => n === 'drehplatten').length;
+      L.spawn('drehplatte', { id: 'eigen_probe', pos: [60, 0, 10], look: 'eigen' });
+      const own = new Set(); c.view.three.traverse((o) => { if (o.name === 'drehplatten') own.add(o); });
+      return {
+        inst: ['drehplatte', 'farbplatte', 'wabe'].every((k) => { let f = false; c.view.three.traverse((o) => { if (o.name === `instanzen:${k}`) f = true; }); return f; }),
+        sets: ['plattenwand', 'nebelplattform', 'kanonenkugel_tritt'].filter((k) => !has(`${k}:`)),
+        single: ['schienenwalze', 'schienenbrett', 'weiche', 'diorama_drehscheibe', 'zielmast_fluegel', 'riesen_frageblock_turm', 'felsblock_riss', 'laufbombe', 'goal_pole'].filter((k) => !models.has(k)),
+        own0, own: own.size,
+      };
+    });
+    console.log(`  Modelle: Instanz-Varianten ${mod.inst}; Gruppen fehlen [${mod.sets}]; Einzelmodelle fehlen [${mod.single}]; look 'eigen': eigene Platten ${mod.own0} → ${mod.own}`);
+    check('Registry-Modelle angebunden (Drehplatte/Farbplatte/Wabe als Instanz-Varianten, Plattenwand/Nebelplattform/Kanonenkugel als Instanz-Gruppen, Walze, Brett, Weiche, Drehscheibe, Flügel-Zielmast, ?-Turm, Fels, Laufbombe); Gegenprobe look: \'eigen\' baut die eigene Optik', mod.inst && !mod.sets.length && !mod.single.length && mod.own0 === 0 && mod.own === 1);
     check('Keine Konsolenfehler beim Laden', errors.length === e0);
     if (errors.length > e0) for (const e of errors.slice(e0, e0 + 8)) console.log('   ', e);
   }
