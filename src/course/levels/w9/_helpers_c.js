@@ -739,9 +739,11 @@ export function dschungelDeko(level, list) {
         for (let k = 0; k < 3; k++) {
           const a = (k / 3) * TAU;
           for (const side of [-1, 1]) {
-            const g = new THREE.CircleGeometry(0.75 * s, 14); g.rotateX(-Math.PI / 2);
+            const g = new THREE.CircleGeometry(0.75 * s, 14).toNonIndexed(); g.rotateX(-Math.PI / 2);
+            const lo = C3(k === 1 ? 0x7ae85a : 0x66d84c), hi = C3(0xd8ffb0);
+            colorize(g, (q, nn, o) => mixc(hi, lo, Math.min(1, Math.hypot(q.x, q.z) / (0.75 * s) * 1.6), o));
             g.translate(Math.cos(a) * 0.9 * s + Math.cos(a + side * 0.6) * 0.35 * s, 0.05 + k * 0.01, Math.sin(a) * 0.9 * s + Math.sin(a + side * 0.6) * 0.35 * s);
-            parts.push(place(fillC(g, k === 1 ? 0x4ac83a : 0x3ab832), p, yaw));
+            parts.push(place(g, p, yaw));
           }
         }
         const st = new THREE.CylinderGeometry(0.06 * s, 0.08 * s, 0.1, 6); st.translate(0, 0.05, 0);
