@@ -101,9 +101,24 @@
 // S-Kapitän nutzt course_diorama. Hörproben: tests/out/stern_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_stern.wav
 // (alle zehn je 15 s ab dem Refrain).
 //
-// Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx (Standard: alles). „melodie“ läuft ohne Browser.
+// Übrige Bonuswelt-Themen (Level-Liste „Bonuswelten“ im Vertrag): die Karten Pilz „Pilz-Remix“, Blume „Blumen-Remix“ und
+// Krone „Kronen-Gipfel“, der Boss-Marathon B-12 und der Champion-Kurs K-1 mit denselben Messungen und derselben
+// Melodie-Prüfung, Hook und Kontur eigenständig gegen alle Themen (Welten 1–8, Halloween, Stern und untereinander); Tempo
+// Karten 126–128, Boss-Marathon 148, Champion 150 BPM, 16/24/32 Takte mit Refrain ab Takt 9 bzw. 13, Loop-Naht (Daten und
+// gerendert), Pegel wie Welt 5; Klangfarben aus den Daten (Stotter-Stabs und Scratch, Flöte und Glockenspiel, Fanfaren,
+// Chor und Pauken, Weltraum-Farben und Blitz-Einschläge, zweiter Refrain) und kein Baron-Brummbär-Motiv im Boss-Marathon.
+// Hörproben: tests/out/bonus_<thema>_30s.wav (ab der Strophe) und tests/out/hoerprobe_bonus.wav (alle fünf je 15 s ab dem
+// Refrain).
+//
+// Klang-Varianten des Musiksystems (Teil „varianten“, Remix-Level der Welten Pilz und Blume): music.play(thema, { variant })
+// mit nacht, abend, morgen, tag, dunkel, schnell, schwarzweiss – Schnittstelle, Gegenprobe ohne Variante (die bisherige
+// Kette aus den Bausteinen nachgebaut: gleiche Knoten, gleicher Pegel), Pegel je Variante wie ohne, Klangcharakter aus
+// Spektrum und Proben, Taktuhr je Variante (auch `schnell` +8 % und vorgemerkt bei angehaltenem Kontext). Hörproben
+// tests/out/varianten_<variante>.wav und tests/out/varianten_ohne.wav (course_grass ab Takt 5, je 15 s).
+//
+// Aufteilen (kürzere Läufe): AUDIO_PART=melodie,live,render,sfx,varianten (Standard: alles). „melodie“ läuft ohne Browser.
 // AUDIO_THEMES=course_desert,course_space bzw. AUDIO_WORLD=1,2 (1 = Welt-1-Themen, halloween = Halloween-Welt 31, 6 = Welt 6, 7 = Welt 7, 8 = Welt 8,
-// stern = Bonuswelt Stern 9)
+// stern = Bonuswelt Stern 9, bonus = übrige Bonuswelt-Themen)
 // beschränken die Offline-Messung der Kurs-Themen; die Kurs-Themen werden je zwei gleichzeitig gerendert. Unter hoher
 // Rechnerlast z.B. in zwei Läufen: AUDIO_PART=melodie,live,sfx und AUDIO_PART=render.
 import { writeFileSync } from 'node:fs';
@@ -113,12 +128,13 @@ import { scanSfxNames } from './sfx_namen.mjs';
 import { midi } from '../src/audio/Music.js';
 
 const PORT = 4184;
-const PARTS = (process.env.AUDIO_PART ?? 'melodie,live,render,sfx').split(',').map((s) => s.trim());
+const PARTS = (process.env.AUDIO_PART ?? 'melodie,live,render,sfx,varianten').split(',').map((s) => s.trim());
 const want = (p) => PARTS.includes(p);
 const ONLY = process.env.AUDIO_THEMES ? process.env.AUDIO_THEMES.split(',').map((s) => s.trim()) : null;
 const HW = 31; // Halloween-Sonderwelt „Kürbisinsel“ (interne Weltnummer, Level H-1 …)
 const ST = 9; // Bonuswelt Stern „Sternenzelt“ (Weltnummer 9, Level S-1 …)
-const WORLDS = process.env.AUDIO_WORLD ? process.env.AUDIO_WORLD.split(',').map((w) => (/^(h|hw|halloween)$/i.test(w.trim()) ? HW : /^(s|stern|star)$/i.test(w.trim()) ? ST : Number(w))) : null; // Welt-1-Themen = 1
+const BO = 10; // übrige Bonuswelt-Themen: Karten Pilz (10), Blume (11), Krone (12), Boss-Marathon B-12, Champion K-1 (Gruppe „bonus“)
+const WORLDS = process.env.AUDIO_WORLD ? process.env.AUDIO_WORLD.split(',').map((w) => (/^(h|hw|halloween)$/i.test(w.trim()) ? HW : /^(s|stern|star)$/i.test(w.trim()) ? ST : /^(b|bonus)$/i.test(w.trim()) ? BO : Number(w))) : null; // Welt-1-Themen = 1
 const { check, summary } = makeChecker();
 const fmt = (v, d = 3) => (typeof v === 'number' ? v.toFixed(d) : String(v));
 
@@ -229,6 +245,12 @@ const COURSE_THEMES = {
   course_fogbog: { bpm: 134, bars: [24, 24], loop: true, has: ['lead', 'bell', 'whistle', 'piano', 'stabs', 'pad', 'riser'], drums: 'j', fx: 'delay', key: 'Bm', mel: ['lead', 'bell'], hook: 12, preview: 4, world: ST },
   course_cosmic: { bpm: 146, bars: [24, 24], loop: true, has: ['lead', 'bell', 'arp', 'echo', 'piano', 'stabs', 'pad', 'riser'], drums: 'dt', fx: 'delay', key: 'Em', mel: ['lead', 'bell'], hook: 12, preview: 4, world: ST },
   course_worldstar_map: { bpm: 126, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'piano', 'bell', 'whistle', 'pad'], fx: 'delay', key: 'Db', mel: ['lead', 'piano'], hook: 8, preview: 0, world: ST, map: true },
+  // Bonuswelten Pilz, Blume, Krone: Karten, Boss-Marathon (B-12) und Champion-Kurs (K-1)
+  course_worldpilz_map: { bpm: 128, bars: [16, 16], loop: true, has: ['lead', 'piano', 'stabs', 'bell', 'echo', 'riser', 'pad'], drums: 't', fx: 'delay', key: 'G', mel: ['lead', 'piano'], hook: 8, preview: 0, world: BO, map: true },
+  course_worldblume_map: { bpm: 126, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'whistle', 'bell', 'piano', 'pad'], drums: 'jt', fx: 'delay', key: 'A', mel: ['lead', 'whistle'], hook: 8, preview: 0, world: BO, map: true },
+  course_worldkrone_map: { bpm: 128, bars: [16, 16], loop: true, beatMult: 2, has: ['lead', 'organ', 'whistle', 'piano', 'pad'], drums: 't', fx: 'delay', key: 'Bb', mel: ['lead', 'organ'], hook: 8, preview: 0, world: BO, map: true },
+  course_bossblitz: { bpm: 148, bars: [24, 24], loop: true, has: ['lead', 'organ', 'arp', 'bell', 'piano', 'stabs', 'pad', 'riser'], drums: 'dt', fx: 'delay', key: 'Fm', mel: ['lead', 'organ'], hook: 12, preview: 4, world: BO },
+  course_champion: { bpm: 150, bars: [32, 32], loop: true, has: ['lead', 'organ', 'whistle', 'arp', 'bell', 'piano', 'stabs', 'pad', 'riser'], drums: 't', fx: 'delay', key: 'D', mel: ['lead', 'organ'], hook: 12, preview: 4, world: BO },
 };
 // Musiknamen Welt 2–4 (Auftrag/Vertrag) und Karten-Themen je Welt
 const CONTRACT_THEMES_W = ['course_desert', 'course_space', 'course_shadow', 'course_hills', 'course_cherry', 'course_tank', 'course_house',
@@ -256,6 +278,9 @@ const REUSED_W8 = ['course_bossblob', 'course_boss', 'course_house'];
 const CONTRACT_THEMES_S = ['course_rainbow', 'course_galaxy', 'course_rollingride', 'course_goalpole', 'course_blockland', 'course_honeycomb',
   'course_grotto', 'course_fogbog', 'course_cosmic', 'course_worldstar_map'];
 const REUSED_S = ['course_diorama'];
+// übrige Musiknamen der Bonuswelten (Level-Liste „Bonuswelten“ im Vertrag): Karten Pilz, Blume, Krone, Boss-Marathon B-12,
+// Champion-Kurs K-1 (die Remix-Level spielen die Musik ihres Basislevels mit Klang-Variante, Teil „varianten“)
+const CONTRACT_THEMES_B = ['course_worldpilz_map', 'course_worldblume_map', 'course_worldkrone_map', 'course_bossblitz', 'course_champion'];
 const BEEP_BPM = THEMES.course_beep.bpm;
 
 // ---- Melodie-Prüfung (aus den Themen-Daten, ohne Browser) ----
@@ -380,17 +405,17 @@ if (want('melodie')) {
       if (every[i].spec.world < 5 && every[j].spec.world < 5 && shape > oldShape.sim) oldShape = { sim: shape, a: every[i].name, b: every[j].name };
     }
   }
-  check(`Hooks verschieden (Welt 1–8, Halloween und Stern, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
+  check(`Hooks verschieden (Welt 1–8, Halloween, Stern und die übrigen Bonuswelten, ${every.length} Themen): größte Ähnlichkeit zweier Refrain-Hooks ${fmt(worst.sim * 100, 0)} % (${worst.a} / ${worst.b}) < 50 %`, worst.sim < 0.5);
   console.log(`   Kontur der Hooks unter den Themen der Welten 1–4: höchstens ${fmt(oldShape.sim * 100, 0)} % (${oldShape.a} / ${oldShape.b})`);
-  for (const r of fresh.filter((x) => [5, 6, 7, 8, HW, ST].includes(x.spec.world))) {
+  for (const r of fresh.filter((x) => [5, 6, 7, 8, HW, ST, BO].includes(x.spec.world))) {
     const others = every.filter((o) => o.name !== r.name);
     const top = (f) => others.map((o) => ({ o: o.name, v: both(f, r, o) })).sort((p, q) => q.v - p.v)[0];
     const x = top(simSig), y = top(simShape);
     check(`${r.name}: Hook eigenständig gegen alle Themen – Einsatz+Intervall höchstens ${fmt(x.v * 100, 0)} % (${x.o}), Kontur höchstens ${fmt(y.v * 100, 0)} % (${y.o}), je < 50 %`, x.v < 0.5 && y.v < 0.5);
   }
-  for (const w of [2, 3, 4, 5, 6, 7, 8, HW, ST]) {
+  for (const w of [2, 3, 4, 5, 6, 7, 8, HW, ST, BO]) {
     const keys = fresh.filter((r) => r.spec.world === w).map((r) => r.spec.key);
-    if (keys.length) check(`${w === HW ? 'Halloween-Welt' : w === ST ? 'Welt Stern' : `Welt ${w}`}: jede Melodie in eigener Tonart (${keys.join(', ')})`, new Set(keys).size === keys.length);
+    if (keys.length) check(`${w === HW ? 'Halloween-Welt' : w === ST ? 'Welt Stern' : w === BO ? 'Bonuswelten Pilz/Blume/Krone' : `Welt ${w}`}: jede Melodie in eigener Tonart (${keys.join(', ')})`, new Set(keys).size === keys.length);
   }
 
   // Welt 5 aus den Themen-Daten: Tempo, Dreier-Gefühl des Trapezes, gedämpfte Schleich-Festung
@@ -774,9 +799,68 @@ if (want('melodie')) {
       t.drums.every((bar) => layers(bar)[0].startsWith('k.......k')) && t.piano.slice(0, 8).every((b) => noteList([b]).length >= 3 && noteList([b]).every(([, m]) => !m.includes('+')))
       && t.lead.slice(8).every((b) => noteList([b]).length >= 3) && t.voice.bell.ratio >= 4.5 && noteList(t.bell).length >= 16 && noteList(t.whistle.slice(8)).length === 8 && t.fx.delay.wet >= 0.24);
   }
+
+  // Bonuswelten Pilz, Blume, Krone aus den Themen-Daten: Karten, Boss-Marathon (B-12), Champion-Kurs (K-1) – Vollständigkeit,
+  // Tempo, Länge, Loop-Naht, Klangfarben und Hook-Gestalt (Welt-Charakter nur über den Klang, das Eurodance-Fundament bleibt)
+  console.log('\nBonuswelten Pilz, Blume, Krone (Karten, Boss-Marathon, Champion):');
+  check(`Bonuswelten: alle ${CONTRACT_THEMES_B.length} Themen der Level-Liste vorhanden (${CONTRACT_THEMES_B.join(', ')})`, CONTRACT_THEMES_B.every((n) => THEMES[n] && COURSE_THEMES[n]?.world === BO));
+  const bBpm = (n) => (COURSE_THEMES[n].map ? [126, 128] : n === 'course_bossblitz' ? [148, 148] : [150, 150]);
+  check(`Bonuswelten: Tempo Karten 126–128, Boss-Marathon 148, Champion 150 BPM (${CONTRACT_THEMES_B.map((n) => `${n.replace('course_', '')} ${THEMES[n].bpm}`).join(', ')})`, CONTRACT_THEMES_B.every((n) => THEMES[n].bpm >= bBpm(n)[0] && THEMES[n].bpm <= bBpm(n)[1]));
+  const bBars = (n) => (COURSE_THEMES[n].map ? 16 : n === 'course_champion' ? 32 : 24);
+  check(`Bonuswelten: Karten 16 Takte (Refrain ab Takt 9), Boss-Marathon 24, Champion 32 (Refrain ab Takt 13), alle im Loop (${CONTRACT_THEMES_B.map((n) => barCount(THEMES[n])).join(', ')})`,
+    CONTRACT_THEMES_B.every((n) => barCount(THEMES[n]) === bBars(n) && THEMES[n].loop !== false && COURSE_THEMES[n].hook === (COURSE_THEMES[n].map ? 8 : 12)));
+  for (const n of CONTRACT_THEMES_B) checkSeam(n);
+  const TB = Object.fromEntries(CONTRACT_THEMES_B.map((n) => [n, THEMES[n]]));
+  {
+    const t = TB.course_worldpilz_map;
+    const run3 = (bar) => { const on = new Set(noteList([bar]).map(([p]) => p)); return [...on].some((p) => on.has(p + 1) && on.has(p + 2)); };
+    check('course_worldpilz_map: verspielter Remix – Stotter-Stabs (drei Sechzehntel-Akkorde hintereinander) und Scratch-Anklänge (Sägezahn-Zupfer gleitet hinauf, kurzer Riser hinab, je zweimal) am Ende jeder Vier-Takt-Phrase, das Piano hüpft die Strophe, der Lead singt den Refrain; Stotter-Hook: nach einer Sechzehntel Pause dreimal derselbe Ton, dann ein Sprung (Refrain-Takte 1–4)',
+      [3, 7, 11, 15].every((b) => run3(t.stabs[b]) && noteList([t.echo[b]]).length >= 2 && noteList([t.riser[b]]).length >= 2) && t.voice.echo.type === 'sawtooth' && t.voice.echo.glide >= 1.5 && t.voice.riser.glide < 1
+      && t.piano.slice(0, 8).every((b) => noteList([b]).length >= 4 && noteList([b]).every(([, m]) => !m.includes('+'))) && t.lead.slice(8).every((b) => noteList([b]).length >= 4)
+      && [8, 9, 10, 11].every((b) => { const p = pitches(t.lead[b]); return onsetsOf(t.lead[b]).startsWith('1,2,3,4') && p[0] === p[1] && p[1] === p[2] && Math.abs(p[3] - p[2]) >= 3; }));
+  }
+  {
+    const t = TB.course_worldblume_map;
+    check('course_worldblume_map: blumig-fröhlich – die Flöte (Sinus mit Vibrato, gleitet in den Ton) singt die Strophe, das Glockenspiel (Metallstab-Teilton) tupft in der Strophe und spielt die Refrain-Hook eine Oktave höher mit, Kick auf 1 und 3, Schellen; Blüten-Kreisel: eine Drehung um den Ton in Sechzehnteln, dann hinauf',
+      t.voice.whistle.type === 'sine' && t.voice.whistle.vibrato >= 8 && t.voice.whistle.slide >= 0.5 && t.whistle.slice(0, 8).every((b) => noteList([b]).length >= 4)
+      && t.voice.bell.ratio === 2.76 && [8, 9, 10, 11, 12, 13].every((b) => sameNotes(t.bell[b], t.lead[b], 12)) && noteList(t.bell.slice(0, 8)).length >= 8
+      && t.drums.every((bar) => layers(bar)[0].startsWith('k.......k')) && hasDrum(t, 'j')
+      && [8, 9, 10, 12, 13].every((b) => { const p = pitches(t.lead[b]); return onsetsOf(t.lead[b]).startsWith('0,1,2,3,4') && p[0] === p[2] && p[1] !== p[0] && p[3] !== p[0] && p[4] > p[3]; }));
+  }
+  {
+    const t = TB.course_worldkrone_map;
+    const crown = (b) => { const p = pitches(t.lead[b]); return p[1] > p[0] && p[2] > p[1] && p[3] < p[2] && p[4] === p[2] && p[5] > p[2] && p[6] === p[2]; };
+    check('course_worldkrone_map: feierlich – Fanfaren (gedämpfte Orgel ≤ 3000 Hz) spielen die Strophe im Fanfaren-Rhythmus (lang – kurz – lang) und stoßen im Refrain Akkorde, Chor-„Aah“ (langsamer Anschlag) im ganzen Refrain, Pauken in allen Takten, Kick auf 1 und 3; Krönungs-Hook: Dreiklang in Achteln hinauf zum langen Gipfelton, oben ein Doppelschlag in Sechzehnteln',
+      t.voice.organ.cutoff <= 3000 && t.organ.slice(0, 8).every((b) => onsetsOf(b).startsWith('0,3,4')) && [8, 9, 10, 11].every((b) => noteList([t.organ[b]]).every(([, m]) => m.split('+').length === 3))
+      && t.voice.whistle.attack >= 0.2 && t.whistle.slice(8).every((b) => noteList([b]).length === 1) && t.drums.every((bar) => layers(bar)[0].startsWith('k.......k') && layers(bar).some((l) => l.includes('t')))
+      && [8, 9, 10, 12, 13, 14].every((b) => onsetsOf(t.lead[b]) === '0,2,4,10,11,12,13,14') && [8, 10, 12, 14].every(crown));
+  }
+  {
+    const t = TB.course_bossblitz, strikes = t.drums.filter((bar) => layers(bar).some((l) => l[0] === 'd')).length;
+    // kein Baron-Brummbär-Motiv (course_boss Lead Takt 5): weder sein Kopf (vier Einsätze mit Abständen, auch in doppelter
+    // Notenlänge) am Anfang eines Takts irgendeiner Spur noch seine Intervallfolge in der Melodie
+    const baron = noteList([THEMES.course_boss.lead[4]]), baron2 = baron.map(([p, m]) => [2 * p, m]);
+    const ivs = (ns) => ns.slice(1).map((x, i) => x - ns[i]).join(',');
+    const noBaron = TONAL.every((k) => (t[k] ?? []).every((bar) => { const ns = noteList([bar]); return ns.length < 4 || (head(ns) !== head(baron) && head(ns) !== head(baron2)); }))
+      && !`,${ivs(melodyLine(t, ['lead', 'organ']).map((e) => e.note))},`.includes(`,${ivs(baron.map(([, m]) => +m))},`);
+    check(`course_bossblitz: 148 BPM, Nacht-Weltraum – Weltraum-Hall (Echo-Netz aus zwei Abgriffen), Sternschnuppe (Riser mit Rauschen) vor Refrain und Loop, Arpeggiator (Sägezahn hinter Tiefpass) in Strophe und Refrain, Sternenglitzern, Weltraum-Hörner (gedämpfte Orgel) spielen die Hook im Intro und stoßen im Refrain, Blitz-Einschläge (tiefer Schlag ≤ 60 Hz) in ${strikes} Takten, Four-on-the-floor; eigene Boss-Hook (Blitz-Zickzack in Achteln hinab), kein Baron-Brummbär-Motiv`,
+      t.bpm === 148 && t.fx.delay.steps.length === 2 && t.fx.delay.wet >= 0.24 && t.voice.riser.noise >= 0.1 && noteList([t.riser[11]]).length === 1 && noteList(t.riser.slice(20)).length >= 1
+      && t.voice.arp.type === 'sawtooth' && t.fx.lowpass.arp <= 3000 && [4, 12].every((b) => noteList([t.arp[b]]).length === 16) && noteList(t.bell).length >= 8
+      && t.voice.organ.cutoff <= 3000 && [0, 1].every((b) => sameNotes(t.organ[b], t.lead[12 + b])) && noteList([t.organ[12]]).every(([, m]) => m.split('+').length === 3)
+      && t.kit.doum.freq <= 60 && strikes >= 8 && t.drums.every((bar) => layers(bar)[0] === 'k...k...k...k...')
+      && [12, 13, 14, 16, 17, 18].every((b) => { const p = pitches(t.lead[b]); return onsetsOf(t.lead[b]).startsWith('0,2,4,6,8') && p[1] < p[0] && p[2] > p[1] && p[3] < p[2] && p[3] < p[1]; }) && noBaron);
+  }
+  {
+    const t = TB.course_champion, pauken = t.drums.filter((bar) => layers(bar).some((l) => l[0] === 't')).length;
+    check(`course_champion: 150 BPM, 32 Takte mit zweitem Refrain (Takte 25–32 = Takte 13–20, das Glockenspiel singt eine Oktave höher mit), Fanfaren (gedämpfte Orgel) spielen die Hook im Intro und stoßen in beiden Refrains, Chor-„Aah“ in Refrains und Überleitung, Chor-Pad in allen Takten, Pauken in ${pauken} Takten, Siegesglocke vor den großen Abschnitten; Siegerruf: zwei Sechzehntel auf einem Ton, Achtel-Paare hinauf bis zum langen Gipfelton`,
+      t.bpm === 150 && t.lead.slice(12, 20).every((b, i) => b === t.lead[24 + i]) && [24, 25, 26, 27, 28, 29].every((b) => sameNotes(t.arp[b], t.lead[b], 12))
+      && t.voice.organ.cutoff <= 3000 && [0, 1, 2].every((b) => sameNotes(t.organ[b], t.lead[12 + b])) && [12, 24].every((b) => noteList([t.organ[b]]).every(([, m]) => m.split('+').length === 3))
+      && t.voice.whistle.attack >= 0.2 && noteList(t.whistle.slice(12, 32)).length >= 18 && t.pad.every((b) => b !== '-:16') && pauken >= 12 && noteList(t.bell).length >= 4
+      && [12, 14, 16, 18, 24, 26, 28, 30].every((b) => { const p = pitches(t.lead[b]); return onsetsOf(t.lead[b]) === '0,2,3,4,6,8,14' && p[1] === p[2] && p[3] === p[4] && p[1] > p[0] && p[3] > p[2] && p[5] > p[4]; }));
+  }
 }
 
-const BROWSER = ['live', 'render', 'sfx'].some(want);
+const BROWSER = ['live', 'render', 'sfx', 'varianten'].some(want);
 const stop = BROWSER ? await startServer(PORT) : () => {};
 const { browser, page, errors } = BROWSER ? await launchBrowser() : { browser: null, page: null, errors: [] };
 if (BROWSER) await loadGame(page, PORT, errors, stop, 'test');
@@ -784,8 +868,8 @@ const sc = (fn, arg) => page.evaluate(fn, arg);
 const audio = () => sc(() => { const a = window.__audio; return { ctx: a.engine.ctx ? a.engine.ctx.state : 'none', ready: a.engine.ready, theme: a.music.current, drums: a.music.drums, muted: a.engine.muted, pending: a.music.pending ?? null, energy: a.music.energyGain ? a.music.energyGain.gain.value : null }; });
 
 /** Läuft im Browser: Thema offline rendern und vermessen (optional ein übergebenes Themen-Objekt und ein Ausschnitt als WAV). */
-async function analyzeInPage({ name, seconds, energy, wantWav, beatMult = 1, wavSeconds = Infinity, theme = null, excerpt = null, seamAt = null, tailFrom = null }) {
-  const r = await window.__audio.music.renderTheme(name, seconds, { energy, theme });
+async function analyzeInPage({ name, seconds, energy, wantWav, beatMult = 1, wavSeconds = Infinity, theme = null, excerpt = null, seamAt = null, tailFrom = null, variant = null }) {
+  const r = await window.__audio.music.renderTheme(name, seconds, { energy, theme, variant });
   const x = r.buffer.getChannelData(0), sr = r.sampleRate;
   let peak = 0, sum = 0, peakAt = 0;
   for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) { peak = a; peakAt = i / sr; } sum += x[i] * x[i]; }
@@ -1119,6 +1203,7 @@ if (want('live')) {
   check(`Alle ${CONTRACT_THEMES_W6.length} Themen der Welt 6 vorhanden (themeInfo)`, CONTRACT_THEMES_W6.every((n) => infos.some((i) => i && i.name === n)));
   check(`Alle ${CONTRACT_THEMES_W7.length} Themen der Welt 7 vorhanden (themeInfo)`, CONTRACT_THEMES_W7.every((n) => infos.some((i) => i && i.name === n)));
   check(`Alle ${CONTRACT_THEMES_S.length} Themen der Welt Stern vorhanden (themeInfo), S-Kapitän nutzt ${REUSED_S.join(', ')}`, CONTRACT_THEMES_S.every((n) => infos.some((i) => i && i.name === n)) && REUSED_S.every((n) => infos.some((i) => i && i.name === n)));
+  check(`Alle ${CONTRACT_THEMES_B.length} übrigen Bonuswelt-Themen vorhanden (themeInfo: Karten Pilz/Blume/Krone, Boss-Marathon, Champion)`, CONTRACT_THEMES_B.every((n) => infos.some((i) => i && i.name === n)));
   check(`Alle ${CONTRACT_THEMES_W8.length} Themen der Welt 8 vorhanden (themeInfo), der Abspann spielt einmal (${fmt(infos.find((i) => i?.name === 'course_abspann')?.seconds ?? 0, 1)} s)`, CONTRACT_THEMES_W8.every((n) => infos.some((i) => i && i.name === n))
     && infos.find((i) => i?.name === 'course_abspann')?.loop === false);
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
@@ -1392,10 +1477,10 @@ if (want('render')) {
   console.log(`\nKurs-Themen offline (RMS-Bereich = bestehende Themen ±3 dB: ${fmt(rmsLo)}–${fmt(rmsHi)})`);
   const courseResults = {}, refrains = {};
   const PREVIEW = 30, REFRAIN = 15;
-  const COLLECT = { 2: (sp) => !sp.map, 5: () => true, 6: () => true, 7: () => true, 8: () => true, [HW]: () => true, [ST]: () => true }; // Sammel-Hörproben: Welt 2 ohne Karte, Welt 5–8, Halloween und Stern mit allen Themen
+  const COLLECT = { 2: (sp) => !sp.map, 5: () => true, 6: () => true, 7: () => true, 8: () => true, [HW]: () => true, [ST]: () => true, [BO]: () => true }; // Sammel-Hörproben: Welt 2 ohne Karte, Welt 5–8, Halloween, Stern und Bonus mit allen Themen
   // Halloween: tests/out/hw_<thema>_30s.wav, Welt 6, 7 und 8: tests/out/w6_<thema>_30s.wav, w7_… bzw. w8_<thema>_30s.wav,
-  // Welt Stern: tests/out/stern_<thema>_30s.wav
-  const wavName = (name, spec) => (spec.world === HW ? `hw_${name.replace('course_', '')}` : spec.world === ST ? `stern_${name.replace('course_', '')}`
+  // Welt Stern: tests/out/stern_<thema>_30s.wav, übrige Bonuswelt-Themen: tests/out/bonus_<thema>_30s.wav
+  const wavName = (name, spec) => (spec.world === HW ? `hw_${name.replace('course_', '')}` : spec.world === ST ? `stern_${name.replace('course_', '')}` : spec.world === BO ? `bonus_${name.replace('course_', '')}`
     : [6, 7, 8].includes(spec.world) ? `w${spec.world}_${name.replace('course_', '')}` : name);
   const jobs = [];
   for (const [name, spec] of Object.entries(COURSE_THEMES)) {
@@ -1406,7 +1491,7 @@ if (want('render')) {
     const preview = spec.preview !== undefined && !full;
     const barSec = info.seconds / info.bars;
     // Halloween, Welt 6, 7, 8 und Stern: 2 s über das Loop-Ende hinaus rendern, damit die Naht (letzter Takt → erster Takt) im Puffer liegt
-    const seam = [HW, 6, 7, 8, ST].includes(spec.world) && info.loop;
+    const seam = [HW, 6, 7, 8, ST, BO].includes(spec.world) && info.loop;
     const seconds = info.loop ? Math.max(8, info.seconds + (seam ? 2 : 0), preview ? PREVIEW : 0) : info.seconds + 0.6;
     const theme = preview ? rotateTheme(THEMES[name], spec.preview) : null;
     const excerpt = (preview || full) && COLLECT[spec.world]?.(spec) ? { from: ((spec.hook - (spec.preview ?? 0) + info.bars) % info.bars) * barSec, seconds: REFRAIN } : null;
@@ -1459,7 +1544,7 @@ if (want('render')) {
   // Median von RMS und Spitze je Welt, Abstand höchstens 1,5 dB
   const byWorld = (w) => Object.values(courseResults).filter((r) => r.spec.world === w && !r.spec.map);
   const db = (a, b) => 20 * Math.log10(a / b);
-  for (const [w, label] of [[HW, 'Halloween'], [6, 'Welt 6'], [7, 'Welt 7'], [8, 'Welt 8'], [ST, 'Welt Stern']]) {
+  for (const [w, label] of [[HW, 'Halloween'], [6, 'Welt 6'], [7, 'Welt 7'], [8, 'Welt 8'], [ST, 'Welt Stern'], [BO, 'Bonuswelten (Boss-Marathon, Champion)']]) {
     if (!byWorld(5).length || !byWorld(w).length) continue;
     const lv = (x, k) => median(byWorld(x).map((r) => r[k]));
     console.log(`\nPegel (ohne Karten): Welt 5 RMS-Median ${fmt(lv(5, 'rms'))}, Spitze-Median ${fmt(lv(5, 'peak'))}; ${label} RMS-Median ${fmt(lv(w, 'rms'))}, Spitze-Median ${fmt(lv(w, 'peak'))}`);
@@ -1469,8 +1554,8 @@ if (want('render')) {
   // Sammel-Hörproben: Welt 2 (die sieben Kurs-Themen), Welt 5 (alle zehn Themen), Welt 6 und 7 (je alle neun), Welt 8 (alle
   // elf), die Halloween-Welt (alle sechs) und die Welt Stern (alle zehn) je 15 s ab dem Refrain (0,3 s ausgeblendet), 1 s
   // Pause dazwischen
-  const sampleName = (w) => (w === HW ? 'halloween' : w === ST ? 'stern' : `welt${w}`);
-  for (const [w, count] of [[2, 7], [5, 10], [6, 9], [7, 9], [8, 11], [HW, 6], [ST, 10]]) {
+  const sampleName = (w) => (w === HW ? 'halloween' : w === ST ? 'stern' : w === BO ? 'bonus' : `welt${w}`);
+  for (const [w, count] of [[2, 7], [5, 10], [6, 9], [7, 9], [8, 11], [HW, 6], [ST, 10], [BO, 5]]) {
     const names = Object.entries(COURSE_THEMES).filter(([, sp]) => sp.world === w && COLLECT[w](sp)).map(([n]) => n);
     if (!names.every((n) => refrains[n])) continue;
     const sr = refrains[names[0]].sr, gap = Buffer.alloc(sr * 2), parts = [gap], order = [];
@@ -1485,7 +1570,7 @@ if (want('render')) {
     const file = `${OUT}hoerprobe_${sampleName(w)}.wav`;
     writeWav(file, Buffer.concat(parts), sr);
     console.log(`\nSammel-Hörprobe: ${file} (${fmt(t, 1)} s): ${order.join(', ')}`);
-    check(`Sammel-Hörprobe ${w === HW ? 'Halloween' : w === ST ? 'Welt Stern' : `Welt ${w}`} mit allen ${names.length} Themen je ${REFRAIN} s ab dem Refrain geschrieben`, order.length === count);
+    check(`Sammel-Hörprobe ${w === HW ? 'Halloween' : w === ST ? 'Welt Stern' : w === BO ? 'Bonuswelten' : `Welt ${w}`} mit allen ${names.length} Themen je ${REFRAIN} s ab dem Refrain geschrieben`, order.length === count);
   }
 
   // ---- Hall/Echo-Bus wirkt: ein einzelner Tropfen mit den Höhlen-Einstellungen, mit und ohne fx ----
@@ -1610,6 +1695,269 @@ if (want('sfx')) {
     scan.missing.length === 0 && nCalls >= 150);
   check(`Dynamische Klangnamen von Hand geprüft${scan.unchecked.length ? ` (ungeprüft: ${scan.unchecked.map((d) => `${d.where} ${d.expr}`).join('; ')})` : ''}, keine unbekannte Abspiel-Funktion`,
     scan.unchecked.length === 0 && scan.unknownFns.length === 0);
+}
+
+if (want('varianten')) {
+  // ---- Klang-Varianten des Musiksystems (Remix-Welten Pilz und Blume, Vertrag „Remix-Level“) ----
+  // music.play(thema, { variant }): dieselbe Komposition mit anderer Klangbearbeitung bzw. Tempo. Geprüft: Schnittstelle,
+  // Gegenprobe ohne Variante (Kette wie bisher nachgebaut: gleiche Knoten, gleicher Pegel), jede Variante live und offline
+  // (Pegel wie ohne Variante, Beat, Klangcharakter aus Spektrum und Proben), Taktuhr je Variante (auch `schnell` +8 %,
+  // vorgemerkt bei angehaltenem Kontext). Hörproben: tests/out/varianten_<variante>.wav (course_grass ab dem Refrain-Einsatz
+  // Takt 5, je 15 s) und tests/out/varianten_ohne.wav zum Vergleich.
+  console.log('\nKlang-Varianten (Remix-Welten Pilz und Blume):');
+  const VARIANTS = ['nacht', 'abend', 'morgen', 'tag', 'dunkel', 'schnell', 'schwarzweiss'];
+  const SPEED = 1.08;
+  const api = await sc((names) => {
+    const m = window.__audio.music;
+    return {
+      list: m.listVariants(),
+      infos: Object.fromEntries(names.map((v) => [v, m.themeInfo('course_beep', { variant: v })])),
+      plain: m.themeInfo('course_beep'),
+      unknown: m.themeInfo('course_beep', { variant: 'gibtsnicht' }),
+      alias: m.themeInfo('course_beep', { variant: 'Schwarz-Weiß' })?.variant ?? null,
+    };
+  }, VARIANTS);
+  check(`Varianten vorhanden: ${api.list.join(', ')} (music.listVariants)`, VARIANTS.every((v) => api.list.includes(v)) && api.list.length === VARIANTS.length);
+  const sInfo = api.infos.schnell;
+  check(`themeInfo mit Variante: schnell ${fmt(sInfo.bpm, 2)} BPM statt ${api.plain.bpm} (+8 %), Loop ${fmt(sInfo.seconds, 2)} statt ${fmt(api.plain.seconds, 2)} s, Spiel-Takt unverändert in Zählzeiten; alle anderen im Tempo des Themas`,
+    Math.abs(sInfo.bpm - api.plain.bpm * SPEED) < 1e-9 && Math.abs(sInfo.seconds - api.plain.seconds / SPEED) < 1e-9 && sInfo.baseBpm === api.plain.bpm && sInfo.variant === 'schnell'
+    && JSON.stringify(sInfo.sync) === JSON.stringify(api.plain.sync) && VARIANTS.filter((v) => v !== 'schnell').every((v) => api.infos[v].bpm === api.plain.bpm && api.infos[v].variant === v));
+  check('Unbekannte Variante = ohne Variante (kein Fehler); Schreibweise „Schwarz-Weiß“ wird erkannt', api.unknown.bpm === api.plain.bpm && !('variant' in api.unknown) && api.alias === 'schwarzweiss');
+
+  // Gegenprobe: renderTheme ohne Variante gegen die bisherige Kette, aus den Bausteinen nachgebaut (Stand vor den Varianten).
+  // Der Offline-Renderer ist von Lauf zu Lauf nicht bitgenau (Abweichungen ~1e-8 im Pegel), daher: gleiche Knoten und
+  // Oszillatoren, Pegel und Samples im Rahmen dieser Rechenungenauigkeit – auch mit unbekannter Variante.
+  const legacy = await sc(async () => {
+    const m = window.__audio.music, P = m.parts;
+    const legacyRender = async (name, seconds, energy) => {
+      const theme = P.compileTheme(name, P.THEMES[name]);
+      const ctx = new OfflineAudioContext(1, Math.ceil(seconds * 44100), 44100);
+      const chain = P.createMusicChain(ctx, ctx.destination, 1);
+      const voices = new P.Voices(ctx, chain.input, 7);
+      const energyGain = ctx.createGain();
+      energyGain.gain.value = 1;
+      energyGain.connect(chain.input);
+      const fx = P.createThemeBus(ctx, theme.fx, theme.stepDur, chain.input);
+      voices.stats.nodes += fx.nodes.length;
+      const seq = new P.Sequencer({ voices, dest: chain.input, energyGain, theme, startTime: 0.02, energy, buses: fx.buses });
+      seq.advance(seconds);
+      return { buffer: await ctx.startRendering(), stats: { ...voices.stats } };
+    };
+    const cmp = (a, b) => {
+      const x = a.getChannelData(0), y = b.getChannelData(0);
+      let d = 0, sx = 0, sy = 0;
+      for (let i = 0; i < x.length; i++) { d = Math.max(d, Math.abs(x[i] - y[i])); sx += x[i] * x[i]; sy += y[i] * y[i]; }
+      return { maxDiff: d, rmsRel: Math.abs(Math.sqrt(sx) - Math.sqrt(sy)) / Math.sqrt(sx) };
+    };
+    const out = [];
+    for (const [name, energy] of [['course_grass', false], ['course_cave', false], ['course_rainbow', true], ['course_worldstar_map', false]]) {
+      const a = await legacyRender(name, 6, energy), a2 = await legacyRender(name, 6, energy);
+      const b = await m.renderTheme(name, 6, { energy }), c = await m.renderTheme(name, 6, { energy, variant: 'gibtsnicht' });
+      out.push({ name, energy, nodes: [a.stats.nodes, b.stats.nodes, c.stats.nodes], osc: [a.stats.oscillators, b.stats.oscillators, c.stats.oscillators], noise: cmp(a.buffer, a2.buffer), b: cmp(a.buffer, b.buffer), c: cmp(a.buffer, c.buffer), variant: b.variant });
+    }
+    return out;
+  });
+  for (const l of legacy) {
+    console.log(`   Gegenprobe ${l.name}${l.energy ? '+energy' : ''}: Knoten ${l.nodes.join('/')}, Oszillatoren ${l.osc.join('/')}; bisherige Kette ↔ neu: Pegel ±${l.b.rmsRel.toExponential(1)}, Sample ±${l.b.maxDiff.toExponential(1)} (zweimal bisherig: ±${l.noise.rmsRel.toExponential(1)} / ±${l.noise.maxDiff.toExponential(1)})`);
+    check(`Ohne Variante wie bisher (${l.name}${l.energy ? ' mit Energie-Ebene' : ''}): gleiche Knoten (${l.nodes[0]}) und Oszillatoren, Pegel gleich (±${l.b.rmsRel.toExponential(1)}), Samples gleich (±${l.b.maxDiff.toExponential(1)}); unbekannte Variante ebenso`,
+      l.variant === null && new Set(l.nodes).size === 1 && new Set(l.osc).size === 1 && l.b.rmsRel < 1e-5 && l.c.rmsRel < 1e-5 && l.b.maxDiff < 1e-3 && l.c.maxDiff < 1e-3);
+  }
+
+  // Live: Schnittstelle, Neustart nur bei Wechsel, Energie-Ebene folgt der Klangkette, jede Variante spielt, Knoten je Sekunde
+  if (!(await sc(() => window.__audio.engine.ready))) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(400); }
+  const lv = await sc(async (names) => {
+    const m = window.__audio.music, e = window.__audio.engine;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const r = {};
+    m.setDrums(true);
+    m.play('course_rainbow');
+    const fxPlain = m.fx.nodes.length, n0 = e.stats.nodes;
+    m.play('course_rainbow', { variant: 'nacht' });
+    const seq1 = m.seq;
+    r.nacht = { variant: m.variant, current: m.current, chain: !!m.chain, energy: m.energyDest === m.chain?.input, beat: m.beat().variant, nodes: e.stats.nodes - n0 };
+    m.play('course_rainbow', { variant: 'nacht' });
+    r.same = m.seq === seq1;
+    m.play('course_rainbow');
+    r.back = { variant: m.variant, chain: m.chain, energy: m.energyDest === e.musicIn, restarted: m.seq !== seq1, fx: m.fx.nodes.length === fxPlain, beat: m.beat().variant };
+    m.play({ theme: 'course_grass', variant: 'dunkel' });
+    r.obj = { current: m.current, variant: m.variant, chain: !!m.chain };
+    m.setDrums(false);
+    r.each = [];
+    for (const v of names) {
+      m.play('course_grass', { variant: v });
+      await wait(250);
+      r.each.push({ v, current: m.current, variant: m.variant, chain: !!m.chain, bpm: m.beat().bpm, mono: m.chain ? m.chain.out.channelCount === 1 && m.chain.out.channelCountMode === 'explicit' : false });
+    }
+    r.rate = {};
+    for (const v of ['dunkel', 'morgen', 'nacht']) {
+      m.play('course_grass', { variant: v });
+      await wait(300);
+      const s0 = { ...e.stats, t: e.now };
+      await wait(2000);
+      const s1 = { ...e.stats, t: e.now };
+      r.rate[v] = (s1.nodes - s0.nodes) / (s1.t - s0.t);
+    }
+    m.stop();
+    r.stopped = m.variant;
+    r.validation = m.validateThemes();
+    m.play('map');
+    return r;
+  }, VARIANTS);
+  check(`Live: play(thema, { variant: 'nacht' }) – music.variant 'nacht', Klangkette (${lv.nacht.nodes} Knoten), Energie-Ebene läuft durch sie, beat().variant`, lv.nacht.variant === 'nacht' && lv.nacht.current === 'course_rainbow' && lv.nacht.chain && lv.nacht.energy && lv.nacht.beat === 'nacht');
+  check('Live: dieselbe Variante noch einmal startet nicht neu; ohne Variante zurück: Neustart, keine Klangkette, Energie-Ebene wieder direkt, Effekt-Busse wie vorher', lv.same && lv.back.variant === null && lv.back.chain === null && lv.back.energy && lv.back.restarted && lv.back.fx && lv.back.beat === null);
+  check(`Live: play({ theme, variant }) (z.B. LEVEL.music eines Remix-Levels) – ${lv.obj.current}/${lv.obj.variant}`, lv.obj.current === 'course_grass' && lv.obj.variant === 'dunkel' && lv.obj.chain);
+  check(`Live: jede Variante spielt (${lv.each.map((x) => `${x.v}${x.chain ? '' : ' ohne Kette'}`).join(', ')}), nur „schnell“ ohne Klangkette, „schwarzweiss“ mono`, lv.each.every((x) => x.current === 'course_grass' && x.variant === x.v && x.chain === (x.v !== 'schnell')
+    && Math.abs(x.bpm - 140 * (x.v === 'schnell' ? SPEED : 1)) < 1e-9) && lv.each.find((x) => x.v === 'schwarzweiss').mono && !lv.each.find((x) => x.v === 'nacht').mono);
+  check(`Live: Knoten je Sekunde mit Variante unter 120 (${Object.entries(lv.rate).map(([k, v]) => `${k} ${fmt(v, 1)}`).join(', ')})`, Object.values(lv.rate).every((x) => x > 20 && x < 120));
+  check('stop(): music.variant null; alle Themen weiter konsistent', lv.stopped === null && lv.validation.length === 0);
+
+  // Taktuhr mit Ton: schnell (+8 %) und nacht (Klangkette) – Tempo, onBeat, Sequencer exakt auf der Uhr; vorgemerkt bei
+  // angehaltenem Kontext: Ersatzuhr im Tempo der Variante, nach dem Fortsetzen hörbar im Takt
+  const clk = await sc(async () => {
+    const m = window.__audio.music, e = window.__audio.engine;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const pos = () => { const c = m.clock, th = m.theme, seq = m.seq; const at = c.b0 + (seq.time - c.t0) * c.bpm / 60; const d = ((at * 4 - seq.step) % th.length + th.length) % th.length; return Math.min(d, th.length - d); };
+    const out = {};
+    for (const v of ['schnell', 'nacht']) {
+      m.play('course_beep', { variant: v });
+      await wait(300);
+      const a = { b: m.beat(), t: performance.now() };
+      const hits = [];
+      const off = m.onBeat((ev) => hits.push({ ...ev, t: performance.now() }));
+      await wait(3000);
+      off();
+      const b = { b: m.beat(), t: performance.now() };
+      out[v] = { a, b, hits, offset: pos(), stepDur: m.theme.stepDur };
+    }
+    m.play('course_grass');
+    await wait(250);
+    await e.ctx.suspend();
+    m.play('course_beep', { variant: 'schnell' });
+    out.pending = { variant: m.pendingVariant, current: m.current, currentVariant: m.variant, pending: m.pending, b0: m.beat(), t0: performance.now() };
+    await wait(600);
+    out.pending.b1 = m.beat();
+    out.pending.t1 = performance.now();
+    await e.ctx.resume();
+    await wait(600);
+    out.resumed = { current: m.current, variant: m.variant, b: m.beat(), offset: m.seq ? pos() : 99, bpm: m.theme?.bpm };
+    m.play('map');
+    return out;
+  });
+  for (const v of ['schnell', 'nacht']) {
+    const x = clk[v], bpm = BEEP_BPM * (v === 'schnell' ? SPEED : 1), s = beatSeries(x.hits, bpm);
+    const rateV = (x.b.b.beat - x.a.b.beat) / ((x.b.t - x.a.t) / 1000);
+    console.log(`   Taktuhr ${v}: ${fmt(rateV)} Zählzeiten/s (erwartet ${fmt(bpm / 60)}), onBeat ${s.n}× im Abstand ${fmt(s.interval)} s, Sequencer ${fmt(x.offset, 4)} Sechzehntel neben der Uhr`);
+    check(`Taktuhr mit Variante ${v}: ${fmt(bpm, 2)} BPM auf der hörbaren Uhr, beat() steigt mit dem Tempo (${fmt(rateV)} statt ${fmt(bpm / 60)}/s), onBeat lückenlos im Abstand ${fmt(s.interval)} s, Sequencer exakt auf der Uhr (${fmt(x.offset, 4)})`,
+      x.a.b.theme === 'course_beep' && x.a.b.variant === v && Math.abs(x.a.b.bpm - bpm) < 1e-9 && x.a.b.source === 'audio' && Math.abs(rateV - bpm / 60) < bpm / 60 * 0.03
+      && s.n >= 5 && s.consecutive && s.fields && s.intervalErr < 0.03 && x.offset < 0.01 && Math.abs(x.stepDur - 60 / bpm / 4) < 1e-12);
+  }
+  const pd = clk.pending, pRate = (pd.b1.beat - pd.b0.beat) / ((pd.t1 - pd.t0) / 1000);
+  check(`Vorgemerkt bei angehaltenem Kontext: pendingVariant 'schnell' (music.variant gehört bis dahin zum laufenden Thema), Ersatzuhr mit ${fmt(pd.b0.bpm, 2)} BPM (${fmt(pRate)} Zählzeiten/s); nach dem Fortsetzen hörbar im Takt (Quelle ${clk.resumed.b.source}, Sequencer ${fmt(clk.resumed.offset, 4)} Sechzehntel neben der Uhr)`,
+    pd.variant === 'schnell' && pd.pending === 'course_beep' && pd.current === 'course_grass' && pd.currentVariant === null && pd.b0.source === 'ersatz' && pd.b0.variant === 'schnell' && Math.abs(pd.b0.bpm - BEEP_BPM * SPEED) < 1e-9 && Math.abs(pRate - BEEP_BPM * SPEED / 60) < BEEP_BPM * SPEED / 60 * 0.1
+    && clk.resumed.current === 'course_beep' && clk.resumed.variant === 'schnell' && clk.resumed.b.source === 'audio' && clk.resumed.offset < 0.01 && Math.abs(clk.resumed.bpm - BEEP_BPM * SPEED) < 1e-9 && clk.resumed.b.beat > pd.b1.beat);
+
+  // Taktuhr deterministisch (Testhaken) für jede Variante: 10 s virtuelle Zeit
+  const man = await sc((names) => {
+    const m = window.__audio.music, out = {};
+    m.stop();
+    m.setManualClock(true);
+    for (const v of names) {
+      m.play('course_beep', { variant: v });
+      const evs = [];
+      const off = m.onBeat((ev) => evs.push([ev.beat, ev.bpm, ev.bar, ev.inBar]));
+      for (let i = 1; i <= 600; i++) m.advanceClock(1 / 60);
+      off();
+      out[v] = { evs, beat: m.beat() };
+      m.stop();
+    }
+    m.setManualClock(false);
+    m.play('map');
+    return out;
+  }, VARIANTS);
+  check(`Taktuhr (Testhaken, 10 s) je Variante: lückenlose Zählzeiten im Tempo der Variante (${VARIANTS.map((v) => `${v} ${man[v].evs.length}`).join(', ')})`, VARIANTS.every((v) => {
+    const bpm = BEEP_BPM * (v === 'schnell' ? SPEED : 1), n = Math.floor(10 * bpm / 60 + 1e-9) + 1, x = man[v];
+    return x.evs.length === n && x.evs.every(([b, bp, bar, inBar], i) => b === i && Math.abs(bp - bpm) < 1e-9 && bar === Math.floor(i / 4) && inBar === i % 4) && Math.abs(x.beat.beat - 10 * bpm / 60) < 1e-6 && x.beat.variant === v;
+  }));
+
+  // Offline: course_grass ab Takt 5 (Refrain-Einsatz, Melodie durchgehend), je 15 s – ohne und mit jeder Variante
+  const vRot = rotateTheme(THEMES.course_grass, 4);
+  const vres = {};
+  const vjobs = [null, ...VARIANTS];
+  for (let k = 0; k < vjobs.length; k += 2) {
+    const pair = vjobs.slice(k, k + 2);
+    const rs = await Promise.all(pair.map((v) => sc(analyzeInPage, { name: 'course_grass', seconds: 15, energy: false, wantWav: true, theme: vRot, variant: v })));
+    pair.forEach((v, j) => {
+      const r = rs[j], key = v ?? 'ohne';
+      vres[key] = { ...r, wav: null, excerptWav: null };
+      const file = `${OUT}varianten_${key}.wav`;
+      writeWav(file, r.wav, r.sampleRate);
+      console.log(`   [${key}] ${fmt(r.bpm, 2)} BPM  Spitze ${fmt(r.peak)}  RMS ${fmt(r.rms)}  Bänder Bass ${fmt(r.bands.bass.dB, 1)} / Mitten ${fmt(r.bands.mid.dB, 1)} / Höhen ${fmt(r.bands.high.dB, 1)} dBFS  Beat ${fmt(r.beatLag)} s (erwartet ${fmt(r.beatExpected)})  Knoten/s ${fmt(r.nodesPerSecond, 1)}  → ${file}`);
+    });
+  }
+  const base = vres.ohne, rel = (a, b) => 20 * Math.log10(a / b);
+  for (const v of VARIANTS) {
+    const r = vres[v], radio = v === 'schwarzweiss'; // altes Radio: Bass bewusst weggefiltert
+    check(`Variante ${v}: Pegel im Rahmen – RMS ${fmt(rel(r.rms, base.rms), 1)} dB gegen ohne Variante (±1,5 dB), Spitze ${fmt(r.peak)} < 0,98, ${radio ? 'Mitten' : 'Bass und Mitten'} vorhanden, Beat am Kick-Abstand ${fmt(r.beatExpected)} s, < 120 Knoten/s`,
+      Math.abs(rel(r.rms, base.rms)) <= 1.5 && r.peak < 0.98 && (radio || r.bands.bass.dB > -30) && r.bands.mid.dB > -30 && Math.abs(r.beatLag - r.beatExpected) <= r.beatExpected * 0.03 && r.acBeat > r.acOff && r.nodesPerSecond < 120);
+  }
+  const dH = (v) => vres[v].bands.high.dB - base.bands.high.dB, dB_ = (v, k) => vres[v].bands[k].dB - base.bands[k].dB;
+  check(`schnell: Tempo +8 % (${fmt(vres.schnell.bpm, 2)} statt ${fmt(base.bpm, 2)} BPM), Klang unverändert (Bänder ±1 dB: ${['bass', 'mid', 'high'].map((k) => fmt(dB_('schnell', k), 1)).join(' / ')})`,
+    Math.abs(vres.schnell.bpm - base.bpm * SPEED) < 1e-9 && ['bass', 'mid', 'high'].every((k) => Math.abs(dB_('schnell', k)) <= 1));
+
+  // Proben je Variante: Hall (Nachklang eines kurzen Tons, abzüglich Grundrauschen), Grundgeräusch (Brummen, Knistern),
+  // Glöckchen allein, Schlagzeug ohne Kick, Kick allein, Melodie (Lead von course_grass) allein, Echo des Themas (Höhle),
+  // Vogel-Zwitschern (Oszillatoren in 8 Takten), Stereo-Breite
+  const grass = THEMES.course_grass, cave = THEMES.course_cave;
+  const probes = await sc(async ({ names, leadTh, caveTh }) => {
+    const m = window.__audio.music;
+    const rms = (x, a, b, sr) => { let q = 0, n = 0; for (let i = Math.round(a * sr); i < Math.min(x.length, Math.round(b * sr)); i++) { q += x[i] * x[i]; n++; } return Math.sqrt(q / Math.max(1, n)); };
+    const peak = (x) => { let p = 0; for (let i = 0; i < x.length; i++) p = Math.max(p, Math.abs(x[i])); return p; };
+    const rest3 = ['-:16', '-:16', '-:16'];
+    const tone = { bpm: 128, voice: { lead: { sub: false, bend: 0.985, detune: 10, voices: 3, volume: 0.16 } }, lead: ['C5:4 -:12', '-:16', '-:16'] };
+    const silent = { bpm: 128, lead: rest3 };
+    const bells = { bpm: 128, voice: { bell: { type: 'sine', volume: 0.1, decay: 0.4, ratio: 5.4, partial: 0.3 } }, bell: ['C6:4 E6:4 G6:4 C7:4', 'B5:4 D6:4 G6:4 B6:4'] };
+    const kit = { bpm: 128, drums: [['....c.......c...', 'hhohhhohhhohhhoh', 'r...............'], ['....c.......c...', 'hhohhhohhhohhhoh']] };
+    const kick = { bpm: 128, drums: ['k...k...k...k...', 'k...k...k...k...'] };
+    const birds = { bpm: 128, lead: Array(8).fill('-:16') };
+    const out = {};
+    for (const v of [null, ...names]) {
+      const one = async (th, secs, opts = {}) => (await m.renderTheme('probe', secs, { theme: th, variant: v, ...opts }));
+      const t = await one(tone, 5.6, { channels: 2 }), s = await one(silent, 5.6);
+      const tl = t.buffer.getChannelData(0), tr = t.buffer.getChannelData(1), sx = s.buffer.getChannelData(0), sr = t.sampleRate;
+      let side = 0; for (let i = 0; i < tl.length; i++) side = Math.max(side, Math.abs(tl[i] - tr[i]));
+      const mono = Float32Array.from(tl, (x, i) => (x + tr[i]) / 2);
+      const tail = rms(mono, 0.55, 1.6, sr), floor = rms(sx, 0.55, 1.6, sr);   // der Ton ist nach 0,5 s trocken verklungen
+      const lvl = async (th, secs) => { const r = await one(th, secs); return rms(r.buffer.getChannelData(0), 0, secs, r.sampleRate); };
+      const echo = await one(caveTh, 4);
+      const bar = 60 / 132 * 4;
+      const b = await one(birds, 15.05);
+      out[v ?? 'ohne'] = {
+        hall: Math.sqrt(Math.max(0, tail * tail - floor * floor)) / rms(mono, 0.02, 0.5, sr), side,
+        noise: floor, noisePeak: peak(sx.subarray(Math.round(0.5 * sr))),
+        bells: await lvl(bells, 4), kit: await lvl(kit, 4), kick: await lvl(kick, 4), lead: await lvl(leadTh, 8),
+        echo: rms(echo.buffer.getChannelData(0), 0.62, 2 * bar, sr), osc: b.stats.oscillators, birds: rms(b.buffer.getChannelData(0), 0, 15, sr),
+      };
+    }
+    return out;
+  }, { names: VARIANTS, leadTh: { bpm: grass.bpm, voice: grass.voice, lead: rotateTheme(grass, 4).lead }, caveTh: { bpm: 132, voice: cave.voice, fx: cave.fx, arp: ['B5:1 -:15', '-:16'] } });
+  for (const [k, p] of Object.entries(probes)) {
+    console.log(`   Probe ${k.padEnd(12)} Hall ${fmt(p.hall, 3)}  Stereo ±${fmt(p.side, 4)}  Grundgeräusch ${p.noise.toExponential(1)} (Spitze ${fmt(p.noisePeak, 3)})  Glöckchen ${fmt(rel(p.bells, probes.ohne.bells), 1)} dB  Schlagzeug ohne Kick ${fmt(rel(p.kit, probes.ohne.kit), 1)} dB  Kick ${fmt(rel(p.kick, probes.ohne.kick), 1)} dB  Melodie ${fmt(rel(p.lead, probes.ohne.lead), 1)} dB  Echo ${fmt(rel(p.echo, probes.ohne.echo), 1)} dB  Vögel ${p.osc - probes.ohne.osc} (${p.birds.toExponential(1)})`);
+  }
+  const P = probes, dbv = (v, k) => rel(P[v][k], P.ohne[k]);
+  check(`ohne Variante: kein Hall, kein Grundgeräusch, keine Vögel (Hall ${fmt(P.ohne.hall, 3)}, Rauschen ${P.ohne.noise.toExponential(1)})`, P.ohne.hall < 0.01 && P.ohne.noise < 1e-5 && P.ohne.side < 1e-6 && P.ohne.birds < 1e-5);
+  check(`nacht: Tiefpass (Höhen ${fmt(dH('nacht'), 1)} dB), mehr Hall (${fmt(P.nacht.hall, 3)}, breit), weicheres Schlagzeug (ohne Kick ${fmt(dbv('nacht', 'kit'), 1)} dB, Kick ${fmt(dbv('nacht', 'kick'), 1)} dB), Glitzer-Glöckchen leiser (${fmt(dbv('nacht', 'bells'), 1)} dB)`,
+    dH('nacht') <= -12 && P.nacht.hall >= 0.05 && P.nacht.side > 1e-3 && dbv('nacht', 'kit') <= -6 && dbv('nacht', 'kick') >= -3 && dbv('nacht', 'bells') <= -3);
+  check(`abend: warm (Bass ${fmt(dB_('abend', 'bass'), 1)} dB), gedämpfte Höhen (${fmt(dH('abend'), 1)} dB), sanfter Hall (${fmt(P.abend.hall, 3)}, weniger als nachts)`,
+    dB_('abend', 'bass') >= 0.5 && dH('abend') <= -6 && dH('abend') > dH('nacht') && P.abend.hall >= 0.02 && P.abend.hall < P.nacht.hall);
+  check(`morgen: hell (Höhen ${fmt(dH('morgen'), 1)} dB), luftiger kurzer Hall (${fmt(P.morgen.hall, 3)}), Glöckchen vorn (${fmt(dbv('morgen', 'bells'), 1)} dB), Vogel-Zwitschern (${P.morgen.osc - P.ohne.osc} Tupfer in 8 Takten)`,
+    dH('morgen') >= 2 && P.morgen.hall >= 0.01 && P.morgen.hall < P.abend.hall && dbv('morgen', 'bells') >= 1 && P.morgen.osc - P.ohne.osc >= 8 && P.morgen.birds > 1e-3);
+  check(`tag: hell (Höhen ${fmt(dH('tag'), 1)} dB) und trocken (kein zusätzlicher Hall ${fmt(P.tag.hall, 3)}, Echo des Themas ${fmt(dbv('tag', 'echo'), 1)} dB)`,
+    dH('tag') >= 1 && P.tag.hall < 0.01 && dbv('tag', 'echo') <= -4);
+  check(`dunkel: starker Tiefpass (Höhen ${fmt(dH('dunkel'), 1)} dB), sehr viel Hall (${fmt(P.dunkel.hall, 3)}, mehr als nachts), tiefes Brummen (${P.dunkel.noise.toExponential(1)}), Melodie hörbar (Lead allein ${fmt(dbv('dunkel', 'lead'), 1)} dB)`,
+    dH('dunkel') <= -25 && P.dunkel.hall > P.nacht.hall && P.dunkel.noise >= 0.003 && P.dunkel.noise <= 0.05 && dbv('dunkel', 'lead') >= -3);
+  check(`schwarzweiss: Bandpass (Bass ${fmt(dB_('schwarzweiss', 'bass'), 1)} dB, Höhen ${fmt(dH('schwarzweiss'), 1)} dB), leises Knistern (${P.schwarzweiss.noise.toExponential(1)}, Knackser bis ${fmt(P.schwarzweiss.noisePeak, 3)}), mono`,
+    dB_('schwarzweiss', 'bass') <= -20 && dH('schwarzweiss') <= -12 && P.schwarzweiss.noise >= 3e-4 && P.schwarzweiss.noise <= 0.01 && P.schwarzweiss.noisePeak > 4 * P.schwarzweiss.noise && P.schwarzweiss.side < 1e-6);
+  check('schnell: kein Hall, kein Grundgeräusch (nur das Tempo ändert sich)', P.schnell.hall < 0.01 && P.schnell.noise < 1e-5 && Math.abs(dbv('schnell', 'bells')) < 0.5);
 }
 
 // Sequencer läuft weiter ohne Fehler
