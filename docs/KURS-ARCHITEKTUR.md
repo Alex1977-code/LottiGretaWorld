@@ -8018,3 +8018,174 @@ Haus verlassen mit 2 von 10 Sternen); Extras (Aufzug ruht, Saaltür zu, Felsklot
 inkl. Schattenpass): 8-Haus 37–82 Zeichenaufrufe (Raum 10 mit den Bröckel-Klötzen am meisten) / ≤ 153 k Dreiecke (Piep-Wand);
 8-6 Messgang Ø 39, ≤ 70 Aufrufe / ≤ 101 k, Bilder 25–106 (der Spiegel zeichnet die Szene ein zweites Mal) / ≤ 135 k; 8-7
 Messgang Ø 71, ≤ 94 / ≤ 113 k, Bilder 57–91 / ≤ 113 k.
+
+## Präzisierung (Level 8-1, 8-2 und 8-3)
+
+Additiv zur Welt-8-Liste: Titel und Besonderheiten der Level 8-1, 8-2 und 8-3. Dateien `src/course/levels/w8/8-1.js`, `8-2.js`,
+`8-3.js`, eigene Hilfen `src/course/levels/w8/_helpers_a.js` (kein `LEVEL`, nur für diese drei Level; nutzt `isl`, `line`,
+`ring`, `arc`, `column`, `sign` aus `w7/_helpers_a.js` und `Bld`, `litTop`, `gradY` aus `w5/_helpers_b.js`), Test
+`tests/course_w8a.mjs`. **Kein Motor-Code geändert**; alles Besondere ist level-lokal (Haken `LEVEL.prebuild`/`build`/`setup`,
+`level.onStep`, `view.onFrame`). Bausteine nach „Präzisierung (Motor und Bausteine Welt 8)“, Gegner nach „Präzisierung (Gegner
+Welt 8)“.
+
+### 8-1 „Stachelstege der Regenfestung“ (parcours · rainfort · course_rainfort · 400 s)
+
+- Außenfestung im Dauerregen hoch über dem Burggraben (Laufhöhe y 1, Absturz unter y −8), ≈ 300 m nach −Z: **Torhof** (?-Block
+  mit Krallen-Anzug, Münzblock) → zwei schmale **Stachelstege** (Stachelfallen im festen Takt, auf Steg 2 eine Welle aus drei),
+  Knochenflieger-Ring und -Linie über den Turmplätzen → **Warp-Box** über den breiten Graben (Sprung unmöglich) →
+  **Werferstege** (3-m-Lücken, drei Feuer-Werfer, der dritte mit Hammer) → Warp-Box zur **Kontrollpunkt-Insel** →
+  **Knochenflieger-Strecke** (Linie, Keil aus 7, Ring aus 8; Draufspringen → Knochenhaufen, setzt sich nach 4 s neu zusammen;
+  Stampfen auf den Haufen bzw. Power-up endgültig), Steg mit zwei Fallen → drei **Stachel-Schwebeplattformen** (`stachelblock`,
+  zwei blaue mit Pause, eine rote ohne) → Warp-Box zum **Zielturm**.
+- Sterne: 0 oben auf der **Kletter-Säule** links vom ersten Feuer-Werfer (nur mit dem Krallen-Anzug aus dem ?-Block am
+  Ankunftsplatz; Münzsäule als Hinweis) · 1 **Wachstube**: mit dem Krallen-Anzug vom Kontrollpunkt die Wand hinter dem
+  Stempel-Turm hinauf, oben die Rätselbox, in der Stube vier Wachen (2 Pilzlinge, 2 Krallen-Pilzlinge) besiegen (`task`) ·
+  2 nach der Keil-Gruppe über vier **einzelne Fallblöcke** (`fallblock_bruecke`, `mode 'einzeln'`) hinaus. Stempel: auf dem
+  Stempel-Turm südwestlich des Kontrollpunkts (Steg mit Stachelfalle 7).
+- Extraleben: unsichtbarer Block am Torhof, unsichtbarer Block in der Wachstube. Gegner: Feuer-Werfer 3, Stachelfalle 7,
+  Knochenflieger-Gruppen 5 (25 Glieder), Wachen 4.
+- Level-lokal: `fallblockRuhig` (ein wackelnder Fallblock gibt beim Absprung keinen zufälligen Seitenschwung mehr mit – sonst
+  gelang der Hüpfer zum nächsten Block nur manchmal; Wunsch an den Baustein). Kulisse `regenfestung81`: Ziegelfassaden,
+  Bodenplatten, Brüstungen mit Zinnen (Kollision), bunte Rundtürme (auch fern im Graben), **rote Läufer** mit Goldborte über
+  alle Plätze (`laeufer8`, zeigen den Weg), **Wappenschilde** an den Brüstungen, **Frösche** an den Pfützen, Wasserspeier an den
+  Brüstungen (Strahl in eine Pfütze), Glühbirnen- und Wimpelketten, Fahnen, Fackeln, Regentonnen, dazu ein matter, dunkler
+  **Burggraben** mit Regenringen um die Kamera (`graben8`; die glänzende Graben-Fläche des Themas spiegelte sonst hellen Himmel).
+
+### 8-2 „Pflaumes Dünenrutsche“ (ride · dunes · course_dunes · 400 s)
+
+- Ritt-Level wie 1-4, aber das Ritt-Netz (Baustein `river` Form A) ist **Sand**: `LEVEL.prebuild` → `duenenThema` (Kopie des
+  Themas mit `jungle: SAND8`, die Fluss-Bausteine lesen die Farben beim Aufbau), `LEVEL.setup` → `sandAnsicht` (Strom-Fläche matt,
+  Schaumstreifen als helle Sandschlieren, Spritzer als Sandfontänen, helle Spur), `sandDunst` (Nebel 40–160 m; statische
+  Abschnitte, deren Quader > 106 m von der Kamera liegt, werden nicht gezeichnet – der lange Blick die Düne hinab), `sandStrom`,
+  `stempelBlock`; `LEVEL.build` setzt unsichtbare Leitplanken um die Oase (zu Fuß nicht zurück in den Sandstrom).
+- Abschnitte (≈ 29 m Gefälle): **Dünenkamm** (Sandstein-Plateau, Holzsteg unter einem Rummel-Torbogen, Buden, Ballons,
+  Pflaume wartet im Sand) → **Startmulde** (breit, langsam 1,6–2,3 m/s) → **erste Abfahrt** (S-Kurven, Schubfelder,
+  Pilzling-Sandskulpturen, Sandflosser; Kontrollpunkt z −105) → **Käferschlucht** (Schubfeld, Holzrampe) → **zweite Abfahrt**
+  (bis 7,2 m/s; links zweigt der **Felsentor-Arm** ab und mündet wieder) → Kontrollpunkt z −217 → **Statuenfeld** (24 m breit,
+  Baron-Sandstatuen mit im Sand versenktem Sockel – rammen zerbröselt sie, 2 Münzen) → **Oase** zu Fuß (Absteigen am Strand,
+  Teich mit Palmen, Picknick, Torbogen, Zielmast).
+- Sterne: 0 **Stern-Sandflosser** in der Startmulde (springt quer hin und her, rote Schattenmarke; im Sprung von oben treffen:
+  kurz bevor er auftaucht hüpfen und beim Herausspringen auf ihm landen) · 1 **Flatterkäfer** links hinter der Rampe, 2,3 m über
+  dem Sand (nur mit dem Rampensprung erreichbar: auf der Rampe springen bzw. Sprungtaste halten und in der Luft nach links
+  lenken; der gerade Rampensprung fliegt vorbei; drei hohe Münzen zeigen hin) · 2 **große Baron-Sandstatue** rechts (lat 7, eine
+  Münzreihe führt hin) kurz vor dem Ende: zerbröselt,
+  der Stern erscheint 2,5 m stromab. **Sterne im Sandstrom treiben mit** (`sandStrom`): wer daneben landet, holt den Stern mit
+  Bremsen/Lenken ein; der vom Käfer losgelassene Stern fällt bis auf die Sandoberfläche. Stempel: in der Oase vier **unsichtbare
+  Wolken** (`wolkenlift`, `reveal 'touch'`, ohne Pfad) zwischen drei Baron-Statuen, je eine Münze darüber als Hinweis; über der
+  obersten der **?-Block** – Kopfstoß, der Stempel steigt auf den Block (`stempelBlock`), hinaufspringen.
+- Extraleben: unter dem Sandsteinbogen im Felsentor-Arm (schwebt), unsichtbarer Block in der Oase. Figuren: Sandflosser 10
+  (Stern, quer pendelnd, zielend, Kreis), Flatterkäfer 1, Pilzling-Sandskulptur 6 (rammen → 3 Münzen), Baron-Sandstatue 10
+  (7 im Strom, 3 in der Oase), Schubfeld 5, Rampe 1, Kontrollpunkt 2.
+- Kulisse: Palmen, Kakteen, Ruinen und Blüten auf den Dünenkämmen, Wimpelketten quer über den Strom, Dünen und Pyramiden auf der
+  Tiefebene, Tafelberge, Schmetterlinge. Leistung: `farHide` 48, `instances` (Statuen 46 m / Schatten 10 m, Skulpturen und
+  Flosser 46 / 20, Münzen ohne Schatten), Kulissen ohne Schatten.
+
+### 8-3 „Keksräder in der Zuckerfabrik“ (parcours · cookie · course_cookie · 400 s)
+
+- Baron Brummbärs Keksfabrik (Boden y 1, Ameisenstraße oben y 16, Absturz unter y −8): **Keksräder** (zwei Drehkekse,
+  Riesenschnappblume 1, zwei ineinandergreifende Keks-Zahnräder, Riesenschnappblume 2, stehende Laufkekse wie Förderbänder) →
+  **Zahnradwand** 15 m hoch (Paternoster-Zahnrad `axis 'z'` und vier liegende Zahnrad-Stufen, Zier-Zahnräder; Kamera ab z −76
+  flacher) → **Ameisenstraße** (Kontrollpunkt, vier Hörner-Ameisen-Reihen von Loch zu Loch, zwei davon mit zwei Spuren im
+  Gleichtakt `phase 0`; die Löcher sind begehbar) → **Kanonen-Glasröhre** zur Zielplattform.
+- Sterne: 0 hinter Riesenschnappblume 2 über zwei kleine Kekse, dann eine 6,2-m-Lücke mit dem Stern (Weitsprung vom zweiten
+  Keks oder Wurfsichel aus dem ?-Block am Start; ein normaler Sprung ist zu kurz), Landekeks und Zuckerguss-Steg zurück ·
+  1 Loch der dritten Ameisen-Reihe → Fach mit der Rätselbox → Keks-Raum: großer Drehkeks über dem Schokoladensee · 2 hinter dem
+  Zielmast hinab auf die entfernte **Kuchenplattform** (Sahnerand hält Hase und Heldin), Hasen fangen, Röhre zurück. Stempel:
+  im Fach unter der ersten Ameisen-Reihe (Röhre zurück auf die Straße).
+- Extraleben: unsichtbare Blöcke im Stempel-Fach und im Keks-Raum; Wurfsichel am Start, Wachstumsbeere am Kontrollpunkt.
+  Gegner: Riesenschnappblume 2, Hörner-Ameisen-Reihen 4, Hase 1.
+- Kulisse `zuckerwerk83`: bunte Streusel auf allen Plätzen, Zuckerguss-Wülste mit Tropfen an den Kanten, Lollis, Zuckerstangen,
+  Cupcakes, Macarons, Gummidrops, Bonbons, Schoko-Tropfen und Zuckerguss-Wellen an der Zahnradwand, Torte (Schichten an den
+  Seiten, Sahnetupfer, Erdbeeren, Kerzen mit Flamme), glänzender Schokoladensee mit Milchschlieren tief unter Fabrik, Torte
+  und Keks-Raum (knapp über der Absturz-Ebene).
+
+### Hilfen `_helpers_a.js`
+
+Daten: `isl`, `line`, `ring`, `arc`, `column`, `sign`, `falle` · Mechanik: `fallblockRuhig` (8-1), `sandStrom`, `stempelBlock`
+(8-2) · Darstellung: `duenenThema` + `SAND8`, `sandAnsicht`, `sandDunst` (8-2) · Kulisse: `RF`, `ziegel8`, `fassaden8`,
+`platten8`, `bruestung8`, `turm8`, `stegRand8`, `laeufer8`, `frosch8`, `wappen8`, `graben8`, `regenfestung81` (8-1),
+`zuckerwerk83` (8-3).
+
+### Test `tests/course_w8a.mjs`
+
+Port 4850 (+ `PORT_BASE`), Aufruf `node tests/course_w8a.mjs [8-1|8-2|8-3]`, Teilläufe `PARTS=load,route,sweep,targets,extra,
+shots` (je Lauf < 10 min: `load,route,sweep`, `targets`, `extra,shots` getrennt), `HEROES`, `ONLY`, `VERBOSE`, `TRACE`, `SHOTS`,
+`DETAIL`, Bilder `tests/out/w8a_*.png`. Bot mit echter Eingabe (`setInput`/`step`, Stick relativ zur Kamera-Gier); Beine u. a.
+`trap` (Stachelfalle abwarten), `block` (Stachel-Schwebeplattform), `grab` (Power-up aus dem ?-Block), `climb` (Krallen-Anzug),
+`warp`, `stompAll`, `diveStomp` (Knochenflieger im Sturzflug), `gear`/`cog` (Zahnräder), `ants` (Ameisen-Reihe queren bzw. ins
+Loch), `long` (Weitsprung), `throwAt` (Wurfsichel), `upOnto` (neben einem Block hoch, erst über der Kante hinüber), `die`
+(Sturz, Neustart abwarten) und für den Ritt `mount`, `pflaume` (Autopilot mit Seitenlage je z), `flosser` (nächste Auftauchstelle
+vorausberechnen, Längstempo anpassen, rechtzeitig hüpfen), `kaefer` (Rampe auf Seitenlage, springen, in der Luft lenken),
+`rideStar` (treibenden Stern einholen). Geprüft: Laden ohne Konsolenfehler, Metadaten, Gegnerzahlen; Routen-Bot Lotti und Greta
+Start → Ziel (8-1 ≈ 62 s mit drei Warp-Boxen, drei besiegten Werfern, drei Schwebeplattformen; 8-2 ≈ 65/64 s ohne Treffer,
+Statue gerammt, fünf Schubfelder; 8-3 ≈ 42/39 s ohne Treffer, Paternoster, Zahnrad-Stufen, Ameisen-Reihen, Kanonenröhre); alle
+Sterne und Stempel mit Gegenproben (Säule ohne Anzug, Rätselbox ohne Wachen, Mulde ohne Hüpfer, gerader Rampensprung,
+Mittellinie im Statuenfeld, Stempel vor dem Stoß, normaler Sprung über die Kekslücke); Extras (Stachelfalle verletzt, Graben zu
+breit, Knochenhaufen und endgültig besiegt, Hörner-Ameise, Riesenschnappblume, Röhren aus den Fächern, Felsentor-Arm, Leitplanke,
+Skulptur rammen, Kontrollpunkt im Ritt, sechs Extraleben). Gemessen (scale 2, inkl. Schattenpass, Messgang alle ~7 m der Route
+und Bilder je Abschnitt): 8-1 40–75 Zeichenaufrufe / ≤ 188 k Dreiecke · 8-2 54–111 / ≤ 294 k · 8-3 37–101 / ≤ 223 k.
+
+## Präzisierung (Level 8-Burg)
+
+Additiv zur Welt-8-Liste: Titel und Besonderheiten des Finales 8-Burg. Dateien `src/course/levels/w8/8-Burg.js`, eigene
+Hilfen `src/course/levels/w8/_helpers_e.js` (kein `LEVEL`, nur für 8-Burg; reicht `Bld`, `glowField`, `glowPoints`,
+`onRespawn` aus `w5/_helpers_b.js` weiter), Test `tests/course_w8e.mjs`. **Kein Motor-Code geändert**; alles Besondere ist
+level-lokal (Haken `LEVEL.prebuild`/`build`/`setup`, `level.onStep`/`onSignal`). Bausteine nach „Präzisierung (Motor und
+Bausteine Welt 8)“, Endgegner nach „Präzisierung (Gegner Welt 8)“.
+
+### 8-Burg „Gipfelsturm am Brummbär-Turm“ (boss · baronpark · course_finale · 500 s · Abspann)
+
+- ≈ 300 m nach −Z und ≈ 80 m hinauf (Start y 2, Gipfel y 82, Siegerturm y 76); alle Kollision liegt über y 0 (der
+  Rummelboden der Kulisse ist 22 m tiefer), `killY` −8. Abschnitte:
+  **A Unfallstelle** – Autowrack mit Rauch (fest), Buden, Leitkegel, ?-Block mit Krallen-Anzug; **Seilbahn 1** (fährt los,
+  wenn man daraufsteht) aufs erste Dach · **B Dächer** – fünf Rummelhäuser (y 6,6–10,6) mit 3–5 m Lücken (Glühbirnenketten und
+  Münzbögen zeigen jeden Sprung), 3 Stachelfallen, 3 Krallen-Pilzlinge, 2 Feuer-Werfer, Dachkram mit Kollision an den
+  Rändern; der **Lavabrocken-Regen** aus dem Vulkan links hinten fällt nur über Dach 2–5 (Start-Box) · **C Riesenrad-Platz**
+  (Kontrollpunkt) – Karussell, Buden, roter Läufer zum Einstieg; **Riesenrad** (r 13, 8 Gondeln, ≈ 30 m hoch) mit vier
+  Schubsern auf den Gondeln 0/2/4/6 (Gruppe `riesenrad`), oben die **Bergstation** (y 34), **Seilbahn 2** hinab zum
+  Turmplatz (y 30); wer unter dem Rad in die Grube fällt, kommt über eine Rampe zurück · **D Turm unten** (Kontrollpunkt
+  Turmplatz, Boss-Auslöser) – Abschnitt `turm`: der Baron klettert die Kletterrinne voraus, wirft Feuerbälle, rutscht und
+  reißt fünf Wandstücke unter den sechs Simsen heraus; oben wacht er am **Kanonenhaus** – erst dann erscheint der
+  **POW-Block** (versteckt, `reveal` beim Wachen), ein Stoß wirft ihn hinauf, das **Kanonentor** (`kanonenTor`) geht erst mit
+  dem Abschnittsende auf (wer davonläuft, kommt nicht an ihm vorbei) → **Kanonen-Glasröhre 1** · **E Oberer Turm**
+  (Kontrollpunkt Türmchen A) – Abschnitt `spiegel`: drei Türmchen (y 62/64/66), zwei Brücken aus je zwei Wegstücken; der
+  Baron beginnt am hinteren Rand von A (nicht auf der Kanonen-Landestelle), frisst eine Spiegelfrucht am Rand von A
+  (2 Doppelgänger) und eine in der Mitte von B (3 Doppelgänger), die Doppelgänger zerstören die Wegstücke; Kanonentor 2 →
+  **Kanonen-Glasröhre 2** · **F Gipfel** (Kontrollpunkt; Plattform Ø 26 m mit Manege-Muster) – Abschnitt `gipfel`:
+  **Super-POW-Block** viermal anstoßen, Phasen 1–4 (Feuerbälle, Schockwellen, Doppelgänger), das Glas mit den Freunden steht
+  auf dem Block; nach dem Sieg zerbricht es, der Baron fliegt davon und die **Glasröhre zum Siegerturm** (`glasnetz`,
+  versteckt, `LEVEL.boss.warp`) erscheint · **G Siegerturm** – die Freunde (Krümel, Flocke, Hoppel, Fernglas-Kobold)
+  erscheinen und hüpfen (`freundeFest`), Ansage „Ihr habt uns befreit – danke!“, Feuerwerk (30 Raketen über dem Ziel),
+  Glockenbaum, Zielmast. `credits: true`: nach „Weiter“ startet der Abspann (Szene `Credits`), Spielstand `finished`.
+- Sterne: 0 **auf dem Uhrturm** des ersten Hauses (nach Seilbahn 1 rechts über das blaue Dach hinauf) · 1 **alle vier
+  Schubser vom Riesenrad stoßen** (`onGroup` → Stern erscheint am Einstieg) · 2 **Sternenring** in der ersten Gipfelphase
+  (erscheint mit dem Gipfelkampf; 8 Sternmünzen um den Super-POW-Block, 16 s; mit dem Sieg wieder weg). Stempel: am Zielmast
+  den **Glockenbaum** hinaufklettern und oben abspringen (vom Boden auch mit Dreifachsprung zu hoch).
+- Geheimnisse: unsichtbare Blöcke mit Extraleben über dem Autowrack und über dem Kamin auf Dach 4 (der Kamin ist die
+  Stufe); Krallen-Abkürzung: mit dem Krallen-Anzug (?-Block am Start und am Turmplatz) die Kletterrinne hinauf bis zur
+  Terrasse; Bitcoin-Pfade (Bögen über den Lücken, Säule im Riesenrad, Ringe auf den Türmchen und am Siegerturm).
+- Neustart: Tod in einem Kampfabschnitt setzt nur diesen zurück (Turm: Wandstücke ganz, Kampf beginnt beim Betreten neu;
+  Gipfel: die Stöße bleiben). Kameraschienen je Abschnitt (Turm: Neigung 26°, Abstand 18, `xLock`; Gipfel: 30°, 20, Höhe 6,5).
+
+### Hilfen `_helpers_e.js`
+
+Daten: `dach` (Dach-/Platzplatte), `line`/`ring`/`arc`/`column` (Münzen), `sign` · Kulisse: `haus` (Rummelhaus vom
+Rummelboden bis zum Dach), `bodenRummel`, `seilPortal`, `kamin`, `dachKram` (Luke, Rohr, Tank, Kisten, Geschenk, Antenne;
+mit Kollision), `manege`, `teppich`, `stern`, `banner`, `vulkan`, `trommel`/`kletterfront`/`tuermchen`/`schaft`/`rundDeckel`
+(der große Turm), `kelchturm`, `birnenKette`, `schilder` (ein Schild-Atlas), `glockenbaum` (Stamm mit `beanstalk`) ·
+Ablauf: `kanonenTor`, `parkKulisse` (Thema baronpark ohne zweiten Turm in der Kulisse), `freundeFest`, `feuerwerk`
+(auf der Level-Uhr), `glockenKlang`.
+
+### Test `tests/course_w8e.mjs`
+
+Port 4890 (+ `PORT_BASE`), Teilläufe `PARTS=load,route,sweep,targets,extra,boss,credits,action,shots` (je Lauf < 10 min,
+z. B. `load,route` · `targets,extra` · `boss,credits` · `action` · `sweep,shots`), `HEROES`, `ONLY`, `VERBOSE`, `SHOTS`,
+`DETAIL`, Bilder `tests/out/w8e_8-Burg_*.png`. Bot mit echter Eingabe (Beine u. a. `wheel`, `schubser`, `pow`, `bump`,
+`bridge`, `pipeIn`, `up`, `climb`, `tree`, `triple`, `stompAll`). Geprüft: Laden ohne Konsolenfehler, Metadaten,
+Gegnerzahlen; Routen-Bot Lotti und Greta Start → Zielmast (≈ 148/137 s; Baron in allen drei Abschnitten besiegt, POW-Block,
+2 Spiegelfrüchte, Super-POW 4×, Phasen 1 → 4, 3 Glasröhren); alle Sterne und der Stempel mit beiden Figuren und Gegenproben
+(drei Schubser reichen nicht, Ring vorher unsichtbar, Stempel nicht per Dreifachsprung); Extras (zwei Extraleben,
+Krallen-Anzug, Krallen-Abkürzung, Regen schweigt vor Dach 2 und trifft danach, Stachelfallen, Sperre am Kanonenhaus,
+Siegerröhre erst nach dem Sieg); Kampf-Neustart Turm und Gipfel; Sieg mit Befreiung, Feuerwerk, Speichern und Abspann.
+Gemessen (inkl. Schattenpass): Messgang 54 Punkte 51–99 Zeichenaufrufe (oben auf der Riesenrad-Fahrt am meisten) /
+≤ 276 k Dreiecke; Bilder 40–87 / ≤ 274 k; im Gipfelkampf mit Doppelgängern bis 106 Aufrufe.
