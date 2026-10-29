@@ -77,4 +77,212 @@ export function holzbretter(level, list, o = {}) {
   if (parts.length) addStatic(level, merge(parts));
 }
 
+// =====================================================================================================================
+// P-2: Stachelringe an den Bohnenranken, Glockenbäume
+// =====================================================================================================================
+
+const TAU = Math.PI * 2;
+
+/**
+ * Stachelring (Bauplan Welt Pilz „Stacheln an Kletterwänden und Ranken“): Kragen um eine Bohnenranke, dessen Stacheln im Takt
+ * ausfahren (out s draußen), wieder einfahren und kurz vorher zittern (warn s). Ausgefahren verletzt jede Berührung (auch
+ * kletternd an der Ranke); eingefahren ist er harmlos – man klettert vorbei, wenn die Stacheln drin sind.
+ *   { pos: [x, y, z] (Mitte des Kragens auf der Rankenachse), period: 3.2, out: 1.4, warn: 0.5, phase: 0..1, r: 0.72, id }
+ * Laufzeit: state ('aus' | 'ein' | 'warn'), k (0 eingefahren … 1 ausgefahren), hurts (Treffer), info(); level.named.get(id).
+ */
+class Stachelring extends CourseEntity {
+  constructor(level, spec) {
+    super(level, spec, 'stachelring');
+    this.r = spec.r ?? 0.72;
+    this.half.set(this.r, 0.34, this.r);
+    this.pos.y -= this.half.y;            // pos = Mitte → Fußpunkt
+    this.period = spec.period ?? 3.2;
+    this.out = spec.out ?? 1.4;
+    this.warn = spec.warn ?? 0.5;
+    this.phase = spec.phase ?? 0;
+    this.k = 0;
+    this.hurts = 0;
+    this.state = 'ein';
+    this.update(0);
+    this.k = this.state === 'aus' ? 1 : 0;
+    if (level.view) this.buildLook();
+  }
+
+  phaseT() { const P = this.period; return ((((this.level.time ?? 0) / P + this.phase) % 1) + 1) % 1 * P; }
+
+  update(dt) {
+    const t = this.phaseT();
+    const prev = this.state;
+    this.state = t < this.out ? 'aus' : t > this.period - this.warn ? 'warn' : 'ein';
+    const want = this.state === 'aus' ? 1 : this.state === 'warn' ? 0.22 : 0;
+    this.k += (want - this.k) * Math.min(1, dt * (want > this.k ? 16 : 9));
+    if (dt === 0) this.k = want;
+    if (prev !== 'aus' && this.state === 'aus' && this.level.player && Math.abs(this.level.player.pos.y - this.pos.y) < 9) this.level.sfx('flip');
+  }
+
+  onPlayer(player) {
+    if (this.k < 0.55) return 'none';
+    this.hurts++;
+    return 'hurt';
+  }
+
+  onHit() {}
+
+  buildLook() {
+    const root = new THREE.Group();
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 8, 18), new THREE.MeshStandardMaterial({ color: 0x6a3a8a, roughness: 0.5, metalness: 0.2 }));
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = this.half.y;
+    root.add(collar);
+    const spikes = [];
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU;
+      const g = new THREE.ConeGeometry(0.11, 0.46, 6);
+      g.rotateZ(-Math.PI / 2);
+      g.translate(0.23, 0, 0);
+      g.rotateY(-a);
+      g.translate(0, (i % 2 ? 0.12 : -0.12), 0);
+      spikes.push(g);
+    }
+    const sg = merge(spikes);
+    const sp = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0xffd04a, roughness: 0.35, metalness: 0.35, emissive: 0x3a2000 }));
+    sp.position.y = this.half.y;
+    root.add(sp);
+    this.spikes = sp;
+    this.setModel({ root, update: () => {}, dispose() { collar.geometry.dispose(); collar.material.dispose(); sg.dispose(); sp.material.dispose(); } });
+  }
+
+  render(dt, t) {
+    super.render(dt, t);
+    if (!this.spikes) return;
+    const k = this.k, shake = this.state === 'warn' ? Math.sin(t * 60) * 0.05 : 0;
+    const s = 0.3 + 0.7 * k + 0.06;
+    this.spikes.scale.set(s + shake, 0.6 + 0.4 * k, s + shake);
+    this.spikes.rotation.y = t * 0.6;
+  }
+
+  info() { return { state: this.state, k: +this.k.toFixed(2), hurts: this.hurts }; }
+}
+
+/** Stachelringe anlegen (LEVEL.setup oder build): list [{ pos, period, out, warn, phase, id }]. */
+export function stachelringe(level, list) {
+  const out = [];
+  for (const q of list) {
+    const e = new Stachelring(level, q);
+    level.entities.push(e);
+    if (q.id) level.named.set(q.id, e);
+    out.push(e);
+  }
+  return out;
+}
+
+/**
+ * Glockenbaum (Bauplan P-2 „Gipfelbrücke ersetzt durch 3 Glockenbäume (Krallen-Anzug)“): Kletterstamm (climbable – nur mit dem
+ * Krallen-Anzug hinauf, sonst Wandrutschen), oben eine Krone als Plattform (von unten durchlässig, damit der Kletterer
+ * hinaufkommt) mit einer goldenen Glocke, die beim Landen läutet und im Wind schwingt.
+ *   glockenbaeume(level, [{ id, pos: [x, y0, z] (Fuß des Stamms), top (Oberkante der Krone), w: 1.3 (Stamm), crown: 3.2 }])
+ * Griff: level.named.get(id) = { rung (Zahl der Läut-Landungen), top, x, z, info() }.
+ */
+export function glockenbaeume(level, list) {
+  const parts = [], bells = [];
+  const handles = [];
+  for (const q of list) {
+    const [x, y0, z] = q.pos, top = q.top, w = q.w ?? 1.3, cr = q.crown ?? 3.2;
+    level.world.add({ type: 'box', min: [x - w / 2, y0, z - w / 2], max: [x + w / 2, top - 0.02, z + w / 2], climbable: true, tag: 'glockenbaum' });
+    const crownId = level.world.add({ type: 'box', min: [x - cr / 2, top - 0.5, z - cr / 2], max: [x + cr / 2, top, z + cr / 2], oneWay: true, tag: 'glockenkrone' });
+    const h = { id: q.id, x, z, top, rung: 0, ringT: 0, crownId, info: () => ({ rung: h.rung, top }) };
+    if (q.id) level.named.set(q.id, h);
+    handles.push(h);
+    if (!level.view) continue;
+    // Stamm: Rinde mit Krallen-Kerben (hell), unten Wurzeln
+    parts.push(box(w, top - y0 - 0.3, w, x, y0 + (top - y0 - 0.3) / 2, z, 0x7a4a2a, { r: 0.18 }));
+    for (let yy = y0 + 0.8; yy < top - 0.8; yy += 0.9) {
+      for (const [fx, fz, sx, sz] of [[0, 1, 0.32, 0.06], [0, -1, 0.32, 0.06], [1, 0, 0.06, 0.32], [-1, 0, 0.06, 0.32]]) {
+        const off = ((yy * 7) % 1) * 0.3 - 0.15;
+        parts.push(box(sx, 0.09, sz, x + fx * (w / 2 + 0.01) + (fz ? off : 0), yy, z + fz * (w / 2 + 0.01) + (fx ? off : 0), 0xe8c890, { r: 0, seg: 0 }));
+      }
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * TAU + 0.4;
+      parts.push(box(0.5, 0.5, 1.4, x + Math.cos(a) * (w / 2 + 0.3), y0 + 0.25, z + Math.sin(a) * (w / 2 + 0.3), 0x6a3e22, { r: 0.2 }));
+    }
+    // Krone: Platte mit Laub (Herbstfarben im Abendrot), Rand aus Laubbüscheln
+    parts.push(box(cr, 0.5, cr, x, top - 0.25, z, 0x5a8a3a, { r: 0.22, topColor: 0x7ab04a }));
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * TAU;
+      const g = new THREE.SphereGeometry(0.55 + (i % 3) * 0.08, 8, 6);
+      g.scale(1, 0.55, 1);
+      g.translate(x + Math.cos(a) * (cr / 2 - 0.05), top - 0.35, z + Math.sin(a) * (cr / 2 - 0.05));
+      const c = [0xd8782a, 0xe8a83a, 0x9ab84a][i % 3];
+      parts.push(colorizeFlat(g, c));
+    }
+    bells.push({ h, x, y: top - 0.55, z: z + cr / 2 + 0.1 });
+  }
+  if (parts.length) addStatic(level, merge(parts));
+  // Glocken (bewegt): eine Gruppe, je Glocke ein Pendel
+  if (level.view && bells.length) {
+    const group = new THREE.Group();
+    const bellGeo = bellGeometry();
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffc83a, roughness: 0.25, metalness: 0.6, emissive: 0x3a2400 });
+    for (const b of bells) {
+      const piv = new THREE.Group();
+      piv.position.set(b.x, b.y, b.z);
+      const m = new THREE.Mesh(bellGeo, mat);
+      m.position.y = -0.55;
+      m.castShadow = true;
+      piv.add(m);
+      group.add(piv);
+      b.piv = piv;
+    }
+    let t = 0;
+    addObject(level, group, (dt) => {
+      t += dt;
+      for (const b of bells) {
+        if (b.h.ringT > 0) b.h.ringT = Math.max(0, b.h.ringT - dt);
+        const amp = 0.12 + b.h.ringT * 0.5;
+        b.piv.rotation.x = Math.sin(t * (2.2 + b.h.ringT * 6) + b.x) * amp;
+      }
+    });
+  }
+  // Läuten: Landung auf der Krone
+  const was = new Map();
+  level.onStep(() => {
+    const p = level.player;
+    if (!p) return;
+    for (const h of handles) {
+      const on = p.mode === 'ground' && p.ground?.id === h.crownId;
+      if (on && !was.get(h)) {
+        h.rung++; h.ringT = 1.2;
+        level.sfx('klingel');
+        level.effects?.sparks?.({ x: h.x, y: h.top + 0.4, z: h.z }, 10);
+        level.signal?.('glockenbaum', { id: h.id, rung: h.rung });
+      }
+      was.set(h, on);
+    }
+  });
+  return handles;
+}
+
+/** Glocke (Ursprung Aufhängung oben, hängt nach −Y). */
+function bellGeometry() {
+  const pts = [];
+  for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(0.08 + 0.34 * Math.pow(t, 1.6) + (t > 0.9 ? 0.06 : 0), 0.55 - t * 0.55)); }
+  const g = new THREE.LatheGeometry(pts, 14);
+  const k = new THREE.SphereGeometry(0.08, 8, 6);
+  k.translate(0, -0.02, 0);
+  return merge([g.toNonIndexed(), k.toNonIndexed()].map((x) => colorizeFlat(x, 0xffffff)));
+}
+
+/** Geometrie einfarbig einfärben (Vertexfarben, linear). */
+function colorizeFlat(g, color) {
+  const geo = g.index ? g.toNonIndexed() : g;
+  const c = lin(color);
+  const n = geo.attributes.position.count, col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { col[i * 3] = c[0]; col[i * 3 + 1] = c[1]; col[i * 3 + 2] = c[2]; }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.deleteAttribute('uv');
+  if (!geo.attributes.normal) geo.computeVertexNormals();
+  return geo;
+}
+
 export { THREE, lin, addStatic, addObject, CourseEntity, runAction, visDt };

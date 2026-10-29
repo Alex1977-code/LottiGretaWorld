@@ -120,6 +120,107 @@ const ROUTES = {
   },
 };
 
+// P-2: gemeinsame Beine (Glockenhain vom Rankenplateau bis zum Glockenplatz; Krallen-Anzug nötig)
+const YP2 = 30, YW2 = 24, YG2 = 42.5, YS2 = 50;
+const BELL_TREES = [
+  { name: 'Absprung zum Glockenbaum 1', to: [-3.5, -180.1], within: 0.25, run: false },
+  { name: 'Glockenbaum 1 (Krallen)', climb: [-3.5, -184.2], top: YP2 + 4.5, jumpAt: 4.4 },
+  { to: [-2.3, -185.4], within: 0.3, run: false },
+  { name: 'Glockenbaum 2 (Krallen)', climb: [1.5, -189.2], top: YP2 + 8.5, jumpAt: 5.6 },
+  { to: [0.3, -190.4], within: 0.3, run: false },
+  { name: 'Glockenbaum 3 (Krallen)', climb: [-2.5, -194.6], top: YP2 + 12.5, jumpAt: 5.6 },
+  { to: [-1.8, -195.4], within: 0.3, run: false },
+  { name: 'Glockenplatz', to: [-1.5, -199.6], jump: 24, within: 0.5, run: false },
+];
+ROUTES['P-2'] = {
+  base: '1-3',
+  start: [0, 0, 6],
+  meta: { stars: 3, time: 500, theme: 'grass@abend', music: 'course_grass', variant: 'abend', archetype: 'parcours' },
+  enemies: { riesenschnappblume: 0, stachelkugler: 4, walzenwerfer: 2, schluesselmuenze: 5, stachelring: 5, bossblitz_box: 1, task: 0 },
+  main: [
+    { name: 'Schlüssel 1 hinter dem Start', to: [5.8, 9.4], within: 0.35, run: false },
+    { name: 'Startplatz', to: [0, -8], run: true },
+    { name: 'Schnappblumenfeld', to: [0, -21] },
+    { to: [3.5, -44.3] },
+    { name: 'Stufe zum POW-Hang', to: [5, -49.5], jump: 24, within: 0.5 },
+    { name: 'Riesenblock-Treppe am Hang', to: [7, -52.6], within: 0.4, run: false },
+    { to: [7, -55.5], jump: 24, within: 0.5, run: false },
+    { to: [7, -60], jump: 24, within: 0.5, run: false },
+    { to: [7, -64.5], jump: 24, within: 0.5, run: false },
+    { to: [7, -69], jump: 24, within: 0.5, run: false },
+    { name: 'Plateau oben', to: [7, -74.5], jump: 20, within: 0.5 },
+    { name: 'Krallen-Pilzling am Ranken-Fuß', defeat: 'krallen_pilzling', near: [-1, -76.5], r: 5 },
+    { to: [-3, -77.5], within: 0.4 },
+    { name: 'Ranke an der Felswand', stalk: [-3, -80.45] },
+    { climbStalk: true },
+    { name: 'Wolkenstart', jumpOff: [-3, -84] },
+    { to: [-0.6, -87.6], within: 0.3 }, { to: [-1, -92], jump: 30, within: 0.6, run: false },
+    { to: [0.1, -93.2], within: 0.3 }, { to: [2.5, -98.5], jump: 30, within: 0.6, run: false },
+    { to: [1.6, -99.7], within: 0.3 }, { to: [-1.5, -105], jump: 30, within: 0.6, run: false },
+    { to: [-0.7, -106.3], within: 0.3 }, { to: [1.5, -111.5], jump: 30, within: 0.6, run: false },
+    { name: 'Krallen-Pilzling auf der Wolke', defeat: 'krallen_pilzling', near: [1.5, -111.5], r: 2.6 },
+    { to: [1.5, -112.9], within: 0.3 }, { to: [1.5, -118.5], jump: 30, within: 0.6, run: false },
+    { name: 'Krallen-Pilzling auf der Holzbrücke', defeat: 'krallen_pilzling', near: [1.5, -121], r: 5 },
+    { name: 'Holzbrücke', to: [1.5, -127] },
+    { name: 'Doppelhügel', to: [0.3, -136] },
+    { name: 'unter den unsichtbaren Block', to: [-6.2, -145.2], within: 0.2, run: false },
+    { hop: 26 },
+    { to: [-6.2, -141.6], within: 0.25, run: false },
+    { name: 'auf den Block', to: [-6.2, -145.2], jump: 30, jumpAt: 3.3, within: 0.3, run: false },
+    { expect: '=P().pos.y > 19.9' },
+    { name: 'Schlüssel 3 über der Wandnische', to: [-8.5, -148.6], jump: 30, within: 0.3, run: false },
+    { expect: '=P().pos.y > 21.3' },
+    { to: [-8.5, -146.2], within: 0.4, run: false },
+    { to: [-4.5, -146.2], within: 0.5 },
+    { name: 'zur Riesenblock-Treppe', to: [-3.5, -152] },
+    { to: [-3.5, -155.5], jump: 24, within: 0.5 }, { to: [-1.4, -157], within: 0.3 }, { to: [2.5, -159.5], jump: 24, within: 0.5 },
+    { to: [0.4, -161], within: 0.3 }, { to: [-3.5, -163.5], jump: 24, within: 0.5 }, { to: [-1.4, -165], within: 0.3 },
+    { to: [2.5, -167.5], jump: 24, within: 0.5 },
+    { name: 'Schlüssel 2 am Fuß der dritten Ranke', to: [2.5, -169.6], within: 0.3, run: false },
+    { name: 'dritte Ranke', stalk: [2.5, -171.05] },
+    { climbStalk: true },
+    { name: 'Rankenplateau', jumpOff: [0, -174] },
+    { name: 'Krallen-Anzug', grab: [-4, -173.6], back: [-4, -175.6] },
+    { expect: 'krallen' },
+    ...BELL_TREES,
+    { name: 'Schlüssel 4 auf der Plattform', to: [3.6, -198.9], within: 0.3, run: false },
+    { to: [7.2, -197.4], jump: 24, within: 0.4, run: false },
+    { to: [5.8, -198.4], within: 0.3, run: false },
+    { to: [3.4, -199.2], jump: 24, within: 0.4, run: false },
+    { to: [-4, -200.6], within: 0.5 },
+    { name: 'letzte Ranke', to: [-10.5, -195.2], within: 0.4 },
+    { stalk: [-10.5, -193.6] },
+    { climbStalk: true },
+    { name: 'Schlüssel 5 auf der Wolke', jumpOff: [-12, -194.6] },
+    { expect: '=L.keys?.schluessel?.done === true' },
+    { name: 'zurück zum Glockenplatz', to: [-5, -199], within: 0.6 },
+    { name: 'Ziel-Warp-Box', warp: [1.6, -201.4] },
+    { expect: '=P().pos.y > 49' },
+    { name: 'Zielmast', to: [0, -211.9], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'alle fünf Schlüsselmünzen, drei Glockenbäume geklettert, Warp-Box geöffnet', ok: (r) => r.mech.climbs === 3 && r.mech.warps === 1 },
+  ],
+  targets: [],
+  extra: [],
+  shots: [
+    ['start', [0, 0, 6]],
+    ['hang', [3, 3, -50]],
+    ['ranke2', [-3, 9, -77]],
+    ['doppelhuegel', [0, 17, -136]],
+    ['nische', [-7, 17, -143]],
+    ['treppe', [0, 17, -153]],
+    ['ranke3', [2.5, 25, -169.4]],
+    ['plateau', [0, YP2, -173]],
+    ['hain', [-3.5, YP2, -179.8]],
+    ['krone2', [1.5, YP2 + 8.5, -189.2]],
+    ['glockenplatz', [0, YG2, -199.5]],
+    ['wolke', [-12, YS2, -194.6]],
+    ['gipfel', [0, YS2, -206.5]],
+    ['praum', [66, 0, -64]],
+  ],
+};
+
 const PORT = 5035;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -236,6 +337,7 @@ function install() {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 2) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
+        if (window.__trace && steps % 8 === 0) log.push(['spur', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, inp?.jump ? 'J' : '']);
         if (steps % 6 === 0) { hist.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
         if (p.dead && !deadLogged) { deadLogged = true; log.push(['TOD', p.deathCause, JSON.stringify(hist.slice(-8))]); }
         if (p.mode === 'script' && L.runtime.status === 'play' && !p.dead) {
@@ -297,6 +399,21 @@ function install() {
           if (!e) { log.push(['FEHLER: kein Gegner', Lg.jumpOnKind]); continue; }
           const r = this.jumpOn(e, { max: Lg.max ?? 600, until: () => (p.hurtTries ?? 0) > 0 || p.dead });
           log.push(['draufspringen', Lg.jumpOnKind, r.ok, r.steps]);
+          continue;
+        }
+        // ------------------------------------------------ Gegner einer Art nahe near (Radius r) besiegen (draufspringen)
+        if (Lg.defeat) {
+          const [nx, nz] = Lg.near, rr = Lg.r ?? 5;
+          let n = 0;
+          for (let guard = 0; guard < 8; guard++) {
+            const e = L.entities.filter((x) => x.kind === Lg.defeat && x.alive && !x.removed && !x.defeated && Math.hypot(x.pos.x - nx, x.pos.z - nz) < rr)
+              .sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z))[0];
+            if (!e) break;
+            this.jumpOn(e, { max: 900, tick });
+            if (!e.alive || e.defeated || e.removed) { n++; mech.stomped.push(Lg.defeat); }
+          }
+          for (let i = 0; i < 40; i++) tick({});
+          log.push(['besiegt', Lg.defeat, n]);
           continue;
         }
         // ------------------------------------------------ in eine Glasröhren-Öffnung laufen
@@ -427,8 +544,62 @@ function install() {
             tick({ ...this.stick(dx, dz, 1), run: false, jump: p.mode === 'ground' ? d < (Lg.jumpAt ?? 1.6) : p.vel.y > 0 });
           }
           if (Lg.then) goTo(Lg.then[0], Lg.then[1], 0.3);
-          log.push(['klettern', `${Lg.climb}`, top, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          mech.climbs = (mech.climbs ?? 0) + (top ? 1 : 0);
+          log.push(['klettern', `${Lg.climb}`, top, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.power]);
           if (!top) log.push(['FEHLER: Wand nicht erklommen', Lg.climb]);
+          continue;
+        }
+        // ------------------------------------------------ an eine Bohnenranke springen/laufen (bis die Figur daran hängt)
+        if (Lg.stalk) {
+          const [tx, tz] = Lg.stalk;
+          let k = 0;
+          for (; k < (Lg.max ?? 400) && p.mode !== 'stalk' && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3, 5) : this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2)))), run: false, jump: !!Lg.jump && p.mode === 'ground' && d < 1.4 });
+          }
+          log.push(['ranke', `${Lg.stalk}`, p.mode === 'stalk', k, +p.pos.y.toFixed(2)]);
+          if (p.mode !== 'stalk') { log.push(['FEHLER: Ranke nicht gegriffen', Lg.stalk]); break; }
+          continue;
+        }
+        // ------------------------------------------------ an der Ranke hinauf; Stachelringe abwarten (eingefahren vorbei)
+        if (Lg.climbStalk) {
+          let k = 0, still = 0, lastY = p.pos.y, waits = 0;
+          const rings = L.entities.filter((e) => e.kind === 'stachelring' && p.stalk && Math.hypot(e.pos.x - p.stalk.x, e.pos.z - p.stalk.z) < 0.3);
+          for (; k < (Lg.max ?? 3000) && p.mode === 'stalk' && !p.dead; k++) {
+            const head = p.pos.y + p.half.y * 2, feet = p.pos.y;
+            // nächster Ring über/an der Figur: Unterkante des Rings bis 1,3 m über dem Kopf bzw. noch nicht ganz passiert
+            const r = rings.find((e) => { const y0 = e.pos.y, y1 = e.pos.y + e.half.y * 2; return y0 - head < 1.3 && y1 > feet - 0.05; });
+            let go = true;
+            if (r) {
+              const t = r.phaseT(), left = r.state === 'ein' ? (r.period - r.warn) - t : -1;
+              const inside = r.pos.y - head < 0.05;
+              if (!inside && left < 0.75) go = false;           // noch unter dem Ring: warten, bis er lange genug eingefahren bleibt
+            }
+            if (go) tick({ x: 0, y: 1 }); else { waits++; tick({}); }
+            if (go) { if (p.pos.y <= lastY + 1e-4) still++; else still = 0; }
+            lastY = p.pos.y;
+            if (still > 8) break;
+          }
+          mech.ringWaits = (mech.ringWaits ?? 0) + waits;
+          log.push(['ranke hinauf', k, waits, +p.pos.y.toFixed(2), p.mode]);
+          if (p.mode !== 'stalk') log.push(['FEHLER: von der Ranke gefallen', p.mode]);
+          continue;
+        }
+        // ------------------------------------------------ von der Ranke abspringen (Stick zum Ziel), in der Luft hinlenken, landen
+        if (Lg.jumpOff) {
+          const [tx, tz] = Lg.jumpOff;
+          let k = 0;
+          tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, 1), jump: true });
+          for (; k < 400 && p.mode !== 'ground' && !p.dead; k++) tick({ ...this.airSteer(tx, tz, 0, 0, 3, 6), jump: k < (Lg.hold ?? 30) });
+          log.push(['abgesprungen', `${Lg.jumpOff}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          continue;
+        }
+        // ------------------------------------------------ Tatzenhieb (Krallen-Anzug) in Richtung [dx, dz]
+        if (Lg.swipe) {
+          const [dx, dz] = Lg.swipe;
+          for (let n = 0; n < 12; n++) tick({ ...this.stick(dx, dz, 0.15), run: false });
+          for (let n = 0; n < (Lg.n ?? 2); n++) { tick({ action: true }); for (let q = 0; q < 40; q++) tick({}); }
+          log.push(['tatzenhieb', `${Lg.swipe}`, p.power]);
           continue;
         }
         // ------------------------------------------------ Weitsprung
@@ -607,6 +778,7 @@ async function load(id) {
   }
   await page.waitForTimeout(300);
   await sc(install);
+  if (process.env.TRACE) await sc(() => { window.__trace = true; });
   return true;
 }
 
