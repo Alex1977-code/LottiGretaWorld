@@ -22,7 +22,7 @@
 //      blaue Münzen in Steinkäfigen – nur als Riese alle in 12 s (Stern 2). Die Röhre bringt einen zum Zielplatz.
 
 import {
-  line, ring, arc, grossbloecke, riesentrankQuelle, riesenpilzPlattform, riesenstaemme, riesenbaeume, wurzelsaeulen, dschungelDeko,
+  line, ring, arc, grossbloecke, riesentrankQuelle, riesenpilzPlattform, riesenstaemme, riesenbaeume, wurzelsaeulen, dschungelDeko, seerosen,
 } from './_helpers_c.js';
 
 const PI = Math.PI;
@@ -94,6 +94,9 @@ function build(level) {
   riesenstaemme(level, [{ x: 0, y: WS - 0.1, z: -206, length: 20 }, { x: 0, y: WS - 0.1, z: -233, length: 20 }, { x: 0, y: WS - 0.1, z: -259, length: 20 }, { x: 0, y: WS - 0.1, z: -281, length: 20 }]);
   wurzelsaeulen(level, [{ x: -4, z: -222, y0: WB, y1: WS + 1.2 }, { x: 5, z: -245, y0: WB, y1: WS + 1.4 }, { x: -2.5, z: -270, y0: WB, y1: WS + 1.2 }, { x: 6.5, z: -214, y0: WB, y1: WS + 1.0, r: 0.6 }]);
   dschungelDeko(level, KLEIN);
+  // Seerosenblätter am Teichrand (von oben begehbar)
+  seerosen(level, [[-8, -198, 1], [8, -210, 0], [-8.2, -228, 0], [8, -242, 1], [-8, -256, 0], [8.2, -268, 1], [-7.8, -284, 1], [7.6, -290, 0]]
+    .map(([x, z, b]) => ({ x, y: WS, z, r: 1.3 + (b ? 0.2 : 0), bluete: !!b })));
   // Riesenbäume am Rand (Kulisse)
   riesenbaeume(level, [
     { x: -15, z: -6, r: 2.2, h: 20 }, { x: 16, z: -20, r: 2.6, h: 22 }, { x: -17, z: -58, y: Y1, r: 2.4, h: 26 }, { x: 18, z: -84, y: Y1, r: 3, h: 28 },
@@ -118,6 +121,8 @@ const DECO = [
   { kind: 'riesenpflanze', pos: [-9, Y1, -104], size: 3.5 }, { kind: 'riesenblume', pos: [9.5, Y1, -112], height: 6, color: 'rosa' },
   { kind: 'riesenpflanze', pos: [9, Y1, -148], size: 4 }, { kind: 'liane', from: [-9.6, Y1 + 10, -104], to: [-9.6, Y1 + 9, -124], sag: 2.5 }, { kind: 'liane', from: [9.6, Y1 + 9, -128], to: [9.6, Y1 + 10, -148], sag: 2.5 },
   // Blockwächter-Wand, Plateau
+  { kind: 'liane', from: [-9, YW - 0.1, -171.9], to: [-7.5, YW - 0.1, -171.9], sag: 3.5 }, { kind: 'liane', from: [-6.2, YW - 0.1, -171.9], to: [-4.8, YW - 0.1, -171.9], sag: 4.5 },
+  { kind: 'liane', from: [1.0, YW - 0.1, -171.9], to: [1.9, YW - 0.1, -171.9], sag: 1.6 }, { kind: 'liane', from: [10.6, YW - 0.1, -171.9], to: [11.6, YW - 0.1, -171.9], sag: 5 },
   { kind: 'riesenblume', pos: [-10.5, Y1, -158], height: 6.5, color: 'gold' }, { kind: 'riesenpflanze', pos: [10.5, Y1, -166], size: 3.5 },
   { kind: 'riesenpflanze', pos: [10, YW, -188], size: 3 }, { kind: 'riesenblume', pos: [-24, YW, -190], height: 4, color: 'rosa' },
   // Teich-Ufer
@@ -159,14 +164,14 @@ export const LEVEL = {
     { type: 'island', pos: [-1.5, 0, -10], size: [2, 2, 2] },                          // Erdhügel als Stufe zum Käfig
     // ================================================================ 2 Rutschhang (Schlucht)
     { type: 'rutschhang', pos: [0, Y1, -50], size: [8, 10, 32], dir: 1 },
-    isl(-7, -4, -34, -66, 1.5, 12, { top: 'rock' }), isl(4, 7, -34, -66, 1.5, 12, { top: 'rock' }),
+    isl(-7, -4, -34, -66, 1.5, 12), isl(4, 7, -34, -66, 1.5, 12),
     // ================================================================ 3/4 Lichtung und Riesentrank-Feld
     isl(-12, 12, -66, -100, Y1, 5),
     isl(-10, 10, -100, -150, Y1, 5),
     // ================================================================ 5 Gleitblatt und Blockwächter-Wand
     isl(-12, 12, -150, -172, Y1, 5),
-    isl(-12, -6, -172, -174, YW, 10, { top: 'rock' }),                                  // Wandstück links (dahinter Schlucht)
-    isl(-6, 12, -172, -190, YW, 10, { top: 'rock' }),                                   // Wand + Plateau (Kontrollpunkt)
+    isl(-12, -6, -172, -174, YW, 10),                                                   // Wandstück links (dahinter Schlucht)
+    isl(-6, 12, -172, -190, YW, 10),                                                    // Wand + Plateau (Kontrollpunkt)
     isl(-25, -20, -185, -191, YW, 3, { under: 4 }),                                     // Blätterinsel mit Stern 0 (14 m Lücke)
     { type: 'pipe', id: 'inselrohr', pos: [-22.5, YW, -189.6], height: 1.4, target: [-3, YW, -186] },
     // ================================================================ 6 Tintenteich

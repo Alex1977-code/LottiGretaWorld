@@ -850,3 +850,30 @@ export function bluemchen(level, list) {
   }
   level.view.addStatic(merge(parts), { material: 'world', castShadow: false });
 }
+
+/**
+ * Riesen-Seerosenblätter (S-7): flache grüne Blätter mit Kerbe auf der Wasseroberfläche, manche mit rosa Blüte; von oben
+ * begehbar (Einweg-Plattform, Schwimmer kommen von unten hindurch). list [{ x, y (Oberfläche), z, r (1,4), bluete }]
+ */
+export function seerosen(level, list) {
+  const parts = [];
+  const rnd = new Rnd(77);
+  for (const it of list) {
+    const r = it.r ?? 1.4, yaw = rnd.real(0, TAU);
+    level.world.add({ type: 'cyl', x: it.x, z: it.z, r: r * 0.92, y0: it.y - 0.25, y1: it.y + 0.06, oneWay: true, tag: 'seerose' });
+    if (!level.view) continue;
+    const g = new THREE.CylinderGeometry(r, r * 0.96, 0.12, 22, 1, false, 0.35, TAU - 0.7).toNonIndexed();
+    const lo = C3(0x2a9a3a), hi = C3(0x8ae86a), vein = C3(0xc8f8a0);
+    colorize(g, (q, n, o) => { const d = Math.hypot(q.x, q.z) / r, a = Math.atan2(q.z, q.x); mixc(lo, hi, 0.3 + 0.5 * d, o); if (n.y > 0.5 && Math.abs(Math.sin(a * 4)) < 0.08 && d > 0.15) mixc(o, vein, 0.7, o); });
+    parts.push(place(g, [it.x, it.y + 0.04, it.z], yaw));
+    if (it.bluete) {
+      for (let k = 0; k < 7; k++) {
+        const pe = new THREE.SphereGeometry(0.28, 8, 5); pe.scale(0.6, 0.35, 1.2); pe.translate(0, 0.12, 0.3); pe.rotateX(-0.5); pe.rotateY((k / 7) * TAU);
+        parts.push(place(shadeY(pe, 0xff6ab0, 0xffe0f0), [it.x + 0.2, it.y + 0.12, it.z - 0.1], yaw));
+      }
+      const c = new THREE.SphereGeometry(0.16, 8, 6); c.translate(0, 0.3, 0);
+      parts.push(place(fillC(c, 0xffd23a), [it.x + 0.2, it.y + 0.12, it.z - 0.1], yaw));
+    }
+  }
+  if (level.view && parts.length) level.view.addStatic(merge(parts), { material: 'world', castShadow: false });
+}
