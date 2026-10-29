@@ -265,7 +265,7 @@ const ROUTES = {
         legs: [{ until: '=ent(\'falle2\').state === \'warn\'', max: 900 }, { to: [0, -31], within: 0.3, run: false, max: 200 }, { wait: 150 }],
         mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
       { name: 'Graben nach Turm 2 zu breit zum Springen (nur die Warp-Box)', from: [0, Y, -46], heroes: ['lotti', 'greta'], expectAlive: false, allowFail: true,
-        legs: [{ to: [-3.5, -53.6], within: 0.3, run: true }, { to: [-3.5, -72], jump: 40, jumpAt: 20, within: 0.6, max: 300 }],
+        legs: [{ to: [-2.2, -53.6], within: 0.3, run: true }, { to: [-2.2, -72], jump: 40, jumpAt: 20, within: 0.6, max: 300 }],
         mech: (r) => r.dead, mechText: (r) => (r.dead ? 'abgestürzt' : `z ${r.pos[2].toFixed(1)}`) },
       { name: 'Keil-Gruppe: Knochenflieger im Sturzflug von oben treffen – Knochenhaufen, setzt sich nach 4 s neu zusammen', from: [0, Y, -186], heroes: ['lotti'],
         legs: [{ diveStomp: 'kg_keil', at: [0, -186], max: 3000 }, { until: '=ent(\'kg_keil\').members.some((m) => m.state === \'rebuild\') || ent(\'kg_keil\').rebuilds > 0', max: 900 }],
