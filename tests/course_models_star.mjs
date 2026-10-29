@@ -156,7 +156,8 @@ await sc(async () => {
   const day = { hemi: [L.hemi.color.getHex(), L.hemi.groundColor.getHex(), L.hemi.intensity], sun: [L.sun.color.getHex(), L.sun.intensity], bg: scene.background.clone() };
   const live = [];
   // schwebende Modelle (Ursprung in der Mitte) anheben
-  const LIFT = { kanonenkugel_tritt: (o) => (o.size ?? 2) / 2, sternschnuppe: () => 1.2, regenbogenweg: () => 0.4, retro_wolke: () => 0.05 };
+  const LIFT = { kanonenkugel_tritt: (o) => (o.size ?? 2) / 2, sternschnuppe: () => 1.2, regenbogenweg: () => 0.4, retro_wolke: () => 0.05, walzen_schiene: (o) => (o.height ?? 3) + 0.45,
+    brett_schiene: (o) => (o.posts ?? 0) + 0.3, weiche: () => 0.6, schienenbrett: () => 0.3 };
   const cm = {
     reg, kit, inst, toy, THREE, v, stage, hero, live, labels, ground,
     clear() {
@@ -261,7 +262,7 @@ await sc(async () => {
     /** Stimmung: 'tag' | 'weltraum' | 'himmel' | 'schnee' | 'dschungel' | 'nacht' | 'abend' | 'gold'. */
     mood(kind = 'tag') {
       const set = (hemi, gr, hi, sun, si, bg, groundC, showGround = true) => { L.hemi.color.setHex(hemi); L.hemi.groundColor.setHex(gr); L.hemi.intensity = hi; L.sun.color.setHex(sun); L.sun.intensity = si; scene.background = new THREE.Color(bg); ground.material.color.setHex(groundC); ground.visible = showGround; };
-      if (kind === 'weltraum') set(0xc8c0ff, 0x2a1a5a, 1.0, 0xfff0e0, 1.45, 0x1a1446, 0x6a62a0, false);
+      if (kind === 'weltraum') set(0xd8d0ff, 0x4a3a8a, 1.25, 0xfff4e8, 1.55, 0x1a1446, 0x6a62a0, false);
       else if (kind === 'himmel') set(0xe8f4ff, 0x8aa8d8, 1.05, 0xfff4e0, 1.5, 0x8ac8ff, 0xffffff, false);
       else if (kind === 'schnee') set(0xd8e0ff, 0x4a4a7a, 0.9, 0xe0e4ff, 1.0, 0x3a3a6a, 0xe8eeff);
       else if (kind === 'dschungel') set(0xe0ffd8, 0x2a4a2a, 1.0, 0xfff4d0, 1.4, 0x7ad0a0, 0x8ac870);
