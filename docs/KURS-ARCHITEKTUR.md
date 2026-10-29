@@ -8067,7 +8067,8 @@ Welt 8)“.
 - Sterne: 0 **Stern-Sandflosser** in der Startmulde (springt quer hin und her, rote Schattenmarke; im Sprung von oben treffen:
   kurz bevor er auftaucht hüpfen und beim Herausspringen auf ihm landen) · 1 **Flatterkäfer** links hinter der Rampe, 2,3 m über
   dem Sand (nur mit dem Rampensprung erreichbar: auf der Rampe springen bzw. Sprungtaste halten und in der Luft nach links
-  lenken; der gerade Rampensprung fliegt vorbei) · 2 **große Baron-Sandstatue** rechts (lat 7) kurz vor dem Ende: zerbröselt,
+  lenken; der gerade Rampensprung fliegt vorbei; drei hohe Münzen zeigen hin) · 2 **große Baron-Sandstatue** rechts (lat 7, eine
+  Münzreihe führt hin) kurz vor dem Ende: zerbröselt,
   der Stern erscheint 2,5 m stromab. **Sterne im Sandstrom treiben mit** (`sandStrom`): wer daneben landet, holt den Stern mit
   Bremsen/Lenken ein; der vom Käfer losgelassene Stern fällt bis auf die Sandoberfläche. Stempel: in der Oase vier **unsichtbare
   Wolken** (`wolkenlift`, `reveal 'touch'`, ohne Pfad) zwischen drei Baron-Statuen, je eine Münze darüber als Hinweis; über der
@@ -8095,7 +8096,8 @@ Welt 8)“.
   Gegner: Riesenschnappblume 2, Hörner-Ameisen-Reihen 4, Hase 1.
 - Kulisse `zuckerwerk83`: bunte Streusel auf allen Plätzen, Zuckerguss-Wülste mit Tropfen an den Kanten, Lollis, Zuckerstangen,
   Cupcakes, Macarons, Gummidrops, Bonbons, Schoko-Tropfen und Zuckerguss-Wellen an der Zahnradwand, Torte (Schichten an den
-  Seiten, Sahnetupfer, Erdbeeren, Kerzen mit Flamme).
+  Seiten, Sahnetupfer, Erdbeeren, Kerzen mit Flamme), glänzender Schokoladensee mit Milchschlieren tief unter Fabrik, Torte
+  und Keks-Raum (knapp über der Absturz-Ebene).
 
 ### Hilfen `_helpers_a.js`
 
@@ -8121,4 +8123,4 @@ Sterne und Stempel mit Gegenproben (Säule ohne Anzug, Rätselbox ohne Wachen, M
 Mittellinie im Statuenfeld, Stempel vor dem Stoß, normaler Sprung über die Kekslücke); Extras (Stachelfalle verletzt, Graben zu
 breit, Knochenhaufen und endgültig besiegt, Hörner-Ameise, Riesenschnappblume, Röhren aus den Fächern, Felsentor-Arm, Leitplanke,
 Skulptur rammen, Kontrollpunkt im Ritt, sechs Extraleben). Gemessen (scale 2, inkl. Schattenpass, Messgang alle ~7 m der Route
-und Bilder je Abschnitt): 8-1 40–75 Zeichenaufrufe / ≤ 188 k Dreiecke · 8-2 54–111 / ≤ 293 k · 8-3 37–100 / ≤ 213 k.
+und Bilder je Abschnitt): 8-1 40–75 Zeichenaufrufe / ≤ 188 k Dreiecke · 8-2 54–111 / ≤ 294 k · 8-3 37–101 / ≤ 223 k.
