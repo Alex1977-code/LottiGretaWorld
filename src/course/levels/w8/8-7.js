@@ -26,7 +26,9 @@ import {
   isl, line, ring, arc, sign, kristalle, basalt, lavaHang, kristallBogen, lavaFaelle, funkenFlug, glutSaum, bakeParts, blk, cyl, sph,
   levelSetup, farHide,
 } from './_helpers_c.js';
-import { bimsEnten } from '../w7/_helpers_d.js';
+import { bimsEnten, Bld, basaltPflaster, glutlilien, schwefel } from '../w7/_helpers_d.js';
+import { steamVents } from '../w4/_helpers_c.js';
+import { Rnd } from '../../blocks/kit.js';
 
 const Y0 = 0, Y2 = -6, Y3 = -14;          // Gelände-Stufen
 const LV1 = -0.7, LV2 = -3.7, LV3 = -6.7, LV4 = -14.7;   // Lava-Spiegel
@@ -92,6 +94,22 @@ function build(level) {
   // Kristallbogen über der Kurvenfahrt (Stern 2) und am Start der Kurvenroute
   kristallBogen(level, { x: -5, z: -300, y: LV4 + 0.2, w: 9.6, h: 9.2, color: 'blau' });
   kristallBogen(level, { x: 5.6, z: -318, y: LV4 + 0.2, w: 9.8, h: 8.4, color: 'lila' });
+  // Sechseck-Basaltpflaster mit glühenden Fugen, Glutlilien und Schwefelschlote auf allen festen Flächen
+  {
+    const rnd = new Rnd(8787), b = new Bld(), g = new Bld();
+    basaltPflaster(b, g, [[-7, 7, 8, -8, Y0], [-6, 6, -58, -66, Y0], [4, 7, -93.5, -96.5, LV2 + 0.75], [-10, 12, -128, -182, Y2], [0.6, 2.4, -152.2, -155.8, Y2 + 1.3],
+      [3, 6, -152.5, -155.5, -3.4], [-7, 7, -242, -262, Y3], [-8, 8, -346, -362, Y3]], rnd, { avoid: [[0, -133, 1.4], [2.6, -251, 1.4], [0, -356, 1.6], [-3.6, -246.2, 1.4]] });
+    glutlilien(b, g, [[-5.8, Y0, 6.4, 4], [5.4, Y0, -6.6, 3], [4.8, Y0, -59.2, 3], [-9, Y2, -141, 4], [10.6, Y2, -152, 3], [-8.8, Y2, -168, 4], [10.8, Y2, -180, 3],
+      [5.6, Y3, -255, 4], [-6.6, Y3, -258.4, 3], [5.2, Y3, -361, 4], [-5.8, Y3, -347, 3]], rnd);
+    schwefel(b, g, [[-4.6, Y0, -3.6, 0.8], [8.2, Y2, -131.4, 0.9], [-8.6, Y2, -172, 0.8], [5.4, Y3, -246.6, 0.8], [-5.2, Y3, -352.6, 0.9]], rnd);
+    b.flush(level, { castShadow: false });
+    g.flush(level, { material: 'glow', castShadow: false });
+  }
+  // Basalt-Inselchen mit Kristallen in der Lava neben den Fahrten (nur Kulisse)
+  kristalle(level, [[-6.8, LV1 + 0.1, -30, 1.1, 'blau'], [8.6, LV1 + 0.1, -40, 0.9, 'rosa'], [-6.4, LV2 + 0.1, -100.4, 1.0, 'lila'], [5.2, LV3 + 0.1, -120, 0.9, 'blau'],
+    [-12.6, LV4 + 0.1, -300, 1.4, 'lila'], [14.2, LV4 + 0.1, -320, 1.2, 'blau'], [-3.2, LV4 + 0.1, -322, 0.8, 'gold'], [15, LV4 + 0.1, -282, 1.0, 'rosa']], { solid: false });
+  basalt(level, [[-6.8, LV1 + 0.5, -30, 3, 0.6, 0.7], [8.6, LV1 + 0.5, -40, 3, 0.6, 0.6], [-6.4, LV2 + 0.5, -100.4, 3, 0.6, 0.6], [5.2, LV3 + 0.5, -120, 3, 0.6, 0.6],
+    [-12.6, LV4 + 0.5, -300, 4, 0.7, 0.8], [14.2, LV4 + 0.5, -320, 4, 0.7, 0.8], [-3.2, LV4 + 0.5, -322, 3, 0.6, 0.6], [15, LV4 + 0.5, -282, 3, 0.6, 0.7]], { shadow: false });
   // Felsklotz-Rastplatz am Start: Pfosten mit Glutlaterne und Holzbank
   const rast = [];
   rast.push(blk(2.0, 0.12, 0.5, -3.6, Y0 + 0.45, -2.2, 0x8a5a3a), blk(0.14, 0.45, 0.4, -4.4, Y0, -2.2, 0x5a3a2a), blk(0.14, 0.45, 0.4, -2.8, Y0, -2.2, 0x5a3a2a));
@@ -102,6 +120,7 @@ function build(level) {
 function setup(level) {
   bimsEnten(level, [[-7.5, -16, 0.4], [8.8, -40, 2.4], [-6.6, -52, 1.2], [-8.4, -100, 0.8], [6.8, -116, 2.2]], 'lava1');
   funkenFlug(level, [[-12, 12, 4, -60], [-12, 12, -66, -128], [-6, 6, -186, -236], [-14, 14, -262, -346]], LV3, { n: 150 });
+  steamVents(level, [[-4.6, Y0 + 0.4, -3.6], [8.2, Y2 + 0.4, -131.4], [-8.6, Y2 + 0.4, -172], [5.4, Y3 + 0.4, -246.6], [-5.2, Y3 + 0.4, -352.6]], { per: 5, size: 2.0, color: 0xe8dcc8 });
   // Fern-Ausblendung (Gegner springen nur nahe der Figur ins Bild)
   farHide(level, ['lavablase', 'knochenflieger', 'hammer_werfer'], 46);
 }
@@ -121,12 +140,12 @@ export const LEVEL = {
   instances: { lavablase: { shadowDist: 12, farHide: 40 }, knochenflieger: { shadowDist: 14 }, coin: { shadow: false } },
   camera: [
     { from: 14, to: -8, pitch: 42, dist: 13, ahead: 2.4 },
-    { from: -8, to: -58, pitch: 44, dist: 14.5, ahead: 3.0 },
-    { from: -58, to: -128, pitch: 46, dist: 14.5, ahead: 3.0 },
+    { from: -8, to: -58, pitch: 37, dist: 15, ahead: 4.2 },
+    { from: -58, to: -128, pitch: 40, dist: 15, ahead: 4.0 },
     { from: -128, to: -182, pitch: 45, dist: 13.5, ahead: 2.4 },
-    { from: -182, to: -242, pitch: 40, dist: 14.5, ahead: 3.4 },
+    { from: -182, to: -242, pitch: 34, dist: 15, ahead: 4.2 },
     { from: -242, to: -262, pitch: 46, dist: 14, ahead: 2.2 },
-    { from: -262, to: -346, pitch: 44, dist: 15, ahead: 3.2 },
+    { from: -262, to: -346, pitch: 37, dist: 15.5, ahead: 4.4 },
     { from: -346, to: -366, pitch: 42, dist: 13, ahead: 2 },
   ],
   segments: [
