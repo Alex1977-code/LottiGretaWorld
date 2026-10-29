@@ -20,7 +20,7 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 // ------------------------------------------------------------------ Routen
 // Beine (legs): { to: [x, z], jump: Schritte (Sprungtaste gehalten), jumpAt, within, run, slow, max, land, autoJump, stopIf }
-// · { wait } · { hop } (Sprung auf der Stelle) · { crouch } (Röhre) · { star: i } · { chaseKind, ids } · { expect } ·
+// · { wait } · { hop } (Sprung auf der Stelle) · { crouch } (Röhre) · { star: i } · { chaseKind, ids, near (m, Std. 12) } · { expect } ·
 // { until } (Name aus COND oder Ausdruck '=…') · { warp: [x, z] } (auf Warp-Box/Wolkenkanone springen) · { stompAll } ·
 // { pound: [x, z] } · { climb: [x, z], top } · { grab: [x, z] } (Power-up aus ?-Block) · { trapeze: id } · { swing: id,
 // next | land } · { mount: true } (auf Pflaume springen) · { ride: [[z, lat] …], jump: [[z0, z1] …] } (Pflaume lenken bis
@@ -163,7 +163,7 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 0: über die rechten blauen Platten zum Sternstein-Sockel, Sternziegel anstoßen', star: 0, from: [2.6, 0, -6.6],
-        legs: [{ to: [2.6, -14.3], within: 0.6, run: true }, { to: [5.2, -14.3], jump: 14, jumpAt: 2.2, within: 0.35, run: false }, { hop: 30 }, { wait: 30 }, { star: 0 }], shot: 'stern0' },
+        legs: [{ to: [2.6, -11.4], within: 0.6, run: true }, { to: [5.2, -14.3], jump: 6, jumpAt: 2.0, within: 0.45, run: false, autoJump: false }, { hop: 30 }, { wait: 30 }, { star: 0 }], shot: 'stern0' },
       { name: 'Stern 0 nicht ohne Anstoßen (auf dem Sockel stehen bleiben)', star: 0, expectNot: true, from: [5.2, 0, -14.3], heroes: ['lotti'], legs: [{ wait: 120 }] },
       { name: 'Stern 1: auf der Drehplatte Spalte 1, Reihe 2 stehen bleiben – sie kippt, darunter das Versteck', star: 1, from: [-2.6, 0, -6.6],
         legs: [{ to: [-2.6, -9.2], within: 0.6, run: true }, { to: [-2.6, -11.7], within: 0.25, run: false }, { wait: 240 }, { expect: 'imVersteck' }, { star: 1 },
@@ -172,9 +172,9 @@ const ROUTES = {
         legs: [{ to: [-2.6, -9.2], within: 0.6, run: true }, { to: [-2.6, -14.3], within: 0.25, run: false, max: 300 }, { wait: 360 }] },
       { name: 'Stern 2: letzte Warp-Box hinab, alle blauen Platten umfärben', star: 2, from: [-4.2, 17.2, -205.6],
         legs: [{ warp: [-6.2, -205.6] }, { expect: 'unten' }, { plates: ['blauplatten'], snake: true }, { until: 'stern2da', max: 300 }, { star: 2 }, { warp: [-8, -213.6] }, { expect: 'aufBrett' }], shot: 'stern2' },
-      { name: 'Stempel: oben auf der senkrechten Takt-Plattenwand', stamp: true, from: [6.6, 4, -181.6],
+      { name: 'Stempel: oben auf der senkrechten Takt-Plattenwand', stamp: true, from: [4.85, 4, -181.6],
         legs: [{ climbwall: 'stempelwand' }], shot: 'stempel' },
-      { name: 'Stempel nicht vom Boden aus (Wand zu hoch)', stamp: true, expectNot: true, from: [6.6, 4, -181.2], heroes: ['lotti'], legs: [{ hop: 40 }, { backflip: true }, { wait: 30 }] },
+      { name: 'Stempel nicht vom Boden aus (Wand zu hoch)', stamp: true, expectNot: true, from: [5.8, 4, -181.2], heroes: ['lotti'], legs: [{ hop: 40 }, { backflip: true }, { wait: 30 }] },
     ],
     extra: [
       { name: 'Boost-Strecke: wer trödelt, stürzt ab', from: [0, 2, -96.2], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
@@ -183,10 +183,10 @@ const ROUTES = {
         legs: [{ wait: 600 }], mech: (r) => r.mech.spits >= 1, mechText: (r) => `Spuckzüge ${r.mech.spits}` },
       { name: 'Krakenpilz von oben besiegen (Münzinsel)', from: [0, 0.6, -21], heroes: ['lotti'],
         legs: [{ stompAll: 'kp_muenz' }], mech: (r) => r.mech.stomped.includes('kp_muenz'), mechText: (r) => `besiegt ${r.mech.stomped.join(',')}` },
-      { name: 'Extraleben: unsichtbarer Block auf der Münzinsel', from: [3.4, 0.6, -25.6], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [3.4, -27.2], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
-      { name: 'Extraleben: Absatz der Plattentreppe', from: [-4, 12.8, -199.6], heroes: ['lotti'], expectLives: 1,
-        legs: [{ to: [-6.2, -201.2], within: 0.3, run: false }] },
+      { name: 'Extraleben: unsichtbarer Block auf der Münzinsel', from: [-1.2, 0.6, -25.8], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-1.2, -27.6], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Extraleben: rechter Winkel des Treppenabsatzes', from: [3, 12.8, -199.6], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [5.6, -201.2], within: 0.3, run: false }] },
       { name: 'Extraleben: Ende der Farb-Plattenbahn erscheint erst, wenn alle Platten golden sind', from: [0, 0.6, -28.2], heroes: ['lotti'], expectLives: 1,
         legs: [{ plates: ['bahn'] }, { to: [BAHN_END_X + 2.6, -86.6], within: 0.3, run: false }] },
     ],
@@ -329,7 +329,7 @@ function install() {
     onCP: () => at(-8, 8, 3.5, -170, -184),
     imVersteck: () => P().pos.y < -2.5 && P().pos.y > -3.5 && P().mode === 'ground',
     aufMuenzinsel: () => at(-5, 5, 0.3, -19.6, -29),
-    unten: () => P().pos.y > 10.5 && P().pos.y < 12 && P().pos.x < -6,
+    unten: () => P().pos.y > 10.5 && P().pos.y < 12.6 && P().pos.x < -6,
     aufBrett: () => P().pos.y > 16.8,
     zielwegDa: () => { const z = ent('zielweg'); return !!z && z.parts.every((q) => q.shown); },
     // S-Kapitän
@@ -453,7 +453,7 @@ function install() {
           continue;
         }
         if (Lg.star !== undefined) { const n = this.chase('star', { filter: (e) => e.index === Lg.star, max: 900 }); log.push(['stern', Lg.star, n, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.chaseKind) { const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, jump: Lg.jump, filter: Lg.ids ? (e) => Lg.ids.includes(e.spec?.id) : null }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
+        if (Lg.chaseKind) { const x0 = p.pos.x, z0 = p.pos.z, near = Lg.near ?? 12; const n = this.chase(Lg.chaseKind, { max: Lg.max ?? 2400, run: Lg.run, walk: Lg.walk, jump: Lg.jump, filter: (e) => (!Lg.ids || Lg.ids.includes(e.spec?.id)) && Math.hypot(e.pos.x - x0, e.pos.z - z0) < near }); log.push(['jagd', Lg.chaseKind, n, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1), p.power]); continue; }
         // ------------------------------------------------ Punkte nacheinander ablaufen (Münzen einsammeln)
         if (Lg.sweep) { for (const [x, z] of Lg.sweep) goTo(x, z, 0.4, 600); log.push(['abgelaufen', Lg.sweep.length]); continue; }
         // ------------------------------------------------ auf eine Warp-Box / Wolkenkanone springen und mitfahren
@@ -623,11 +623,17 @@ function install() {
           for (const q of rows) {
             const tx = q.cx, tz = q.cz + dz * depth * 0.55;
             let k = 0;
-            for (; k < 1500 && !(q.solid && q.state === 'aussen' && q.t < 0.5); k++) { const ex = tx - p.pos.x, ez = tz + dz * 0.6 - p.pos.z; tick(p.mode === 'ground' && Math.hypot(ex, ez) > 0.25 && q.row === 0 ? this.stick(ex, ez, 0.5) : {}); }
+            // unterste Stufe: einen frischen Takt abwarten (nicht in eine gleich einfahrende Platte springen)
+            if (q === rows[0]) for (; k < 1500 && q.state !== 'innen'; k++) tick({});
+            for (; k < 1500 && !(q.solid && q.state === 'aussen' && q.t < 0.5); k++) { const ex = tx - p.pos.x, ez = tz + dz * 1.25 - p.pos.z; tick(p.mode === 'ground' && Math.hypot(ex, ez) > 0.25 && q.row === 0 ? this.stick(ex, ez, 0.5) : {}); }
             let air = false;
+            // Zickzack: erst steigen, dabei bis dicht an die Kante der nächsten Platte, oben dann hinüber
+            const cw = seg.size[0] / (seg.grid?.[0] ?? 1), side = Math.sign(q.cx - p.pos.x);
+            const ex0 = Math.abs(q.cx - p.pos.x) > 0.3 ? q.cx - side * (cw / 2 + 0.25) : tx;
+            tick({}); tick({});   // Sprungtaste loslassen (neuer Druck)
             for (let n = 0; n < 300 && !p.dead; n++) {
               if (air && p.mode === 'ground') break;
-              if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > q.y + 0.1 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : this.airSteer(tx, tz + dz * 0.4, 0, 0, 2, 2)), jump: true }); continue; }
+              if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > q.y + 0.1 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : this.airSteer(ex0, tz + dz * 0.4, 0, 0, 3.4, 5)), jump: true }); continue; }
               tick({ jump: true });
             }
             if (Math.abs(p.pos.y - q.y) > 0.15) { ok = false; log.push(['FEHLER: Takt-Stufe verfehlt', q.row, +p.pos.y.toFixed(2), q.y, q.state, +q.t.toFixed(2)]); break; }
@@ -635,6 +641,7 @@ function install() {
           if (ok) {
             const top = seg.pos[1] + seg.size[1], tx = rows[0].cx, tz = rows[0].cz - dz * thick * 0.5;
             let air = false;
+            tick({}); tick({});
             for (let n = 0; n < 300 && !p.dead; n++) {
               if (air && p.mode === 'ground') break;
               if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > top + 0.1 ? this.airSteer(tx, tz, 0, 0, 3.4, 5) : {}), jump: true }); continue; }
@@ -851,6 +858,8 @@ function install() {
         if (i >= max) { log.push(['FEHLER: Wegpunkt nicht erreicht', li, Lg.to]); break; }
       }
       c.setInput({});
+      // Siegessequenz bis zum Abschluss weiterlaufen lassen (runtime.finish → Speichern, Belohnungen wie Sternenglanz)
+      for (let k = 0; k < 2400 && L.runtime.status === 'goal'; k++) { c.setInput({}); c.step(1); }
       mech.hurts = p.hurtTries ?? 0;
       mech.lives = L.runtime.save?.lives;
       mech.mausSprung = L.entities.filter((e) => e.kind === 'huepfmaus').reduce((a, e) => a + (e.jumps ?? 0), 0) - mice0;

@@ -78,14 +78,14 @@ function build(level) {
   sternziegel(level, [{ id: 'sternziegel', pos: [5.2, Y + 2.5, -14.3], onBreak: { star: 0 } }]);
   if (level.view) {
     const b = new Bld(), g = new Bld();
-    b.cyl(0.95, 0.75, 4, 5.2, Y - 4, -14.3, gradY(0x4a2a88, 0xb8a0ff, Y - 4, Y), 10);
-    g.star(0.35, 0.15, 0.08, 5.2, Y - 1.2, -13.35, 0xfff07a);
+    b.cyl(1.15, 0.9, 4, 5.2, Y - 4, -14.3, gradY(0x4a2a88, 0xb8a0ff, Y - 4, Y), 10);
+    g.star(0.35, 0.15, 0.08, 5.2, Y - 1.2, -13.17, 0xfff07a);
     // Versteck unter der Drehplatte: Kristalle, Leuchtsterne
     for (const [x, z, c] of [[-5.8, -10.8, 0xb8e8ff], [-1.9, -12.6, 0xffb0e0], [-5.9, -12.6, 0xfff0a0]]) g.cone(0.25, 1.1, x, VERSTECK.top, z, c, 5);
     b.flush(level);
     g.flush(level, { material: 'glow', castShadow: false });
   }
-  level.world.add({ type: 'cyl', x: 5.2, z: -14.3, r: 0.85, y0: Y - 4, y1: Y, tag: 'sternstein' });
+  level.world.add({ type: 'cyl', x: 5.2, z: -14.3, r: 1.08, y0: Y - 4, y1: Y, tag: 'sternstein' });
   // Schachbrett: beide Farbgruppen golden → Zieltreppe erscheint
   let fired = false;
   level.onSignal?.('schach_fertig', () => {
@@ -149,7 +149,7 @@ export const LEVEL = {
     { type: 'pipe', id: 'p_muenz', pos: [-3.6, YM, -27.4], height: 1.1, target: 'p_versteck' },
     { type: 'deco', items: [{ kind: 'flowers', pos: [3, YM, -27], size: [2.5, 2.5], n: 6 }, { kind: 'tree', pos: [3.8, YM, -21], height: 2.8 }] },
     // =============================================================== Rote Farb-Plattenbahn
-    { type: 'farbplatten', id: 'bahn', tiles: BAHN, size: [2.2, 0.3, 2.2], from: 'rot', to: 'gelb', onAll: [{ coins: 10 }, { reveal: 'bahn_leben' }], at: [BAHN[BAHN.length - 1][0], BAHN[BAHN.length - 1][1] + 1, BAHN[BAHN.length - 1][2]] },
+    { type: 'farbplatten', id: 'bahn', tiles: BAHN, size: [2.2, 0.3, 2.2], from: 'rot', to: 'gelb', onAll: [{ coins: 10 }, { spawn: { kind: 'powerup', id: 'bahn_leben', pos: [BAHN[BAHN.length - 1][0] + 2.6, YZ, -86.6], power: 'oneup', speed: 0 } }], at: [BAHN[BAHN.length - 1][0], BAHN[BAHN.length - 1][1] + 1, BAHN[BAHN.length - 1][2]] },
     { type: 'mover', id: 'gleiter_b', path: [[-6.8, YM + 0.3, -46], [-6.8, YM + 0.3, -60]], size: [2.2, 0.5, 2.2], speed: 1.2, wait: 0.8, color: 'purple' },
     // =============================================================== Zwischeninsel und Boost-Strecke
     isl(ZWISCHEN.x0, ZWISCHEN.x1, ZWISCHEN.z0, ZWISCHEN.z1, YZ, 2.5),
@@ -164,7 +164,8 @@ export const LEVEL = {
     { type: 'plattenwand', id: 'treppe_b', pos: [2, YC + 4.4, ABSATZ1.z1], dir: [0, 1], size: [8, 4.4], grid: [4, 3], depth: 1.6, mode: 'treppe', near: 6, order: [[3, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2]], color: 'blau', thick: 1.7 },
     isl(ABSATZ2.x0, ABSATZ2.x1, ABSATZ2.z0, ABSATZ2.z1, YC + 8.8, 1.2),
     { type: 'plattenwand', id: 'treppe_c', pos: [-2, YC + 8.8, ABSATZ2.z1], dir: [0, 1], size: [8, 4.4], grid: [4, 3], depth: 1.6, mode: 'treppe', near: 6, order: [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2]], color: 'gelb', thick: 1.7 },
-    { type: 'plattenwand', id: 'stempelwand', pos: [6.6, YC, CP.z1], dir: [0, 1], size: [2.4, 10], grid: [1, 6], depth: 1.6, mode: 'takt', period: 5.6, out: 2.6, stagger: 0.5, order: 'reihe', color: 'lila', thick: 1.7 },
+    // Takt-Wand im Zickzack (2 Spalten): die nächste Platte steht nie über dem Kopf
+    { type: 'plattenwand', id: 'stempelwand', pos: [5.8, YC, CP.z1], dir: [0, 1], size: [3.8, 10], grid: [2, 6], order: [[0, 0], [1, 1], [0, 2], [1, 3], [0, 4], [1, 5]], depth: 1.6, mode: 'takt', period: 7.2, out: 1.9, warn: 0.5, stagger: -1.2, color: 'lila', thick: 1.7 },   // Welle läuft nach oben, je 2 Platten draußen
     sign(-6.4, YC, -172, 'Plattentreppe:\nnah herangehen!', { size: [2.4, 0.9], yaw: 0.2 }),
     // =============================================================== Schachbrett, Gabelung: oben Ziel, unten die blauen Platten
     { type: 'farbplatten', id: 'schach_a', tiles: SCHACH.a, size: [2.2, 0.3, 2.2], from: 'rosa', to: 'gelb', onAll: { signal: 'schach_fertig' } },
@@ -174,7 +175,7 @@ export const LEVEL = {
     ] },
     isl(UNTEN.x0, UNTEN.x1, UNTEN.z0, UNTEN.z1, YU, 2),
     isl(ECKE.x0, ECKE.x1, ECKE.z0, ECKE.z1, YB, 1),
-    { type: 'farbplatten', id: 'blauplatten', pos: [-11.6, YU, -209.4], grid: [3, 3], spacing: 2.4, size: [2.2, 0.3, 2.2], from: 'blau', to: 'gelb', star: 2 },
+    { type: 'farbplatten', id: 'blauplatten', pos: [-11.6, YU + 0.1, -209.4], grid: [3, 3], spacing: 2.4, size: [2.2, 0.3, 2.2], from: 'blau', to: 'gelb', star: 2 },
     sign(-14.4, YU, -205.4, 'Blaue Platten\numfärben!', { size: [2.2, 0.8], yaw: 0.3 }),
     // =============================================================== Ziel
     isl(ZIEL.x0, ZIEL.x1, ZIEL.z0, ZIEL.z1, YG, 2.5),
@@ -188,7 +189,7 @@ export const LEVEL = {
     { kind: 'question', pos: [-1, Y + 1.9, 2], content: 'wachstumsbeere' },
     { kind: 'question', pos: [1, Y + 1.9, 2], content: 'coins:3' },
     { kind: 'coinblock', pos: [0, YM + 2.4, -24.4], count: 8 },
-    { kind: 'hidden', pos: [3.4, YM + 2.6, -27.2], content: 'oneup' },
+    { kind: 'hidden', pos: [-1.2, YM + 2.6, -27.6], content: 'oneup' },   // 1-up läuft nach +x über die Insel
     { kind: 'question', pos: [-1, YC + 1.9, -175], content: 'coins:5' },
     { kind: 'question', pos: [1, YC + 1.9, -175], content: 'wachstumsbeere' },
   ],
@@ -207,13 +208,12 @@ export const LEVEL = {
     ...arc([0, Y + 1, -17.6], [0, YM + 1, -20.6], 3, 1.2),
     ring([0, YM + 0.8, -24.4], 2.6, 10),
     ...BAHN.filter((_, i) => i % 2 === 1).map((p) => ({ kind: 'coin', pos: [p[0], p[1] + 0.8, p[2]] })),
-    { kind: 'powerup', id: 'bahn_leben', pos: [BAHN[BAHN.length - 1][0] + 2.6, YZ, -86.6], power: 'oneup', speed: 0, hidden: true },
     line([0, YZ + 0.8, -100], [0, YZ + 0.8, -154], 12),
     line([-4, YC + 0.6, -176], [4, YC + 0.6, -176], 5),
-    column(6.6, CP.z1 + 1.6, YC + 1.4, YC + 9, 5),
+    ...[0, 1, 2, 3, 4].map((r) => ({ kind: 'coin', pos: [5.8 + (r % 2 ? 0.95 : -0.95), YC + (r + 1) * (10 / 7) + 0.8, CP.z1 + 0.9] })),
     line([-5, YC + 5, -190], [5, YC + 5, -190], 4),
     line([5, YC + 9.4, -198.4], [-5, YC + 9.4, -198.4], 4),
-    { kind: 'powerup', pos: [-6.2, YC + 8.8, -201.2], power: 'oneup', speed: 0 },
+    { kind: 'powerup', pos: [5.6, YC + 8.8, -201.2], power: 'oneup', speed: 0 },   // rechter Winkel des Absatzes, abseits der Treppe
     line([-12, YU + 0.8, -206], [-12, YU + 0.8, -213], 4),
     { kind: 'warpbox', id: 'warp_boost', pos: [0, YZ, -162], target: 'warp_cp' },
     { kind: 'warpbox', id: 'warp_cp', pos: [0, YC, -171.6], target: 'warp_boost' },
@@ -226,7 +226,7 @@ export const LEVEL = {
     { pos: [-2.6, VERSTECK.top + 0.3, -11.7], id: 'stern_versteck' },                 // 1 unter Spalte 1, Reihe 2
     { pos: [-11.6, YU + 0.9, -209.4], hidden: true, id: 'stern_blau' },              // 2 blaue Platten
   ],
-  stamp: [6.6, YC + 10.1, CP.z1 - 0.85],
+  stamp: [5.8, YC + 10.1, CP.z1 - 0.85],
   goal: { pos: [0, YG, -228.4], height: 9 },
   marks: {
     start: [0, Y, 6], kipp: [0, Y, -7], sockel: [5.2, Y, -14.3], versteck: [-3.6, VERSTECK.top, -11.2], muenz: [0, YM, -21],
