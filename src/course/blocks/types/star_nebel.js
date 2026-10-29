@@ -118,6 +118,7 @@ export function buildNebelplattform(level, spec) {
       const holder = {};
       let t = 0;
       const draw = () => {
+        let j = 0;   // sichtbare Platten nach vorn packen (nur sie werden gezeichnet)
         for (const q of parts) {
           const bottom = mode === 'heben' ? q.mb.pos.y : q.top - q.s[1];
           const shake = q.state === 'warn' || q.state === 'flackert' ? Math.sin(t * 45 + q.i) * 0.04 : 0;
@@ -125,9 +126,10 @@ export function buildNebelplattform(level, spec) {
           if (mode === 'blinken') k = q.state === 'flackert' ? (Math.sin(t * 30) > 0 ? 1 : 0.35) : q.k;
           const g = mode === 'blinken' ? (k < 0.05 ? 0 : 0.6 + 0.4 * k) : 1;
           // unter der Nebeldecke ganz verschwunden → nicht zeichnen
-          if (g <= 0 || (mode === 'heben' && bottom + q.s[1] < fogY - q.s[1] - 0.6)) { set.hide(q.i); continue; }
-          set.set(q.i, q.x + shake, bottom + q.s[1] * (1 - g) / 2, q.z, 0, 0, [g * q.s[0] / size[0], g * q.s[1] / size[1], g * q.s[2] / size[2]]);
+          if (g <= 0 || (mode === 'heben' && bottom + q.s[1] < fogY - q.s[1] - 0.6)) continue;
+          set.set(j++, q.x + shake, bottom + q.s[1] * (1 - g) / 2, q.z, 0, 0, [g * q.s[0] / size[0], g * q.s[1] / size[1], g * q.s[2] / size[2]]);
         }
+        set.setCount(j);
         set.commit();
       };
       draw();

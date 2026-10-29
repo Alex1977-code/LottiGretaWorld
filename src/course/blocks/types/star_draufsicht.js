@@ -144,6 +144,8 @@ export function buildWaben(level, spec) {
     for (const [kind, list] of Object.entries(kinds)) {
       if (!list.length) continue;
       const api = instancedModel(level, 'wabe', list.length, { kind, size: R - gap * 0.5, thick: H }, sp);
+      // Deckfläche (zweites Mesh) liegt auf dem Körper: ihr Schatten bringt nichts, spart Dreiecke im Schattenpass
+      api.meshes.forEach((m, i) => { if (i > 0) m.castShadow = false; });
       list.forEach((c, i) => {
         c.api = api; c.slot = i; c.press = 0;
         if (c.type === 'hoch') api.setAt(i, [c.x, c.y - H - rise, c.z], Math.PI / 2, [1, (H + rise) / H, 1]);

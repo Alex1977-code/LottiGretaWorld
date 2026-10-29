@@ -397,7 +397,10 @@ export function buildKanonenkugelWand(level, spec) {
       const holder = {};
       level.view.onFrame((dt) => {
         visDt(level, holder, dt);
-        balls.forEach((b, i) => { if (!b.on) set.hide(i); else set.set(i, b.mb.pos.x, b.mb.pos.y + S / 2, b.mb.pos.z, yaw, 0); });
+        // fliegende Kugeln nach vorn packen: nur sie werden gezeichnet
+        let j = 0;
+        for (const b of balls) if (b.on) set.set(j++, b.mb.pos.x, b.mb.pos.y + S / 2, b.mb.pos.z, yaw, 0);
+        set.setCount(j);
         set.commit();
       });
       return handle;

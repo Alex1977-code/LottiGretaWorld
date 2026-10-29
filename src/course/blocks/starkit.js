@@ -20,8 +20,8 @@
 //   instancedModel(level, name, n, opts, sphere)   Instanz-Variante (createInstanced, models/lib/instanced_star.js) mit
 //                                   fester Hüllkugel und Animation je Bild
 //   ModelSet                        Instanz-Gruppe aus einem beliebigen Registry-Modell (je Mesh ein InstancedMesh; Lagen
-//                                   je Schlüssel-Zustand gemessen und gemischt): set(i, x, y, z, yaw, k, scale), hide, commit,
-//                                   cull(center, radius)
+//                                   je Schlüssel-Zustand gemessen und gemischt): set(i, x, y, z, yaw, k, scale), hide,
+//                                   setCount(n), commit, cull(center, radius)
 //   bakeRoot(level, model, state)   Modell mit beliebiger Lage (auch geneigt) in die statische Geometrie backen
 //   + aus w8kit/w7kit/w2kit: figures, MovingBox, regModel, stdMat, pathOf, pathAt, canvasTexture, bakeW8, hurtFigures,
 //     killFigures, sphereTouches, boxTouches, cycle, onRespawn, ease, clamp, TAU, modelOr, glowTexture, spikeGeo
@@ -310,6 +310,9 @@ export class ModelSet {
   }
 
   hide(i) { for (const im of this.meshes) im.setMatrixAt(i, _mzero); }
+
+  /** Nur die ersten n Exemplare zeichnen (verborgene ans Ende packen spart Dreiecke – auch unsichtbare zählen sonst mit). */
+  setCount(n) { for (const im of this.meshes) im.count = Math.max(0, Math.min(this.n, n)); }
 
   commit() { for (const im of this.meshes) im.instanceMatrix.needsUpdate = true; }
 
