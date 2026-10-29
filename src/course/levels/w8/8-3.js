@@ -13,12 +13,38 @@
 //   4. Zielplattform (z −222 … −236) und – hinter dem Zielmast, tief unten – die Kuchenplattform mit dem Hasen (Stern 2),
 //      eine Röhre führt zurück hinauf.
 
-import { isl, line, ring, arc, column, sign } from './_helpers_a.js';
+import { isl, line, ring, arc, column, sign, zuckerwerk83 } from './_helpers_a.js';
 
 const Y = 1;            // Fabrikboden
 const T = 16;           // oben (Ameisenstraße)
 const PI = Math.PI;
 const RX = 70;          // Rätselbox-Raum (abseits)
+
+// Süße Kulisse: Streusel auf den Plätzen, Zuckerguss an den Kanten, Lollis/Zuckerstangen/Cupcakes, Schoko-Wand, Torte
+const SUESS = {
+  streusel: [[-7, 7, 11, -5, Y], [-6, 6, -23.6, -34, Y], [-6, 6, -50, -62, Y], [-6, 6, -78, -89, Y], [-8, 8, -98, -110, T],
+    [-8, 8, -119, -194, T, 0.35], [-8, 8, -222, -238, Y + 8], [-5.6, 5.6, -248.4, -261.6, Y - 4, 1.4], [RX - 10, RX + 10, -124, -132, Y]],
+  guss: [
+    { x0: -7, x1: 7, z: 11, y: Y }, { x0: -6, x1: 6, z: -23.6, y: Y }, { x0: -6, x1: 6, z: -50, y: Y }, { x0: -6, x1: 6, z: -78, y: Y },
+    { x0: -8, x1: 8, z: -222, y: Y + 8 }, { x0: RX - 10, x1: RX + 10, z: -124, y: Y },
+    { z0: -23.6, z1: -34, x: -6, y: Y, out: -1 }, { z0: -50, z1: -62, x: 6, y: Y, out: 1 }, { z0: 11, z1: -5, x: -7, y: Y, out: -1 }, { z0: 11, z1: -5, x: 7, y: Y, out: 1 },
+    { z0: -98, z1: -110, x: -8, y: T, out: -1, c: 0xffd6e8 }, { z0: -98, z1: -110, x: 8, y: T, out: 1, c: 0xffd6e8 },
+  ],
+  suess: [
+    { kind: 'lolli', x: -5.6, y: Y, z: -3.4, c: 0 }, { kind: 'zuckerstange', x: 5.9, y: Y, z: 9, yaw: PI }, { kind: 'cupcake', x: 5.4, y: Y, z: 2.6 },
+    { kind: 'gummi', x: -5.4, y: Y, z: 9.2, c: 1 },
+    { kind: 'macaron', x: -4.8, y: Y, z: -32.6 }, { kind: 'lolli', x: -5, y: Y, z: -24.8, c: 2, s: 0.9 },
+    { kind: 'cupcake', x: 4.8, y: Y, z: -51.4 }, { kind: 'zuckerstange', x: 4.8, y: Y, z: -60.8, yaw: PI },
+    { kind: 'lolli', x: -5, y: Y, z: -79.4, c: 4 }, { kind: 'bonbon', x: 4.6, y: Y, z: -79.6, c: 1 },
+    { kind: 'lolli', x: 6.6, y: T, z: -108.8, c: 3 }, { kind: 'macaron', x: -6.6, y: T, z: -107.4, c: 2 },
+    { kind: 'zuckerstange', x: -7.4, y: T, z: -126 }, { kind: 'cupcake', x: 7.2, y: T, z: -145 }, { kind: 'zuckerstange', x: -7.4, y: T, z: -163, yaw: PI },
+    { kind: 'lolli', x: 7.3, y: T, z: -182, c: 5 }, { kind: 'gummi', x: -7.2, y: T, z: -186, c: 4 },
+    { kind: 'cupcake', x: -6.6, y: Y + 8, z: -223.4 }, { kind: 'cupcake', x: 6.6, y: Y + 8, z: -223.4, s: 0.9 },
+    { kind: 'lolli', x: RX - 8.5, y: Y, z: -125.4, c: 1 }, { kind: 'cupcake', x: RX + 8.6, y: Y, z: -125.4 },
+  ],
+  wand: { x0: -12, x1: 12, z: -92, y0: Y, y1: T },
+  torte: { x0: -6, x1: 6, zA: -248, zB: -262, y: Y - 4, h: 5 },
+};
 
 export const LEVEL = {
   id: '8-3',
@@ -32,9 +58,10 @@ export const LEVEL = {
   farHide: 60,
   instances: { coin: { farHide: 44, shadow: false } },
   start: { pos: [0, Y, 6], yaw: PI / 2 },
+  build: (level) => zuckerwerk83(level, SUESS),
   camera: [
-    { from: 16, to: -84, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.25, area: [-40, 40] },
-    { from: -84, to: -95, pitch: 24, dist: 17, fov: 42, x: 0, xLock: 0.3, height: 2.4, area: [-40, 40] },
+    { from: 16, to: -76, pitch: 44, dist: 13.5, fov: 40, x: 0, xLock: 0.25, area: [-40, 40] },
+    { from: -76, to: -95, pitch: 25, dist: 17, fov: 42, x: 0, xLock: 0.3, height: 2.4, area: [-40, 40] },
     { from: -95, to: -200, pitch: 44, dist: 14, fov: 40, x: 0, xLock: 0.25, area: [-40, 40] },
     { from: -200, to: -280, pitch: 40, dist: 14, fov: 40, x: 0, xLock: 0.3, area: [-40, 40] },
     { from: -100, to: -180, pitch: 46, dist: 14, fov: 40, x: RX, xLock: 0.5, area: [RX - 25, RX + 25] },

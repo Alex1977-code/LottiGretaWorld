@@ -454,3 +454,139 @@ export function sandDunst(level, o = {}) {
     for (const it of list) it.m.visible = it.box.distanceToPoint(cp) < dist;
   });
 }
+
+// =====================================================================================================================
+// 5) Kulisse 8-3 „Keksräder in der Zuckerfabrik“: Zuckerguss, Streusel, Süßigkeiten, Torte
+// =====================================================================================================================
+
+const ZUCKER = { guss: [0xfff6fa, 0xffd6e8, 0xd8f4ff], streusel: [0xff4f7a, 0xffd23a, 0x5ad8ff, 0x7ae05a, 0xffffff, 0xb87ae8, 0xff9a3a], schoko: 0x6a3a1e, schokoHell: 0x9a5a32 };
+
+/**
+ * Süße Kulisse der Keksfabrik (alles verschmolzen, ohne Kollision):
+ *   streusel: [[x0, x1, zA, zB, y, dichte?], …]   bunte Zuckerstreusel auf den Plätzen
+ *   guss:     [{ x0, x1, z, y, out } | { z0, z1, x, y, out }, …]   Zuckerguss-Wulst mit Tropfen an einer Platzkante
+ *   suess:    [{ kind, x, y, z, s?, yaw? }, …]     lolli | zuckerstange | cupcake | macaron | gummi | bonbon
+ *   wand:     { x0, x1, z, y0, y1 }               Schokoladen-Tropfen und Zuckerguss-Wellen an der Zahnradwand
+ *   torte:    { x0, x1, zA, zB, y, h }             Tortenplatte: Schichten an den Seiten, Sahnetupfer, Erdbeeren, Kerzen
+ */
+export function zuckerwerk83(level, o) {
+  const rnd = new Rnd(8383);
+  const b = new Bld(), g = new Bld();
+  for (const [x0, x1, zA, zB, y, k = 1] of o.streusel ?? []) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), n = Math.round((x1 - x0) * (z0 - z1) * 0.9 * k);
+    for (let i = 0; i < n; i++) {
+      const x = rnd.real(x0 + 0.3, x1 - 0.3), z = rnd.real(z1 + 0.3, z0 - 0.3);
+      b.box(0.22, 0.05, 0.07, x, y + 0.005, z, ZUCKER.streusel[rnd.int(0, ZUCKER.streusel.length - 1)], { yaw: rnd.real(0, Math.PI), r: 0 });
+    }
+  }
+  for (const e of o.guss ?? []) gussKante(b, e, rnd);
+  for (const s of o.suess ?? []) suess(b, g, s, rnd);
+  if (o.wand) schokoWand(b, o.wand, rnd);
+  if (o.torte) torte(b, g, o.torte, rnd);
+  b.flush(level, { castShadow: true });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/** Zuckerguss an einer Kante – entlang x: { x0, x1, z, y, out ±1 } bzw. entlang z: { z0, z1, x, y, out ±1 } (out = Richtung nach
+ *  außen): dicker, welliger Wulst und Tropfen unterschiedlicher Länge. */
+function gussKante(b, e, rnd) {
+  const c = e.c ?? ZUCKER.guss[0], y = e.y, out = e.out ?? 1;
+  const alongZ = e.x !== undefined;
+  const a0 = alongZ ? Math.min(e.z0, e.z1) : Math.min(e.x0, e.x1), a1 = alongZ ? Math.max(e.z0, e.z1) : Math.max(e.x0, e.x1);
+  const at = (u, d) => (alongZ ? [e.x + out * d, u] : [u, e.z + out * d]);
+  for (let u = a0 + 0.3; u < a1 - 0.2; u += 0.55) {
+    const [x, z] = at(u, 0.02);
+    b.sphere(0.2 + rnd.real(0, 0.06), x, y - 0.02, z, c, { s: [1, 0.55, 1], ws: 8, hs: 5 });
+    if (rnd.frac() < 0.55) {
+      const L = rnd.real(0.25, 0.9), [dx, dz] = at(u + rnd.real(-0.1, 0.1), 0.08);
+      b.cyl(0.08, 0.08, L, dx, y - L, dz, c, 6);
+      b.sphere(0.1, dx, y - L, dz, c, { ws: 6, hs: 5 });
+    }
+  }
+}
+
+/** Süßigkeit als Kulisse. */
+function suess(b, g, s, rnd) {
+  const S = s.s ?? 1, x = s.x, y = s.y, z = s.z, yaw = s.yaw ?? 0;
+  const col = (i) => ZUCKER.streusel[(i + (s.c ?? 0)) % ZUCKER.streusel.length];
+  switch (s.kind) {
+    case 'lolli': {
+      b.cyl(0.07 * S, 0.07 * S, 2.2 * S, x, y, z, 0xffffff, 6);
+      b.cyl(0.62 * S, 0.62 * S, 0.22 * S, x, y + 2.4 * S, z, col(0), 20, { rx: Math.PI / 2, yaw });
+      for (let k = 0; k < 3; k++) b.torus((0.18 + k * 0.16) * S, 0.05 * S, x + Math.sin(yaw) * 0.12 * S, y + 2.4 * S, z + Math.cos(yaw) * 0.12 * S, k % 2 ? 0xffffff : col(2), { yaw, rs: 4, ts: 18 });
+      break;
+    }
+    case 'zuckerstange': {
+      const H = 2.4 * S;
+      for (let i = 0; i < 6; i++) b.cyl(0.13 * S, 0.13 * S, H / 6, x, y + (i * H) / 6, z, i % 2 ? 0xffffff : 0xe8323a, 8);
+      b.torus(0.4 * S, 0.13 * S, x + Math.cos(yaw) * 0.4 * S, y + H, z - Math.sin(yaw) * 0.4 * S, 0xe8323a, { yaw, arc: Math.PI, rs: 6, ts: 10 });
+      break;
+    }
+    case 'cupcake': {
+      b.cyl(0.55 * S, 0.42 * S, 0.6 * S, x, y, z, 0xf0a0c8, 12);
+      for (let k = 0; k < 3; k++) b.sphere((0.55 - k * 0.15) * S, x, y + (0.7 + k * 0.28) * S, z, k % 2 ? 0xfff0f6 : 0xffc0dc, { s: [1, 0.6, 1], ws: 12, hs: 6 });
+      b.sphere(0.16 * S, x, y + 1.42 * S, z, 0xe8323a, { ws: 8, hs: 6 });
+      for (let k = 0; k < 6; k++) { const a = k * 1.05; b.box(0.12 * S, 0.04 * S, 0.04 * S, x + Math.cos(a) * 0.35 * S, y + 0.95 * S, z + Math.sin(a) * 0.35 * S, col(k), { yaw: a, r: 0 }); }
+      break;
+    }
+    case 'macaron': {
+      const c = col(1);
+      b.cyl(0.5 * S, 0.5 * S, 0.22 * S, x, y, z, c, 16);
+      b.cyl(0.46 * S, 0.46 * S, 0.12 * S, x, y + 0.22 * S, z, 0xfff6fa, 16);
+      b.cyl(0.5 * S, 0.5 * S, 0.22 * S, x, y + 0.34 * S, z, c, 16);
+      break;
+    }
+    case 'gummi': {
+      for (let k = 0; k < 3; k++) b.sphere(0.3 * S, x + (k - 1) * 0.5 * S, y + 0.25 * S, z + rnd.real(-0.2, 0.2), col(k + 3), { s: [1, 1.1, 1], ws: 10, hs: 7 });
+      break;
+    }
+    default: {   // bonbon
+      b.sphere(0.35 * S, x, y + 0.35 * S, z, col(4), { s: [1.3, 1, 1], ws: 10, hs: 7 });
+      for (const sgn of [-1, 1]) b.cone(0.22 * S, 0.4 * S, x + sgn * 0.62 * S, y + 0.15 * S, z, col(5), 6, { rz: sgn * Math.PI / 2 });
+    }
+  }
+}
+
+/** Zahnradwand: Schokoladen-Tropfen von der Oberkante und zwei Zuckerguss-Wellen über die Vorderseite. */
+function schokoWand(b, w, rnd) {
+  for (let x = w.x0 + 0.4; x < w.x1 - 0.3; x += 0.7) {
+    b.sphere(0.32, x, w.y1 - 0.05, w.z + 0.04, ZUCKER.schoko, { s: [1.1, 0.6, 0.7], ws: 8, hs: 5 });
+    if (rnd.frac() < 0.6) {
+      const L = rnd.real(0.6, 2.6);
+      b.cyl(0.12, 0.12, L, x, w.y1 - L, w.z + 0.1, ZUCKER.schoko, 6);
+      b.sphere(0.15, x, w.y1 - L, w.z + 0.1, ZUCKER.schoko, { ws: 6, hs: 5 });
+    }
+  }
+  for (const [yy, c] of [[w.y0 + (w.y1 - w.y0) * 0.38, 0xffd6e8], [w.y0 + (w.y1 - w.y0) * 0.7, 0xfff6fa]]) {
+    for (let x = w.x0 + 0.2; x < w.x1; x += 0.5) b.sphere(0.18, x, yy + Math.sin(x * 1.4) * 0.25, w.z + 0.05, c, { s: [1.3, 0.8, 0.6], ws: 7, hs: 5 });
+  }
+}
+
+/** Tortenplatte: Biskuit-/Sahne-/Erdbeerschichten an den Seiten, Sahnetupfer am Rand, Erdbeeren, Kerzen mit Flamme. */
+function torte(b, g, t, rnd) {
+  const z0 = Math.max(t.zA, t.zB), z1 = Math.min(t.zA, t.zB), x0 = t.x0, x1 = t.x1, y = t.y, H = t.h ?? 3;
+  const W = x1 - x0, D = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const layers = [[0.0, 0.32, 0xe8b070], [0.32, 0.4, 0xfff4f8], [0.4, 0.64, 0xe8b070], [0.64, 0.72, 0xff7aa0], [0.72, 1, 0xf6c088]];
+  for (const [a, bb, c] of layers) {
+    const h = (bb - a) * H, yy = y - H + a * H;
+    b.box(W + 0.06, h, 0.04, cx, yy, z0 + 0.02, c, { r: 0 });
+    b.box(W + 0.06, h, 0.04, cx, yy, z1 - 0.02, c, { r: 0 });
+    b.box(0.04, h, D + 0.06, x0 - 0.02, yy, cz, c, { r: 0 });
+    b.box(0.04, h, D + 0.06, x1 + 0.02, yy, cz, c, { r: 0 });
+  }
+  // Sahnetupfer rings um den Rand (auf dem Sahnerand) und Erdbeeren
+  const ring = [];
+  for (let x = x0 + 0.5; x < x1 - 0.3; x += 1.1) ring.push([x, z0 - 0.3], [x, z1 + 0.3]);
+  for (let z = z1 + 1.4; z < z0 - 1; z += 1.1) ring.push([x0 + 0.3, z], [x1 - 0.3, z]);
+  ring.forEach(([x, z], i) => {
+    b.cone(0.26, 0.38, x, y + 0.7, z, 0xfffafc, 8);
+    if ((i + Math.floor(i / 2)) % 2 === 0) b.sphere(0.16, x, y + 1.12, z, 0xe8323a, { s: [1, 1.2, 1], ws: 8, hs: 6 });
+  });
+  // Kerzen (nicht auf dem Weg des Hasen: in den Ecken)
+  for (const [x, z, c] of [[x0 + 1.2, z0 - 1.2, 0x5ad8ff], [x1 - 1.2, z0 - 1.2, 0xffd23a], [x0 + 1.2, z1 + 1.2, 0x7ae05a], [x1 - 1.2, z1 + 1.2, 0xff8ac8]]) {
+    for (let k = 0; k < 4; k++) b.cyl(0.1, 0.1, 0.32, x, y + k * 0.32, z, k % 2 ? 0xffffff : c, 8);
+    g.cone(0.09, 0.28, x, y + 1.32, z, 0xffc83a, 6);
+    g.sphere(0.07, x, y + 1.38, z, 0xfff4a0, { ws: 6, hs: 4 });
+  }
+  void rnd;
+}
