@@ -194,12 +194,12 @@ export const LEVEL = {
     { kind: 'lauerblock', id: 'lb4', pos: [0, Y1 + 2.2, -172], dir: [0, 1], size: 1.6, reach: 2.2, mode: 'timed', period: 3.4, hold: 2.3, phase: 0.16 },
     { kind: 'lauerblock', id: 'lb5', pos: [6, Y1 + 2.2, -172], dir: [0, 1], size: 1.6, reach: 2.2, mode: 'timed', period: 3.4, hold: 2.3, phase: 0.16 },
     // Tintenteich
-    { kind: 'tintling', id: 'tl1', pos: [-5, WB + 1.4, -214], range: 4, sight: 7 },
-    { kind: 'tintling', id: 'tl2', pos: [5, WB + 2, -222], range: 4, drift: 0.6, sight: 7, phase: 0.4 },
-    { kind: 'tintling', id: 'tl3', pos: [-3, WB + 2.4, -240], range: 4, drift: 0.6, sight: 7 },
-    { kind: 'tintling', id: 'tl4', pos: [4, WB + 1.4, -252], range: 4, sight: 7, phase: 0.6 },
-    { kind: 'tintling', id: 'tl5', pos: [-4, WB + 2, -267], range: 4, drift: 0.6, sight: 7, phase: 0.2 },
-    { kind: 'tintling', id: 'tl6', pos: [3, WB + 2.4, -285], range: 4, sight: 7, phase: 0.8 },
+    { kind: 'tintling', id: 'tl1', pos: [-3, WB + 1.4, -214], range: 5, sight: 8 },
+    { kind: 'tintling', id: 'tl2', pos: [3, WB + 2, -223], range: 5, drift: 0.6, sight: 8, phase: 0.4 },
+    { kind: 'tintling', id: 'tl3', pos: [-2.5, WB + 2.4, -240], range: 5, drift: 0.6, sight: 8 },
+    { kind: 'tintling', id: 'tl4', pos: [2.5, WB + 1.4, -252], range: 5, drift: 0.6, sight: 8, phase: 0.6 },
+    { kind: 'tintling', id: 'tl5', pos: [-3, WB + 2, -268], range: 5, drift: 0.6, sight: 8, phase: 0.2 },
+    { kind: 'tintling', id: 'tl6', pos: [2.5, WB + 2.4, -285], range: 5, sight: 8, phase: 0.8 },
     { kind: 'grossrollpilz', id: 'gr5', pos: [-5, YG, -314], behavior: 'chase', sight: 7 },
   ],
   items: [

@@ -181,8 +181,8 @@ const ROUTES = {
         legs: [{ grab: [0, -104], back: [0, -101.6] }, { wait: 1800 }, { expect: '=L.named.get(\'quelle1\').info().kind === \'question\' && L.named.get(\'quelle1\').fills >= 1' }] },
       { name: 'Riese zertrümmert Steinwand A', from: [0, -10, -110], heroes: ['lotti'], place: { power: 'riese' },
         legs: [{ to: [0, -117], within: 0.6 }, { expect: '=L.named.get(\'wandA\').broken > 0' }] },
-      { name: 'Tintling: Berührung verletzt', from: [-5, -11, -210], heroes: ['lotti'], invuln: false, allowFail: true,
-        legs: [{ swim: [-5, -11, -214], within: 0.4, soft: true, max: 400 }, { wait: 60 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Tintling: schwimmt in Stößen heran, Berührung verletzt', from: [-3, -10.6, -208], heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ swimTo: 'tl1', dy: 0.3, within: 0.05, withinY: 0.05, soft: true, max: 600, stopIf: '=P().hurtTries > 0' }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
       { name: 'Strömung versetzt die Schwimmerin (nach rechts)', from: [0, -10, -219], heroes: ['lotti'], allowFail: true,
         legs: [{ wait: 120 }], mech: (r) => r.pos[0] > 1.5, mechText: (r) => `x ${r.pos[0].toFixed(1)}` },
     ],
@@ -518,11 +518,12 @@ function install() {
           continue;
         }
         // ------------------------------------------------ Schwimmen zu [x, y, z] (Ducken taucht ab, Sprung/gehalten steigt)
-        if (Lg.swim) {
-          const [tx, ty, tz] = Lg.swim;
+        if (Lg.swim || Lg.swimTo) {
+          let [tx, ty, tz] = Lg.swim ?? [0, 0, 0];
           let i = 0, ok = false;
           for (; i < (Lg.max ?? 1500) && !P().dead && L.runtime.status === 'play'; i++) {
             const q = P();
+            if (Lg.swimTo) { const e = L.named.get(Lg.swimTo); if (!e || !e.alive) { ok = true; break; } tx = e.pos.x; ty = e.pos.y + (Lg.dy ?? 0); tz = e.pos.z; if (Lg.stopIf && cond(Lg.stopIf)) { ok = true; break; } }
             const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz);
             const dy = ty - q.pos.y;
             if (d < (Lg.within ?? 0.8) && Math.abs(dy) < (Lg.withinY ?? 0.9)) { ok = true; break; }
@@ -536,7 +537,7 @@ function install() {
             tick({ ...st, crouch, jump, run: false });
           }
           log.push([Lg.name ?? `schwimm${li}`, i, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2), P().mode, P().state]);
-          if (!ok && !Lg.soft) { log.push(['FEHLER: Schwimmziel nicht erreicht', li, JSON.stringify(Lg.swim)]); break; }
+          if (!ok && !Lg.soft) { log.push(['FEHLER: Schwimmziel nicht erreicht', li, JSON.stringify(Lg.swim ?? Lg.swimTo)]); break; }
           continue;
         }
         // ------------------------------------------------ Sturz (Ursache die): Neustart abwarten (gleiches Level, Kontrollpunkt)
