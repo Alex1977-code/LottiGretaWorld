@@ -1957,7 +1957,7 @@ höchstens 67 / 159 k (Rückkehr mit Schwenk 85 / 191 k).
   `wolkenlift`, `mond_gesicht`, `giftwasser`, `rankenschnapper`, `festungsturm`, `feuer_werfer`, `spuk`, `zielmast_spuk`,
   `helm_kanone`, `rammfisch`, `felsblock_riss`, `lautsprecher`, `stachelblock_blau`, `powerup_gleitblatt`, `strandkorb`,
   `sonnenschirm`, `palme`, `pilzlingsturm`, `wabensaeule`, `suchscheinwerfer`, `warp_box`, `bossblitz_box_deko`,
-  `bossblitz_schluessel`, `wuerfelblase`; zu schwer: `schacht_geruest` (≈ 6,0 k > 6 k Obergrenze – eigenes Fördergerüst).
+  `bossblitz_schluessel`, `wuerfelblase`, `schacht_geruest` (Obergrenze 6,5 k, das Modell hat ≈ 6,0 k); zu schwer: keines.
 - Übergänge: Die Röhre `WB` im Pilz-Remix führt ohne Codeänderung hierher (Ankunft an `WP`), zurück landet man an `WB`; Rückkehr
   aus einem B-Level zeigt Welt 11 (Präfix 'B').
 

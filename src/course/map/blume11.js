@@ -643,7 +643,7 @@ export class BlumeLife {
       for (let i = 0; i < n; i++) this.flies.push({ x: rnd.real(x0 + 2, x1 - 2), y: b.top + rnd.real(1.4, 3.2), z: rnd.real(z0 + 2, z1 - 2), r: rnd.real(1.2, 3), sp: rnd.real(0.25, 0.5) * (i & 1 ? 1 : -1), ph: rnd.real(0, TAU), c: WING[(i + this.flies.length) % WING.length] });
     }
     const n = this.flies.length;
-    const wmat = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, vertexColors: true, emissive: 0x2a2a2a });
+    const wmat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, vertexColors: true, fog: true });   // unbeleuchtet: bunte Flügel auch von der Seite
     const bmat = new THREE.MeshLambertMaterial({ vertexColors: true });
     this.own.push(wmat, bmat);
     this.wingR = this.inst(wingGeo(), n, wmat, 'w11:schmetterling-r');

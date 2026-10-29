@@ -576,7 +576,7 @@ if (RUN('blume')) {
   check('Kulissen-Infos je Eingang (Zirkus … Boss-Kuppel) und Registry-Modelle in der Kulisse',
     ['sparkcircus', 'cubemine', 'savanna', 'torches', 'clockfort', 'graymansion', 'lagoon', 'beep', 'beach', 'dayhive', 'spotbridge', 'bossdome'].every((k) => r2.keys.includes(k))
     && ['zirkuszelt', 'funkenflaemmchen', 'helm_kanone', 'suchscheinwerfer', 'bossblitz_box_deko', 'wabensaeule', 'spuk'].every((n) => (r2.models ?? []).includes(n))
-    && Object.keys(r2.heavy ?? {}).every((n) => n === 'schacht_geruest'));
+    && Object.keys(r2.heavy ?? {}).length === 0 && (r2.models ?? []).includes('schacht_geruest'));
   await sc(() => window.__audio.music.play(window.__courseMap.musicName()));
   for (const [name, pos] of [['blume_hafen', [-6, 3, 42]], ['blume_zirkus', [22, 3.5, 32]], ['blume_savanne', [62, 4.5, 20]], ['blume_mine', [28, 5, 2]], ['blume_fackeln', [24, 6.5, -30]],
     ['blume_uhr', [-16, 7.5, -30]], ['blume_spuk', [-24, 9, -69]], ['blume_lagune', [12, 9.5, -72]], ['blume_piep', [54, 10.5, -90]], ['blume_strand', [52, 11.5, -133]],

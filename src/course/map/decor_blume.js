@@ -142,7 +142,7 @@ function sparkCircus(ev, x, y, z) {
 // ------------------------------------------------------------------ B-2 Wasserwürfel-Mine
 
 function cubeMine(ev, x, y, z) {
-  if (!MK.bake(ev, 'schacht_geruest', { width: 4, depth: 3, height: 7 }, [x, y, z - 2], 0, 1, null, true, 6000)) {
+  if (!MK.bake(ev, 'schacht_geruest', { width: 4, depth: 3, height: 7 }, [x, y, z - 2], 0, 1, null, true, 6500)) {
     addGeo(ev, 'w11m:tower', () => { const b = new Build(); for (const [px, pz] of [[-1.5, -2], [1.5, -2], [-1.5, 2], [1.5, 2]]) b.box(0.3, 7, 0.3, 0x8a6a4a, { p: [px, 3.5, pz] }, 0.04); b.box(3.4, 0.3, 4.4, 0x6a4a3a, { p: [0, 7, 0] }, 0.04); return b.geometry(); }, x, y, z - 2);
   }
   solidBox(ev, x - 1.7, y, z - 4.2, x + 1.7, y + 7, z + 0.2, 'geruest');
