@@ -9467,6 +9467,79 @@ S-6 Ø 61 / 186 k, max 74 / 266 k (Käferfeld), Bilder ≤ 91 / 261 k; S-7 Ø 58
 (Großblock-Lagen). Sparmaßnahmen: Waben-Felder je ≤ 5 Zeilen, Stachelwalzen ohne Sonnenschatten, Großblöcke als je eine
 Instanz-Gruppe mit Bild-Atlas, Blümchen statt Riesenblumen-Modellen; Grenzen < 120 / < 300 k.
 
+## Präzisierung (Level S-8 und S-9)
+
+Additiv zur Liste „Bonuswelten – Level-Liste und Freischaltung“, Welt Stern (9): Titel und Besonderheiten von S-8 und S-9.
+Dateien `src/course/levels/w9/S-8.js`, `S-9.js`, eigene Hilfen `src/course/levels/w9/_helpers_d.js` (kein `LEVEL`, nur für
+diese zwei Level), Test `tests/course_sd.mjs`. **Kein Motor-Code geändert**; alle Sonderteile sind level-lokal (Hilfsdatei,
+Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Beide: Archetyp `parcours`, `world: 9`, 400 s,
+3 Sterne + Stempel; S-9 liegt auf der Welt-Stern-Karte hinter der 280-Sterne-Schwelle (Karte unverändert).
+
+### S-8 „Geisterreigen im Schneenebelmoor“ (parcours · fogbog · course_fogbog · 400 s)
+
+- Abschnitte: **Schneefriedhof** (≈ 60 × 100 m, Gräberreihen mit Kränzen/Blumen/Kerzen, Grüfte, Kapelle, Schneemänner,
+  Lichterbögen, Laternen, Irrlichter) mit dem **Friedhofstor** (`friedhofstor`: fünf Schlüssel-Lampen, öffnet erst mit allen
+  fünf Schlüsselmünzen der Gruppe `tor`): a) auf dem Felsen im Kreisgeist-Ring am Start, b) über der Großblock-Treppe nach dem
+  POW-Treffer, c) auf der **unsichtbaren Wolke** (`unsichtbareWolke`, vom Dach der Westgruft) d) hinter der vermauerten
+  Nordgruft (Schneeball durchs Gitter auf den POW im Käfig → Ziegel weg), e) auf dem Felssims rechts – nur durch die **Tür der
+  Gruft am linken Zaun**. Tür in der Kapelle → **Kerzenkammer** (Nebenbereich: Bitcoins, Münzblock, Extraleben). → Kontroll-
+  punkt am Steg → **Floßfahrt** (80 m über den lila Giftsumpf, Grabinseln mit Kreisgeist-Ringen, Giftpilze, Schilf) →
+  **Landeinsel** (Kontrollpunkt, Rätselbox) → **Nebelplattformen** (≈ 70 m: `nebelplattform`-Wellen, zwei Spuren – eine
+  blinkt –, zwei Rastinseln, zum Schluss aufsteigende Platten; lila `nebelboden`) → **Boost-Steg** (40 m Holzsteg mit zwei
+  Boost-Pfeilen und Lichterketten) → **Warp-Box** zum **Kapellenhügel** (Ziel). Für Nebel steht `nebelbank` (nicht
+  `nebelschwaden`).
+- Sterne: 0 **Grablicht** vor dem großen Grabstein stampfen (`grablicht`: Stampfattacke → Funkelstern) und damit den
+  Geisterring um **Krümel** vertreiben (`kruemelAngst`: zittert, „Hilfe!“; alle Ringgeister besiegt → `{ reveal }`) ·
+  1 **Rätselbox** nach dem Floß → Nebelkammer: vier Zielscheiben jenseits einer Nebelschlucht mit Schneebällen treffen ·
+  2 **Sternlaterne** neben dem Steg (`sternlaterne`: Gitter hält Figuren ab, Wurfbälle fliegen hindurch – `ballPass`) vom
+  Balkon aus bewerfen. Stempel: am Ende des Boost-Stegs rechts (Plattform). Extraleben: Kerzenkammer, Rastinsel 2,
+  Kapellenhügel (verborgene Blöcke). Gegner: Kreisgeister 5 einzeln + 5 Ringe (32 Glieder). Wurfbälle mit Schneeball-Optik
+  (`schneebaelle`).
+
+### S-9 „Kanonenhelm-Express durch die Neonstation“ (parcours · cosmic · course_cosmic · 400 s)
+
+- Abschnitte: **Startdeck** (Kanonen-Helme) → **Schienenbrett-Fahrt** (≈ 100 m, `schienenbrett` mit Bärenwand auf dem Gleis,
+  Kanonenturm und Krakenpilz auf Seitendecks) → **Station M1** → zweites Brett mit **Weiche** (nicht umgeschossen: Kehrschleife
+  zurück) → **Kugelwand-Platz** (Kontrollpunkt) → **Kugelwand** (`kanonenkugel_wand`, neun Reihen, ≈ 20 m hinauf) → Gipfel →
+  **Kopfsprung ins Sternenbecken** → **Unterwassertunnel** (≈ 60 m unter einer Glasdecke knapp unter dem Wasserspiegel –
+  eine unsichtbare Sperre darüber verhindert das Überlaufen; ins Becken geht es nur per Kopfsprung vom Gipfel, Glaswände
+  `glaswaende` auf dem Beckenrand halten vom Platz ab –, Riff, Tintlinge; Wasser `show: false` + eigene klare
+  Darstellung `klaresWasser`) → **Kontrollpunkt-Deck** → **Schienennetz** (≈ 150 m, drei Weichen zum
+  Umschießen, zwei Kehrschleifen, Brett fällt am Ende) → Zieldeck.
+- Sterne: 0 **rissige Wand** rechts an Station M1 (`felsblock` look `wand`, nur Kanonenkugel/Bombe) sprengen · 1 im Tunnel
+  abtauchen und die **Ziegel** in der Nische rechts wegschießen · 2 **Sternweiche** im Netz umschießen und die **Sternkapsel**
+  (`sternkapsel`: nur Kanonenkugeln, Stern fliegt zur Schützin) abschießen, bevor das Brett fällt; darunter Rettungsplattform
+  mit Warp-Box zurück zum Kontrollpunkt. Stempel: auf dem Gipfel drei **?-Blöcke** über dem All beschießen
+  (`kanonenFrageBloecke`: Kanonenkugeln lösen sie aus) → Brücke zum Stempel-Planetoiden. Extraleben: Startdeck, unter der
+  Kugelwand. Gegner: Kanonentürme 3, Krakenpilze 3, Tintlinge 3.
+- Darstellung: `fernSicht` blendet statische Abschnitte weiter als 85 m von der Kamera und ferne Weichen-Modelle aus (der
+  Weltraum hat keinen Nebel, der hohe Blick von der Kugelwand sah sonst den ganzen Kurs: 150 → ≈ 100 Zeichenaufrufe);
+  Tintlinge zeichnen nur in Tunnelnähe (`instances.tintling.farHide` 24, ohne Sonnenschatten).
+
+### Hilfen `_helpers_d.js`
+
+`line/ring/arc/column/sign/isl/Bld/litTop`; S-8: `grablicht`, `kruemelAngst`, `unsichtbareWolke`, `sternlaterne`,
+`friedhofstor`, `schneebaelle`, `eisenzaun`, `graeber`, `wege`, `tannen` (auch mit Lichterkette), `laternen`, `eisteiche`,
+`gruft`, `kapelle`, `schneemann`, `baenke`, `kerzen`, `steg`, `irrlichter` (ein Points-Objekt), `lichterkette`, `winterbeete`,
+`eiszapfen`, `sumpfZier`; S-9: `sternkapsel`, `kanonenFrageBloecke`, `glasdecke`, `glaswaende`, `klaresWasser`, `fernSicht`, `deckZier`,
+`neonBoden`, `weltraumPflanzen`, `riffZier`, `asteroiden`, `bojen`, `signalLampen`, `tunnelZier`.
+
+### Test `tests/course_sd.mjs`
+
+Port 4965, `PARTS=load,route,sweep,targets,extra,shots` (jeder Teil < 10 min; die Bilder bei Bedarf mit `SHOTS=a|b|…`
+teilen), `HEROES`, `ONLY`, `SHOTS`, `DETAIL`, `VERBOSE`; Bilder `tests/out/sd_*.png`. Prüft je Level Laden ohne
+Konsolenfehler, Daten und Gegnerzahlen, Routen-Bot Lotti und Greta bis zum Zielmast (echte Eingaben: S-8 mit allen fünf
+Schlüsseln, Tor, Floß, Nebelwellen, Boost-Steg und Warp-Box; S-9 mit drei Brettern, richtig gestellten Weichen, drei
+abgeschossenen Kanonentürmen, Kugelwand und Tauchstrecke), Messgang über die Route, alle Sterne und den Stempel mit
+Gegenproben (ohne Funkelstern, bloßes Draufspringen, Nebelschlucht, Gitter; ohne Helm, ohne Wegschießen, ohne Sternweiche,
+ohne Brücke) und Extras (Tor ohne Schlüssel, Treppe vor dem POW, unsichtbare Wolke, Ziegelwand, Kerzenkammer, Extraleben,
+Kreisgeist, Nebel-Absturz, Giftsumpf-Neustart; Kehrschleife, Bärenwand, Kugelwand-Sturz, Glaswand am Becken, Sperre über der Glasdecke,
+Tintling); die Route muss jeden Wegpunkt erreichen (Protokoll ohne Fehler). Der Kanonen-Helm feuert von selbst – der Bot schaut
+auf dem Netz nach Turm 3 zur Seite (`hold`), sonst träfe er die Weiche voraus. Routen (Bot): S-8 ≈ 99 s (Lotti) / 99 s
+(Greta), S-9 ≈ 80 s / 76 s. Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und
+Höchstwert, Bilder Höchstwert): S-8 Ø 66 / 147 k, max 82 / 244 k (Großblock-Treppe), Bilder ≤ 87 / 239 k; S-9 Ø 72 / 154 k,
+max 99 / 206 k (Kugelwand), Bilder ≤ 107 / 248 k (Stempel mit Brücke). Grenzen < 120 / < 300 k.
+
 ## Präzisierung (Level P-1, P-2, P-3 und P-4)
 
 Welt Pilz (Präfix `P`, Welt 10, Remix-Welt), Level 1 bis 4. Dateien: `src/course/levels/w10/P-1.js` … `P-4.js` (je
