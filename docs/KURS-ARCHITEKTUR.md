@@ -8993,3 +8993,97 @@ Würfelblase mit 6 Wellen ≥ 9 m/s, alle 3 Sterne, Ziel). Kennzahlen (Zeichenau
 Gegnerzoo ≤ 78 / 267 k (30er-Turm von der Seite), Boss-Marathon ≤ 80 / 236 k (Schlangenkönige); Grenzen < 120 / < 300 k.
 Rückfälle geprüft: course_enemies, course_w8_enemies (1–4), course_w6_enemies (3, 4), course_w5_enemies, course_physics,
 course_w1_combat (Boss-Archetyp, 1-Burg), course_star_blocks (mech), sfx_namen.
+
+## Präzisierung (Level S-1, S-2 und S-Kapitän)
+
+Welt Stern „Sternenzelt“ (Präfix `S`, Welt 9), die ersten drei Level. Dateien: `src/course/levels/w9/S-1.js`,
+`S-2.js`, `S-Kapitän.js` und die eigene Hilfsdatei `src/course/levels/w9/_helpers_a.js` (nur von diesen drei Leveln benutzt;
+andere Welt-9-Level legen eigene Hilfsdateien an). Motor-Code wurde nicht geändert; alles Neue ist level-seitig (eigene
+Entitätsarten über `addObject`, Optik über statische Geometrie). Meta exakt nach der Welt-Stern-Tabelle:
+
+| Level | Titel | Archetyp | Thema / Musik | Sterne | Zeit |
+|---|---|---|---|---|---|
+| S-1 | Regenbogenritt durchs Sternenzelt | `parcours_ride` (Tabelle: parcours, mit Ritt-Abschnitt) | rainbow / course_rainbow | 3 + Stempel | 400 s |
+| S-2 | Plattenpurzeln zwischen den Planetoiden | `parcours` | galaxy / course_galaxy | 3 + Stempel | 400 s |
+| S-Kapitän | Krümel im Kurbel-Karussell | `diorama` | starspace / course_diorama | 5 | 400 s |
+
+### Präzisierung (Level S-1, S-2 und S-Kapitän): S-1 „Regenbogenritt durchs Sternenzelt“
+
+≈ 350 m nach −Z, Plattformen oben y 0, Sternenbach y −1 … −2, Fackelplatz/Riesentrank y −1, Ziel y 3. Abschnitte:
+**1 Regenbogenwege** (z 10 … −87): Startplatz (?-Block Krallen-Anzug, unsichtbarer 1-up-Block), Weg mit Ziegelpaar und
+Kristallturm (oben 9,8, kletterbar) mit Röhrensims, drei Lücken mit Trapezen (1 / 3 / 1, Muster wie 5-2) unter
+Regenbogen-Bögen, 8 Hüpfmäuse. **2 Pflaume-Sprung** (z −87 … −108): vom Steg auf Pflaume, Kontrollpunkt im Bach.
+**3 Reitfahrt** (z −108 … −207, `LEVEL.ride`): Sternenbach mit Kurven, Wellen und Felsen, versteckter Flussblock
+(Hüpfer auf Pflaume darunter → Funkenblüte), rechter Seitenarm mit dem **Stempel**. **4 Fackelplatz** (z −204 … −236):
+zwei Sternfackeln (nur Feuer) → Wolkenkanone in den Wolkenhimmel (y 18, Wolken im 4,9-m-Takt) mit dem Sternring,
+zweiter Kontrollpunkt. **5 Riesentrank** (z −240 … −300): drei Sternblock-Mauern (nur als Riese), Nische und Käfig mit
+Mauer-Front. **6 Finale** (z −302 … −346): Druckknopf → Münzregen (46 Münzen über der Treppe), Treppe zum Zielmast.
+Sterne: **0** Kugelraum (Röhre auf dem Kristallturm, nur mit Krallen-Anzug; zwei Schiebekugeln in zwei farbige Tore;
+aufgemalte Farbbahnen zeigen den Weg) · **1** Farbfeld-Raum (Riesentrank, rechte Mauer zertrümmern, Röhre; alle 16 Felder)
+· **2** Sternring im Wolkenhimmel (Funkenblüte → Fackeln → Kanone). Extraleben: unsichtbarer Block am Start, Ende des
+Wolkenhimmels, Käfig hinter der letzten Mauer (nur als Riese). Gegner: 15 Hüpfmäuse.
+
+### Präzisierung (Level S-1, S-2 und S-Kapitän): S-2 „Plattenpurzeln zwischen den Planetoiden“
+
+≈ 300 m nach −Z, eigene Gestaltung (Planetoiden-Hommage). **Kippfeld** (Drehplatten 3 × 4, Abstand 2,6, kippen nach 0,45 s)
+mit Krakenpilzen auf gleitenden Blöcken → **Münzinsel** → **rote Farb-Plattenbahn** (24 Platten in S-Kurve, rot → golden;
+alle golden: 10 Münzen und ein 1-up am Bahnende, per `spawn`-Aktion) → Zwischeninsel (erster Kontrollpunkt) → **Boost-Strecke** (24 Drehplatten
+mit Pfeil, Verzögerung 0,25 s – wer trödelt, stürzt ab) → Warp-Box → **zweiter Kontrollpunkt** → **Plattentreppe** (drei
+Plattenwände `mode: 'treppe'`, je 6 Stufen im Zickzack, ≈ 13 m hinauf) → **Schachbrett** 4 × 5 (rosa/blau → alle golden
+öffnen die Zieltreppe, Signal `schach_fertig`) mit **Gabelung**: oben das Ziel, unten über die letzte Warp-Box die blauen
+Platten. Sterne: **0** Sternziegel über dem Sternstein-Sockel neben Reihe 3 rechts (vom Sockel aus anstoßen oder von oben
+stampfen) · **1** wer auf der Drehplatte Spalte 1 / Reihe 2 (von vorn) stehen bleibt, kippt auf das Versteck (Röhre zurück
+zur Münzinsel) · **2** blaue Platten unten (alle umfärben). **Stempel**: oben auf der Takt-Plattenwand am Kontrollpunkt
+(zwei Spalten im Zickzack, `order` mit 6 Platten, `stagger: −1,2` – die Welle läuft nach oben, je zwei Platten sind
+draußen; man klettert im Takt mit). Extraleben: unsichtbarer Block auf der Münzinsel (1-up läuft nach +x über die Insel),
+Bahnende (s. o.), rechter Winkel des zweiten Treppenabsatzes. Gegner: Krakenpilz 6, Hüpfmaus 2. **Sternenglanz**: Baustein
+`sternenglanz` mit `outfit: 'stern'`, `when: 'ziel'` – nach `runtime.finish` steht im Spielstand
+`outfits.stern = { from: 'S-2', at }` (Banner „Sternenglanz-Kostüm für Lotti und Greta!“).
+
+### Präzisierung (Level S-1, S-2 und S-Kapitän): S-Kapitän „Krümel im Kurbel-Karussell“
+
+Spieluhr-Diorama 30 × 38,5 m (x −15 … 15, z −19 … 19,5), Ebenen Boden 0 / Türme und Brücke 3 / Glockenstube 6; Krümel
+springt nicht, Stufen ≤ 0,25 m. Mitte: **Kurbel-Karussell** (`drehdiorama` `karussell`: Drehscheibe r 6,6 mit Hochbrücke
+13,2 m und Sternentor am Nordende) – der Kurbel-Trittschalter in der Brückenmitte dreht um 90° (offenes Ende Süd → Ost →
+Nord → West); ohne Drehen ist kein Turm außer dem Südturm erreichbar (**Drehen ist Pflicht**). Vier Uhrtürme, Glockenstube
+über dem Nordturm, links vorn die Spieluhr-Dose mit **Drehtür** (`drehdiorama` `drehtuer`, eigener Trittschalter), hinten
+der Uhrwerk-Hof. Sterne: **1** Ostturm (1 Drehung) · **2** Westturm (3 Drehungen) · **3** Spieluhr-Dose (Drehtür) · **4**
+Uhrwerk-Hof – nur sichtbar und greifbar, wenn die Kamera von hinten blickt (`sicht` 135° … 225°) · **5** Glockenstube
+(2 Drehungen). Alle Sterne → Schatz-Ergebnis (`runtime.finish`). 9 Funkenflämmchen auf festen Bahnen, 3 Schatzstellen
+(Startplatz, Westturm, Glockenstube), 50 Münzen.
+
+### Präzisierung (Level S-1, S-2 und S-Kapitän): eigene Entitäten und Hilfen (`_helpers_a.js`)
+
+`regenbogenPlatten` (Kollisionsquader mit Regenbogenstreifen, Wolkensockel, Sternlämpchen und Wolkenbäuschen an breiten
+Bahnen, aufgemalte Sternchen), `regenbogenBogen` (Bögen über Trapez-Lücken mit Querbalken an den Aufhängungen),
+`sternenbachThema` (Fluss-Palette), Entitäten `sternfackel` (zündet nur durch `onHit('fire')`, Signal `sternfackel`,
+`onAll`), `flussblock` (versteckter ?-Block über dem Wasser; Hüpfer der Reiterin darunter), `trittschalter` (flacher
+Schalter für Krümel: `onPress`), `sternmauer` (`breakable: 'bomb'`, bricht bei `mega`/Bombe/Kanone, Münzen), `sternziegel`
+(Kopfstoß/Stampfen → `onBreak`); `wolkenkanoneSpaeter` (Wolkenkanone erscheint erst auf `reveal`), `kugeltore` (Tore für
+Schiebekugeln → `onAll`), `muenzregen` (Signal → Münzen fallen auf eine Fläche), Kulisse `planetenbauch`, `planetchen`,
+`leuchtsterne`, `zahnraeder`, `funkeln`, Bauhelfer `Bld` (sammelt Quader/Zylinder/Sterne in eine statische Geometrie).
+
+### Präzisierung (Level S-1, S-2 und S-Kapitän): Hinweise für Level-Bauer
+
+- Farbplatten bündig auf einer Insel: Plattenoberkante 0,1 m über die Insel legen, sonst steht die Figur auf der Insel und
+  nichts färbt um.
+- Takt-Plattenwand zum Klettern: nie zwei Platten übereinander in einer Spalte (Kopf stößt an); Zickzack über `order` und
+  negativer `stagger` (Welle läuft nach oben).
+- Versteckte Power-ups kennen kein `reveal`: als Belohnung `{ spawn: { kind: 'powerup', … } }` in der Aktion.
+- `sternenglanz` mit `when: 'ziel'` greift erst bei `runtime.finish` (Siegessequenz zu Ende), nicht schon beim Zielmast.
+- Diorama-Sichtsterne (`sicht`) richten sich nach der echten Kamera; Bots müssen `level.archetype.orbit.update(dt, player)`
+  aufrufen, wenn sie ohne Bild simulieren.
+
+### Präzisierung (Level S-1, S-2 und S-Kapitän): Tests und Kennzahlen
+
+`tests/course_sa.mjs` (nach `npm run build`, Port 4935, deterministisch; `PARTS=load,route,sweep,targets,extra,shots`,
+`HEROES=lotti,greta`, `ONLY=<Text>`, Level als Argument; je Aufruf < 10 min): Laden ohne Konsolenfehler, Meta und
+Gegnerzahlen, Routen-Bot Lotti und Greta Start → Ziel (S-Kapitän: Krümel), alle Sterne und Stempel mit echter Mechanik samt
+Gegenproben (ohne Krallen-Anzug kein Kugelraum, ohne Riesentrank keine Farbfeld-Nische, Fackeln nur mit Feuer, Stempel
+nicht auf dem Hauptarm bzw. nicht vom Boden, kein Versteck unter anderen Kippplatten, Stern 4 nicht mit der Grundkamera,
+Westturm nicht nach einer Drehung …), Extras (Extraleben, Münzregen, Kontrollpunkte im Bach und auf der Zwischeninsel, Mitsprung der Hüpfmaus,
+Krakenpilz spuckt und wird besiegt, Boost-Absturz, Schatzstelle, Krümel springt nicht), Messgang entlang der Route und
+Bilder `tests/out/sa_*.png`. Routen: S-1 ≈ 76 s, S-2 ≈ 75 s, S-Kapitän ≈ 63 s; Treffer-Versuche (Route unverwundbar): S-1 und S-Kapitän keine, S-2 höchstens
+1 (ein Krakenpilz-Steinchen; die Route besiegt die Krakenpilze auf der Münzinsel und am Kontrollpunkt von oben). Kennzahlen
+(Zeichenaufrufe inkl. Schattenpass / Dreiecke, Höchstwerte): S-1 ≤ 75 / 229 k, S-2 ≤ 90 / 194 k, S-Kapitän ≤ 105 / 247 k
+(9 Funkenflämmchen kosten allein ≈ 36 Aufrufe); Grenzen < 120 / < 300 k.
