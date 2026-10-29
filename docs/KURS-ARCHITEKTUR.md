@@ -9502,7 +9502,8 @@ Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Beide: Arche
   Kanonenturm und Krakenpilz auf Seitendecks) → **Station M1** → zweites Brett mit **Weiche** (nicht umgeschossen: Kehrschleife
   zurück) → **Kugelwand-Platz** (Kontrollpunkt) → **Kugelwand** (`kanonenkugel_wand`, neun Reihen, ≈ 20 m hinauf) → Gipfel →
   **Kopfsprung ins Sternenbecken** → **Unterwassertunnel** (≈ 60 m unter einer Glasdecke knapp unter dem Wasserspiegel –
-  eine unsichtbare Sperre darüber verhindert das Überlaufen –, Riff, Tintlinge; Wasser `show: false` + eigene klare
+  eine unsichtbare Sperre darüber verhindert das Überlaufen; ins Becken geht es nur per Kopfsprung vom Gipfel, Glaswände
+  `glaswaende` auf dem Beckenrand halten vom Platz ab –, Riff, Tintlinge; Wasser `show: false` + eigene klare
   Darstellung `klaresWasser`) → **Kontrollpunkt-Deck** → **Schienennetz** (≈ 150 m, drei Weichen zum
   Umschießen, zwei Kehrschleifen, Brett fällt am Ende) → Zieldeck.
 - Sterne: 0 **rissige Wand** rechts an Station M1 (`felsblock` look `wand`, nur Kanonenkugel/Bombe) sprengen · 1 im Tunnel
@@ -9512,14 +9513,15 @@ Haken `LEVEL.build`/`LEVEL.setup`, `level.onStep`, `view.onFrame`). Beide: Arche
   (`kanonenFrageBloecke`: Kanonenkugeln lösen sie aus) → Brücke zum Stempel-Planetoiden. Extraleben: Startdeck, unter der
   Kugelwand. Gegner: Kanonentürme 3, Krakenpilze 3, Tintlinge 3.
 - Darstellung: `fernSicht` blendet statische Abschnitte weiter als 85 m von der Kamera und ferne Weichen-Modelle aus (der
-  Weltraum hat keinen Nebel, der hohe Blick von der Kugelwand sah sonst den ganzen Kurs: 150 → ≈ 100 Zeichenaufrufe).
+  Weltraum hat keinen Nebel, der hohe Blick von der Kugelwand sah sonst den ganzen Kurs: 150 → ≈ 100 Zeichenaufrufe);
+  Tintlinge zeichnen nur in Tunnelnähe (`instances.tintling.farHide` 24, ohne Sonnenschatten).
 
 ### Hilfen `_helpers_d.js`
 
 `line/ring/arc/column/sign/isl/Bld/litTop`; S-8: `grablicht`, `kruemelAngst`, `unsichtbareWolke`, `sternlaterne`,
 `friedhofstor`, `schneebaelle`, `eisenzaun`, `graeber`, `wege`, `tannen` (auch mit Lichterkette), `laternen`, `eisteiche`,
 `gruft`, `kapelle`, `schneemann`, `baenke`, `kerzen`, `steg`, `irrlichter` (ein Points-Objekt), `lichterkette`, `winterbeete`,
-`eiszapfen`, `sumpfZier`; S-9: `sternkapsel`, `kanonenFrageBloecke`, `glasdecke`, `klaresWasser`, `fernSicht`, `deckZier`,
+`eiszapfen`, `sumpfZier`; S-9: `sternkapsel`, `kanonenFrageBloecke`, `glasdecke`, `glaswaende`, `klaresWasser`, `fernSicht`, `deckZier`,
 `neonBoden`, `weltraumPflanzen`, `riffZier`, `asteroiden`, `bojen`, `signalLampen`, `tunnelZier`.
 
 ### Test `tests/course_sd.mjs`
@@ -9531,9 +9533,9 @@ Schlüsseln, Tor, Floß, Nebelwellen, Boost-Steg und Warp-Box; S-9 mit drei Bret
 abgeschossenen Kanonentürmen, Kugelwand und Tauchstrecke), Messgang über die Route, alle Sterne und den Stempel mit
 Gegenproben (ohne Funkelstern, bloßes Draufspringen, Nebelschlucht, Gitter; ohne Helm, ohne Wegschießen, ohne Sternweiche,
 ohne Brücke) und Extras (Tor ohne Schlüssel, Treppe vor dem POW, unsichtbare Wolke, Ziegelwand, Kerzenkammer, Extraleben,
-Kreisgeist, Nebel-Absturz, Giftsumpf-Neustart; Kehrschleife, Bärenwand, Kugelwand-Sturz, Sperre über der Glasdecke,
+Kreisgeist, Nebel-Absturz, Giftsumpf-Neustart; Kehrschleife, Bärenwand, Kugelwand-Sturz, Glaswand am Becken, Sperre über der Glasdecke,
 Tintling); die Route muss jeden Wegpunkt erreichen (Protokoll ohne Fehler). Der Kanonen-Helm feuert von selbst – der Bot schaut
 auf dem Netz nach Turm 3 zur Seite (`hold`), sonst träfe er die Weiche voraus. Routen (Bot): S-8 ≈ 99 s (Lotti) / 99 s
 (Greta), S-9 ≈ 80 s / 76 s. Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und
-Höchstwert, Bilder Höchstwert): S-8 Ø 66 / 147 k, max 82 / 244 k (Großblock-Treppe), Bilder ≤ 87 / 239 k; S-9 Ø 73 / 156 k,
-max 102 / 218 k (Kugelwand), Bilder ≤ 101 / 245 k. Grenzen < 120 / < 300 k.
+Höchstwert, Bilder Höchstwert): S-8 Ø 66 / 147 k, max 82 / 244 k (Großblock-Treppe), Bilder ≤ 87 / 239 k; S-9 Ø 72 / 154 k,
+max 99 / 206 k (Kugelwand), Bilder ≤ 107 / 248 k (Stempel mit Brücke). Grenzen < 120 / < 300 k.
