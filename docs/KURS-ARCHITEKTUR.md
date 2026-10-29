@@ -8154,4 +8154,8 @@ Teller aufs Haupt). Beine u. a. `pound`, `kanone`, `gondel` (mit Sternmünzen), 
 und Greta Start → Zielmast; alle Sterne und Stempel mit beiden Heldinnen samt Gegenproben (Lukas nicht ohne Stampfen,
 Sternenring nicht ohne Springen, Stempel nicht ohne Kanone; Kletterturm nicht ohne Krallen, Riesenrad-Stern nicht vom Steg,
 Ausguck nicht vom Boden); Extraleben, Kontrollpunkte (Gondel kommt zurück), goldene Schockwelle trifft, Lavabrocken trifft,
-Krallenhieb gegen Funkenflämmchen, Lavagraben, Absturz, Lavapfützen im Kampf und Kampf-Neustart; Messgang und Bilder.
+Krallenhieb gegen Funkenflämmchen, Lavagraben, Absturz, Lavapfützen im Kampf, Kampf-Neustart (beide Endgegner); Messgang und
+Bilder. Stand: 8-A 17 + 18 + 2 Prüfungen, 8-B 18 + 18 + 2 (load/route/sweep ≈ 4 min, targets/extra ≈ 3 min, shots ≈ 5–7 min).
+Gemessen (scale 2, inkl. Schattenpass): 8-A Route ≈ 81 s (Lotti) / 83 s (Greta), Messgang 30 Punkte ≤ 82 Zeichenaufrufe /
+≤ 262 k Dreiecke, Bilder 56–82 / ≤ 256 k · 8-B Route ≈ 64 s / 58 s, Messgang 28 Punkte ≤ 99 / ≤ 271 k, Bilder 65–107 / ≤ 266 k
+(am meisten oben im Riesenrad mit Blick über den ganzen Glut-Rummel).
