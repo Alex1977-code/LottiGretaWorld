@@ -13,6 +13,8 @@
 //          size?: 1 (Faktor), pos? (ohne Bahn: schwebt an der Stelle) }
 //   Beispiel: { kind: 'wuschel', center: [0, 1.5, -30], radius: 3, count: 4, spacing: 4.7 }
 // Zustände: move | gone (vertrieben). Laufzeit: s (Bahnweg m), mover (PathMover).
+// Bonuswelten (additiv, Präzisierung Gegner Bonuswelten): der Biss der Topfpflanze/Topf-Schnappblume (onHit('bite')) verschlingt
+//   ihn (K-1 „Topf-Schnappblume frisst Wuschel“); noBite?: true schützt ihn. Laufzeit: bitten.
 
 import { EnemyW2, sharedSlot } from '../EnemyW2.js';
 import { PathMover } from '../../level/PathMover.js';
@@ -65,6 +67,8 @@ class Wuschel extends EnemyW2 {
   onHit(kind, source) {
     if (this.defeated) return;
     if (kind === 'mega' || kind === 'star') this.flip(source, 7);
+    // Bonuswelten (K-1 „Topf-Schnappblume frisst Wuschel“, K-Haus 25): der Biss der Topfpflanze verschlingt ihn
+    else if (kind === 'bite' && !this.spec.noBite) { this.flip(source, 2); this.bitten = true; }
   }
 
   render() {

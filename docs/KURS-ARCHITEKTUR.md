@@ -8713,3 +8713,283 @@ inkl. Schattenpass / Dreiecke) in der Werkstatt: Start 52 / 118 k, Drehplatte 47
 34 / 130 k, Schienenwalze 22 / 86 k, Walzenraum 43 / 111 k, Flug-Zielmast 77 / 199 k, ?-Turm 79 / 245 k (zwei Türme, Fels,
 Laufbombe, Wabenfeld im Blick), Draufsicht/Waben 33 / 137 k, Nebel 42 / 149 k, Schienenbrett 38 / 119 k, Kanonenkugeln
 48 / 166 k, Drehdiorama 63 / 148 k; Themen ≤ 65 / 177 k; Remixe ≤ 77 / 193 k. Grenzen < 120 / < 300 k.
+
+## Präzisierung (Gegner Bonuswelten)
+
+Ergänzung des Gegner-Agenten der Bonuswelten Stern, Pilz, Blume und Krone (Stand: Bonus-Gegnerzoo `0-35`,
+Boss-Marathon-Probe `0-36`). Nichts oben Festgelegtes wird geändert; alles ist additiv. Level-Bauer schreiben nur Daten; alle
+Felder sind optional, sofern nicht anders vermerkt. Gemeinsame Felder und Konter aus „Präzisierung (Gegner/Power-ups)“ und
+„(Gegner Welt 2–8, Halloween)“ gelten weiter (`id, pos, dir|yaw, path, loop, wake, edges, drop`; Ziel = nächste Figur,
+Lava/Absturz = besiegt). Jede Datei dokumentiert ihre Parameter vollständig im Kopfkommentar. Angebunden an den Motor der
+Bonuswelten („Präzisierung (Motor und Bausteine Bonuswelten)“: Themen `starspace` und `bossblitz`, Entitäten `laufbombe` und
+`felsblock`, Kanonenkugel-Treffer über `onHit('cannon')`, `replaceKind` auch für Laufzeit-spawns) – nichts doppelt gebaut.
+Eigene Figuren (Krakenpilz, Tintling, Stachelkugler) im Spielzeug-Look mit großen Augen, lustig, nie erschreckend; keine fremden
+Namen, Figuren, Logos, Musik oder Level-Titel.
+
+### Präzisierung (Gegner Bonuswelten): Dateien
+
+```
+src/course/entities/bonushelp.js                  Hilfen (außerhalb kinds/): POWER_HIT, isSichel, STACHEL_KILL, slopeAt (Gefälle),
+                                                  Ride (in der Luft mit MovingBox/mover mitfahren), arcVelocity, aura
+                                                  (Sternenstaub), weitergereicht aus w8help.js: bannerOf, archOf, fallingStar, …
+src/course/entities/kinds/krakenpilz_bonus.js     krakenpilz, krakenpilz_stein
+src/course/entities/kinds/tintling_bonus.js       tintling
+src/course/entities/kinds/stachelkugler_bonus.js  stachelkugler
+src/course/entities/kinds/kampfraum_bonus.js      kampfraum (alle Gegner eines Raums besiegt → Signal)
+src/course/entities/kinds/bossblitz_bonus.js      bossblitz_hub, bossblitz_box, bossblitz_schluessel, boss_gruppe (B-12)
+src/course/blocks/types/bossblitz_bonus.js        Baustein weltraum_arena (Hub und Arena-Räume im Nacht-Weltraum)
+src/course/models/kinds/enemies_bonus.js          Modelle krakenpilz, krakenpilz_stein, tintling, stachelkugler
+src/course/models/kinds/bossblitz_bonus.js        Modelle bossblitz_schluessel, bossblitz_box_deko, sternenstaub
+src/course/entities/kinds/bunny.js                + size 'giant' (Riesenhase, B-5)
+src/course/entities/kinds/kickbombe.js            + Laufbombe zündet bei Nähe (trigger), Signal 'laufbombe'
+src/course/entities/kinds/pilzlingsturm.js        + count bis 30, topple, rider (Feuer-Werfer oben auf dem Turm)
+src/course/entities/kinds/wuerfelblase_w6.js      + waves auch ohne Gold (B-12: mehr, schnellere Schockwellen), waveColor
+src/course/entities/kinds/wuschel.js              + Biss der Topfpflanze verschlingt ihn (noBite schützt)
+src/course/entities/kinds/kippquader_koenig_w5.js + wartet auf den Boss-Archetyp auch über LEVEL.bosses/boss_gruppe (bossManaged)
+src/course/entities/w6help.js                     + bossManaged kennt Mitglieder einer boss_gruppe (level.bossMembers)
+src/course/models/kinds/enemies_w1.js             + Pilzlingsturm-Modell { tall: true } bis 30 Stufen, ab 9 Stufen sparsamere Körper
+src/course/levels/w0/0-35.js                      Bonus-Gegnerzoo (13 Reihen, Z(r, dz) = −8 − 20(r − 1) − dz, Thema starspace)
+src/course/levels/w0/0-36.js                      Boss-Marathon-Probe (Archetyp boss, Thema bossblitz, 500 s, B-12 nur aus Daten)
+tests/course_bonus_enemies.mjs                    Port 4925, BE_PART=1|2|3, Bilder tests/out/be_*.png
+```
+
+Modelle: `krakenpilz` (state idle | walk | hop | spit | squashed | defeated; `model.mouth()` = Abwurfpunkt),
+`krakenpilz_stein` ({ spin }), `tintling` (swim { pulse } | idle | retreat | defeated), `stachelkugler` (roll { roll, speed } |
+idle | defeated), `bossblitz_schluessel` (idle | rise | collect), `bossblitz_box_deko` (opts { icon }; state { locked, open,
+done, glow }), `sternenstaub` (opts { radius, height, count, color }; state { k, spin }). Unverändert genutzt: `laufbombe` und
+`felsblock_riss` (Motor), `warp_box`, `bunny_small` (× 4 als Riesenhase), `pilzlingsturm` ({ count, tall }), alle Endgegner-
+Modelle von Welt 5/6/8. Zeichenaufrufe: Krakenpilz 5, Tintling 5, Stachelkugler 3, Stein 1, Schlüssel 3, Box-Schmuck 6.
+
+### Präzisierung (Gegner Bonuswelten): gemeinsame Regeln
+
+- **POWER_HIT** (bonushelp.js, wie w8help.js) = claw, fire, sichel, throw, shell, cannon, bomb, mega, star, punch, bite, tail,
+  crush, pow. **STACHEL_KILL** (stachelige Gegner, nie von oben) = fire, claw, sichel, shell, throw, cannon, bomb, mega, star,
+  punch, bite, tail, crush, pow.
+- **Kanone** (Kanonen-Helme, Kanonenkugeln des Motors): `onHit('cannon')` besiegt Krakenpilz, Tintling (auch unter Wasser) und
+  Stachelkugler; der 30er-Pilzlingsturm fällt mit `topple: [… 'cannon']` ganz um.
+- **Wurfsichel**: besiegt Krakenpilz, Tintling, Stachelkugler und zerschlägt Spuck-Steinchen.
+- **Bewegte Plattformen** (MovingBox/mover): Krakenpilz fährt auch im Hüpfer mit (`Ride`: landet wieder auf seinem gleitenden
+  Block), Stachelkugler und Tintling (wenn er auf etwas liegt) über `moveWithGravity`.
+- **Wasser**: der Tintling bleibt 0,3 m unter der Oberfläche (ohne Wasser schwebt er), Strömungen (`level.currentAt`) treiben
+  ihn mit (× drift); Steinchen zerbröseln im Wasser und in Lava.
+- **Sound** nur über vorhandene `level.sfx`-Namen: `hop`, `land`, `swoop` (Spucken), `stomp`, `brickbreak` (Steinchen),
+  `swim`, `splash`, `bump`, `poof`, `hover`, `key`, `gate`, `powerup_appear`, `room_clear`, `star`, `slam`
+  (`tests/sfx_namen.mjs` grün).
+
+| Gegner | Verhalten | besiegt durch | verletzt |
+| --- | --- | --- | --- |
+| krakenpilz | hüpft (auf der Stelle / Bahn / auf die Figur zu), dreht sich zur Figur und spuckt alle interval s ein Steinchen im Bogen (Backen blähen = Vorwarnung), fährt auf gleitenden Blöcken mit | **von oben** (Draufspringen/Stampfen → platt), POWER_HIT, Wurfsichel, Rutschen | seitliche Berührung; Steinchen |
+| krakenpilz_stein | Bogen (g 26 m/s²), hüpft einmal auf, zerbröselt (2. Aufschlag, Wand, Wasser/Lava, life s) | jeder Angriff zerschlägt es; Funkelstern | Berührung |
+| tintling | schwebt; sieht er eine Figur, **Zickzack-Stöße** auf sie zu (zusammenziehen = Vorwarnung), nach strokes Stößen zurückweichen (Tintenwölkchen), Leine range um den Platz | **von oben** (auch schwimmend), POWER_HIT, Wurfsichel, Kanonenkugel | **jede Berührung** (seitlich, von unten) |
+| stachelkugler | **rollt Hänge hinab** (beschleunigt mit der Steigung bis max), auf ebenem Boden pendelt er (path / mode 'pendel' / geradeaus mit Umkehr an Kanten und Wänden) | **nur** STACHEL_KILL und Wurfsichel (verpufft) | **jede Berührung**, auch Draufspringen/Stampfen/Rutschen |
+| bunny size 'giant' (Riesenhase) | rennt davon (speed 8,5), schlägt Haken zur freieren Seite, läuft am Rand seines Bereichs, verschnauft nach tire s | gefangen (Berührung, Tatze, Stampfen, Riese, Stern) → Items im Kreis + Stern | nie |
+| laufbombe (Motor + trigger) | läuft, zündet bei Nähe (trigger 2,2 m), tragbar/werfbar, Explosion sprengt Felsblöcke | – (Kickbombe) | Explosion |
+| pilzlingsturm (count 30, rider) | wie bisher, bis 30 Stufen; Reiter oben fährt mit und sinkt mit jeder Stufe | je Treffer eine Stufe; topple wirft ihn ganz um, der Reiter fällt herab und kämpft weiter | wie bisher |
+| wuschel (+ bite) | wie bisher | zusätzlich: Biss der Topfpflanze verschlingt ihn | wie bisher (Draufspringen verletzt) |
+
+Geprüft und unverändert (nur Daten, im Zoo und in den Kampfräumen): `glotzfisch` (S-4), `grossrollpilz` (S-7), `kreisgeist_kreis`
+(S-8), `brummer`, `flatterkaefer` (S-6), `hackbeil_pilz` (K-Haus), `topfpflanze` (K-1), `suchkopf`, `feuer_werfer` /
+`bumerang_werfer` / `hammer_werfer`, `rammbock_bulle`, `schneesaeule`, `muenzmarder`, `funkenflaemmchen`, `zauberkroete`,
+`rankenschnapper`, `felsblock` (Motor).
+
+### Präzisierung (Gegner Bonuswelten): Gegner-Daten (exakt, mit Beispiel)
+
+```js
+// Beispiele aus dem Gegnerzoo 0-35 (Boden y = 1)
+enemies: [
+  // Krakenpilz (S-2, P-6, K-1): behavior 'hop' (Standard, Hüpfer auf der Stelle: hop 0) | 'patrol' (path + loop bzw. hin und her
+  //   in dir) | 'chase' (bleibt an Kanten stehen); hop 0.9 (m je Hüpfer), height 0.45, every 0.7 (s Pause), sight 11 (Höhe ± 4 m),
+  //   interval 2.6 (s je Steinchen), first 0.9 (s bis zum ersten), flight 1.0 (s Flug), lead 0.45 (s Vorhalt), range 12 (m),
+  //   max 2 (Steinchen zugleich), spit true, stone { bounce 0.35, life 3.5 }, wake, edges, drop.
+  //   Zustände idle → rest ⇄ crouch → air → land | spit (0,9 s, Steinchen bei 0,5 s) | squashed | flipped;
+  //   Laufzeit hops, spits, stones, info().
+  { kind: 'krakenpilz', id: 'kp1', pos: [-14, 1, -16], sight: 12, dir: [0, 1] },
+  { kind: 'krakenpilz', id: 'kp_gleit', pos: [7.5, 2.15, -17], sight: 12 },          // steht auf einem mover (gleitender Block)
+  { kind: 'krakenpilz', path: [[-16, 1, -32], [-7, 1, -32]], spit: false },          // patrouilliert
+  { kind: 'krakenpilz', behavior: 'chase', pos: [-11.5, 1, -39], sight: 9 },
+  // Spuck-Steinchen einzeln (z. B. aus einer Aktion): pos = Unterkante, vel, owner?, bounce 0.35 (0 = zerbröselt gleich), life 3.5
+  { kind: 'krakenpilz_stein', pos: [0, 2, -20], vel: [0, 6, 4] },
+
+  // Tintling (S-7, B-7): pos = Fußpunkt (Armspitzen) im Wasser; sight 9, speed 4.2 (m/s je Stoß), pulse 1.1 (s je Stoß), zig 0.65
+  //   (Zickzack-Anteil quer), strokes 3 (Stöße bis zum Zurückweichen; näher als 1,2 m auch), back 1.6 (s zurück, halbes Tempo),
+  //   range 8 (Leine um den Platz, 0 = frei), drift 0.6 (Strömung), phase 0..1 (Vorlauf im Takt), drop.
+  //   Zustände idle → chase → retreat → chase … | home | defeated (1 s); Laufzeit strokes, retreats, side (±1), inWater, info().
+  { kind: 'tintling', id: 'tl1', pos: [-14, -1.6, -75], sight: 9 },
+  { kind: 'tintling', pos: [11.5, -1.6, -75], sight: 8, range: 4, phase: 0.5 },      // im Becken mit Strömung
+
+  // Stachelkugler (P-1, P-2): oben am Hang rollt er hinab (Gefälle aus dem Boden), eben: path (+ loop) | mode 'pendel' (pos ± dir ·
+  //   dist) | geradeaus in dir mit Umkehr an Kanten (edges) und Wänden. speed 2.2 (m/s eben), max 9, accel 18 (m/s² je Steigung 1),
+  //   friction 2.5 (m/s² über speed), dist 3, wake, drop.
+  //   Zustände idle (schläft außer Reichweite) → roll | defeated (0,7 s); Laufzeit speedNow, slope, downhill, rolled, turns, info().
+  { kind: 'stachelkugler', id: 'sk_hang', pos: [11.5, 4, -40.4], dir: [0, 1], wake: 40 },
+  { kind: 'stachelkugler', pos: [-11.5, 1, -55], mode: 'pendel', dir: [1, 0], dist: 4 },
+  { kind: 'stachelkugler', path: [[7, 1, -51], [16, 1, -51], [16, 1, -59], [7, 1, -59]], loop: true },
+
+  // Pilzlingsturm (additiv): count bis 30 (Modell { count, tall: true }), topple ['bomb', 'mega', 'star', 'bump'] (Treffer, die den
+  //   ganzen Turm umwerfen), rider { kind, …Felder } (B-9: Gegner reitet oben; pace 0,25 Standard; Laufzeit rider).
+  { kind: 'pilzlingsturm', id: 'turm30', pos: [11.5, 1, -117], count: 30, behavior: 'walk', speed: 0.6, dir: [1, 0],
+    topple: ['bomb', 'mega', 'star', 'bump', 'cannon'] },
+  { kind: 'pilzlingsturm', pos: [-11.5, 1, -135], count: 3, behavior: 'walk', speed: 0.5,
+    rider: { kind: 'feuer_werfer', id: 'werfer_turm', sight: 12, interval: 2.4 } },
+
+  // Laufbombe (Motor-Art, additiv): trigger 2.2 (m, Zünden bei Nähe; 0 = nur Berührung/Treffer wie die Kickbombe); übrige Felder
+  //   der Kickbombe. Signal 'laufbombe' { id, pos, radius, hits }; Felsblöcke im Radius → Signal 'felsblock' (Motor).
+  { kind: 'laufbombe', id: 'lb1', pos: [-14, 1, -113], dir: [1, 0], speed: 1.1 },
+  { kind: 'laufbombe', pos: [-8, 1, -113], dir: [-1, 0], speed: 1.1, trigger: 0 },
+
+  // Wuschel (additiv): noBite true = die Topfpflanze kann ihn nicht verschlingen (Laufzeit bitten).
+  { kind: 'wuschel', center: [11.5, 1.1, -135], radius: 2.2, speed: 1.6 },
+
+  // Würfelblase (additiv, B-12): waves (Zahl) auch ohne color 'gold' → je Riesen-Landung waves Schockwellen-Entitäten (Abstand
+  //   waveGap 0.4 s, Tempo shockSpeed 9 m/s für die erste, jede weitere 12 % langsamer, Radius shockR 8), Farbe waveColor 'weiss'
+  //   | 'gold'; ohne waves bleibt alles wie 6-C (eine Welle, 7 m/s, Radius 6). Laufzeit multi.
+  { kind: 'wuerfelblase', id: 'blase', pos: [0, 2, 107], arena: { center: [0, 2, 110], r: 11.1 }, waves: 3, waveGap: 0.4,
+    shockSpeed: 9.5, shockR: 9, star: { pos: [0, 2.4, 116.5], index: 2 } },
+],
+items: [
+  // Riesenhase (B-5): bunny mit size 'giant' (bzw. giant: true) – × 4, speed 8.5, alert 10, Bereich area (Standard Kreis r 14),
+  //   dodge 2.8 (m: Haken, höchstens alle 0,9 s), hop 6.5 (m/s Satz), tire 4.5 (s Flucht bis zum Verschnaufen), rest 1.3 (s),
+  //   items ['wachstumsbeere', 'funken', 'krallen', 'oneup'] (Power-up-Name, 'coins:N', 'coin'), star (Index) bzw. reward.
+  //   Signal 'riesenhase' { id, pos }; Laufzeit hooks, hops, rests, info().
+  { kind: 'bunny', id: 'riesenhase', size: 'giant', pos: [0, 1, -288], area: { pos: [0, 1, -288], r: 13 }, star: 0,
+    items: ['wachstumsbeere', 'funken', 'krallen', 'coins:5'] },
+
+  // Kampfraum (P-Haus, P-4, B-9, S-6, K-1): unsichtbar. area { min, max } | { pos, r } (Kreis, Höhe ± 8), ids (nur diese zählen),
+  //   start 'betreten' (Standard) | 'sofort' | 'signal' (wartet auf die Aktion { start: id }), signal 'kampfraumFrei', onClear
+  //   (Aktion, z. B. { reveal: 'warp_ziel' } | { star: 2 }), add false (später erscheinende Gegner im Bereich mitzählen),
+  //   banner '' (Ansage). Gezählt: enemy-Entitäten (auch Endgegner) mit Fußpunkt im Bereich; spec.count false nimmt eine aus,
+  //   spec.count true nimmt eine Nicht-Gegner-Entität auf. Besiegt = defeated, Lava/Absturz oder entfernt.
+  //   Tod der Figur: der Raum zählt beim nächsten Betreten neu. Laufzeit state ('wait' | 'active' | 'done'), total, left,
+  //   cleared, targets, start(), reset(), info().
+  { kind: 'kampfraum', id: 'raum1', area: { min: [-8, 0, -18], max: [8, 6, -2] }, onClear: { reveal: 'warp_ziel' } },
+  { kind: 'kampfraum', id: 'turmrunde', area: { pos: [0, 1, -60], r: 9 }, banner: 'Alle besiegt!', onClear: { star: 1 } },
+],
+```
+
+### Präzisierung (Gegner Bonuswelten): Boss-Marathon B-12 (Bausteine und Daten)
+
+B-12 entsteht nur aus Daten: Archetyp `boss` mit einem Eintrag je Kampf in `LEVEL.bosses` (Auslöser-Kasten je Arena-Raum, wie
+„Präzisierung (Archetypen 2)“), Baustein `weltraum_arena` für Hub und Räume, Entität `bossblitz_hub` für Boxen, Schlüssel,
+Rück-Warp-Boxen und die letzte Box, `boss_gruppe` für beide Schlangenkönige zugleich. Die Endgegner selbst sind die bestehenden
+Arten (Nacht-Weltraum-Fassung = Thema `bossblitz` + Sternenstaub-Kranz).
+
+- **weltraum_arena** (Baustein): `{ type: 'weltraum_arena', id?, pos (Mitte der Bodenoberfläche), shape 'rund' | 'eckig',
+  r 11, size [20, 20], thick 1.4, wall 7 (unsichtbare Wand, 0 = keine), corners 0 (eckig: ausgesparte Ecken für
+  'bruchplatte' mit size [c, c]), color 'violett' | 'blau' | 'rosa' | 'gold' | 'gruen' | 'rot', star true, pads [[x, z], …]
+  (Leuchtkreise Ø 3 m für Warp-Boxen, Weltkoordinaten), lamps 8, rock true, gate (rund: Winkel einer Wandlücke), gateW 3 }`.
+  `level.named.get(id)` = `{ center, r, size, shape, inside(x, z, margin) }`. Alles statisch verschmolzen.
+- **bossblitz_hub** (Entität): `{ kind: 'bossblitz_hub', id, pos (Hub-Mitte), radius 12, start [x, y, z] (Neustart im Hub;
+  Standard pos + 4 m nach +Z), fights: [{ boss (Id des Endgegners bzw. der boss_gruppe), box [x, y, z] (Hub-Warp-Box, Mitte
+  Unterseite), to [x, y, z] (Ankunft im Raum = Checkpoint), ret [x, y, z] (Rück-Warp-Box im Raum), key? [x, y, z] (Standard
+  Arenamitte), icon? 'kippquader' | 'schatten' | 'lavafelsen' | 'wirbel' | 'schlangen' | 'blase' (Standard nach der Art),
+  final? true (verschlossen bis alle Schlüssel da sind, gibt keinen Schlüssel), back? [x, y, z] (nur final: Ziel der
+  Rück-Warp-Box, z. B. Zielplatz), yaw?, id? (Standard `${hub}_${boss}`) }, …], keys? (Standard: Kämpfe ohne final),
+  aura true, banners true, onKey?, onOpen?, onWin? }`. Laufzeit: keys, need, open, won, done, fights, inHub(), info().
+- **Ablauf**: in die Box springen (Checkpoint = `to`) → Kampf (Auslöser des Archetyps) → Sieg: Schlüssel steigt auf (0,8 s,
+  dann berührbar) → Signal `bossSchluessel`, HUD „Schlüssel n/N“, Rück-Warp-Box an `ret` → zurück aus der Box des Kampfs im
+  Hub; die Box ist **erledigt** (Deckel zu, grüner Haken, Ansage „Hier hast du schon gewonnen!“), Checkpoint = Hub-Start →
+  alle Schlüssel und Figur im Hub: Schloss der letzten Box springt auf (Signal `bossblitzOffen`) → letzter Kampf → Sieg:
+  Signal `bossblitzSieg`, Rück-Warp-Box zu `back`. Die Uhr (`timeLimit`) läuft im Hub weiter. Tod im Kampf: Neustart am
+  Eingang des Raums, der Kampf beginnt von vorn, gesammelte Schlüssel und erledigte Boxen bleiben.
+- **HUD**: „Schlüssel n/N“ (keyHud aus blocks/w5kit.js) ruht, solange die Boss-Lebensleiste zu sehen ist (beide stehen rechts
+  unter der Uhr), und erscheint danach mit dem aktuellen Stand.
+- **bossblitz_box**: `{ kind: 'bossblitz_box', id, pos, target [x, y, z] | Id, icon?, locked? false, hub?, fight? }` – legt der
+  Hub selbst an; auch einzeln als verschließbare Warp-Box nutzbar (unlock(), markDone(); Röhren-Ziel x, z, top, disarm).
+- **bossblitz_schluessel**: `{ kind: 'bossblitz_schluessel', pos, hub?, fight?, onCollect? }` – einzeln = Sammel-Schlüssel mit
+  Aktion.
+- **boss_gruppe**: `{ kind: 'boss_gruppe', id, members: ['sk_gruen', 'sk_rosa'], pos? (Mitte), star? { pos, index } |
+  [x, y, z], banner? 'Noch einer!' }` – Mitglieder (beliebige Endgegner mit Boss-Schnittstelle, ohne eigenen star) warten
+  auf den Archetyp (`bossManaged`), beginnen und enden gemeinsam; Lebensleiste = Summe (2 × 3 = 6 Herzen), Treffer der
+  Mitglieder meldet die Gruppe weiter. Zustände wait | intro | fight | defeated | gone.
+
+```js
+// B-12 (Auszug aus 0-36): Hub 20 × 20 m, sechs Boxen, fünf freie Kämpfe + letzte Box
+archetype: 'boss', theme: 'bossblitz', music: 'course_bossblitz', timeLimit: 500,
+bosses: [   // je Kampf: Auslöser-Kasten über dem Raum (vorn ein freier Streifen, wo man ankommt)
+  { id: 'kq', name: 'Kippquader-König', speed: 0, trigger: { min: [-90, 1.5, 30], max: [-70, 11, 46.4] }, center: [-80, 2, 40],
+    warpBanner: '', musicAfter: 'course_bossblitz' },
+  // schatten, lava, wirbel, koenige (Name 'Schlangenkönige'), blase genauso
+],
+segments: [
+  { type: 'weltraum_arena', id: 'hub', pos: [0, 2, 0], shape: 'eckig', size: [20, 20], color: 'violett',
+    pads: [[-6, 5.5], [-6, -5.5], [6, -5.5], [6, 5.5], [0, 0], [0, -7.5]] },
+  { type: 'weltraum_arena', id: 'raum_kq', pos: [-80, 2, 40], shape: 'eckig', size: [20, 20], corners: 4, color: 'gold' },
+  { type: 'weltraum_arena', id: 'raum_lava', pos: [80, 2, -50], r: 10, color: 'rot' },
+  { type: 'weltraum_arena', id: 'raum_koenige', pos: [0, 2, -110], r: 13, color: 'rosa', lamps: 10 },
+  // …
+],
+enemies: [
+  { kind: 'lavafelsen_koenig', id: 'lava', pos: [80, 2, -54], arena: { center: [80, 2, -50], r: 9.5 }, star: { pos: [80, 2.4, -45], index: 0 } },
+  { kind: 'schlangenkoenig', id: 'sk_gruen', pos: [-5.5, 2, -111], arena: { center: [0, 2, -110], r: 12.5 }, spots: [[-11, -106], …] },
+  { kind: 'schlangenkoenig', id: 'sk_rosa', color: 'rosa', pos: [5.5, 2, -111], arena: { center: [0, 2, -110], r: 12.5 }, spots: [[11, -106], …] },
+  { kind: 'boss_gruppe', id: 'koenige', members: ['sk_gruen', 'sk_rosa'], pos: [0, 2, -110], star: { pos: [0, 2.4, -102], index: 1 } },
+  { kind: 'wuerfelblase', id: 'blase', pos: [0, 2, 107], arena: { center: [0, 2, 110], r: 11.1 }, waves: 3, waveGap: 0.4, shockSpeed: 9.5, shockR: 9,
+    star: { pos: [0, 2.4, 116.5], index: 2 } },
+  // kippquader_koenig (corners: Bruchplatten-Ids), schattenlaeuferin, wirbelbrocken wie in ihren Welten
+],
+items: [
+  { kind: 'bossblitz_hub', id: 'hub', pos: [0, 2, 0], radius: 11, start: [0, 2, 8.5], fights: [
+    { boss: 'kq', box: [-6, 2, 5.5], to: [-80, 2, 48.6], ret: [-80, 2, 45] },
+    { boss: 'schatten', box: [-6, 2, -5.5], to: [-80, 2, -42.4], ret: [-80, 2, -46] },
+    { boss: 'lava', box: [6, 2, -5.5], to: [80, 2, -41.4], ret: [83, 2, -46] },
+    { boss: 'wirbel', box: [6, 2, 5.5], to: [80, 2, 48.6], ret: [80, 2, 44] },
+    { boss: 'koenige', box: [0, 2, 0], to: [0, 2, -98.4], ret: [3, 2, -104], key: [0, 2, -106] },
+    { boss: 'blase', box: [0, 2, -7.5], to: [0, 2, 120], ret: [3, 2, 115], final: true, back: [0, 2.3, 154] },
+  ] },
+],
+goal: [0, 2, 146],
+```
+
+### Präzisierung (Gegner Bonuswelten): Signale, Zustände, Schnittstellen
+
+- **Signale** (`level.signal(name, data)`): `kampfraumFrei` { id, count, pos } (Name über `signal` änderbar), `bossSchluessel`
+  { boss, n, of, pos }, `bossblitzOffen` { n }, `bossblitzSieg` { boss, pos }, `riesenhase` { id, pos }, `laufbombe`
+  { id, pos, radius, hits }; weiter vom Motor: `felsblock` { id, by, pos }.
+- **Archetyp boss**: `boss_gruppe` hat die Boss-Schnittstelle (begin, reset, state, stateT, hp, maxHp, phase, visible, home, half,
+  carHits) und meldet `level.onBossHit(gruppe, …)` / `level.onBossDefeated(gruppe)`; `level.bossMembers` (Set der Mitglieds-Ids)
+  lässt `bossManaged` (w6help.js) die Mitglieder warten. Der Kippquader-König wartet jetzt ebenfalls über `bossManaged` (auch
+  in LEVEL.bosses), vorher nur über `LEVEL.boss`.
+- **Kampfraum**: zählt Entitäten mit `enemy` (auch `boss`); der Tod der Figur setzt aktive Räume zurück (sie zählen beim
+  nächsten Betreten neu).
+- **Remix**: `replaceKind` (Motor) greift auch für Laufzeit-spawns – z. B. `{ pilzling: 'krakenpilz' }` macht aus Pilzlingen
+  der ?-Blöcke und Werfer Krakenpilze.
+
+### Präzisierung (Gegner Bonuswelten): Hinweise für Level-Bauer
+
+- **Krakenpilz**: auf gleitende Blöcke (mover, Fahrt ≤ 2 m/s) mit `pos` auf der Oberseite; `sight` ≤ Abstand bis zum Weg, damit
+  die Figur die Vorwarnung (Backen blähen 0,5 s) sieht; mehrere mit `first` versetzen (z. B. 0,9 / 1,6). Wo Steinchen nicht
+  stören sollen (enge Sprünge): `spit: false`.
+- **Tintling**: Becken ≥ 2,5 m tief, `pos` (Armspitzen) 0,4 m über dem Beckenboden; `range` kleiner als das Becken (sonst stößt er an die
+  Wände). In Strömungen (S-7) `range` 4 und `drift` 0,6 – er treibt etwa 0,6 m mit. Mit Kanonen-Helm (B-7) besiegt ihn die
+  Kugel.
+- **Stachelkugler**: auf Rampen/Hügel oben mit `dir` hangabwärts und `wake: 40` (rollt schon, bevor die Figur ankommt);
+  unten genug Auslauf (≈ 6 m) oder eine Wand. Auf Plateaus `mode: 'pendel'` mit `dist` ≤ halbe Breite. Nie als einziger
+  Weg-Blocker ohne Power-up in Reichweite (er ist von oben nicht zu besiegen).
+- **Riesenhase**: freie Fläche ≥ 26 × 26 m (`area.r` 13), keine Gehege-Ecken; Fangen gelingt beim Verschnaufen oder rennend.
+  Items als Kreis-Beute, Stern über `star`.
+- **Laufbombe/Felsblock**: Laufbombe 4–6 m vor dem Felsblock mit Blick zur Figur; Felsblock-Inhalt über `content`. `trigger: 0`
+  für Bomben, die erst getragen werden sollen.
+- **Pilzlingsturm 30 (P-4)**: Pen ≥ 8 m breit, `speed` ≤ 0,6; ab 9 Stufen nutzt das Modell sparsame Körper (30 Stufen ≈ 66 k
+  Dreiecke). Mit Reiter (B-9): Turm `count` 3–4, Werfer `interval` ≥ 2,2; alle Türme in einen `kampfraum` → `onClear: { reveal:
+  'warp_ziel' }`.
+- **Kampfräume (P-Haus)**: Bereich mit 1 m Rand um die Gegner; Flieger mit Höhe innerhalb ± 8 m; Gegner, die erst ein Werfer
+  erzeugt, mit `add: true`.
+- **B-12**: Räume ≥ 80 m auseinander (Kamera-Schienen je Raum mit `area` [x0, x1] und `from`/`to`), Auslöser-Kasten über dem
+  Raum mit 2–3,6 m freiem Streifen auf der Ankunftsseite (`to` liegt darin), `ret` 4–6 m vor dem Endgegner-Platz. Hub-Kamera
+  pitch 56 / dist 20, Räume pitch 50 / dist 17–20. Sterne: Lavafelsen-König (`star`), boss_gruppe (`star`), Würfelblase
+  (`star`). `warpBanner: ''` im bosses-Eintrag (der Schlüssel kündigt den Rückweg an), `musicAfter` = Level-Musik.
+
+### Präzisierung (Gegner Bonuswelten): Tests und Kennzahlen
+
+`tests/course_bonus_enemies.mjs` (nach `npm run build`, Port 4925, je Teil < 10 min, deterministisch): **Teil 1** 23 Prüfungen
+(Laden, Krakenpilz: Hüpfer, Bahn, Jagd, Spucken im Bogen mit Vorhalt, Steinchen hüpft und zerbröselt, auf dem gleitenden Block
+mitfahren, von oben/Feuer/Kanone/Wurfsichel; Stachelkugler: rollt den Hang hinab, pendelt, Bahn, Draufspringen verletzt,
+Power-ups/Wurfsichel/Kanone besiegen; Tintling: Zickzack-Stöße, Zurückweichen, Strömung, von oben, Kontakt verletzt;
+Riesenhase: Flucht, Haken, Verschnaufen, Fangen → Items + Stern, Signal), **Teil 2** 33 Prüfungen (Laufbombe, Felsblock,
+30er-Turm mit topple, Feuer-Werfer als Reiter, Topfpflanze frisst Wuschel, zehn Kampfräume mit Signal, Bestand samt Suchkopf,
+Modelle in allen Zuständen mit dispose(), Bilder und Kennzahlen), **Teil 3** 22 Prüfungen (Boss-Marathon komplett: Hub,
+fünf Kämpfe mit Schlüssel und erledigter Box, Uhr läuft weiter, Tod und Neustart, Gruppe der Schlangenkönige, letzte Box,
+Würfelblase mit 6 Wellen ≥ 9 m/s, alle 3 Sterne, Ziel). Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke):
+Gegnerzoo ≤ 78 / 267 k (30er-Turm von der Seite), Boss-Marathon ≤ 80 / 236 k (Schlangenkönige); Grenzen < 120 / < 300 k.
+Rückfälle geprüft: course_enemies, course_w8_enemies (1–4), course_w6_enemies (3, 4), course_w5_enemies, course_physics,
+course_w1_combat (Boss-Archetyp, 1-Burg), course_star_blocks (mech), sfx_namen.
