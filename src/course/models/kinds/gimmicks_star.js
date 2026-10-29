@@ -61,11 +61,11 @@
 
 import {
   THREE, TAU, Build, cached, vcol, basic, std, mesh, joint, eyes, makeModel, Clock, damp, clamp, col, mix, smoothstep, lerp,
-  instMesh, setInst, glowSprite, sparkleSprite, puffyStarGeo, placed, roundedBox, SIDE, sparkShape, onEllipsoid, gold,
+  instMesh, setInst, glowSprite, sparkleSprite, puffyStarGeo, placed, roundedBox, SIDE, sparkShape, onEllipsoid, gold, smoothNormals,
 } from '../lib/kit.js';
 import {
   ST, PANEL, panelColor, num, prog, ownMat, puffyGeo, gradV, roundRectShape, noise3, hash1, displace, lumpyEllipsoid, taperTube,
-  memo, fxPuffs, toyS, glowS, hexShape, hexPrismGeo, flatStarGeo, gearShape, sz2, sz3, k2, rod,
+  memo, fxPuffs, toyS, glowS, superCube, hexShape, hexPrismGeo, flatStarGeo, gearShape, sz2, sz3, k2, rod,
 } from '../lib/starGeos.js';
 import { questionGeo, blockMat, BLOCK } from '../lib/blockGeos.js';
 import { mouthShape } from '../lib/w5Geos.js';
@@ -796,48 +796,65 @@ function buildLaufbombe(opts = {}) {
 // =============================================================================================
 // Felsblock mit Riss
 // =============================================================================================
-const FR = { stone: 0xa8907e, stoneHi: 0xe4d4c0, stoneLow: 0x5e4a48, crack: 0x2a1418, crackHot: 0xffa84a, pebble: 0x9a8474 };
+const FR = { stone: 0xa298ae, stoneHi: 0xe2dae8, stoneLow: 0x5a5270, patch: 0x8a8098, crack: 0x2e2238, crackHot: 0xffa84a, pebble: 0xa098ac };
+/**
+ * Felsblock x × y × z (Ursprung Mitte unten): Superellipsoid-Würfel mit zwei Rausch-Lagen (klobiger Fels), flacher Boden, Kiesel.
+ * Risse: gezackte Linien auf den vier Seiten, per Strahl auf die unebene Oberfläche gelegt (dunkel; hot = glühender Kern davor).
+ */
 function felsGeo(x, y, z) {
-  return cached(`star:fels:${k2(x)}:${k2(y)}:${k2(z)}`, () => {
-    const b = new Build();
+  return memo(`star:fels:${k2(x)}:${k2(y)}:${k2(z)}`, () => {
     const m = Math.min(x, y, z);
-    const g = displace(displace(roundedBox(x, y, z, m * 0.2, SIDE.ALL, 0, 5), m * 0.06, 1.0, 3, true), m * 0.025, 2.8, 9, true);
-    b.add(g, { v: (px, py, pz, nx, ny) => {
-      let c = mix(FR.stoneLow, mix(FR.stone, FR.stoneHi, smoothstep(ny * 0.6 + 0.2 + (noise3(px * 1.4, py * 1.4, pz * 1.4) - 0.5) * 0.7)), smoothstep(ny * 0.4 + 0.55 + py / y * 0.3));
-      const n2 = noise3(px * 2.6 + 5, py * 2.6, pz * 2.6);
-      if (n2 > 0.64) c = mix(c, 0x6e5a58, smoothstep((n2 - 0.64) / 0.12) * 0.6);
-      if (ny > 0.75) c = mix(c, 0xe8e0d4, 0.25);
-      // Gesteinsschichten (wellige Bänder)
-      const band = Math.sin((py + noise3(px * 0.8, 0, pz * 0.8) * 0.6) * 5.5);
-      if (Math.abs(ny) < 0.7 && band > 0.82) c = mix(c, 0x7e6862, 0.35);
-      return c;
-    } }, { p: [0, y / 2, 0] });
-    // Kiesel am Fuß
-    for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3, r = Math.max(x, z) * (0.5 + hash1(i) * 0.12); b.add(lumpyEllipsoid([1, 0.7, 1], 0.15, 2, i, 8, 6), { v: (px, py, pz, nx, ny) => mix(FR.stoneLow, FR.pebble, smoothstep(ny + 0.3)) }, { p: [Math.cos(a) * r * (x / Math.max(x, z)), 0.06, Math.sin(a) * r * (z / Math.max(x, z))], s: 0.08 + hash1(i + 2) * 0.08 }); }
-    return b.geometry();
-  });
-}
-/** Risse: gezackte Röhren auf den Seiten (dunkel; glow = heiße Kopie innen). */
-function crackGeo(x, y, z, hot) {
-  return cached(`star:fels:crack:${k2(x)}:${k2(y)}:${k2(z)}:${hot}`, () => {
-    const b = new Build();
-    const faces = [[x / 2, 0, 1, 0], [-x / 2, 0, -1, 0], [0, z / 2, 0, 1], [0, -z / 2, 0, -1]];
-    faces.forEach(([fx, fz, nx, nz], fi) => {
+    let g = superCube(2.8, 40, 28);
+    g.scale(x, y, z);
+    g = displace(g, m * 0.08, 1.2 / Math.max(1, m * 0.5), 3, false);
+    g = displace(g, m * 0.028, 3.2 / Math.max(1, m * 0.5), 9, true);
+    g.translate(0, y / 2, 0);
+    const P = g.attributes.position;
+    for (let i = 0; i < P.count; i++) if (P.getY(i) < y * 0.04) P.setY(i, Math.max(0, P.getY(i) * 0.2));
+    g = smoothNormals(g);
+    // Risse auf die Oberfläche legen
+    const hitMesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+    const ray = new THREE.Raycaster();
+    const crack = new Build(), hot = new Build();
+    const faces = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]];
+    faces.forEach(([nx, , nz], fi) => {
+      const len = nx ? z : x, half = nx ? x / 2 : z / 2;
       for (let c = 0; c < 2; c++) {
-        const pts = [];
-        let u = (hash1(fi * 5 + c) - 0.5) * 0.5, v = y * (0.85 - c * 0.3);
-        const len = nx ? z : x;
-        for (let k = 0; k < 6; k++) {
-          const off = hot ? 0.05 : 0.02;
-          const px = nx ? fx : u * len, pz = nz ? fz : u * len;
-          pts.push([px + nx * off, v, pz + nz * off]);
-          u = clamp(u + (hash1(fi * 11 + c * 3 + k) - 0.5) * 0.35, -0.3, 0.3); v -= y * (0.12 + hash1(k + fi) * 0.06);
-          if (v < y * 0.1) break;
+        const pts = [], ptsHot = [];
+        let u = (hash1(fi * 5 + c) - 0.5) * 0.45, v = y * (0.88 - c * 0.28);
+        for (let k = 0; k < 7; k++) {
+          const ox = nx ? nx * (half + 2) : u * len, oz = nz ? nz * (half + 2) : u * len;
+          ray.set(new THREE.Vector3(ox, v, oz), new THREE.Vector3(-nx, 0, -nz));
+          const hit = ray.intersectObject(hitMesh, false)[0];
+          if (hit) {
+            const n = hit.face.normal.clone();
+            pts.push(hit.point.clone().addScaledVector(n, 0.012).toArray());
+            ptsHot.push(hit.point.clone().addScaledVector(n, 0.03).toArray());
+          }
+          u = clamp(u + (hash1(fi * 11 + c * 3 + k) - 0.5) * 0.32, -0.32, 0.32);
+          v -= y * (0.1 + hash1(k + fi) * 0.05);
+          if (v < y * 0.12) break;
         }
-        if (pts.length > 2) b.add(taperTube(pts, (t) => (hot ? 0.035 : 0.06) * (1 - t * 0.6) * Math.min(1, Math.min(x, y, z) / 1.5) + 0.01, 24, 4), hot ? FR.crackHot : FR.crack);
+        if (pts.length > 2) {
+          const r = Math.min(1, m / 1.5);
+          crack.add(taperTube(pts, (t) => 0.055 * r * (1 - t * 0.6) + 0.008, 30, 4), FR.crack);
+          hot.add(taperTube(ptsHot, (t) => 0.03 * r * (1 - t * 0.6) + 0.006, 30, 4), FR.crackHot);
+        }
       }
     });
-    return b.geometry();
+    hitMesh.material.dispose();
+    const b = new Build();
+    b.add(g, { v: (px, py, pz, nx, ny) => {
+      let c = mix(FR.stoneLow, mix(FR.stone, FR.stoneHi, smoothstep(ny * 0.6 + 0.2 + (noise3(px * 1.4, py * 1.4, pz * 1.4) - 0.5) * 0.6)), smoothstep(ny * 0.45 + 0.5 + py / y * 0.3));
+      const n2 = noise3(px * 2.4 + 5, py * 2.4, pz * 2.4);
+      if (n2 > 0.62) c = mix(c, FR.patch, smoothstep((n2 - 0.62) / 0.12) * 0.55);
+      const band = Math.sin((py + noise3(px * 0.8, 0, pz * 0.8) * 0.6) * 5.5);
+      if (Math.abs(ny) < 0.7 && band > 0.85) c = mix(c, FR.patch, 0.4);
+      return c;
+    } });
+    // Kiesel am Fuß
+    for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3, r = Math.max(x, z) * (0.5 + hash1(i) * 0.1); b.add(lumpyEllipsoid([1, 0.7, 1], 0.15, 2, i, 8, 6), { v: (px, py, pz, nx, ny) => mix(FR.stoneLow, FR.pebble, smoothstep(ny + 0.3)) }, { p: [Math.cos(a) * r * (x / Math.max(x, z)), 0.06, Math.sin(a) * r * (z / Math.max(x, z))], s: 0.08 + hash1(i + 2) * 0.08 }); }
+    return { body: b.geometry(), crack: crack.geometry(), hot: hot.geometry() };
   });
 }
 const chunkGeo = () => cached('star:fels:chunk', () => new Build().add(lumpyEllipsoid([1, 0.8, 0.9], 0.18, 2.2, 5, 10, 8), { v: (x, y, z, nx, ny) => mix(FR.stoneLow, FR.stoneHi, smoothstep(ny * 0.6 + 0.3)) }).geometry());
@@ -853,12 +870,13 @@ function buildFelsblockRiss(opts = {}) {
   const root = new THREE.Group();
   const own = [];
   const shake = joint();
-  const rock = mesh(felsGeo(x, y, z), toyS(0.8, 'fels'), {}, true);
+  const FG = felsGeo(x, y, z);
+  const rock = mesh(FG.body, toyS(0.7, 'fels'), {}, true);
   rock.receiveShadow = true;
-  const cracks = mesh(crackGeo(x, y, z, false), toyS(0.9, 'felsriss'), {});
+  const cracks = mesh(FG.crack, toyS(0.9, 'felsriss'), {});
   const hMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, transparent: true, opacity: 0, depthWrite: false });
   own.push(hMat);
-  const hot = mesh(crackGeo(x, y, z, true), hMat, {});
+  const hot = mesh(FG.hot, hMat, {});
   shake.add(rock, cracks, hot);
   const NC = 10;
   const chunks = instMesh(chunkGeo(), toyS(0.8, 'fels'), NC, Math.max(x, y, z) * 3 + 4, y);

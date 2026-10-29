@@ -20,12 +20,12 @@ import {
 } from './kit.js';
 import {
   num, prog, ZERO, ownMat, puffyGeo, gradV, heightV, roundRectShape, noise3, hash1, displace, lumpyEllipsoid, taperTube, memo,
-  fxPuffs, spikeCone, spikeV, W8, harvest, recolor, cutSphere, glow8, add8,
+  fxPuffs, spikeCone, spikeV, W8, harvest, recolor, cutSphere, glow8, add8, superCube,
 } from './w8Geos.js';
 
 export {
   num, prog, ZERO, ownMat, puffyGeo, gradV, heightV, roundRectShape, noise3, hash1, displace, lumpyEllipsoid, taperTube, memo,
-  fxPuffs, spikeCone, spikeV, W8, harvest, recolor, cutSphere, glow8, add8,
+  fxPuffs, spikeCone, spikeV, W8, harvest, recolor, cutSphere, glow8, add8, superCube,
 };
 
 // ------------------------------------------------------------------ Paletten

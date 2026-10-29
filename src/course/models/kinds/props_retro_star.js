@@ -128,7 +128,7 @@ function buildRetroWolke(opts = {}) {
   const W = clamp(num(opts.size, 4), 0.5, 60);
   const cols = WOLKE_COLS[seed], cell = W / cols.length;
   const root = new THREE.Group();
-  root.add(mesh(pixelPuffGeo(cols, cell, cell * 2.2, [0xc4e0ff, 0xf2f8ff, 0xffffff, 0xd4e8ff], `wolke${seed}`, false), vcol(0.5, { toy: false, emissive: 0x3a4250 }, 'starkulwolke'), {}, true));
+  root.add(mesh(pixelPuffGeo(cols, cell, cell * 2.2, [0xc4e0ff, 0xf2f8ff, 0xffffff, 0xd4e8ff], `wolke${seed}`, false), vcol(0.5, { toy: false, emissive: 0x5a6274 }, 'starkulwolke'), {}, true));
   return makeModel('retro_wolke', root, () => {}, []);
 }
 function buildRetroBusch(opts = {}) {
