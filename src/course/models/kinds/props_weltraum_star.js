@@ -30,7 +30,7 @@
 
 import { THREE, TAU, Build, cached, mesh, joint, makeModel, Clock, clamp, col, mix, smoothstep, lerp, glowSprite, sparkleSprite, puffyStarGeo, placed, onEllipsoid } from '../lib/kit.js';
 import {
-  ST, num, gradV, noise3, hash1, taperTube, memo, kulS, kulSD, kulSMetal, glowS, hexShape, hexPrismGeo, flatStarGeo, k2, rod, dirTo,
+  ST, num, gradV, noise3, hash1, taperTube, memo, kulS, kulSD, kulSMetal, kulGold, kulSGlow, glowS, hexShape, hexPrismGeo, flatStarGeo, k2, rod, dirTo,
   puffyGeo, starRing, rainbowAt, lumpyEllipsoid,
 } from '../lib/starGeos.js';
 
@@ -106,19 +106,19 @@ function planetGeo(kind, tiltDefault) {
       b.add(lumpyEllipsoid([1, 1, 1], 0.025, 2.5, 3, 40, 28), { v: (x, y, z, nx, ny) => mix(ST.leafLow, ST.leafHi, smoothstep(y * 0.5 + 0.5 + (noise3(x * 4, y * 4, z * 4) - 0.5) * 0.5)) });
       const spots = [[0.3, 0.9, 0.55, 0], [2.0, 0.5, 0.45, 1], [3.5, 0.2, 0.5, 0], [5.0, 0.6, 0.38, 2], [1.2, -0.3, 0.42, 1], [4.2, -0.5, 0.36, 0], [2.8, 1.3, 0.3, 2]];
       const caps = [[ST.capRed, ST.capRedHi, ST.white], [0x3a7aff, 0x9ac4ff, ST.white], [0xffb21a, 0xfff08a, 0xffffff]];
-      for (const [az, el, h, c] of spots) mushroom(b, standOn(onUnit(az, el), -0.04, az), h, caps[c][0], caps[c][1], caps[c][2]);
+      for (const [az, el, h, c] of spots) mushroom(b, standOn(onUnit(az, el), -0.05, az), h * 1.35, caps[c][0], caps[c][1], caps[c][2]);
       for (let i = 0; i < 14; i++) { const h = onUnit(i * 2.4, Math.asin(((i * 0.618) % 1) * 2 - 1)); b.add(new THREE.ConeGeometry(0.035, 0.14, 5), ST.leafHi, standOn(h, 0.04, i)); }
     } else if (kind === 'blume') {
-      b.add(lumpyEllipsoid([1, 1, 1], 0.02, 2.5, 7, 40, 28), { v: (x, y, z, nx, ny) => { const n = noise3(x * 3, y * 3, z * 3); return n > 0.68 ? col(0xffe0f0) : mix(0x4ad860, 0xb8f488, smoothstep(y * 0.4 + 0.5 + (n - 0.5) * 0.6)); } });
+      b.add(lumpyEllipsoid([1, 1, 1], 0.02, 2.5, 7, 40, 28), { v: (x, y, z, nx, ny) => { const n = noise3(x * 3, y * 3, z * 3); return n > 0.76 ? mix(0x9ae890, 0xfff0f8, smoothstep((n - 0.76) / 0.06)) : mix(0x4ad860, 0xb8f488, smoothstep(y * 0.4 + 0.5 + (n - 0.5) * 0.6)); } });
       const F = [[0.2, 1.0, 0.6, 0], [1.5, 0.4, 0.5, 1], [2.9, 0.7, 0.55, 2], [4.3, 0.3, 0.45, 0], [5.4, 0.9, 0.42, 1], [0.9, -0.4, 0.4, 2], [3.6, -0.3, 0.38, 1]];
       const P = [[ST.petal, ST.petalHi], [0xffb21a, 0xfff2a0], [0x8a6aff, 0xe0d0ff]];
-      for (const [az, el, h, c] of F) flower(b, standOn(onUnit(az, el), -0.03, az), h, P[c][0], P[c][1]);
+      for (const [az, el, h, c] of F) flower(b, standOn(onUnit(az, el), -0.03, az), h * 1.4, P[c][0], P[c][1]);
       // Blütenkranz am Äquator
       for (let i = 0; i < 18; i++) { const h = onUnit((i / 18) * TAU, -0.05 + Math.sin(i * 1.3) * 0.06); b.add(new THREE.SphereGeometry(1, 8, 5), i % 3 ? ST.white : 0xffe03a, standOn(h, 0.0, i, [0.06, 0.035, 0.06])); }
     } else {
-      b.sphere(1, { v: (x, y, z) => { const n = noise3(x * 3, y * 3, z * 3); return y > 0.62 + (n - 0.5) * 0.2 ? mix(ST.snowLow, ST.snow, smoothstep(y * 2 - 1)) : mix(ST.iceLow, ST.ice, smoothstep(y * 0.5 + 0.5 + (n - 0.5) * 0.6)); } }, {}, 48, 32);
+      b.sphere(1, { v: (x, y, z) => { const n = noise3(x * 3, y * 3, z * 3); return y > 0.5 + (n - 0.5) * 0.25 ? mix(ST.snowLow, ST.snow, smoothstep(y * 2 - 0.8)) : mix(ST.iceLow, ST.ice, smoothstep(y * 0.5 + 0.5 + (n - 0.5) * 0.6)); } }, {}, 48, 32);
       const C = [[0.4, 0.3, 0.42], [1.9, -0.2, 0.36], [3.2, 0.5, 0.4], [4.6, 0.1, 0.32], [5.6, -0.5, 0.3], [2.6, -0.8, 0.28]];
-      C.forEach(([az, el, h], i) => crystals(b, standOn(onUnit(az, el), -0.04, az), h, i));
+      C.forEach(([az, el, h], i) => crystals(b, standOn(onUnit(az, el), -0.05, az), h * 1.6, i));
       // Eisbrocken-Ring
       for (let i = 0; i < 16; i++) {
         const a = (i / 16) * TAU, r = 1.5 + Math.sin(i * 2.1) * 0.08;
@@ -176,7 +176,7 @@ function buildSternschnuppe(opts = {}) {
   const own = [];
   const starJ = joint();
   starJ.scale.setScalar(S);
-  const star = mesh(schnuppeStarGeo(), kulSMetal(0.25), {}, false);
+  const star = mesh(schnuppeStarGeo(), kulSGlow(), {}, false);
   starJ.add(star);
   const tail = mesh(schnuppeGeo(L), glowS(), {});
   tail.scale.set(1, S, S);
@@ -472,13 +472,13 @@ function buildKuppel(opts = {}) {
 // =============================================================================================
 function torbogenGeo(W, H) {
   return memo(`star:torbogen:${k2(W)}:${k2(H)}`, () => {
-    const b = new Build(), gl = new Build();
+    const b = new Build(), gl = new Build(), au = new Build();
     const pillarH = Math.max(1, H - W / 2);
     for (const s of [1, -1]) {
       const z = s * W / 2;
-      b.cyl(0.55, 0.65, 0.4, gradV(ST.starLow, ST.starHi), { p: [0, 0.2, z] }, 20);
+      au.cyl(0.55, 0.65, 0.4, gradV(ST.starLow, ST.starHi), { p: [0, 0.2, z] }, 20);
       b.cyl(0.38, 0.42, pillarH - 0.4, { v: (x, y, zz, nx) => (Math.floor(Math.atan2(zz - z, x) / TAU * 10 + 10) % 2 ? mix(0xc8d0f0, ST.white, smoothstep(nx * 0.5 + 0.5)) : mix(0xe8eef8, ST.white, 0.6)) }, { p: [0, 0.4 + (pillarH - 0.4) / 2, z] }, 20);
-      b.cyl(0.5, 0.44, 0.25, gradV(ST.starLow, ST.starHi), { p: [0, pillarH, z] }, 20);
+      au.cyl(0.5, 0.44, 0.25, gradV(ST.starLow, ST.starHi), { p: [0, pillarH, z] }, 20);
     }
     // Bogen aus Sternen (Halbkreis über den Säulen), Schlussstern oben
     const R = W / 2, n = 11;
@@ -493,16 +493,16 @@ function torbogenGeo(W, H) {
     // Verbindungsband (weißer Wulst) hinter den Sternen
     const pts = Array.from({ length: 25 }, (_, i) => { const a = (i / 24) * Math.PI; return [-0.12, pillarH + Math.sin(a) * (H - pillarH), Math.cos(a) * R]; });
     b.add(taperTube(pts, 0.14, 48, 8), { v: (x, y, z, nx, ny) => mix(0xd8dcf4, 0xffffff, smoothstep(ny * 0.5 + 0.5)) });
-    b.add(puffyStarGeo(0.9, 0.42, 0.6, 0.22), gradV(ST.starLow, ST.starHi, 0.5, 0.5), { p: [0, H + 0.2, 0], r: [0, Math.PI / 2, 0] });
+    au.add(puffyStarGeo(0.9, 0.42, 0.6, 0.22), gradV(ST.starLow, ST.starHi, 0.5, 0.5), { p: [0, H + 0.2, 0], r: [0, Math.PI / 2, 0] });
     gl.add(puffyStarGeo(0.32, 0.14, 0.1, 0.04, 4), 0xfffbe0, { p: [0.62, H + 0.25, 0], r: [0, Math.PI / 2, 0] });
-    return { body: b.geometry(), glow: gl.geometry() };
+    return { body: b.geometry(), glow: gl.geometry(), gold: au.geometry() };
   });
 }
 function buildTorbogen(opts = {}) {
   const W = clamp(num(opts.width, 6), 1, 60), H = clamp(num(opts.height, 5), 1, 60);
   const G = torbogenGeo(W, H);
   const root = new THREE.Group();
-  root.add(mesh(G.body, kulS(0.35), {}, true), mesh(G.glow, glowS(), {}));
+  root.add(mesh(G.body, kulS(0.35), {}, true), mesh(G.gold, kulGold(), {}, true), mesh(G.glow, glowS(), {}));
   const own = [];
   const halo = glowSprite(0xfff0a0, 3, 0.35); halo.material = halo.material.clone(); own.push(halo.material);
   halo.position.set(0.3, H + 0.2, 0);

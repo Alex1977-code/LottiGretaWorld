@@ -271,7 +271,7 @@ function wingGeo(s) {
       return f.getPoints(8);
     };
     // Federn (lang oben, kürzer unten), fächerförmig; Umriss in XY (X = Spannweite, gespiegelt für s = −1)
-    const F = [[1.55, 0.36, 0.42], [1.45, 0.36, 0.12], [1.28, 0.34, -0.18], [1.08, 0.32, -0.48], [0.86, 0.3, -0.78]];
+    const F = [[1.8, 0.44, 0.45], [1.7, 0.44, 0.14], [1.5, 0.42, -0.17], [1.26, 0.4, -0.48], [1.0, 0.36, -0.8]];
     F.forEach(([L, W, a], i) => {
       const pts = outline(L, W).map((p) => new THREE.Vector2(s * (p.x * Math.cos(a) - p.y * Math.sin(a) + 0.12), p.x * Math.sin(a) + p.y * Math.cos(a) - 0.06 * i));
       const g = puffyGeo(new THREE.Shape(pts), 0.05, 0.03, 1, 2);
@@ -292,7 +292,7 @@ function buildZielmastFluegel(opts = {}) {
   const bob = joint();
   bob.add(pole.root);
   const wy = H - 1.15;
-  const wingMat = toyS(0.4, 'wing');
+  const wingMat = toyS(0.4, 'wing', { emissive: 0x2a2c3a });
   const wings = [1, -1].map((s) => {
     const j = joint([0, wy, s * 0.07]);
     const m = mesh(wingGeo(s), wingMat, {}, true);
@@ -309,9 +309,9 @@ function buildZielmastFluegel(opts = {}) {
     const t = clk.t;
     fly = damp(fly, clamp(num(st.fly, 0), 0, 1), 5, dt);
     const flap = st.flap !== undefined ? clamp(num(st.flap, 0.5), 0, 1) : 0.5 + 0.5 * Math.sin(t * TAU * 2.2);
-    // Flügelwinkel: angelegt (Spitzen unten, nach hinten) … weit offen, schlägt zwischen −0,35 und +0,75 rad
-    const open = lerp(-1.25, lerp(-0.35, 0.75, flap), fly);
-    const back = lerp(0.55, 0.12, fly);
+    // Flügelwinkel: angelegt (Spitzen schräg nach oben-hinten, ruhen am Mast) … weit offen, schlägt zwischen −0,35 und +0,75 rad
+    const open = lerp(0.95, lerp(-0.35, 0.75, flap), fly);
+    const back = lerp(1.15, 0.12, fly);
     wings[0].rotation.set(-open, -back, 0);
     wings[1].rotation.set(open, back, 0);
     bob.position.y = fly * (0.25 + Math.sin(t * TAU * 1.1) * 0.18);
@@ -408,24 +408,29 @@ export function wabeBodyGeo(kind, r, t, lo = false) {
     return b.geometry();
   });
 }
-/** Deckfläche der Wabe (Ursprung Mitte, liegt bei y = 0): normal/eis beleuchtet, lava unbeleuchtet (glüht). */
+/** Deckfläche der Wabe (Ursprung Mitte, liegt bei y = 0): normal/eis beleuchtet, lava unbeleuchtet (glüht). Weiche Verläufe. */
 export function wabeTopGeo(kind, r, lo = false) {
   return cached(`star:wabe:top:${kind}:${k2(r)}:${lo}`, () => {
     const b = new Build();
-    const g = new THREE.ShapeGeometry(hexShape(r * 0.86, r * 0.06), lo ? 2 : 4);
+    const g = new THREE.ShapeGeometry(hexShape(r * 0.86, r * 0.06), lo ? 1 : 2);
     g.rotateX(-Math.PI / 2);
-    // fein unterteilen für Muster
-    const fine = subdivideFlat(g, lo ? 1 : 3);
+    const fine = subdivideFlat(g, lo ? 2 : 3);
+    const f = 2.4 / r;
     if (kind === 'lava') {
-      b.add(fine, (x, y, z) => { const n = noise3(x * 2.4, 0, z * 2.4), d = Math.hypot(x, z) / r; return mix(mix(ST.lavaWhite, ST.lavaHi, smoothstep(n * 1.2 + d * 0.6)), ST.lava, smoothstep(d * 1.2 + n * 0.8 - 0.4)); });
-      // Krustenschollen
-      for (let i = 0; i < (lo ? 2 : 4); i++) { const a = i * 1.7 + 0.4, rr = r * (0.25 + hash1(i) * 0.35); b.add(new THREE.CylinderGeometry(r * 0.13, r * 0.16, 0.05, 6), ST.crustHi, { p: [Math.cos(a) * rr, 0.02, Math.sin(a) * rr], r: [0, i, 0] }); }
+      b.add(fine, { v: (x, y, z) => {
+        const n = noise3(x * f + 3.1, 0.5, z * f - 1.7) * 0.7 + noise3(x * f * 2.3, 1.5, z * f * 2.3) * 0.3;
+        const d = Math.hypot(x, z) / (r * 0.86);
+        const hot = smoothstep((n - 0.28) / 0.34) * (1 - smoothstep((d - 0.75) / 0.25) * 0.5);
+        return n > 0.66 ? mix(ST.lavaHi, ST.lavaWhite, smoothstep((n - 0.66) / 0.14)) : mix(0x8a1a0a, ST.lava, hot);
+      } });
+      // Krustenschollen (flach, unregelmäßig verteilt)
+      if (!lo) for (const [a, rr, sc] of [[0.7, 0.52, 0.2], [2.9, 0.38, 0.16], [4.6, 0.6, 0.14]]) b.add(lumpyEllipsoid([1, 0.25, 0.8], 0.15, 2, a * 3, 10, 6), { v: (x, yy, z, nx, ny) => mix(ST.crust, ST.crustHi, smoothstep(ny * 0.6 + 0.3)) }, { p: [Math.cos(a) * rr * r, 0.015, Math.sin(a) * rr * r], s: sc * r, r: [0, a, 0] });
     } else if (kind === 'eis') {
-      b.add(fine, (x, y, z) => { const n = noise3(x * 3, 0, z * 3); return mix(ST.ice, ST.frost, smoothstep(n * 1.4 - 0.1 + (Math.abs(((x + z * 0.6) * 2.5) % 1) < 0.08 ? 0.5 : 0))); });
+      b.add(fine, { v: (x, y, z) => { const n = noise3(x * f * 1.4 + 7, 0.3, z * f * 1.4); const d = Math.hypot(x, z) / (r * 0.86); return mix(mix(ST.ice, 0xc8f0ff, smoothstep(1 - d)), ST.frost, smoothstep((n - 0.55) / 0.2) * 0.85); } });
       if (!lo) for (let i = 0; i < 3; i++) { const a = i * 2.1 + 0.3; b.add(flatStarGeo(r * 0.09, 0.02, 0.01, 4, 0.3), ST.frost, { p: [Math.cos(a) * r * 0.45, 0.012, Math.sin(a) * r * 0.45] }); }
     } else {
-      b.add(fine, (x, y, z) => { const d = Math.hypot(x, z) / r; return mix(ST.honeyHi, ST.honey, smoothstep(d * 1.3 - 0.15)); });
-      b.add(flatStarGeo(r * 0.26, 0.035, 0.018), { v: (x, y, z, nx, ny) => mix(ST.honey, ST.white, smoothstep(ny * 0.7 + 0.2)) }, { p: [0, 0.02, 0] });
+      b.add(fine, { v: (x, y, z) => { const d = Math.hypot(x, z) / (r * 0.86); return mix(ST.honeyHi, ST.honey, smoothstep(d * 1.25 - 0.1)); } });
+      b.add(flatStarGeo(r * 0.26, 0.035, 0.018, 5, 0.46), { v: (x, y, z, nx, ny) => mix(ST.honey, ST.white, smoothstep(ny * 0.7 + 0.2)) }, { p: [0, 0.02, 0] });
     }
     return b.geometry();
   });
@@ -508,13 +513,37 @@ function buildWabe(opts = {}) {
 function cloudSlabGeo(w, d, t) {
   return cached(`star:nebel:slab:${k2(w)}:${k2(d)}:${k2(t)}`, () => {
     const b = new Build();
-    // flache Oberseite (Steinplatte mit Raureif) und Wolken-Unterseite aus Polstern
-    b.add(roundedBox(w, t * 0.5, d, Math.min(0.12, t * 0.2), SIDE.ALL, 0, 2), { v: (x, y, z, nx, ny) => (ny > 0.6 ? mix(0xd8d4f4, 0xffffff, smoothstep(noise3(x * 1.5, 0, z * 1.5) * 1.2)) : mix(0x9a96c8, 0xe4e0ff, smoothstep(ny * 0.5 + 0.5))) }, { p: [0, t * 0.75, 0] });
+    // Geisterstein-Platte (flache Oberseite mit Raureif-Flecken und Fugen), Wolken-Unterseite aus Polstern
+    b.add(roundedBox(w, t * 0.5, d, Math.min(0.12, t * 0.2), SIDE.ALL, 0, 2), { v: (x, y, z, nx, ny) => mix(0x7a74b0, 0xd8d4f8, smoothstep(ny * 0.5 + 0.5)) }, { p: [0, t * 0.75, 0] });
+    const top = new THREE.PlaneGeometry(w - 0.16, d - 0.16, Math.max(4, Math.round(w * 4)), Math.max(4, Math.round(d * 4)));
+    top.rotateX(-Math.PI / 2);
+    b.add(top, { v: (x, y, z) => {
+      const n = noise3(x * 1.6 + 2, 0, z * 1.6);
+      const seam = Math.min(Math.abs(((x / 1.0) % 1 + 1) % 1 - 0.5), Math.abs(((z / 1.0) % 1 + 1) % 1 - 0.5)) > 0.46;
+      const base = mix(0xb8b2e8, 0xe4e0ff, smoothstep(n * 1.3 - 0.2));
+      return seam ? mix(base, 0x8a84c0, 0.6) : n > 0.6 ? mix(base, 0xffffff, smoothstep((n - 0.6) / 0.1)) : base;
+    } }, { p: [0, t + 0.005, 0] });
     const nx = Math.max(2, Math.round(w / 0.9)), nz = Math.max(2, Math.round(d / 0.9));
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
       const x = ((i + 0.5) / nx - 0.5) * w * 0.8, z = ((j + 0.5) / nz - 0.5) * d * 0.8;
       const s = Math.min(w / nx, d / nz) * (0.5 + hash1(i * 7 + j) * 0.12);
       b.sphere(1, { v: (px, py, pz, nnx, ny) => mix(0x8a86b8, 0xeeeaff, smoothstep(ny * 0.6 + 0.45)) }, { p: [x, t * 0.48, z], s: [s, t * 0.5, s] }, 12, 8);
+    }
+    return b.geometry();
+  });
+}
+/** Leuchtendes Runenband um die Plattform (Punkte und Striche, unbeleuchtet). */
+function runeGeo(w, d, t) {
+  return cached(`star:nebel:rune:${k2(w)}:${k2(d)}:${k2(t)}`, () => {
+    const b = new Build();
+    const y = t * 0.75;
+    const per = 2 * (w + d), n = Math.max(8, Math.round(per / 0.45));
+    for (let i = 0; i < n; i++) {
+      const u = ((i + 0.5) / n) * per;
+      let x, z, ry;
+      if (u < w) { x = -w / 2 + u; z = d / 2 + 0.005; ry = 0; } else if (u < w + d) { x = w / 2 + 0.005; z = d / 2 - (u - w); ry = Math.PI / 2; } else if (u < 2 * w + d) { x = w / 2 - (u - w - d); z = -d / 2 - 0.005; ry = Math.PI; } else { x = -w / 2 - 0.005; z = -d / 2 + (u - 2 * w - d); ry = -Math.PI / 2; }
+      if (i % 3 === 0) b.add(new THREE.CircleGeometry(0.06, 10), 0xc8f8ff, { p: [x, y, z], r: [0, ry, 0] });
+      else b.add(new THREE.PlaneGeometry(0.16, 0.035), 0x8ae8ff, { p: [x, y + (i % 2 ? 0.04 : -0.04), z], r: [0, ry, i % 2 ? 0.4 : -0.4] });
     }
     return b.geometry();
   });
@@ -529,6 +558,10 @@ function buildNebelplattform(opts = {}) {
   own.push(sMat);
   const slab = mesh(cloudSlabGeo(w, d, t), sMat, {}, true);
   slab.receiveShadow = true;
+  const rMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 1, toneMapped: false, depthWrite: false });
+  own.push(rMat);
+  const runes = mesh(runeGeo(w, d, t), rMat, {});
+  slab.add(runes);
   const fMat = new THREE.MeshBasicMaterial({ map: fogTexture(), color: ST.fog, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });
   fMat.userData.toy = false;
   own.push(fMat);
@@ -546,6 +579,7 @@ function buildNebelplattform(opts = {}) {
     const t0 = clk.t;
     f = clamp(num(st.fade, 1), 0, 1);
     sMat.opacity = smoothstep(f);
+    rMat.opacity = smoothstep(f) * (0.75 + Math.sin(t0 * 2.4) * 0.25);
     sMat.depthWrite = f > 0.95;
     slab.visible = f > 0.01;
     slab.castShadow = f > 0.5;
@@ -666,12 +700,22 @@ function dsDiscGeo(R, H, teeth) {
     g.rotateX(-Math.PI / 2);
     b.add(g, { v: (x, y, z, nx, ny) => mix(ST.brassLow, ST.brassHi, smoothstep(ny * 0.5 + 0.35 + (noise3(x, y, z) - 0.5) * 0.2)) }, { p: [0, h0 + h1 * 0.4, 0] });
     // Deck: Fliesenringe (türkis/creme), Pfeilmarken, Sternnabe
-    const top = new THREE.CircleGeometry(R * 0.93, 64, 0, TAU);
-    top.rotateX(-Math.PI / 2);
     b.cyl(R * 0.93, R * 0.93, h1 * 0.5, gradV(ST.tealLow, ST.teal, 0.4, 0.5), { p: [0, H - h1 * 0.25, 0] }, 56);
-    const ringC = (x, y, z) => { const r = Math.hypot(x, z) / (R * 0.93); const a = Math.atan2(z, x); const ring = Math.floor(r * 5); const tile = Math.floor((a / TAU + 1) * (8 + ring * 6)) % 2; return ring === 0 ? col(ST.cream) : (ring + tile) % 2 ? col(ST.cream) : col(ST.tealHi); };
-    const fine = new THREE.RingGeometry(0.01, R * 0.93, 64, 10); fine.rotateX(-Math.PI / 2);
+    // Fliesenringe: Ringgrenzen und Sektoren fallen auf die Kanten der Ringgeometrie (48 Sektoren, 5 Ringe) → saubere Kacheln
+    const Rd = R * 0.93, inner = R * 0.16;
+    const SECT = [0, 12, 16, 24, 24];
+    const ringC = (x, y, z) => {
+      const ring = clamp(Math.floor((Math.hypot(x, z) - inner) / (Rd - inner) * 5), 0, 4);
+      const n = SECT[ring];
+      const a = (Math.atan2(z, x) / TAU + 1) % 1;
+      const tile = n ? Math.floor(a * n) % 2 : 0;
+      if (ring === 0) return col(ST.cream);
+      return (ring + tile) % 2 ? col(ST.cream) : col(ring % 2 ? ST.teal : ST.tealHi);
+    };
+    const fine = new THREE.RingGeometry(inner, Rd, 48, 5); fine.rotateX(-Math.PI / 2);
     b.add(fine, ringC, { p: [0, H + 0.005, 0] });
+    // goldene Fugenringe zwischen den Fliesenringen
+    for (let k = 1; k < 5; k++) b.torus(inner + (Rd - inner) * (k / 5), 0.025, ST.brassHi, { p: [0, H + 0.012, 0], r: [Math.PI / 2, 0, 0] }, 3, 64);
     for (let i = 0; i < 4; i++) {
       const a = (i / 4) * TAU + 0.3;
       const s = new THREE.Shape(); s.moveTo(-0.35, -0.22); s.lineTo(0.1, -0.22); s.lineTo(0.1, -0.42); s.lineTo(0.5, 0); s.lineTo(0.1, 0.42); s.lineTo(0.1, 0.22); s.lineTo(-0.35, 0.22); s.lineTo(-0.35, -0.22);
@@ -680,7 +724,7 @@ function dsDiscGeo(R, H, teeth) {
       ag.rotateY(Math.PI / 2 - a); // Pfeil tangential in Drehrichtung (positiver Winkel)
       b.add(ag, ST.star, { p: [Math.cos(a) * R * 0.72, H + 0.03, Math.sin(a) * R * 0.72], s: R / 5 });
     }
-    b.cyl(R * 0.16, R * 0.18, 0.12, gradV(ST.brassLow, ST.brassHi), { p: [0, H + 0.06, 0] }, 24);
+    b.cyl(R * 0.17, R * 0.19, 0.12, gradV(ST.brassLow, ST.brassHi), { p: [0, H + 0.06, 0] }, 24);
     b.add(flatStarGeo(R * 0.13, 0.06, 0.03), { v: (x, y, z, nx, ny) => mix(ST.starLow, ST.starHi, smoothstep(ny * 0.6 + 0.3)) }, { p: [0, H + 0.15, 0] });
     for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; b.sphere(0.05, ST.brassHi, { p: [Math.cos(a) * R * 0.88, H + 0.02, Math.sin(a) * R * 0.88], s: [1, 0.5, 1] }, 6, 4); }
     return b.geometry();
@@ -752,12 +796,19 @@ function buildLaufbombe(opts = {}) {
 // =============================================================================================
 // Felsblock mit Riss
 // =============================================================================================
-const FR = { stone: 0x9a8a84, stoneHi: 0xd8ccc0, stoneLow: 0x5a4a4e, crack: 0x2a1a1e, crackHot: 0xffa84a, pebble: 0x8a7a76 };
+const FR = { stone: 0xa8907e, stoneHi: 0xe4d4c0, stoneLow: 0x5e4a48, crack: 0x2a1418, crackHot: 0xffa84a, pebble: 0x9a8474 };
 function felsGeo(x, y, z) {
   return cached(`star:fels:${k2(x)}:${k2(y)}:${k2(z)}`, () => {
     const b = new Build();
-    const g = displace(roundedBox(x, y, z, Math.min(x, y, z) * 0.22, SIDE.ALL, 0, 4), Math.min(x, y, z) * 0.035, 1.6, 3, true);
-    b.add(g, { v: (px, py, pz, nx, ny) => mix(FR.stoneLow, mix(FR.stone, FR.stoneHi, smoothstep(ny * 0.6 + 0.2 + (noise3(px * 1.4, py * 1.4, pz * 1.4) - 0.5) * 0.7)), smoothstep(ny * 0.4 + 0.55 + py / y * 0.3)) }, { p: [0, y / 2, 0] });
+    const m = Math.min(x, y, z);
+    const g = displace(roundedBox(x, y, z, m * 0.24, SIDE.ALL, 0, 4), m * 0.065, 1.1, 3, true);
+    b.add(g, { v: (px, py, pz, nx, ny) => {
+      let c = mix(FR.stoneLow, mix(FR.stone, FR.stoneHi, smoothstep(ny * 0.6 + 0.2 + (noise3(px * 1.4, py * 1.4, pz * 1.4) - 0.5) * 0.7)), smoothstep(ny * 0.4 + 0.55 + py / y * 0.3));
+      const n2 = noise3(px * 2.6 + 5, py * 2.6, pz * 2.6);
+      if (n2 > 0.64) c = mix(c, 0x6e5a58, smoothstep((n2 - 0.64) / 0.12) * 0.6);
+      if (ny > 0.75) c = mix(c, 0xe8e0d4, 0.25);
+      return c;
+    } }, { p: [0, y / 2, 0] });
     // Kiesel am Fuß
     for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3, r = Math.max(x, z) * (0.5 + hash1(i) * 0.12); b.add(lumpyEllipsoid([1, 0.7, 1], 0.15, 2, i, 8, 6), { v: (px, py, pz, nx, ny) => mix(FR.stoneLow, FR.pebble, smoothstep(ny + 0.3)) }, { p: [Math.cos(a) * r * (x / Math.max(x, z)), 0.06, Math.sin(a) * r * (z / Math.max(x, z))], s: 0.08 + hash1(i + 2) * 0.08 }); }
     return b.geometry();

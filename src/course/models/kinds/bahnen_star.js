@@ -49,10 +49,11 @@ function walzeGeo(R, L) {
   return cached(`star:walze:${k2(R)}:${k2(L)}`, () => {
     const b = new Build();
     // Holzkörper (Achse X) mit Dauben (Längsstreifen) und drei Rillen rundum
-    const hs = Math.max(8, Math.round(L * 5));
-    const g = new THREE.CylinderGeometry(R, R, L, 40, hs, true);
+    // 14 Dauben × 4 Segmente: Fugen und Farbwechsel liegen auf Kanten (scharf, je Dreieck gefärbt)
+    const NS = 14, hs = clamp(Math.round(L * 4), 8, 48);
+    const g = new THREE.CylinderGeometry(R, R, L, NS * 4, hs, true);
     g.rotateZ(Math.PI / 2);
-    const grooves = [-L * 0.3, 0, L * 0.3];
+    const grooves = L > 2.5 ? [-L * 0.3, 0, L * 0.3] : [0];
     const P = g.attributes.position;
     for (let i = 0; i < P.count; i++) {
       const x = P.getX(i);
@@ -61,14 +62,14 @@ function walzeGeo(R, L) {
       P.setY(i, P.getY(i) * (1 - k * 0.06)); P.setZ(i, P.getZ(i) * (1 - k * 0.06));
     }
     g.computeVertexNormals();
-    b.add(g, { v: (x, y, z) => {
-      const a = Math.atan2(z, y), stave = ((a / TAU) * 14 + 14) % 1, idx = Math.floor(((a / TAU) * 14 + 14)) % 2;
+    b.add(g, (x, y, z) => {
+      const a = ((Math.atan2(z, y) / TAU) + 1) % 1, u = a * NS, idx = Math.floor(u), f = u - idx;
       let groove = 0; for (const gx of grooves) groove = Math.max(groove, 1 - smoothstep(Math.abs(x - gx) / 0.14));
-      const grain = noise3(x * 1.2, Math.cos(a) * 3, Math.sin(a) * 3);
-      let c = idx ? mix(ST.wood, ST.woodHi, grain * 0.7) : mix(ST.woodLow, ST.wood, grain * 0.8 + 0.2);
-      c = mix(c, ST.woodDark, Math.max(1 - smoothstep(stave / 0.05), 1 - smoothstep((1 - stave) / 0.05)) * 0.7);
+      const grain = noise3(x * 0.9, idx * 1.7, 0.5);
+      let c = idx % 2 ? mix(ST.wood, ST.woodHi, 0.25 + grain * 0.6) : mix(ST.woodLow, ST.wood, 0.45 + grain * 0.55);
+      if (f < 0.25) c = mix(c, ST.woodDark, 0.45);
       return mix(c, ST.woodDark, groove * 0.85);
-    } });
+    });
     // Stirnseiten: Jahresringe
     for (const s of [1, -1]) {
       const cap = new THREE.CircleGeometry(R * 0.995, 40);

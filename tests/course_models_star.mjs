@@ -516,26 +516,29 @@ if (part('states')) {
 }
 
 if (part('views')) {
-  // Nahaufnahmen (Porträts): [name, opts, state, Zielhöhe, Abstand, yaw?]
+  // Nahaufnahmen (Porträts): [name, opts, state, Zielhöhe (über root), Abstand, yaw?, Kamerahöhe (Anteil des Abstands, 0,22)?]
   const PORTRAITS = [
-    ['kanonenkugel_tritt', {}, 'idle', 1, 5.5, -0.5], ['kanonenkugel_tritt', {}, 'fly', 1, 6, -0.9], ['laufbombe', {}, 'walk', 0.45, 2.6],
-    ['zielmast_fluegel', {}, { fly: 1, flap: 0.8 }, 6.5, 9, Math.PI / 2], ['zielmast_fluegel', {}, 'idle', 5, 10], ['drehplatte', {}, { tilt: 0.4 }, 0.3, 4.5],
-    ['farbplatte', {}, { color: 0.5, flash: 0.6 }, 0.2, 4], ['plattenwand', {}, { out: 1 }, 0.4, 4.5, -0.3], ['riesen_frageblock_turm', {}, 'idle', 1, 6],
-    ['wabe', {}, 'idle', 0.4, 3.5], ['wabe', { kind: 'lava' }, 'idle', 0.4, 3.5], ['wabe', { kind: 'eis' }, 'idle', 0.4, 3.5],
-    ['schienenwalze', {}, { angle: 0.4 }, 1.8, 10, -0.3], ['schienenbrett', {}, { speed: 0 }, 0.4, 5, -0.6], ['weiche', {}, { dir: 1 }, 1, 9, -0.7],
-    ['felsblock_riss', {}, { break: 0.1 }, 1, 6.5], ['diorama_drehscheibe', {}, { angle: 0.3 }, 0.8, 14, -0.4], ['nebelplattform', {}, { fade: 0.7 }, 0.4, 6],
+    ['kanonenkugel_tritt', {}, 'idle', 0, 5.5, -Math.PI / 2 + 0.35], ['kanonenkugel_tritt', {}, 'fly', 0, 6, -0.9], ['laufbombe', {}, 'walk', 0.45, 2.6],
+    ['zielmast_fluegel', {}, { fly: 1, flap: 0.8 }, 6.5, 9, Math.PI / 2], ['zielmast_fluegel', {}, 'idle', 5, 10], ['drehplatte', {}, { tilt: 0.4 }, 0.3, 4.5, -Math.PI / 2 + 0.4, 0.7],
+    ['farbplatte', {}, { color: 0.5, flash: 0.6 }, 0.2, 4, -Math.PI / 2 + 0.4, 0.8], ['plattenwand', {}, { out: 1 }, 0.4, 4.5, -Math.PI / 2 + 0.6, 0.45], ['riesen_frageblock_turm', {}, 'idle', 1, 6],
+    ['wabe', {}, 'idle', 0.4, 3.5, -Math.PI / 2, 0.8], ['wabe', { kind: 'lava' }, 'idle', 0.4, 3.5, -Math.PI / 2, 0.8], ['wabe', { kind: 'eis' }, 'idle', 0.4, 3.5, -Math.PI / 2, 0.8],
+    ['schienenwalze', {}, { angle: 0.4 }, 1.8, 10, -0.3], ['schienenbrett', {}, { speed: 0 }, 0.4, 5, -0.6, 0.5], ['weiche', {}, { dir: 1 }, 1, 9, -0.7, 0.6],
+    ['felsblock_riss', {}, { break: 0.1 }, 1, 6.5], ['diorama_drehscheibe', {}, { angle: 0.3 }, 0.8, 14, -0.4, 0.7], ['nebelplattform', {}, { fade: 0.7 }, 0.4, 6, -0.4, 0.6],
+    ['planet', { kind: 'pilz' }, 'idle', 3, 13], ['planet', { kind: 'blume' }, 'idle', 3, 13], ['planet', { kind: 'eis' }, 'idle', 3, 13],
+    ['krone_podest', {}, 'idle', 2.5, 11, -Math.PI / 2 + 0.3], ['pokal_gross', {}, 'idle', 1.6, 7.5, -Math.PI / 2 + 0.3], ['riesenpflanze', { kind: 'blatt' }, 'idle', 1.2, 10, -Math.PI / 2 + 0.6, 0.5],
+    ['schneegrab', {}, 'idle', 0.7, 3.6, -Math.PI / 2 + 0.3], ['retro_wolke', {}, 'idle', 1, 7, -Math.PI / 2], ['sternschnuppe', {}, 'idle', 0, 9, -Math.PI / 2 + 0.3],
   ];
   for (let i = 0; i < PORTRAITS.length; i += 3) {
     const nm = `portrait_${i / 3 + 1}`;
     if (!want(nm) && !want('portrait')) continue;
     await sc((list) => {
       const cm = window.__cm; cm.clear();
-      list.forEach(([n, o, s, y, d, yaw], k) => {
+      list.forEach(([n, o, s, y, d, yaw, el], k) => {
         if (!cm.reg.hasModel(n)) return;
         const m = cm.put(n, o, s, (k - 1) * 40, 0, yaw ?? -Math.PI / 2 + 0.45, 30, null);
-        m.portrait = { y, d };
+        m.portrait = { y, d, el: el ?? 0.22 };
       });
-      cm.portraits = cm.live.map((m) => ({ m, y: m.portrait.y, d: m.portrait.d }));
+      cm.portraits = cm.live.map((m) => ({ m, y: m.portrait.y, d: m.portrait.d, el: m.portrait.el }));
     }, PORTRAITS.slice(i, i + 3));
     if (ONLY && !ONLY.includes(nm)) ONLY.push(nm);
     await sc(() => {
@@ -547,7 +550,7 @@ if (part('views')) {
         const c = p.m.root.position;
         cam.aspect = w / size.y; cam.fov = 30; cam.updateProjectionMatrix();
         cam.up.set(0, 1, 0);
-        cam.position.set(c.x + p.d * 0.35, p.y + p.d * 0.22 + c.y, c.z + p.d);
+        cam.position.set(c.x + p.d * 0.35, p.y + p.d * p.el + c.y, c.z + p.d);
         cam.lookAt(c.x, p.y + c.y, c.z);
         v.world.lighting.update(new T.Vector3(c.x, p.y, 0));
         r.setViewport(k * w, 0, w, size.y); r.setScissor(k * w, 0, w, size.y);
@@ -605,14 +608,14 @@ if (part('views')) {
       ['sternschnuppe', { length: 7 }, 'idle', 3, -8, 0.4, 5], ['planet', { kind: 'blume', size: 7 }, 'idle', -9, -14, 0, -2], ['planet', { kind: 'ring', size: 9 }, 'idle', 10, -16, 0, -1], ['huepfmaus', {}, 'idle', -3, 0.8, 0, 0.6],
       ['spielzeugrakete', { color: 'lila' }, { flame: 1 }, 9, -6, 0, 1], ['trapez', {}, 'idle', 6, 2, 0, 3]], [0, 0.5, -3], [-6, 1, 0.6]],
     scene_galaxie: ['weltraum', [['box', 5, -0.5, -6, 1, 6, 8, 0x5a5ab8]], [['plattenwand', { size: [2, 0.6], depth: 1.6 }, { out: 1 }, 5.5, -4, 0, 0.6], ['plattenwand', { size: [2, 0.6], depth: 1.6 }, { out: 0.5 }, 5.5, -6.5, 0, 1.6],
-      ['plattenwand', { size: [2, 0.6], depth: 1.6 }, { out: 0 }, 5.5, -9, 0, 2.6], ['sternen_torbogen', {}, 'idle', -1, -8, 0], ['planet', { kind: 'pilz', size: 6 }, 'idle', -10, -12, 0, 1], ['planet', { kind: 'eis', size: 5 }, 'idle', 12, -14, 0, 4],
+      ['plattenwand', { size: [2, 0.6], depth: 1.6 }, { out: 0 }, 5.5, -9, 0, 2.6], ['sternen_torbogen', {}, 'idle', -1, -8, Math.PI / 2], ['planet', { kind: 'pilz', size: 6 }, 'idle', -10, -12, 0, 1], ['planet', { kind: 'eis', size: 5 }, 'idle', 12, -14, 0, 4],
       ['sternschnuppe', {}, 'idle', -6, -10, 0.3, 7], ['drehplatte', {}, { tilt: 0.5, shake: 0 }, -5, 1, 0, 0]], [0, 0.5, -3], [-1.5, 2.5],
     [['farbplatte', {}, Array.from({ length: 16 }, (_, i) => [-3 + (i % 4) * 2.05, 0, -1 + Math.floor(i / 4) * -2.05 + 4, 0, { color: (i + Math.floor(i / 4)) % 2 }])],
       ['drehplatte', {}, Array.from({ length: 6 }, (_, i) => [-9 + (i % 2) * 2.1, 0, 2 - Math.floor(i / 2) * 2.1, 0, { tilt: [0, 0.4, 1.2, 0, 2.6, 0.2][i] }])]]],
     scene_walzen: ['himmel', [], [['walzen_schiene', { length: 18, gauge: 6, height: 4 }, 'idle', 0, -4, 0, 0], ['schienenwalze', { radius: 1.5, length: 6 }, { angle: 0.4 }, 0, -2, 0, 0], ['schienenwalze', { radius: 1, length: 6 }, { angle: 1.2 }, 0, -9, 0, 0],
       ['walzen_schiene', { length: 8, gauge: 4, height: 4 }, 'idle', -8, 0, Math.PI / 2, 1.5], ['schienenwalze', { radius: 0.8, length: 4 }, { angle: 0 }, -8, 0, Math.PI / 2, 1.5]], [0, 1.5, -3], [0.5, -2, 3.25], [], 45, true],
     scene_zielmast: ['himmel', [], [['zielmast_fluegel', {}, { fly: 1, flap: 0.7 }, 1, -7, Math.PI / 2, 2], ['wolkenplattform', { size: [5, 0.8, 4] }, 'idle', -1, 1, 0, 0], ['wolkenplattform', { size: [4, 0.8, 3] }, 'idle', 4, -3, 0, 0.5],
-      ['boost_arrow', { length: 3, width: 1.8 }, 'idle', -1, 0.5, Math.PI / 2, 0.82], ['donut_block', {}, 'idle', 5, -3, 0, 1.3], ['donut_block', {}, 'idle', 6, -3, 0, 1.3], ['glotzfisch', {}, 'idle', -5, -4, 0.4, 2.5], ['retro_wolke', { size: 5 }, 'idle', -8, -12, 0, 1]], [0, 1.5, -3], [-1, 1.5, 0.8], [], 45, true],
+      ['boost_arrow', { length: 3, width: 1.8 }, 'idle', -1, 0.5, Math.PI / 2, 0.82], ['donut_block', {}, 'idle', 5, -3, 0, 1.3], ['donut_block', {}, 'idle', 6, -3, 0, 1.3], ['glotzfisch', {}, 'idle', -5, -4, 0.4, 2.5], ['retro_wolke', { size: 5 }, 'idle', -8, -12, 0, 1]], [0, 3.5, -5], [-1, 1.5, 0.8], [], 45, true],
     scene_blockland: ['tag', [], [['riesen_frageblock_turm', { size: 2 }, 'idle', 4, -6, 0, 0], ['riesen_frageblock_turm', { size: 2 }, 'idle', 4, -6, 0, 2], ['riesen_frageblock_turm', { size: 2, part: 'kopf' }, 'idle', 4, -6, 0, 4],
       ['laufbombe', {}, 'walk', -1, 1, 0.3, 2], ['laufbombe', {}, { anim: 'fuse', progress: 0.85 }, 1.5, 0, 2, 2], ['felsblock_riss', { size: [2, 3, 3] }, { break: 0 }, -6, -6, 0, 0], ['retro_wolke', { size: 5 }, 'idle', -4, -14, 0, 6],
       ['retro_wolke', { size: 4, seed: 2 }, 'idle', 8, -12, 0, 7], ['retro_busch', { size: 3 }, 'idle', 8, -2, 0.3, 0], ['retro_busch', { size: 2.5, seed: 1 }, 'idle', -8, 2, 0, 0]], [0, 1, -3], [-2.5, 2.5, 2],
@@ -620,15 +623,15 @@ if (part('views')) {
       ['retro_block', { kind: 'frage' }, [[0, 4, -1, 0, 'idle']]], ['retro_block', { kind: 'hart' }, [[2, 2, -1, 0, 'idle'], [-2, 2, -1, 0, 'idle']]]]],
     scene_waben: ['weltraum', [], [['wabensaeule', { height: 10 }, 'idle', -7, -6, 0, -10], ['wabensaeule', { height: 10, kind: 'lava' }, 'idle', 7, 4, 0, -10], ['brummer', {}, 'idle', 1.5, -1, 0, 1.2]], [0, 0, 0], [-1, 0.5, 0.5],
     [['wabe', { kind: 'normal' }, hexField(0)], ['wabe', { kind: 'lava' }, hexField(1)], ['wabe', { kind: 'eis' }, hexField(2)]], 89.9],
-    scene_dschungel: ['dschungel', [], [['riesenpflanze', { kind: 'pilz', size: 9 }, 'idle', -6, -10, 0.3], ['riesenpflanze', { kind: 'blume', size: 10 }, 'idle', 7, -11, -0.4], ['riesenpflanze', { kind: 'blatt', size: 7 }, 'idle', -9, -1, 0.2],
-      ['riesenpflanze', { kind: 'blatt', size: 6 }, 'idle', 7, 1, Math.PI], ['grossrollpilz', {}, 'walk', 1, -3, 0.4], ['pilzlingsturm', {}, 'idle', -3, -5, 0.6], ['powerup_riese', {}, 'idle', 2, 2, 0, 0.3]], [0, 1, -3], [-1.5, 3]],
-    scene_nebel: ['schnee', [['pool', 4, -2, 9, 8, 0x6ad04a, 0.03]], [['schneegrab', {}, 'idle', -5, -2, 0.2], ['schneegrab', { kind: 'kreuz' }, 'idle', -3, -5, -0.2], ['schneegrab', { kind: 'spitz', tilt: 0.15 }, 'idle', -7, -6, 0.4], ['schneegrab', { size: 1.5 }, 'idle', -1, -9, 0],
+    scene_dschungel: ['dschungel', [], [['riesenpflanze', { kind: 'pilz', size: 9 }, 'idle', -7, -14, 0.3], ['riesenpflanze', { kind: 'blume', size: 10 }, 'idle', 7, -15, -0.4], ['riesenpflanze', { kind: 'blatt', size: 7 }, 'idle', -10, -4, -0.6],
+      ['riesenpflanze', { kind: 'blatt', size: 6 }, 'idle', 9, -2, Math.PI + 0.5], ['grossrollpilz', {}, 'walk', 1, -3, 0.4], ['pilzlingsturm', {}, 'idle', -3, -5, 0.6], ['powerup_riese', {}, 'idle', 2, 2, 0, 0.3]], [0, 3, -7], [-1.5, 3]],
+    scene_nebel: ['schnee', [['pool', 4.5, -2, 9, 9, 0x8a3aa8, 0.03]], [['schneegrab', {}, 'idle', -5, -2, -Math.PI / 2 + 0.2], ['schneegrab', { kind: 'kreuz' }, 'idle', -3, -5, -Math.PI / 2 - 0.2], ['schneegrab', { kind: 'spitz', tilt: 0.15 }, 'idle', -7, -6, -Math.PI / 2 + 0.4], ['schneegrab', { size: 1.5 }, 'idle', -1, -9, -Math.PI / 2],
       ['nebelplattform', { size: [3, 3] }, { fade: 1 }, 4, 0, 0, 0.6], ['nebelplattform', { size: [3, 3] }, { fade: 0.45 }, 5, -4, 0, 1.6], ['nebelplattform', { size: [3, 3] }, { fade: 0 }, 6, -8, 0, 2.6], ['nebelschwaden', { size: [14, 8], color: 0xe8eaff, opacity: 0.45 }, 'idle', 0, -4, 0],
       ['kreisgeist', {}, 'idle', -4, -1, 0.5, 1.2], ['leaf_raft', {}, 'idle', 2, 2, 0, 0.05]], [0, 0.8, -3], [-1.5, 2.5]],
     scene_sternwerk: ['weltraum', [], [['brett_schiene', { length: 14, posts: 3 }, 'idle', -9, 1, 0, 3], ['weiche', {}, { dir: 1 }, 5, 1, 0, 3], ['schienenbrett', {}, { speed: 4 }, 0, 1, 0, 3], ['kanonenkugel_tritt', { size: 2 }, 'fly', -3, -5, 0, 5],
       ['kanonenkugel_tritt', { size: 2 }, 'idle', 2, -7, 0, 6.5], ['weltraum_antenne', {}, 'idle', -8, -10, 0.3], ['weltraum_kuppel', {}, 'idle', 7, -11, -0.5], ['spielzeugrakete', {}, { flame: 1 }, 12, -4, 0, 2], ['planet', { kind: 'eis', size: 6 }, 'idle', -14, -16, 0, 2]], [0, 3.5, -3], [0, 1, 3.62]],
     scene_diorama: ['abend', [], [['diorama_drehscheibe', { radius: 5, height: 1.2 }, { angle: 0.5 }, 0, -3, 0], ['funkenflaemmchen', {}, 'idle', -2, -2, 0, 1.2], ['funkenflaemmchen', {}, 'idle', 2, -5, 0, 1.2], ['star', {}, 'idle', 1, -1, 0, 1.4], ['kruemel', {}, 'idle', -1, -4, 0.5, 1.2]], [0, 1, -3]],
-    scene_krone: ['gold', [], [['krone_podest', {}, 'idle', 0, -4, 0], ['pokal_gross', {}, 'idle', -6, -2, 0.4], ['pokal_gross', { size: 2 }, 'idle', 6, -2, -0.4], ['sternen_torbogen', { width: 7, height: 6 }, 'idle', 0, 3, 0]], [0, 1.5, -2], [-2.5, 2]],
+    scene_krone: ['gold', [], [['krone_podest', {}, 'idle', 0, -4, -Math.PI / 2], ['pokal_gross', {}, 'idle', -6, -2, -Math.PI / 2 + 0.4], ['pokal_gross', { size: 2 }, 'idle', 6, -2, -Math.PI / 2 - 0.4], ['sternen_torbogen', { width: 9, height: 8 }, 'idle', 0, -11, Math.PI / 2]], [0, 2, -4], [-2.5, 2]],
   };
   function hexField(k) {
     const out = [];
@@ -668,7 +671,7 @@ if (part('views')) {
     await sc(() => {
       const cm = window.__cm; cm.clear(); cm.mood('weltraum');
       for (const [n, o, s, x, z, yaw, y] of [['planet', { kind: 'ring', size: 12 }, 'idle', -16, -30, 0, 4], ['planet', { kind: 'pilz', size: 8 }, 'idle', 14, -26, 0, 8], ['planet', { kind: 'blume', size: 6 }, 'idle', 0, -40, 0, 14],
-        ['planet', { kind: 'eis', size: 7 }, 'idle', 24, -40, 0, 2], ['spielzeugrakete', {}, { flame: 1 }, -4, -16, 0, 6], ['sternschnuppe', { length: 9 }, 'idle', 6, -20, 0.3, 14], ['sternen_torbogen', { width: 8, height: 7 }, 'idle', 0, -6, 0, 0],
+        ['planet', { kind: 'eis', size: 7 }, 'idle', 24, -40, 0, 2], ['spielzeugrakete', {}, { flame: 1 }, -4, -16, 0, 6], ['sternschnuppe', { length: 9 }, 'idle', 6, -20, 0.3, 14], ['sternen_torbogen', { width: 8, height: 7 }, 'idle', 0, -6, Math.PI / 2, 0],
         ['regenbogenweg', { length: 14, width: 4 }, 'idle', -7, -6, 0, 0], ['weltraum_kuppel', {}, 'idle', 10, -10, -0.4, 0], ['weltraum_antenne', {}, 'idle', -12, -10, 0.4, 0], ['wabensaeule', { height: 12 }, 'idle', 20, -14, 0, -6]]) {
         if (!cm.reg.hasModel(n)) continue;
         const m = cm.put(n, o, s, x, z, yaw, 24, null); if (y !== undefined) m.root.position.y = y;

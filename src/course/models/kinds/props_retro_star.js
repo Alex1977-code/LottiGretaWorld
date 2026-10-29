@@ -125,7 +125,7 @@ function buildRetroWolke(opts = {}) {
   const W = clamp(num(opts.size, 4), 0.5, 60);
   const cols = WOLKE_COLS[seed], cell = W / cols.length;
   const root = new THREE.Group();
-  root.add(mesh(pixelPuffGeo(cols, cell, cell * 2.2, [0x9ac8f8, 0xd8ecff, ST.rCloud, 0xffffff], `wolke${seed}`), kulS(0.45), {}, true));
+  root.add(mesh(pixelPuffGeo(cols, cell, cell * 2.2, [0xb8d8ff, 0xeef6ff, 0xffffff, 0xd4e8ff], `wolke${seed}`), kulS(0.45), {}, true));
   return makeModel('retro_wolke', root, () => {}, []);
 }
 function buildRetroBusch(opts = {}) {
@@ -220,9 +220,15 @@ function blattGeo() {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
       return g;
     };
-    const veinC = (x, y, z) => { const u = (x - base.x) / L; const vein = Math.abs(((u * 7 - Math.abs(z) * 1.6) % 1 + 1) % 1 - 0.5) < 0.06 || Math.abs(z) < 0.06; return vein ? col(ST.leafHi) : mix(ST.leafLow, ST.leaf, smoothstep(u * 1.3 + 0.1)); };
-    b.add(tris(1), veinC);
-    b.add(tris(-1), (x, y, z) => mix(0x1a5a2a, 0x3a9a4a, smoothstep((x - base.x) / L)));
+    const leafC = { v: (x, y, z) => { const u = (x - base.x) / L; return mix(mix(ST.leafLow, ST.leaf, smoothstep(u * 1.4 + 0.1)), ST.leafHi, smoothstep(1 - Math.abs(z) / W * 2.4) * 0.25); } };
+    b.add(tris(1), leafC);
+    b.add(tris(-1), { v: (x) => mix(0x1a5a2a, 0x3a9a4a, smoothstep((x - base.x) / L)) });
+    // Seitenadern (helle Röhrchen auf der Oberseite)
+    for (let k = 1; k <= 6; k++) for (const sg of [1, -1]) {
+      const u0 = k / 7.5;
+      const pts = [0, 0.33, 0.66, 1].map((q) => { const u = u0 + q * 0.12, v = sg * q * 0.8; const p = P(u, v, 1); return [p[0], p[1] + 0.012, p[2]]; });
+      b.add(taperTube(pts, (t) => 0.035 * (1 - t * 0.7), 10, 4), ST.leafHi);
+    }
     // Mittelrippe und Stiel
     const rib = Array.from({ length: 9 }, (_, i) => P(i / 8 * 0.95, 0, 1));
     b.add(taperTube(rib, (t) => 0.09 * (1 - t * 0.8), 24, 6), ST.leafHi);
