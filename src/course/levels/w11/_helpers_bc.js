@@ -269,9 +269,9 @@ export function schlafturm(level, id, o = {}) {
     } else since = 0;
   });
   if (!level.view) return st;
-  const n = 3, geo = new THREE.BufferGeometry(), arr = new Float32Array(n * 3), alpha = new Float32Array(n);
+  const n = 3, geo = new THREE.BufferGeometry(), arr = new Float32Array(n * 3);
   geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const mat = new THREE.PointsMaterial({ size: 0.55, map: zzzTexture(), transparent: true, depthWrite: false, opacity: 0.9 });
+  const mat = new THREE.PointsMaterial({ size: 1.5, map: zzzTexture(), transparent: true, depthWrite: false, opacity: 0.9 });
   const pts = new THREE.Points(geo, mat);
   pts.frustumCulled = false;
   const holder = {};
@@ -287,9 +287,7 @@ export function schlafturm(level, id, o = {}) {
       arr[i * 3] = e.pos.x + 0.25 + u * 0.7 + Math.sin(u * 7 + i) * 0.12;
       arr[i * 3 + 1] = top + u * 1.6;
       arr[i * 3 + 2] = e.pos.z + 0.15;
-      alpha[i] = u;
     }
-    mat.size = 0.42 + 0.25 * ((k * 3) % 1) * 0;
     geo.attributes.position.needsUpdate = true;
   });
   return st;
