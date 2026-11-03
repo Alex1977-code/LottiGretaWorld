@@ -79,7 +79,7 @@ export function leeresGemaelde(level, id, color = 0x1c1626) {
 
 /**
  * Unsichtbare Wolke (B-6): Einweg-Wolke (von unten durchspringbar), fest von Anfang an, aber fast durchsichtig (Schimmer
- * opacity hint 0,07); steht eine Figur darauf, blendet sie ein (0,35 s) und bleibt sichtbar.
+ * opacity hint 0,035); steht eine Figur darauf, blendet sie ein (0,35 s) und bleibt sichtbar.
  * Daten: { pos: [x, y, z] (Mitte unten), size: [w, h, d] (2,8 × 0,6 × 2,8), hint, id }. Laufzeit: shown, k, info().
  */
 class Geisterwolke extends CourseEntity {
@@ -89,7 +89,7 @@ class Geisterwolke extends CourseEntity {
     const [w, h, d] = spec.size ?? [2.8, 0.6, 2.8];
     this.size = [w, h, d];
     this.half.set(w / 2, h / 2, d / 2);
-    this.hint = spec.hint ?? 0.07;
+    this.hint = spec.hint ?? 0.035;
     this.shown = false;
     this.k = 0;
     const p = this.pos;

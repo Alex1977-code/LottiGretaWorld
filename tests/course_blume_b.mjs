@@ -220,7 +220,7 @@ ROUTES['B-6'] = {
   ],
   shots: [
     ['start', [0, Y6, 8]],
-    ['jaeger', [-1, Y6, 6], 0, null, Math.PI * 0.85],
+    ['jaeger', [-0.6, Y6, 9.4]],
     ['gemaelde', [-2.6, Y6, 3]],
     ['empore', [4, Y6 + 7, 3.2]],
     ['bibliothek', [64, Y6, -38]],
@@ -234,6 +234,91 @@ ROUTES['B-6'] = {
     ['terrasse', [246, YT6, -217]],
     ['balkon2', [262, 11.6, -227.5]],
     ['balkon3', [259, 13.6, -236]],
+  ],
+};
+
+// ------------------------------------------------------------------ B-7 (Basis 3-5)
+const broken = (id) => `=!!ent('${id}')?.broken || !ent('${id}')`;
+ROUTES['B-7'] = {
+  base: '3-5',
+  start: [0, 1, 8],
+  meta: { stars: 3, time: 400, theme: 'water', music: 'course_water', variant: null, archetype: 'parcours' },
+  enemies: { flossling: 0, tintling: 4, rammfisch: 3, helm_kanone: 6, felsblock: 6, stachelfisch: 13, starring: 1, 'seg:stachelblock': 3, stamp: 0 },
+  main: [
+    { name: 'Kanonen-Helm am Strand', to: [2.6, 4.4], within: 0.3, run: false },
+    { expect: '=P().helmet === \'kanone\'' },
+    { name: 'Strand', to: [-1.6, -3.6] },
+    { name: 'Röhre 1', to: [-1.6, -12.4], within: 0.4 },
+    { name: 'Röhre 2', to: [0.6, -18], jump: 30, within: 0.5 },
+    { to: [0.6, -25.4], within: 0.5 },
+    { name: 'Riffkante', to: [0.4, -30], jump: 20 },
+    { to: [0, -37.2] },
+    { name: 'Tiefwasser', to: [0, -40.5], within: 0.8 },
+    { name: 'abtauchen', dive: [0, -60], y: -5.6, within: 1 },
+    { dive: [0, -88], y: -6.4, within: 1 },
+    { name: 'Felsbogen', dive: [0, -97], y: -6.4, within: 1 },
+    { name: 'Flutkammer', until: '=(L.waterLevel?.(\'flut\') ?? 0) > 4.95', max: 1200, dive: [0, -103], y: 6 },
+    { name: 'Sims → Glasrohr', swimOut: [0, -111] },
+    { name: 'Bucht', to: [0, -136] },
+    { name: 'Holzsteg', to: [0, -146.6], run: false },
+    { name: 'Checkpoint', to: [0, -157] },
+    { name: 'Stachelwand', to: [0, -164.8], within: 0.6 },
+    { to: [0, -166.5], within: 0.8 },
+    { name: 'Kanal', dive: [-5.6, -176], y: -0.3, within: 1 },
+    { dive: [-4.4, -188], y: -0.3, within: 1 },
+    { dive: [-5.4, -203], y: -0.3, within: 1 },
+    { dive: [3.4, -218], y: -0.3, within: 1 },
+    { name: 'Ausgang → Glasrohr-Kanone', swimOut: [0, -228.4] },
+    { name: 'Zielmast', to: [0, -245], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'mit Kanonen-Helm getaucht, Flutkammer und Glasrohre gefahren', ok: (r) => r.mech.rides >= 2 },
+  ],
+  targets: [
+    { name: 'Stern 0: am Ende des Tiefwassers mit dem Kanonen-Helm die Felswand sprengen, Stern in der Nische', star: 0, from: [0, 0, -40.5], place: { helmet: 'kanone' },
+      legs: [{ dive: [0, -80], y: -6.4, within: 1 }, { name: 'vor die Felswand', dive: [4.6, -88], y: -7.2, within: 0.5, ytol: 0.5 },
+        { name: 'Felswand 1 beschießen', dive: [4.6, -88], y: -7.2, aim: [1, 0], until: broken('fels1'), max: 1500 },
+        { name: 'in die Nische', dive: [9.6, -88], y: -7.4, within: 0.5 }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht ohne Kanonen-Helm (die Felswand hält)', star: 0, expectNot: true, from: [0, 0, -40.5], heroes: ['lotti'],
+      legs: [{ dive: [0, -80], y: -6.4, within: 1 }, { dive: [7.0, -88], y: -7.2, within: 0.5 }, { dive: [9.6, -88], y: -7.4, within: 0.4, max: 600 }, { wait: 60 }],
+      mech: (r) => true },
+    { name: 'Stern 1: Kanonen-Helm am Kanalufer, über zwei Stachelblöcke, Felswand der Kanzel sprengen, Stern', star: 1, from: [2.6, 1, -159.6],
+      legs: [{ to: [2.6, -161.6], within: 0.3, run: false }, { expect: '=P().helmet === \'kanone\'' }, { to: [5.2, -163.6], within: 0.3, run: false },
+        { name: 'Stachelblock 1', to: [5.2, -167.6], jump: 24, within: 0.4, run: false }, { name: 'Stachelblock 2', to: [5.2, -173], jump: 24, within: 0.4, run: false },
+        { face: [1, 0] }, { name: 'Felswand 2 beschießen', until: broken('fels2'), max: 600 }, { wait: 60 },
+        { name: 'in die Kanzel', to: [8, -173], jump: 14, within: 0.4, run: false }, { star: 1 }], shot: 'stern1' },
+    { name: 'Stern 1 nicht ohne Kanonen-Helm (Felswand hält, Sprung prallt ab)', star: 1, expectNot: true, from: [5.2, 1, -173], heroes: ['lotti'], place: { yaw: 0 },
+      legs: [{ wait: 120 }, { to: [8, -173], jump: 14, within: 0.4, run: false, max: 200 }, { wait: 60 }] },
+    { name: 'Stern 2: tief unter der Kanzel vier Felsblöcke sprengen, Sternring in der Grotte, acht Sternmünzen im Kanal', star: 2, from: [2.6, 1, -162], place: { helmet: 'kanone' },
+      legs: [{ to: [2.6, -164.4], within: 0.3, run: false }, { name: 'abtauchen', dive: [2.6, -171.4], y: -5.8, within: 0.5 },
+        { name: 'Felsblock unten vorn', dive: [3.2, -171.4], y: -5.8, aim: [1, 0], until: broken('fels3a'), max: 1200 },
+        { name: 'Felsblock oben vorn', dive: [3.2, -171.4], y: -4.2, aim: [1, 0], until: broken('fels3c'), max: 1200 },
+        { name: 'Felsblock unten hinten', dive: [3.2, -174.6], y: -5.8, aim: [1, 0], until: broken('fels3b'), max: 1200 },
+        { name: 'Felsblock oben hinten', dive: [3.2, -174.6], y: -4.2, aim: [1, 0], until: broken('fels3d'), max: 1200 },
+        { name: 'in die Grotte zum Sternring', dive: [8, -173], y: -5.2, until: '=ent(\'sternring\')?.state === \'active\'', max: 900 },
+        { name: 'Sternmünzen', coins: 'starcoin', max: 3000 }, { wait: 30 }, { star: 2 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht ohne die Felsblöcke zu sprengen (Grotte zu)', star: 2, expectNot: true, from: [2.6, 1, -162], heroes: ['lotti'],
+      legs: [{ to: [2.6, -164.4], within: 0.3, run: false }, { dive: [3.2, -173], y: -5.2, within: 0.5 }, { dive: [8, -173], y: -5.2, within: 0.4, max: 600 }, { wait: 60 }],
+      mech: (r) => true },
+  ],
+  extra: [
+    { name: 'Kanonen-Helm unter Wasser: Kugel vertreibt einen Tintling', from: [0, 0, -40.5], heroes: ['lotti'], probe: 'b7tintling' },
+    { name: 'Kanonen-Helm am Strand liegt nach dem Aufheben wieder da', from: [2.6, 1, 6], heroes: ['lotti'], probe: 'b7helm' },
+    { name: 'Rammfisch im Tiefwasser rammt, wenn er die Figur sieht', from: [0, 0, -40.5], heroes: ['lotti'], probe: 'b7ramm' },
+  ],
+  shots: [
+    ['start', [0, 1, 8]],
+    ['riff', [0, 1, -33]],
+    ['tiefwasser', [0, -4, -56]],
+    ['nische', [5, -6, -86], 0, null, 0],
+    ['flutkammer', [0, -4, -101]],
+    ['bucht', [0, 1, -134]],
+    ['ufer', [2.6, 1, -163]],
+    ['stachelbloecke', [5.2, 1, -167.6]],
+    ['kanzel', [5.2, 1, -173], 0, null, 0],
+    ['grotte', [3, -5, -173], 0, null, 0],
+    ['kanal', [0, -0.2, -190]],
+    ['ziel', [0, 5, -240]],
   ],
 };
 
@@ -375,7 +460,14 @@ function install() {
         }
       };
       const settle = () => { for (let k = 0; k < 300 && p.mode !== 'ground' && !p.dead; k++) tick({}); };
-      const goTo = (x, z, r = 0.25) => { for (let n = 0; n < 400 && !p.dead; n++) { const dx = x - p.pos.x, dz = z - p.pos.z, d = Math.hypot(dx, dz); if (d < r && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))), run: false }); } };
+      // unter Wasser: zu hoch → ducken (abtauchen); zu tief → Schwimmzug; nahe → ruhig (getaucht: langsames Sinken, Sprung gehalten: Steigen)
+      const depthCtl = (ty, k) => {
+        if (p.mode !== 'swim') return { crouch: false, jump: false };
+        if (p.pos.y > ty + 0.3) return { crouch: true, jump: false };
+        if (p.pos.y < ty - 0.6) return { crouch: false, jump: (k % 26) < 3 };
+        return { crouch: false, jump: p.pos.y < ty - 0.05 };
+      };
+      const goTo =(x, z, r = 0.25) => { for (let n = 0; n < 400 && !p.dead; n++) { const dx = x - p.pos.x, dz = z - p.pos.z, d = Math.hypot(dx, dz); if (d < r && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))), run: false }); } };
       for (let li = 0; li < legs.length; li++) {
         const Lg = legs[li];
         Lg_ = Lg;
@@ -386,7 +478,7 @@ function install() {
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); settle(); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.log) { log.push(['wert', Lg.log, JSON.stringify(new Function('P', 'L', 'ent', 'plat', `return (${Lg.log});`)(P, L, ent, plat))]); continue; }
         if (Lg.expect) { const ok = cond(Lg.expect); log.push(['erwartet', Lg.expect, ok]); if (!ok) log.push(['FEHLER: Bedingung', Lg.expect, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]); continue; }
-        if (Lg.until && !Lg.stay) { let k = 0, okU = false; for (; k < (Lg.max ?? 1200) && !(okU = cond(Lg.until)); k++) tick({}); log.push(['bis', Lg.until, k]); if (!okU) log.push(['FEHLER: bis', Lg.until]); continue; }
+        if (Lg.until && !Lg.stay && !Lg.dive) { let k = 0, okU = false; for (; k < (Lg.max ?? 1200) && !(okU = cond(Lg.until)); k++) tick({}); log.push(['bis', Lg.until, k]); if (!okU) log.push(['FEHLER: bis', Lg.until]); continue; }
         if (Lg.waitBeat) {
           const mod = Lg.mod ?? 4, [lo, hi] = Lg.waitBeat;
           let k = 0;
@@ -456,6 +548,68 @@ function install() {
           if (ok) mech.warps++;
           log.push(['warp', `${Lg.warp}`, ok, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
           if (!ok) { log.push(['FEHLER: Warp-Box nicht benutzt', Lg.warp]); break; }
+          continue;
+        }
+        // ------------------------------------------------ unter Wasser in Tiefe y zu [x, z] schwimmen (until: Bedingung statt Ankunft);
+        // aim: [dx, dz] – dort bleiben und in diese Richtung blicken (der Kanonen-Helm feuert von selbst), bis until
+        if (Lg.dive) {
+          let k = 0;
+          const max = Lg.max ?? 2400;
+          for (; k < max; k++) {
+            if (p.dead) break;
+            const dx = Lg.dive[0] - p.pos.x, dz = Lg.dive[1] - p.pos.z, d = Math.hypot(dx, dz);
+            if (Lg.until ? cond(Lg.until) && k > 10 : !Lg.aim && d < (Lg.within ?? 1) && Math.abs(p.pos.y - Lg.y) < (Lg.ytol ?? 0.6)) break;
+            const dc = depthCtl(Lg.y, k);
+            let st = d > 0.3 ? this.stick(dx, dz, Math.min(1, d)) : {};
+            if (Lg.aim && d < 0.6) { const fv = p.facingVec(); const dot = (fv.x * Lg.aim[0] + fv.z * Lg.aim[1]) / Math.hypot(Lg.aim[0], Lg.aim[1]); st = dot < 0.995 ? this.stick(Lg.aim[0], Lg.aim[1], 0.13) : {}; }
+            tick({ ...st, ...dc, run: false });
+          }
+          log.push([Lg.name ?? `tauchen${li}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode, p.state, p.helmet ?? '-', L.waterLevel?.('flut')]);
+          if (k >= max) { log.push(['FEHLER: Tauchziel nicht erreicht', li]); break; }
+          continue;
+        }
+        // ------------------------------------------------ an der Oberfläche zum Rand und hinausspringen (Aussprung), dann auf den Punkt laufen
+        if (Lg.swimOut) {
+          let k = 0;
+          for (; k < 1500; k++) {
+            if (p.dead) break;
+            const dx = Lg.swimOut[0] - p.pos.x, dz = Lg.swimOut[1] - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.mode === 'ground' && d < 0.6) break;
+            if (rode) break;
+            if (p.mode === 'swim') {
+              const head = (p.water?.top ?? 0) - (p.pos.y + p.half.y * 2);
+              const near = d < 4.5;
+              tick({ ...this.stick(dx, dz, 1), crouch: false, jump: near ? (k % 30) < 22 : (head > 0.2 && (k % 26) < 3), run: false });
+            } else tick({ ...this.stick(dx, dz, Math.min(1, d)), jump: p.mode === 'air' && p.vel.y > 0, run: false });
+          }
+          if (rode) settle();
+          log.push([Lg.name ?? `hinaus${li}`, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          if (k >= 1500) { log.push(['FEHLER: nicht aus dem Wasser', li]); break; }
+          continue;
+        }
+        // ------------------------------------------------ Münzen einer Art (z. B. Sternmünzen) der Reihe nach einsammeln (nächste zuerst; auch unter Wasser)
+        if (Lg.coins) {
+          let k = 0, nPrev = -1;
+          const alive = () => L.entities.filter((e) => e.kind === Lg.coins && e.alive && !e.removed && !e.hidden);
+          for (; k < (Lg.max ?? 2400) && alive().length && !p.dead; k++) {
+            if (alive().length !== nPrev) { nPrev = alive().length; log.push(['münze', nPrev, k, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); }
+            const list = alive();
+            list.sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.y - p.pos.y, b.pos.z - p.pos.z));
+            const e = list[0];
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz), dy = e.pos.y - p.pos.y;
+            if (p.mode === 'swim') { tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2))), ...depthCtl(e.pos.y - 0.4, k), run: false }); continue; }
+            const jump = (dy > 0.9 && d < 3.2) || (p.mode === 'air' && p.vel.y > 0 && dy > 0.4);
+            tick({ ...(p.mode === 'air' ? this.airSteer(e.pos.x, e.pos.z, 0, 0, 3.4, 9) : this.stick(dx, dz, Math.min(1, Math.max(0.35, d / 1.5)))), run: d > 2.5, jump });
+          }
+          log.push(['münzen', Lg.coins, k, alive().length]);
+          if (alive().length) log.push(['FEHLER: Münzen übrig', alive().length]);
+          continue;
+        }
+        // ------------------------------------------------ genau ausrichten (Kanonen-Helm: die Kugel fliegt in Blickrichtung)
+        if (Lg.face) {
+          for (let i = 0; i < 240; i++) { const fv = p.facingVec(), l = Math.hypot(Lg.face[0], Lg.face[1]); if ((fv.x * Lg.face[0] + fv.z * Lg.face[1]) / l > 0.9995 && i >= 4) break; tick({ ...this.stick(Lg.face[0], Lg.face[1], Lg.mag ?? 0.16), run: false }); }
+          for (let i = 0; i < (Lg.pause ?? 6); i++) tick({});
+          log.push(['blick', `${Lg.face}`, +p.yaw.toFixed(3)]);
           continue;
         }
         // ------------------------------------------------ Geister (Ids) mit dem Licht-Helm auflösen: hingehen (≈ 4 m), anschauen, warten
@@ -548,6 +702,12 @@ function install() {
         if (!e) break;
         const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, dist = Math.hypot(dx, dz);
         const dy = e.pos.y - p.pos.y;
+        if (p.mode === 'swim') {
+          // unter Wasser: Tiefe der Beute halten (ducken = abtauchen, Sprung gehalten = steigen)
+          const ty = e.pos.y - 0.3;
+          tick({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), crouch: p.pos.y > ty + 0.3, jump: p.pos.y < ty - 0.1 && (dy < 0.5 || (n % 26) < 3), run: false });
+          continue;
+        }
         const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6 && dy > -0.5) || (dy > 0.8 && (n % 48) < 30);
         tick({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
       }
@@ -693,8 +853,85 @@ RULES['B-6'] = async () => {
     && r.baseGoal[0] === 240 && r.baseGoal[1] === 7.6 && r.baseFalsch === 1 && r.baseSpawn === null && r.baseMotif === 'spuk' && !r.baseHunter && r.baseStars === 3 && r.baseStar0[0] === -58.8);
 };
 
+RULES['B-7'] = async () => {
+  const r = await sc(() => {
+    const c = window.__course, L = c.level, CL = window.__courseLevels;
+    const base = CL.get('3-5'), raw = CL.raw('B-7');
+    const calls = window.__audio?.music?.__calls ?? [];
+    const ents = (k) => L.entities.filter((e) => e.kind === k && !e.removed);
+    const walls = ents('felsblock').map((e) => [e.spec.id, e.spec.look, +e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]);
+    return {
+      stub: CL.isRemix(raw) && raw.remix.base === '3-5' && !raw.segments, title: L.data.title, theme: L.data.theme, light: c.view.theme.light ?? null,
+      music: L.data.music, variant: L.data.musicVariant, call: calls.filter((x) => x[0] === 'course_water').slice(-1)[0] ?? null,
+      limit: L.runtime.timeLimit, stamp: ents('stamp').length, floss: ents('flossling').length, tint: ents('tintling').length, ramm: ents('rammfisch').length,
+      helme: ents('helm_kanone').length, walls, stachel: L.data.segments.filter((x) => x.type === 'stachelblock').length, ring: ents('starring').length,
+      helmFeuert: !!window.__course.level.hasKind?.('kanonenkugel'),
+      baseTitle: base.title, baseTheme: base.theme, baseVariant: base.musicVariant ?? null, baseLimit: base.timeLimit, baseStamp: !!base.stamp, baseRemix: base.remix ?? null,
+      baseFloss: base.enemies.filter((e) => e.kind === 'flossling').reduce((a, e) => a + (e.count ?? 1), 0), baseHelme: base.items.filter((i) => i.kind === 'helm_kanone').length,
+      baseFels: base.items.filter((i) => i.kind === 'felsblock').length, baseTint: base.enemies.filter((e) => e.kind === 'tintling').length, baseStar0: base.stars[0],
+    };
+  });
+  console.log(`  Remix: ${JSON.stringify({ theme: r.theme, call: r.call, walls: r.walls })}`);
+  check('B-7: Remix-Platzhalter (Basis 3-5), eigener Titel; Licht und Musik der Basis (water, course_water ohne Variante)', r.stub && r.title === 'Kanonenhelm-Tauchgang im Leuchtturmriff' && r.theme === 'water' && r.music === 'course_water' && r.variant === null && (r.call === null || !r.call[1]?.variant));
+  check(`B-7: 400 s, kein Stempel; Tintlinge (${r.tint}) und Rammfische (${r.ramm}) statt Flosslinge (${r.floss}); ${r.helme} Kanonen-Helme`, r.limit === 400 && r.stamp === 0 && r.floss === 0 && r.tint === 4 && r.ramm === 3 && r.helme === 6 && r.helmFeuert);
+  check(`B-7: drei Felsblockwände (${r.walls.length} Felsblöcke, rissige Wand: 1 + 1 + 4), drei Stachelblöcke, Sternring`, r.walls.length === 6 && r.walls.every((w) => w[1] === 'wand') && r.stachel === 3 && r.ring === 1);
+  check('B-7: Gegenprobe Basis 3-5 unverändert (Titel, Thema water, 500 s, Stempel, 12 Flosslinge, ein Kanonen-Helm, keine Felsblöcke/Tintlinge, Stern 1 in der Flutkammer)',
+    r.baseTitle === 'Leuchtturmriff' && r.baseTheme === 'water' && r.baseVariant === null && r.baseLimit === 500 && r.baseStamp && r.baseRemix === null && r.baseFloss === 12
+    && r.baseHelme === 1 && r.baseFels === 0 && r.baseTint === 0 && r.baseStar0[0] === -6.2);
+};
+
 // ------------------------------------------------------------------ Sonder-Proben (extra[].probe)
 const PROBES = {
+  b7tintling: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb, p = c.player;
+      const e = L.entities.find((x) => x.spec?.id === 'tl_t1');
+      W.place([-6, -5.4, -52], { settle: 4, invuln: 99, helmet: 'kanone', yaw: -Math.PI / 2 });
+      let k = 0, balls = 0;
+      for (; k < 900 && e.alive && !e.defeated && !e.removed; k++) {
+        p.invuln = 99;
+        const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, fv = p.facingVec(), d = Math.hypot(dx, dz) || 1;
+        const dot = (fv.x * dx + fv.z * dz) / d;
+        const ty = e.pos.y;
+        c.setInput({ ...(dot < 0.99 ? W.stick(dx, dz, 0.14) : {}), crouch: p.mode === 'swim' && p.pos.y > ty + 0.2, jump: p.mode === 'swim' && p.pos.y < ty - 0.4 });
+        W.step(1);
+        balls = Math.max(balls, L.entities.filter((x) => x.kind === 'kanonenkugel' && !x.removed).length);
+      }
+      c.setInput({});
+      return { k, defeated: !!e.defeated || !e.alive || !!e.removed, by: e.defeatedBy ?? e.vanishedBy ?? null, balls, mode: p.mode, y: +p.pos.y.toFixed(2) };
+    });
+    console.log(`     Tintling: ${JSON.stringify(r)}`);
+    return r.defeated && r.balls >= 1 && r.mode === 'swim';
+  },
+  b7helm: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb, p = c.player;
+      const helms = () => L.entities.filter((e) => e.kind === 'helm_kanone' && e.alive && !e.removed && Math.hypot(e.pos.x - 2.6, e.pos.z - 4.4) < 1.5).length;
+      W.place([2.6, 1, 6.4], { settle: 2 });
+      const n0 = helms();
+      for (let i = 0; i < 200 && !p.helmet; i++) { c.setInput(W.stick(0, -1, 0.6)); W.step(1); }
+      c.setInput({});
+      const worn = p.helmet, n1 = helms();
+      for (let i = 0; i < 120 * 4.5; i++) W.step(1);
+      return { n0, worn, n1, n2: helms() };
+    });
+    console.log(`     Kanonen-Helm: ${JSON.stringify(r)}`);
+    return r.n0 === 1 && r.worn === 'kanone' && r.n1 === 0 && r.n2 === 1;
+  },
+  b7ramm: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb, p = c.player;
+      const e = L.entities.find((x) => x.spec?.id === 'rf_t1');
+      W.place([0, -5.2, -44], { settle: 2, invuln: 99 });
+      const states = new Set();
+      let k = 0;
+      for (; k < 1200; k++) { p.invuln = 99; c.setInput({ crouch: p.pos.y > -4.6, jump: p.pos.y < -5.6 }); W.step(1); states.add(e.state); if (e.state === 'charge') break; }
+      c.setInput({});
+      return { k, states: [...states], rams: e.rams ?? null };
+    });
+    console.log(`     Rammfisch: ${JSON.stringify(r)}`);
+    return r.states.includes('charge') || (r.rams ?? 0) > 0;
+  },
   b6falsch: async () => {
     const r = await sc(() => {
       const c = window.__course, L = c.level, W = window.__bb, p = c.player;
