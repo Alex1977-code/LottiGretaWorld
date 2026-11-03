@@ -217,7 +217,7 @@ const ROUTES = {
     baseEnemies: { stachelfalle: 7, feuer_werfer: 3 },
     remixChecks: [
       { name: 'vier Suchscheinwerfer über den Stachelstegen (folgen der Figur nicht), sieben Stachelfallen unter Licht-Steuerung, blaue Stege, drei orange Schwebeplattformen × 1,6 (die mittlere 4,4 m groß), Feuer-Werfer am Ende von Abschnitt 1, Säule der Basis entfernt, zwei neue Kletter-Säulen, Wachstube ohne Stern, Bröckelblock-Brücke',
-        ok: (r) => r.b11 && r.b11.lights === 4 && r.b11.track === false && r.b11.groups === 4 && r.b11.traps === 7 && r.b11.speeds === '3.84,3.84,2.88' && r.b11.waits === '0.8,0.8' && r.b11.big === 4.4
+        ok: (r) => r.b11 && r.b11.lights === 4 && r.b11.track === false && r.b11.groups === 4 && r.b11.traps === 7 && r.b11.speeds === '3.84,3.84,2.88' && r.b11.waits === '1,1.26' && r.b11.big === 4.4
           && r.b11.tinted === 3 && r.b11.werfer0 && r.b11.walls === '-19,-3.4,-5' && r.b11.taskStar === null && r.b11.broeckel === 3 },
     ],
     main: [

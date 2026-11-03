@@ -11,7 +11,7 @@
 //     auf ihr liegt (und 2 s danach); wer sich erwischen lässt („Entdeckt!“), lässt alle Fallen seines Stegs 4 s lang
 //     ausfahren. Ohne Licht laufen die Fallen im Takt der Basis. Am besten huscht man hinter dem Lichtfleck her – oder springt
 //     über ausgefahrene Fallen.
-//   - Die Stachel-Schwebeplattformen sind **orange** und fahren 1,6× so schnell (halbe Pause); die mittlere ist die **große
+//   - Die Stachel-Schwebeplattformen sind **orange** und fahren 1,6× so schnell (kürzere Pausen); die mittlere ist die **große
 //     Stachelplattform** (4,4 × 4,4 m).
 //   - Neu: Feuer-Werfer auf dem Turmplatz am Ende von Abschnitt 1, ?-Block mit Krallen-Anzug auf Turm 1, zwei Kletter-Säulen.
 //     Die Kletter-Säule der Basis im Werferabschnitt entfällt; die Wachstube gibt ein Extraleben statt eines Sterns, am Ende der
@@ -45,10 +45,11 @@ export const LEVEL = remixOf('8-1', {
     { kind: 'coins', box: [-4.6, 0, -97.4, -4.2, 8, -97] },              // ihre Münzsäule
   ],
   change: [
-    // orange Schwebebrücken: schneller, halbe Pause; die mittlere ist groß
-    { match: { id: 'schwebe1' }, fn: (e) => ({ ...e, speed: e.speed * 1.6, wait: e.wait * 0.5 }) },
-    { match: { id: 'schwebe2' }, fn: (e) => ({ ...e, speed: e.speed * 1.6, wait: e.wait * 0.5, size: [4.4, 1, 4.4] }) },
-    { match: { id: 'schwebe3' }, fn: (e) => ({ ...e, speed: e.speed * 1.6 }) },
+    // orange Schwebebrücken: 1,6× so schnell, kürzere Pausen; die mittlere ist groß. Alle drei im gleichen Takt (6,68 s), so
+    // versetzt, dass die nächste Plattform wartet, wenn die vorige ankommt (wie in der Basis, nur flinker)
+    { match: { id: 'schwebe1' }, fn: (e) => ({ ...e, speed: e.speed * 1.6, wait: 1.0, phase: 0 }) },
+    { match: { id: 'schwebe2' }, fn: (e) => ({ ...e, speed: e.speed * 1.6, wait: 1.26, phase: 3.34, size: [4.4, 1, 4.4] }) },
+    { match: { id: 'schwebe3' }, fn: (e) => ({ ...e, speed: e.speed * 1.6, wait: 0.91, phase: 6.48 }) },
     // Wachstube: Extraleben statt Stern
     { match: { id: 'raetsel2' }, fn: (e) => ({ ...e, task: { area: e.task.area, reward: { power: 'oneup' }, pos: e.task.pos } }) },
   ],
