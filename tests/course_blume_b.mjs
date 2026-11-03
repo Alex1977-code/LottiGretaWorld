@@ -345,8 +345,8 @@ ROUTES['B-8'] = {
   main: [
     { name: 'Start', to: [0, -6.4] },
     { name: 'Taktgasse: warten auf Blau', waitBeat: [2.0, 2.2] },
-    { name: 'Taktgasse (Tor offen, Brücke)', to: [0, -17.6], within: 0.5 },
-    { to: [0, -19.4], run: false, within: 0.3 },
+    { name: 'Taktgasse (Tor offen, Brücke)', to: [0, -16.2], within: 0.5 },
+    { name: 'auf Taktgasse B (fällt die Brücke, aus der harmlosen Grube)', to: [0, -18.7], jump: 12, within: 0.4, run: false, ground: true },
     { name: 'Reihe 1: warten auf Rot', waitBeat: [0.0, 0.15] },
     { name: 'Reihe 1: drei rote Streifen', to: [0, -27], within: 0.5 },
     { name: 'Reihe 1: auf dem Absatz warten auf Blau', waitBeat: [2.0, 2.15] },
@@ -757,7 +757,7 @@ function install() {
           const dist = Math.hypot(dx, dz);
           if (dist < best - 0.05) { best = dist; still = 0; } else if (p.mode === 'ground') still++;
           if (still > 45 && auto <= 0 && Lg.autoJump !== false) { auto = 26; still = 0; autoJumps++; }
-          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim')));
+          const done = dist < within && (!holdJ || Lg.land === false || (landed && (p.mode === 'ground' || p.mode === 'swim'))) && (!Lg.ground || p.mode === 'ground');
           if (done && i > 0 && !Lg.ride) break;
           let mag = Lg.slow ?? 1;
           let st;
