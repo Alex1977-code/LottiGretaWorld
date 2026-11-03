@@ -312,3 +312,35 @@ export function reiterPlattformDurchlaessig(level, ids) {
   }
   return n;
 }
+
+// =====================================================================================================================
+// B-10: Waben-Felder neu bemalen (Daten)
+// =====================================================================================================================
+
+/**
+ * Waben-Feld (Baustein waben, Daten-Eintrag mit pos, size, gap, map) Zelle für Zelle neu bemalen: fn(x, z, zeichen) → neues
+ * Zeichen ('n', 'l', 'i', 'h', ' ') oder undefined (bleibt). Die Lage folgt dem Baustein (Spalten nach +X im Abstand 2·ri + gap,
+ * ungerade Zeilen um eine halbe Spalte versetzt, Zeilen nach −Z im Abstand 1,5·R + 0,87·gap). Für die Remix-Regel change
+ * ({ match: { type: 'waben' }, fn: (seg) => wabenUmmalen(seg, …) }). → der Eintrag.
+ */
+export function wabenUmmalen(seg, fn) {
+  const R = seg.size ?? 1.6, gap = seg.gap ?? 0.06;
+  const ri = (Math.sqrt(3) / 2) * R, colW = 2 * ri + gap, rowD = 1.5 * R + gap * 0.87;
+  seg.map = seg.map.map((row, r) => {
+    let out = '';
+    for (let q = 0; q < row.length; q++) {
+      const x = seg.pos[0] + q * colW + (r % 2 ? colW / 2 : 0), z = seg.pos[2] - r * rowD;
+      const ch = fn(x, z, row[q]);
+      out += typeof ch === 'string' && ch.length === 1 ? ch : row[q];
+    }
+    return out;
+  });
+  return seg;
+}
+
+/** Zellen-Liste [[x, z, zeichen] …] als Malfunktion für wabenUmmalen (Treffer, wenn die Zellmitte näher als tol liegt). */
+export const wabenListe = (list, tol = 0.45) => (x, z, ch) => {
+  if (ch === ' ' || ch === '.') return undefined;
+  for (const [cx, cz, nch] of list) if (Math.abs(cx - x) < tol && Math.abs(cz - z) < tol) return nch;
+  return undefined;
+};

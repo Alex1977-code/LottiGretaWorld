@@ -122,6 +122,92 @@ const ROUTES = {
       ['insel', [0, SKY9, -45]],
     ],
   },
+  'B-10': {
+    base: 'S-6',
+    start: [0, 0, 0],
+    meta: { title: 'Honigwaben am Taghimmel', stars: 3, time: 400, theme: 'honeycomb@tag', music: 'course_honeycomb', variant: 'tag', archetype: 'parcours', light: 'tag' },
+    enemies: { stachelkugler: 2, brummer: 6, krabbelkaefer: 12, flatterkaefer: 6, feuer_schnappblume: 4, kampfraum: 1, checkpoint: 2 },
+    baseEnemies: { stachelkugler: 0, brummer: 4, krabbelkaefer: 12 },
+    remixChecks: [
+      { name: 'Taghimmel statt Weltraum (keine Planeten, Raketen, Kometen, Sternenstaub; Wolkenberge darunter), schwerer: mehr Lava-Waben (90 statt 67), Eis-Wurfplatz am Lavafeld, Stachelwalzen × 1,5, fliegende Blöcke × 1,35, Flatterkäfer-Runde gibt ein Extraleben statt eines Sterns',
+        ok: (r) => r.b10 && r.b10.space === 0 && r.b10.wolken >= 8 && r.b10.lava === 90 && r.b10.eisWurf && r.b10.walzen === '1.95,-1.95,2.4' && r.b10.movers === '2.43,2.43,2.16,2.16' && r.b10.runde === 'oneup' },
+    ],
+    main: [
+      { name: 'Wurfsichel aus dem ?-Block am Start', grabQ: [-2.83, -4.9], back: [-2.83, -2.5] },
+      { expect: 'sichel' },
+      { name: 'Startwabe', to: [-1.4, -12.6], within: 0.6 },
+      { name: 'linker Weg', to: [-4.3, -18.6], within: 0.6 },
+      { name: 'Stachelkugler am linken Weg (Wurfsichel)', shootR: ['sk_gabel'], dist: 4.4, gap: 40, aim: 0.06 },
+      { to: [-4.3, -32], within: 0.7 }, { to: [-1.4, -40], within: 0.7 }, { to: [-4.3, -48], within: 0.7 }, { to: [-2.8, -55], within: 0.7 },
+      { name: 'vor Walze 1', to: [0, -58.6], within: 0.5 },
+      { name: 'über Walze 1', to: [0, -66.2], jump: 30, jumpAt: 7.4, within: 0.8 },
+      { to: [0, -68.6], within: 0.5 },
+      { name: 'über Walze 2', to: [0, -76], jump: 30, jumpAt: 7.4, within: 0.8 },
+      { name: 'über Walze 3', to: [0, -83.6], jump: 30, jumpAt: 7.4, within: 0.8 },
+      { name: 'Röhren-Plattform', to: [0, -86.8], within: 0.4 },
+      { name: 'Glasröhre über den Lavasee', pipe: [0, -88.6] },
+      { expect: '=P().pos.z < -110 && P().pos.z > -127' },
+      { name: 'Kontrollpunkt Spiegelfrucht-Insel', to: [0, -120.5], within: 0.6 },
+      { name: 'Käferfeld', to: [0, -135], within: 0.7 },
+      { name: 'Stachelkugler im Käferfeld (Wurfsichel)', shootR: ['sk_feld'], dist: 4.6, gap: 40, aim: 0.06 },
+      { to: [0, -160], within: 0.7 }, { to: [0, -171], within: 0.7 },
+      { name: 'mittlerer Splitterweg', to: [0, -178.6], within: 0.5 },
+      { name: 'über die Lava-Hürde', to: [0, -184.6], jump: 30, jumpAt: 3.2, within: 0.7 },
+      { to: [0, -203], within: 0.5 },
+      { name: 'über die zweite Lava-Hürde', to: [0, -209.2], jump: 30, jumpAt: 3.2, within: 0.7 },
+      { to: [0, -221], within: 0.7 },
+      { name: 'Kontrollpunkt Wabenfläche', to: [0, -224], within: 0.6 },
+      { name: 'Wabenfläche', to: [0, -250], within: 0.7 }, { to: [2.8, -270], within: 0.6 }, { to: [2.8, -279.5], within: 0.6 },
+      { name: 'Turmsockel', to: [-5.8, -295.6], within: 0.4, run: false },
+      { name: 'flinke Treppe', steps: 'treppe' },
+      { name: 'auf den Turm', to: [2.3, -298.4], jump: 30, jumpAt: 6, within: 0.6, run: false },
+      { name: 'Zielmast', to: [0, -298], within: 0.2, run: false },
+    ],
+    routeChecks: [
+      { name: 'Glasröhre gefahren, beide Stachelkugler mit der Wurfsichel besiegt, über die Lava-Hürden gesprungen', ok: (r) => r.mech.pipes >= 1 && r.mech.stomped.includes('sk_gabel') && r.mech.stomped.includes('sk_feld') },
+    ],
+    targets: [
+      { name: 'Stern 0: auf den Schwebeblock nahe dem Start springen und die Wurfsichel hinaus ins All werfen', star: 0, from: [-5.2, 0, -4.2], place: { power: 'sichel' },
+        legs: [{ to: [-6.6, -4.2], within: 0.3, run: false }, { name: 'auf den Schwebeblock', to: [-10.6, -4.2], jump: 24, jumpAt: 2.6, within: 0.4, run: false },
+          { to: [-11.2, -4.2], within: 0.2, run: false, slow: 0.4 }, { sichelAt: [-17.4, -4.2] }, { expect: '=P().mode === "ground" && P().pos.y > 1.2' }], shot: 'stern0' },
+      { name: 'Stern 0 nicht vom Waben-Rand aus (die Sichel fliegt zu tief)', star: 0, expectNot: true, from: [-6.4, 0, -4.2], heroes: ['lotti'], place: { power: 'sichel', yaw: PI },
+        legs: [{ sichelAt: [-17.4, -4.2] }] },
+      { name: 'Stern 1: von der Röhren-Plattform auf die Glasröhre klettern, oben über den Lavasee balancieren, am Scheitel hochspringen', star: 1, from: [2.8, 0, -88.4],
+        legs: [{ to: [2.8, -90.8], within: 0.3, run: false }, { name: 'auf die Röhre', to: [0, -92.2], jump: 30, jumpAt: 3, within: 0.4, run: false },
+          { expect: '=P().mode === "ground" && P().ground?.tag === "glasspipe"' }, { to: [0, -100.2], within: 0.3, run: false, slow: 0.6 }, { hop: 30 },
+          { to: [0, -109.4], within: 0.4, run: false, slow: 0.6 }, { to: [0, -113.8], within: 0.6, run: false }, { expect: '=P().pos.z < -110 && !P().dead' }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne die Röhre (Sprung von der Plattform)', star: 1, expectNot: true, from: [0, 0, -90.8], heroes: ['lotti'], invuln: false,
+        legs: [{ hop: 40 }, { wait: 60 }] },
+      { name: 'Stern 2: Wurfsichel (Kontrollpunkt-Block), von der Eiswabe am rechten Rand des Lavafelds hinüberwerfen', star: 2, from: [0, 0, -224],
+        legs: [{ grabQ: [2.83, -226.3], back: [2.83, -223.9] }, { to: [1.2, -262.4], within: 0.3, run: false }, { to: [-1.2, -262.4], within: 0.25, run: false, slow: 0.35 }, { wait: 60 },
+          { expect: '=P().ground?.tag === "wabe-eis"' }, { sichelAt: [-7.07, -262.39] }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Wurfsichel von der Eiswabe aus', star: 2, expectNot: true, from: [-1.2, 0, -262.4], heroes: ['lotti'], place: { yaw: PI },
+        legs: [{ wait: 120 }, { action: 4 }, { wait: 60 }] },
+    ],
+    extra: [
+      { name: 'Stachelkugler: Draufspringen verletzt (nur Sichel oder drüberspringen)', from: [-4.3, 0, -18.6], heroes: ['lotti'], invuln: false,
+        legs: [{ stompAll: ['sk_gabel'], max: 400, partial: true }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Lava-Hürde auf dem mittleren Splitterweg: Hineinlaufen verletzt', from: [0, 0, -178.4], heroes: ['lotti'], invuln: false,
+        legs: [{ to: [0, -181.5], within: 0.3, run: false, max: 200, partial: true }, { wait: 40 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Flatterkäfer-Runde im Käferfeld: alle besiegt → Extraleben', from: [0, 0, -137], heroes: ['lotti'], expectLives: 1,
+        legs: [{ stompAll: 'fk_' }, { wait: 60 }, { chaseKind: 'powerup', max: 900 }] },
+      { name: 'Wurfsichel aus dem ?-Block am Start', from: [-2.83, 0, -2.5], heroes: ['lotti'],
+        legs: [{ grabQ: [-2.83, -4.9], back: [-2.83, -2.5] }, { expect: 'sichel' }] },
+    ],
+    shots: [
+      ['start', [0, 0, 0]],
+      ['schwebeblock', [-10.2, 1.3, -4.2]],
+      ['gabel', [-1.4, 0, -14]],
+      ['walzen', [0, 0, -70]],
+      ['roehre', [0, 0, -87]],
+      ['roehre_oben', [0, 3.3, -99]],
+      ['kaefer', [0, 0, -140]],
+      ['splitter', [0, 0, -180]],
+      ['flaeche', [0, 0, -240]],
+      ['lavafeld', [-1.2, 0, -262.4]],
+      ['turm', [0, 0, -288]],
+    ],
+  },
 };
 
 
@@ -722,6 +808,68 @@ function install() {
           log.push(['abprall', Lg.bounce, bounced, +apex.toFixed(2), k, e?.count]);
           continue;
         }
+        // ------------------------------------------------ Wurfsichel auf einen Punkt werfen (zum Ziel drehen, Aktion), Rückkehr abwarten (wie course_sc)
+        if (Lg.sichelAt) {
+          const [tx, tz] = Lg.sichelAt;
+          let k = 0;
+          for (; k < 200 && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            const fv = p.facingVec(), dot = (fv.x * dx + fv.z * dz) / (d || 1);
+            if (dot > 0.995) break;
+            tick({ ...this.stick(dx, dz, 0.12), run: false });
+          }
+          tick({ action: true }); tick({});
+          mech.throws++;
+          for (let n = 0; n < (Lg.wait ?? 240); n++) tick({});
+          log.push(['sichel', `${Lg.sichelAt}`, k, p.power, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ Power-up aus einem ?-Block holen: darunter hüpfen, zurücktreten, auf den Block springen (wie course_sc)
+        if (Lg.grabQ) {
+          const [bx, bz] = Lg.grabQ;
+          const back = Lg.back ?? [bx, bz + 2.2];
+          const goTo = (x, z, r = 0.2) => { for (let n = 0; n < 400 && !p.dead; n++) { const dx = x - p.pos.x, dz = z - p.pos.z, d = Math.hypot(dx, dz); if (d < r && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.25, d / 1.2))), run: false }); } };
+          const pw0 = p.power;
+          goTo(bx, bz);
+          for (let k = 0; k < 90 && p.hSpeed() > 0.2; k++) tick({});
+          for (let k = 0; k < 20; k++) tick({ jump: true });
+          for (let k = 0; k < 240 && p.mode !== 'ground'; k++) tick({});
+          for (let k = 0; k < 60; k++) tick({});
+          let tries = 0;
+          for (; tries < 4 && p.power === pw0 && !p.dead; tries++) {
+            goTo(back[0], back[1]);
+            for (let k = 0; k < 40; k++) tick({});
+            for (let k = 0; k < 240 && !p.dead; k++) {
+              const dx = bx - p.pos.x, dz = bz - p.pos.z;
+              if (k > 10 && p.mode === 'ground') break;
+              tick({ ...(p.mode === 'air' ? this.airSteer(bx, bz, 0, 0, 3, 4) : this.stick(dx, dz, 0.5)), jump: k < 40, run: false });
+            }
+            for (let k = 0; k < 30; k++) tick({});
+          }
+          log.push(['power', Lg.grabQ.join(','), p.power, tries]);
+          if (p.power === pw0) log.push(['FEHLER: Power-up nicht geholt', Lg.grabQ]);
+          goTo(back[0], back[1], 0.4);
+          continue;
+        }
+        // ------------------------------------------------ flinke Treppe (S-6): Stufe für Stufe hinaufspringen, solange sie da sind (wie course_sc)
+        if (Lg.steps) {
+          const h = L.named.get(Lg.steps);
+          for (let i = 0; i < h.steps.length && !p.dead; i++) {
+            const st = h.steps[i];
+            for (let w = 0; w < 600 && !st.up && !p.dead; w++) tick({});
+            let n = 0, air = false;
+            for (; n < 300 && !p.dead; n++) {
+              const dx = st.x - p.pos.x, dz = st.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (air && p.mode === 'ground') break;
+              if (p.mode === 'air') { air = true; tick({ ...(p.pos.y > st.y + 0.1 || p.vel.y < 0 ? this.airSteer(st.x, st.z, 0, 0, 4, 6) : this.airSteer(p.pos.x + dx * 0.25, p.pos.z + dz * 0.25, 0, 0, 2, 3)), jump: p.vel.y > 0 }); continue; }
+              tick({ ...this.stick(dx, dz, Math.min(1, d / 1.5)), jump: true, run: false });
+            }
+            for (let w = 0; w < 6; w++) tick({});
+            log.push(['stufe', i, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.ground?.tag ?? '']);
+            if (Math.abs(p.pos.y - st.y) > 0.15) { log.push(['FEHLER: Stufe verfehlt', i]); break; }
+          }
+          continue;
+        }
         // ------------------------------------------------ Restzeit setzen (Zeitablauf prüfen)
         if (Lg.setTime !== undefined) { L.runtime.timeLeft = Lg.setTime; log.push(['Restzeit', Lg.setTime]); continue; }
         if (Lg.mark) { window.__mark = { time: L.runtime.timeLeft, coins: L.runtime.coins, ...(typeof Lg.mark === 'object' ? Lg.mark : {}) }; continue; }
@@ -832,6 +980,15 @@ function install() {
         kinds: this.kinds(), remix: d.remix ?? null, theme: d.theme, light: c.view.theme.light ?? null, music: d.music, variant: d.musicVariant ?? null,
         call: calls.filter((x) => x[0] === d.music).slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
         stamp: !!d.stamp, stars: (d.stars ?? []).length, world: d.world, title: d.title, timeLimit: d.timeLimit, rtLimit: L.runtime.timeLimit,
+        b10: d.id === 'B-10' ? {
+          space: (d.segments ?? []).filter((q) => q.type === 'deco_star').reduce((a, q) => a + (q.items ?? []).filter((i) => ['planet', 'rakete', 'komet', 'sterne'].includes(i.kind)).length, 0),
+          wolken: (d.segments ?? []).filter((q) => q.type === 'deco_w6').reduce((a, q) => a + (q.items ?? []).filter((i) => i.kind === 'wolkenberg').length, 0),
+          lava: (L.star?.combs ?? []).reduce((a, h) => a + (h.cells ?? []).filter((c) => c.type === 'lava').length, 0),
+          eisWurf: (L.star?.combs ?? []).some((h) => (h.cells ?? []).some((c) => c.type === 'eis' && Math.abs(c.x + 1.41) < 0.2 && Math.abs(c.z + 262.39) < 0.2)),
+          walzen: ['walze1', 'walze2', 'walze3'].map((id) => +named(id)?.speed?.toFixed(2)).join(','),
+          movers: ['flug1', 'flug2', 'flug3', 'flug4'].map((id) => +(d.segments.find((q) => q.id === id)?.speed ?? 0).toFixed(2)).join(','),
+          runde: d.items.find((i) => i.id === 'kaeferrunde')?.onClear?.power ?? null,
+        } : null,
         b9: d.id === 'B-9' ? {
           towers: L.entities.filter((e) => e.kind === 'pilzlingsturm' && !e.removed && e.rider).map((e) => `${e.spec.id}:${e.max}+${e.rider.kind}`).join(','),
           sleeper: (() => { const e = ent('schlafturm'); return e ? { count: e.count, state: e.state, wake: e.spec.wake } : null; })(),
