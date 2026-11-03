@@ -20,7 +20,7 @@
 
 import { remixOf } from '../../level/remix.js';
 import { LEVEL as BASIS } from '../w3/3-5.js';
-import { felsen } from '../w3/_helpers_d.js';
+import { felsen, instanceEnemies } from '../w3/_helpers_d.js';
 
 const Y = 1;           // Land
 const ROCK = { color: 0xc8a882, dark: 0x7a6250, top: 0xb8d870 };
@@ -101,6 +101,11 @@ export const LEVEL = remixOf('3-5', {
   // Felsnischen, Kanzel und Grotte im Fels der Basis
   build(level) {
     felsen(level, [...NISCHE1, ...KANZEL, ...GROTTE], ROCK);
+  },
+  // Budget: neue Gegner wie die Fische der Basis als Instanzen, unter Wasser ohne Sonnenschatten; ferne Felsblöcke,
+  // Sternring und Helme nicht zeichnen
+  setup(level) {
+    instanceEnemies(level, ['tintling', 'rammfisch', 'felsblock', 'starring', 'helm_kanone'], { far: 34, noShadow: ['tintling', 'rammfisch'] });
   },
   marks: {
     start: [0, Y, 8], riff: [0, Y, -32], tief: [0, 0, -40], nische1: [9.8, -8, -88], flut: [0, -4, -100], bucht: [0, Y, -132],
