@@ -525,6 +525,142 @@ const ROUTES = {
       ['ziel', [0, GOAL_B3, -256]],
     ],
   },
+  // ================================================================================================ B-4 (Basis 7-1)
+  'B-4': {
+    base: '7-1',
+    start: [0, Y, 5],
+    meta: { stars: 3, time: 30, theme: 'bluelava', music: 'course_fortfire', variant: 'schnell', archetype: 'parcours', title: 'Uhrenhatz durch die Werferburg' },
+    enemies: { feuer_werfer: 6, lavablase: 22, pilzlingsturm: 3, werferturm: 1, stampfstein: 3, marschblock: 12 },
+    baseEnemies: { feuer_werfer: 6, lavablase: 22, pilzlingsturm: 3, werferturm: 1, stampfstein: 3, marschblock: 12, stamp: 1 },
+    main: [
+      { name: 'Uhr am Start', to: [0, -1], within: 0.5 },
+      { name: 'Uhr am Burghof', to: [-3.5, -8], within: 0.6 },
+      { to: [-3.5, -12.5], within: 0.5 },
+      { name: 'H-Röhre (geradeaus)', pipe: [-3.5, -15.6] },
+      { expect: 'hof' },
+      { name: 'Uhr im Werfer-Hof', to: [0, -37], within: 0.6 },
+      { to: [0, -40.8], within: 0.5 },
+      { name: 'Röhrengabel (Weiche rechts)', pipe: [0, -43.2] },
+      { expect: 'insel' },
+      { name: 'Uhr auf der Werfer-Insel', to: [7, -64.5], within: 0.6 },
+      { to: [7, -67.6], within: 0.5 },
+      { name: 'Röhrenstern zur Hubinsel', pipe: [7, -69.2] },
+      { expect: 'hub' },
+      { name: 'Uhr auf der Hubinsel', to: [0, -84.4], within: 0.6 },
+      { to: [0, -91], within: 0.5 },
+      { to: [0, -97.4], within: 0.4, run: false },
+      { name: 'Feuerstab 1 (Uhr)', to: [-3.8, -97.8], within: 0.4, run: false },
+      { to: [-3.8, -105.4], within: 0.4, run: false },
+      { to: [0, -106.6], within: 0.4, run: false },
+      { to: [0, -110.4], within: 0.4, run: false },
+      { name: 'Feuerstab 2 (Uhr)', to: [-3.8, -110.8], within: 0.4, run: false },
+      { to: [-3.8, -118.4], within: 0.4, run: false },
+      { to: [0, -118.6], within: 0.4, run: false },
+      { name: 'Trittstein', to: [0, -121.6], jump: 20, within: 0.6, run: false },
+      { name: 'Werferturm-Platz', to: [0, -125.6], jump: 20, within: 0.6, run: false },
+      { expect: 'turmplatz' },
+      { name: 'Uhr am Werferturm', to: [0, -129], within: 0.6 },
+      { name: 'Werfer auf dem Pilzlingsturm', stompAll: 'werfer4' },
+      { until: 'warpOffen', max: 300 },
+      { name: 'Warp-Box über den Glutsee', warp: [0, -138.2] },
+      { expect: 'cp' },
+      { name: 'Uhr am Kontrollpunkt', to: [1.8, -160], within: 0.6 },
+      { name: 'Kontrollpunkt', to: [0, -161.5], within: 0.6 },
+      { name: 'Pilzlingsturm im Gang', stompAll: 'turm3' },
+      { to: [2.6, -168.5], within: 0.5 },
+      { name: 'an Stampfstein 1 vorbei (Uhr)', to: [2.6, -177.6], within: 0.5 },
+      { name: 'Marschblöcke 1', stompAll: 'marsch1' },
+      { to: [-2.6, -184.5], within: 0.5 },
+      { name: 'an Stampfstein 2 vorbei (Uhr)', to: [-2.6, -189.6], within: 0.5 },
+      { name: 'Marschblöcke 2', stompAll: 'marsch2' },
+      { to: [3, -196], within: 0.5 },
+      { name: 'an Stampfstein 3 vorbei (Uhr)', to: [3, -201.4], within: 0.5 },
+      { name: 'Marschblöcke 3', stompAll: 'marsch3' },
+      { name: 'Feuer-Werfer 5', stompAll: 'werfer5' },
+      { to: [0, -213], within: 0.6 },
+      { name: 'Uhr am Torplatz', to: [0, -215], within: 0.6 },
+      { name: 'letzter Feuer-Werfer', stompAll: 'werfer6' },
+      { until: 'torOffen', max: 600 },
+      { name: 'Zugbrücke', to: [0, -229], within: 0.6 },
+      { expect: 'zielinsel' },
+      { name: 'Zielmast', to: [0, -240.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'Ziel vor Ablauf der Zeit (nur mit Zeit-Uhren), kein Zeit-Tod, alle 13 Uhren der Ideallinie', ok: (r) => !r.mech.died && r.mech.uhren >= 13 && r.mech.minTime > 0,
+        text: (r) => `Uhren ${r.mech.uhren}, knappste Restzeit ${r.mech.minTime?.toFixed(1)} s, Spielzeit ${r.time.toFixed(1)} s` },
+    ],
+    targets: [
+      { name: 'Stern 2: oben auf dem Dreier-Pilzlingsturm im Burghof (alle drei Pilzlinge abtragen)', star: 2, from: [0, Y, 5],
+        legs: [{ stompAll: 'turm1' }, { star: 2 }], shot: 'stern2', mech: (r) => r.mech.stomped.includes('turm1'), mechText: (r) => `besiegt ${r.mech.stomped.join(' ')}` },
+      { name: 'Stern 1: beleuchtete Bodenstelle auf der Hubinsel mit der Stampfattacke öffnen', star: 1, from: [2.0, Y, -86.6],
+        legs: [{ pound: [4.6, -89.4] }, { until: '=starVisible(1)', max: 240 }, { star: 1 }], shot: 'stern1', mech: (r) => r.mech.fleck, mechText: (r) => `Bodenstelle offen ${r.mech.fleck}` },
+      { name: 'Stern 1 nicht ohne Stampfen (darauf laufen und springen)', star: 1, expectNot: true, from: [2.0, Y, -86.6], heroes: ['lotti'],
+        legs: [{ to: [4.6, -89.4], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { hop: 30 }, { wait: 60 }], mech: (r) => !r.mech.fleck },
+      { name: 'Stern 0: Stampfstein 1 hochfahren (auf den gefallenen Stein springen, mitfahren), links auf den Mauer-Erker', star: 0, from: [-1.8, Y, -170.4],
+        legs: [{ to: [-1.8, -173.5], within: 0.2, run: false }, { until: '=ent(\'stampf1\').state === \'land\'', max: 400 }, { wait: 10 },
+          { to: [-1.8, -175.5], y: 2.9, jump: 30, jumpAt: 2.5, within: 0.4, run: false }, { until: '=ent(\'stampf1\').state === \'wait\' && P().pos.y > 7', max: 900 },
+          { to: [-3.8, -175.5], y: 9.1, jump: 50, jumpAt: 3, within: 0.5, run: false }, { wait: 30 }],
+        shot: 'stern0', mech: (r) => r.mech.maxY > 9, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
+      { name: 'Stern 0 nicht vom Gang aus (Sprünge unter dem Erker)', star: 0, expectNot: true, from: [-3.0, Y, -172.6], heroes: ['lotti', 'greta'],
+        legs: [{ to: [-3.4, -175.5], jump: 60, jumpAt: 4, within: 0.4, max: 200, autoJump: false }, { wait: 30 }, { hop: 60 }, { wait: 60 }] },
+      { name: 'Stern 0 nicht von der Zinnenmauer (voller Sprung zum Erker)', star: 0, expectNot: true, from: [-4.15, Y + 3.3, -172.4], heroes: ['lotti', 'greta'], allowFail: true,
+        legs: [{ to: [-4.0, -175.0], jump: 70, jumpAt: 4, within: 0.4, max: 200, autoJump: false }, { wait: 60 }], mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
+    ],
+    extra: [
+      { name: 'Geheimnis: zwei unsichtbare längliche ?-Blöcke links vom ersten Stampfstein (von unten anstoßen → Münzen)', from: [-2.6, Y, -169.8], heroes: ['lotti'], expectCoins: 10,
+        legs: [{ to: [-2.6, -171.6], within: 0.2, run: false }, { hop: 30 }, { wait: 40 }, { expect: '=ent(\'b4_geheim1\').shown' }, { chaseKind: 'coin', max: 300 },
+          { to: [-3.4, -179.4], within: 0.2, run: false }, { hop: 30 }, { wait: 40 }, { expect: '=ent(\'b4_geheim2\').shown' }, { chaseKind: 'coin', max: 300 }],
+        mech: (r) => r.log.filter((l) => l[0] === 'erwartet' && l[2]).length === 2 },
+      { name: 'Ohne Uhren läuft die Zeit ab (30 s am Start)', from: [0, Y, 5], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+        legs: [{ wait: 120 * 31 }], mech: (r) => r.mech.died && r.mech.deathCause === 'time', mechText: (r) => `Tod ${r.mech.deathCause}` },
+      { name: 'Neustart am Kontrollpunkt mit 30 s; eingesammelte Uhren bleiben weg, dahinter liegen noch vier', from: [1.8, Y, -158.8], heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ to: [1.8, -160], within: 0.4 }, { expect: '=ent(\'b4_uhren\').info().got === 1' }, { to: [0, -161.5], within: 0.5 }, { wait: 30 }, { die: 'fall' },
+          { expect: '=L.runtime.timeLeft > 29 && L.runtime.timeLeft <= 30 && !P().dead' }, { expect: '=ent(\'b4_uhren\').items.filter((u) => !u.taken && u.z < -161).length === 4' }],
+        mech: (r) => r.log.filter((l) => l[0] === 'erwartet' && l[2]).length === 3 },
+      { name: 'Zugbrücke bleibt oben, solange der letzte Werfer steht', from: [0, Y, -215], heroes: ['lotti'],
+        legs: [{ to: [0, -219.2], within: 0.4, run: false, max: 400 }, { hop: 40 }, { wait: 30 }],
+        mech: (r) => r.pos[2] > -221 && !r.dead, mechText: (r) => `z ${r.pos[2].toFixed(1)}` },
+    ],
+    rules: [
+      { name: 'Zeit: 30 s am Start (Basis 400 s), jede Zeit-Uhr +10 s, 16 Uhren; Musik-Variante schnell; kein Sternenring und kein Geheimgang der Basis',
+        fn: () => {
+          const c = window.__course, L = c.level, W = window.__ba, base = window.__courseLevels.raw('7-1');
+          const U = L.named.get('b4_uhren');
+          W.place([0, 1, 1.4], { settle: 2 });
+          const t0 = L.runtime.timeLeft;
+          const u = U.items[0];
+          W.place([u.x, u.y - 1, u.z], { settle: 2 });
+          const t1 = L.runtime.timeLeft;
+          return { limit: L.runtime.timeLimit, t0: +t0.toFixed(2), gain: +(t1 - t0).toFixed(2), n: U.items.length, sec: U.sec, got: U.info().got, variant: L.data.musicVariant,
+            ring: !!L.named.get('sternring'), chain: !!L.named.get('geheim'), pipe: !!L.named.get('saal_hin'), baseTime: base.timeLimit, baseRing: base.items.some((i) => i.kind === 'sternring') };
+        },
+        ok: (r) => r.limit === 30 && r.n === 16 && r.sec === 10 && r.got === 1 && r.gain > 9.5 && r.gain < 10.1 && r.variant === 'schnell' && !r.ring && !r.chain && !r.pipe && r.baseTime === 400 && r.baseRing,
+        text: (r) => JSON.stringify(r) },
+      { name: 'Sterne an neuen Stellen: Pilzlingsturm trägt Stern 2, Erker über Stampfstein 1, Bodenstelle verschlossen; Gegenprobe Basis (Stern im Rohr, Kugelsaal, Sternenring)',
+        fn: () => {
+          const L = window.__course.level, base = window.__courseLevels.raw('7-1');
+          const t = L.entities.find((e) => e.kind === 'pilzlingsturm' && e.spec?.id === 'turm1');
+          return { carry: t?.carry?.star, stars: L.data.stars.map((s) => (Array.isArray(s) ? s : s.pos).map((v) => +v.toFixed(1))), fleck: L.named.get('b4_fleck')?.open, base: base.stars.map((s) => (Array.isArray(s) ? s : s.pos).map((v) => +v.toFixed(1))) };
+        },
+        ok: (r) => r.carry === 2 && r.stars.length === 2 && r.fleck === false && r.stars.every((s) => r.base.every((b) => Math.hypot(b[0] - s[0], b[2] - s[2]) > 5)),
+        text: (r) => JSON.stringify(r) },
+    ],
+    shots: [
+      ['start', [0, Y, 5]],
+      ['burghof', [1.5, Y, -4]],
+      ['hof', [0, Y, -36]],
+      ['insel', [7, Y, -63]],
+      ['hub', [2, Y, -86]],
+      ['stab1', [0, Y, -95]],
+      ['turm', [0, Y, -127]],
+      ['cp', [0, Y, -159]],
+      ['gang', [0, Y, -170]],
+      ['stampfstein', [-1.8, Y + 6.4, -175.5], 2],
+      ['marsch', [0, Y, -190]],
+      ['tor', [0, Y, -214]],
+      ['ziel', [0, Y, -232]],
+    ],
+  },
 };
 
 const PORT = 5005;
@@ -599,6 +735,15 @@ function install() {
     ringAn2: () => ent('b2_ring')?.state === 'active',
     stern2da: () => starVisible(2),
     // B-3 (wie course_w4a)
+    // B-4 (wie course_w7a)
+    hof: () => at(-9, 9, 0.5, -31.5, -44),
+    insel: () => at(-11, 11, 0.5, -59.5, -70),
+    hub: () => at(-9, 9, 0.5, -79.8, -92),
+    turmplatz: () => at(-8, 8, 0.5, -124, -140),
+    cp: () => at(-8, 8, 0.5, -156, -166),
+    zielinsel: () => at(-9, 9, 0.5, -228.4, -248),
+    warpOffen: () => !L.named.get('warp_cp')?.hidden,
+    torOffen: () => L.named.get('tor')?.state === 'unten',
     grossDa: () => { const e = L.named.get('rs_gross'); return !!e && !e.defeated && e.grow > 0.98 && e.state !== 'hit'; },
     grossWeg: () => { const e = L.named.get('rs_gross'); return !e || e.defeated || e.grow < 0.2; },
     stern0da: () => starVisible(0),
@@ -670,7 +815,7 @@ function install() {
       const hold = o.invuln !== false;
       const hist = [];
       let deadLogged = false;
-      const mech = { hurts: 0, pipes: 0, warps: 0, rides: 0, bounces: 0, waits: 0, stomped: [], hurtList: [], scrollDone: false, maxY: -99, hammers: 0, swims: 0, gate: false, hordeStart: null, hordeGap: 99, climbs: 0, walls: 0 };
+      const mech = { hurts: 0, pipes: 0, warps: 0, rides: 0, bounces: 0, waits: 0, stomped: [], hurtList: [], scrollDone: false, maxY: -99, hammers: 0, swims: 0, gate: false, hordeStart: null, hordeGap: 99, climbs: 0, walls: 0, minTime: 999 };
       const RUN = o.run ?? true, VMAX = o.vmax ?? 11;
       const waters = new Set();
       const horde = L.data.id === 'B-2' ? L.named.get('horde_galerie') : null;
@@ -691,6 +836,7 @@ function install() {
         if (p.mode === 'swim') { mech.swims++; if (p.water) waters.add(p.water.waterId ?? p.water.tag ?? '?'); }
         if (p.mode === 'wall') { mech.walls++; if (p.state === 'climb') mech.climbs++; }
         if (L.named.get('grubentor')?.open) mech.gate = true;
+        if (L.runtime.status === 'play') mech.minTime = Math.min(mech.minTime, L.runtime.timeLeft);
         if (horde) {
           if (hordeSt === 'wait' && horde.state !== 'wait') mech.hordeStart = p.pos.z;
           hordeSt = horde.state;
@@ -1230,6 +1376,8 @@ function install() {
       mech.waters = [...waters];
       mech.ziegel = L.named.get('b2_ziegel')?.broken ?? 0;
       mech.fackeln = L.named.get('fackeln')?.info?.() ?? null;
+      mech.uhren = L.named.get('b4_uhren')?.info?.().got ?? 0;
+      mech.fleck = L.named.get('b4_fleck')?.open ?? false;
       mech.ringLeft = L.entities.filter((e) => e.kind === 'sternmuenze' && e.alive && !e.removed).map((e) => [+e.pos.x.toFixed(1), +e.pos.y.toFixed(1), +e.pos.z.toFixed(1)]);
       return { log, autoJumps, steps, time: steps / 120, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, deathCause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
