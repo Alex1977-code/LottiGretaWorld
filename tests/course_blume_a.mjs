@@ -457,7 +457,7 @@ const ROUTES = {
             if (y0 === undefined || sh.x0 === undefined) continue;
             if (sh.x1 > -7 && sh.x0 < 10.5 && sh.z1 > -100 && sh.z0 < -58) seen++;
             const tag = String(sh.tag ?? sh.owner?.kind ?? '?');
-            if (/fackel|wolkenlift|ranken/.test(tag) || sh.owner?.kind === 'rankenschnapper') continue;
+            if (/fackel|wolkenlift|ranken|schluchtwand/.test(tag) || sh.owner?.kind === 'rankenschnapper') continue;   // (Wandverkleidung ohne Wandrutschen ist keine Decke)
             if (sh.x1 > -7 && sh.x0 < 10.5 && sh.z1 > -100 && sh.z0 < -58 && y0 > 4 && sh.solid !== false && !sh.water && !sh.kill) up.push(tag);
           }
           const inG = (q) => q.pos[0] > -8 && q.pos[0] < 11 && q.pos[2] < -58 && q.pos[2] > -100;
