@@ -326,6 +326,7 @@ ROUTES['B-7'] = {
 // rot fest bei Zählzeit 0–2 mod 4, blau bei 2–4), Stufen rot/blau im Wechsel – Sprung 0,6 Zählzeiten vor dem Erscheinen der
 // nächsten Farbe (in der Luft beim Wechsel)
 const RED_JUMP = [3.25, 3.45], BLUE_JUMP = [1.25, 1.45];
+const YU8 = 24;
 /** Treppe: Stufen ab first (Farbe rot zuerst), Schritt d (dx, dz), n Stufen, danach ein fester Absatz bei end. */
 function stairLegs(name, first, d, n, end) {
   const out = [];
@@ -401,8 +402,32 @@ ROUTES['B-8'] = {
   routeChecks: [
     { name: 'Laserzaun mit einem Druckfeld geöffnet, Warp-Boxen benutzt', ok: (r) => r.mech.rides >= 2 },
   ],
-  targets: [],
-  extra: [],
+  targets: [
+    { name: 'Stern 0: Ende Bereich 1 – ?-Block (Gleitblatt) auf der Warp-Insel anstoßen, hinauf, Stern darüber', star: 0, from: [5, 1, -117.4],
+      legs: [{ to: [5, -120], within: 0.15, run: false, slow: 0.5 }, { hop: 30 }, { wait: 40 }, { expect: '=L.entities.some((e) => e.kind === \'powerup\' && e.power === \'gleitblatt\' && Math.hypot(e.pos.x - 5, e.pos.z + 120) < 3)' },
+        { to: [5, -117.6], within: 0.2, run: false }, { name: 'auf den ?-Block', to: [5, -120], jump: 40, jumpAt: 1.9, within: 0.3, run: false, airMax: 3 }, { expect: '=P().pos.y > 3.9' }, { hop: 40 }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht vom Boden aus (zu hoch)', star: 0, expectNot: true, from: [5, 1, -121.4], heroes: ['lotti'],
+      legs: [{ hop: 40 }, { to: [5, -120.6], jump: 40, within: 0.3, run: false, max: 200 }, { wait: 40 }] },
+    { name: 'Stern 1: Sternring am Checkpoint, acht Sternmünzen auf dem Plateau in 14 s', star: 1, from: [3, 31, -183.4],
+      legs: [{ to: [3, -186.5], within: 0.4, run: false }, { until: '=ent(\'sternring\')?.state === \'active\'', max: 200 }, { name: 'Sternmünzen', coins: 'starcoin', max: 2400 }, { wait: 20 }, { star: 1 }], shot: 'stern1',
+      mech: (r) => r.time < 60, mechText: (r) => `${r.time.toFixed(1)} s` },
+    { name: 'Stern 1 nicht ohne Sternring (Stern bleibt versteckt)', star: 1, expectNot: true, from: [6, 31, -182], heroes: ['lotti'],
+      legs: [{ to: [3, -190.5], run: false, within: 0.4 }, { wait: 120 }] },
+    { name: 'Stern 2: mitten auf der Piep-Block-Rutsche (rot/blau gestreift) hinabrutschen', star: 2, from: [0, YU8, -236],
+      legs: [{ to: [0, -237.8], run: false, within: 0.3 }, { name: 'im Takt losrutschen', waitBeat: [2.0, 2.15] }, { name: 'Rutsche', to: [0, -256], within: 1, max: 900 }, { wait: 20 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht vom Rutschenfuß aus (zu hoch)', star: 2, expectNot: true, from: [0, 11, -255.6], heroes: ['lotti'],
+      legs: [{ to: [0, -253], jump: 40, within: 0.3, max: 240, land: false }, { wait: 60 }] },
+  ],
+  extra: [
+    { name: 'Takt 4× schneller ohne Warnung: Reihe 1 wechselt alle 2 Zählzeiten (≈ 0,94 s), kein Blinken', from: [0, 1, -12], heroes: ['lotti'], probe: 'b8takt' },
+    { name: 'Gleitblatt: über die blauen Streifen von Reihe 1 gleiten, während sie fehlen', from: [0, 1, -27], heroes: ['lotti', 'greta'], place: { power: 'gleitblatt' },
+      legs: [{ waitBeat: [0.1, 0.3] }, { name: 'Gleitflug zur Insel 1', to: [0, -36.5], jump: 90, jumpAt: 9.6, within: 0.8 }], mech: (r) => r.pos[1] > 0.9 && r.pos[2] < -34, mechText: (r) => `z ${r.pos[2].toFixed(1)}` },
+    { name: 'Spiegelfrucht-Automaten geben jetzt Gleitblätter', from: [-3, 1, -86], heroes: ['lotti'], probe: 'b8automat' },
+    { name: 'Laserzaun: ein Druckfeld allein öffnet ihn (keine Klone mehr nötig)', from: [-1.1, 1, -86], heroes: ['lotti'],
+      legs: [{ to: [-1.1, -88.5], run: false, within: 0.2 }, { wait: 60 }, { expect: '=ent(\'laser\').opened' }, { to: [0, -93.2], run: false, within: 0.3 }] },
+    { name: 'Stachelboden verletzt (Inselrand)', from: [-1.5, 1, -39], heroes: ['lotti'], invuln: false, allowFail: true,
+      legs: [{ to: [-4.8, -39], run: false, within: 0.3, max: 200, ground: true }, { wait: 60 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+  ],
   shots: [
     ['start', [0, 1, 5]],
     ['reihe1', [0, 1, -18.5]],
@@ -702,6 +727,19 @@ function install() {
           if (alive().length) log.push(['FEHLER: Münzen übrig', alive().length]);
           continue;
         }
+        // ------------------------------------------------ senkrecht hochspringen, erst über der Oberkante top zum Ziel lenken (z. B. auf einen ?-Block)
+        if (Lg.climbOnto) {
+          const [cx, cz, top] = Lg.climbOnto;
+          let k = 0, left = false;
+          for (; k < 300; k++) {
+            const above = p.pos.y > top + 0.15;
+            tick({ ...(p.mode === 'air' && above ? this.airSteer(cx, cz, 0, 0, 3.5, 6) : {}), jump: k < 40, run: false });
+            if (p.mode === 'air') left = true;
+            if (left && p.mode === 'ground') break;
+          }
+          log.push(['hinauf', +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2), p.mode]);
+          continue;
+        }
         // ------------------------------------------------ genau ausrichten (Kanonen-Helm: die Kugel fliegt in Blickrichtung)
         if (Lg.face) {
           for (let i = 0; i < 240; i++) { const fv = p.facingVec(), l = Math.hypot(Lg.face[0], Lg.face[1]); if ((fv.x * Lg.face[0] + fv.z * Lg.face[1]) / l > 0.9995 && i >= 4) break; tick({ ...this.stick(Lg.face[0], Lg.face[1], Lg.mag ?? 0.16), run: false }); }
@@ -977,8 +1015,65 @@ RULES['B-7'] = async () => {
     && r.baseHelme === 1 && r.baseFels === 0 && r.baseTint === 0 && r.baseStar0[0] === -6.2);
 };
 
+RULES['B-8'] = async () => {
+  const r = await sc(() => {
+    const c = window.__course, L = c.level, CL = window.__courseLevels;
+    const base = CL.get('4-3'), raw = CL.raw('B-8');
+    const calls = window.__audio?.music?.__calls ?? [];
+    const ents = (k) => L.entities.filter((e) => e.kind === k && !e.removed);
+    const groups = [...(L.piep?.groups?.values() ?? [])].map((g) => [g.color, g.every, g.warn]);
+    const segs = (t) => L.data.segments.filter((x) => x.type === t);
+    return {
+      stub: CL.isRemix(raw) && raw.remix.base === '4-3' && !raw.segments, title: L.data.title, theme: L.data.theme, music: L.data.music, variant: L.data.musicVariant,
+      call: calls.filter((x) => x[0] === 'course_beep').slice(-1)[0] ?? null, limit: L.runtime.timeLimit, stamp: ents('stamp').length,
+      beepSpeed: L.data.beepSpeed, beepWarn: L.data.beepWarn, groups, clock: L.beepClock?.info() ?? null,
+      spiegel: ents('powerup').filter((e) => e.power === 'spiegel').length + L.data.blocks.filter((b) => b.content === 'spiegel').length,
+      gleit: ents('powerup').filter((e) => e.power === 'gleitblatt').length + L.data.blocks.filter((b) => b.content === 'gleitblatt').length,
+      stachel: segs('stachelboden').length + segs('stachelstange').length, pfeld: ents('pfeld').length, wechsel: segs('piep_treppe').filter((x) => x.colors === 'wechsel').length,
+      rutsche: segs('piep_rutsche')[0]?.colors, neon: segs('platform').filter((x) => x.style === 'block').length,
+      baseTitle: base.title, baseLimit: base.timeLimit, baseStamp: !!base.stamp, baseRemix: base.remix ?? null, baseBeep: base.beepSpeed ?? null,
+      baseEvery: base.segments.filter((x) => x.type?.startsWith('piep_')).map((x) => x.every ?? null).filter((v) => v !== null).length,
+      baseSpiegel: base.items.filter((i) => i.power === 'spiegel').length + base.blocks.filter((b) => b.content === 'spiegel').length, basePfeld: base.items.filter((i) => i.kind === 'pfeld').length,
+      baseRutsche: base.segments.find((x) => x.id === 'rutsche')?.colors, baseStachel: base.segments.filter((x) => x.type === 'stachelboden').length,
+    };
+  });
+  console.log(`  Remix: ${JSON.stringify({ call: r.call, groups: r.groups, clock: r.clock, gleit: r.gleit, stachel: r.stachel })}`);
+  check('B-8: Remix-Platzhalter (Basis 4-3), eigener Titel; Musik der Basis ohne Variante (course_beep bleibt die Taktuhr)', r.stub && r.title === 'Turbo-Piep über dem Neonsteg' && r.theme === 'beep' && r.music === 'course_beep' && r.variant === null && r.clock?.theme === 'course_beep');
+  check(`B-8: Piep-Blöcke 4× schneller ohne Warnung (beepSpeed ${r.beepSpeed}, beepWarn ${r.beepWarn}; Gruppen ${JSON.stringify(r.groups)})`, r.beepSpeed === 4 && r.beepWarn === false && r.groups.length >= 2 && r.groups.every((g) => g[1] === 2 && g[2] === 0));
+  check(`B-8: Gleitblätter (${r.gleit}) statt Spiegelfrüchte (${r.spiegel}); ${r.stachel} Stachel-Hindernisse; ein Druckfeld; Treppen (${r.wechsel}) und Rutsche (${r.rutsche}) im Farbwechsel; ${r.neon} feste Neon-Absätze; 400 s, kein Stempel`,
+    r.spiegel === 0 && r.gleit >= 5 && r.stachel >= 15 && r.pfeld === 1 && r.wechsel === 6 && r.rutsche === 'wechsel' && r.neon === 4 && r.limit === 400 && r.stamp === 0);
+  check('B-8: Gegenprobe Basis 4-3 unverändert (Titel, 400 s, Stempel, Takt ohne Remix-Faktor, Spiegelfrüchte, 4 Druckfelder, rote Rutsche, keine Stachelböden)',
+    r.baseTitle === 'Neonsteg im Takt' && r.baseLimit === 400 && r.baseStamp && r.baseRemix === null && r.baseBeep === null && r.baseEvery === 0 && r.baseSpiegel === 4 && r.basePfeld === 4
+    && r.baseRutsche === 'rot' && r.baseStachel === 0);
+};
+
 // ------------------------------------------------------------------ Sonder-Proben (extra[].probe)
 const PROBES = {
+  b8takt: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb;
+      W.place([0, 1, -12], { settle: 2, invuln: 99 });
+      const h = L.named.get('r1_0');
+      const g = h?.groups?.[0];
+      const ev = [];
+      let last = g?.on, warned = false;
+      for (let i = 0; i < 120 * 6; i++) { W.step(1); if (g.on !== last) { ev.push(+(L.beepClock.beat).toFixed(2)); last = g.on; } if (g.warnOn) warned = true; }
+      const gaps = ev.slice(1).map((b, i) => +(b - ev[i]).toFixed(2));
+      return { every: g?.every, warn: g?.warn, switches: ev.length, gaps, warned, bpm: L.beepClock.bpm, source: L.beepClock.source };
+    });
+    console.log(`     Takt: ${JSON.stringify(r)}`);
+    return r.every === 2 && r.warn === 0 && !r.warned && r.switches >= 5 && r.gaps.every((d) => Math.abs(d - 2) < 0.05) && r.source === 'music';
+  },
+  b8automat: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb;
+      W.place([-3, 1, -86], { settle: 2, invuln: 99 });
+      const near = L.entities.filter((e) => e.kind === 'powerup' && !e.removed && Math.hypot(e.pos.x + 4.6, e.pos.z + 85.5) < 1.2).map((e) => e.power);
+      return { near };
+    });
+    console.log(`     Automat: ${JSON.stringify(r)}`);
+    return r.near.length === 1 && r.near[0] === 'gleitblatt';
+  },
   b7tintling: async () => {
     const r = await sc(() => {
       const c = window.__course, L = c.level, W = window.__bb, p = c.player;
