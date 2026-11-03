@@ -25,7 +25,7 @@ const S1 = 10, T1 = 7, T4 = 19, Y3 = 9, TOP = 39;
 const BOT = -22;
 const ZF = 47;                               // Zielfelsen
 const WIESE = [-15, 15, 34, 6];              // Morgenwiese x0, x1, zA, zB (Oberkante S1)
-const TURM = [28, 34, -92, -98, 21];         // Felsturm mit Stern 1
+const TURM = [24, 30, -92, -98, 25];         // Felsturm mit Stern 1 (Oberkante über jeder Sprunghöhe von der Wolke)
 const ZIELFELS = [4, 12, -270, -280, ZF];
 
 const hase = (id, x, y, z, area, reward) => ({ kind: 'bunny', id, pos: [x, y, z], area: { min: area[0], max: area[1] }, reward });
@@ -41,7 +41,9 @@ export const LEVEL = remixOf('5-4', {
   stamp: false,
   start: { pos: [0, S1, 30], yaw: Math.PI / 2 },
   // Morgenwiese bekommt eine eigene Kameraschiene (weiter Blick für die Hasenjagd), sonst wie die Basis
-  camera: [{ from: 40, to: 14, pitch: 48, dist: 16, fov: 40, x: 0, xLock: 0.45 }, ...BASIS.camera],
+  // und der Felsturm rechts vom Gipfel eine Schiene, die ihn mit ins Bild nimmt
+  camera: [{ from: 40, to: 14, pitch: 48, dist: 16, fov: 40, x: 0, xLock: 0.45 }, ...BASIS.camera,
+    { from: -86, to: -104, pitch: 44, dist: 13.5, fov: 40, x: 26, xLock: 0.7, area: [15, 40] }],
   remove: [
     { type: 'drehplattform' },                                    // Drehbalken → Wolken
     { id: 'sternring' },                                          // Sternring (Stern 2 der Basis)
@@ -55,7 +57,7 @@ export const LEVEL = remixOf('5-4', {
   goal: { pos: [8, ZF, -276], height: 9 },
   stars: [
     { pos: [0, S1 + 1, 20], hidden: true, id: 'stern_riesenhase' },  // 0: erscheint an der Fangstelle des Riesenhasen
-    [31.5, TURM[4] + 0.4, -95],                                         // 1: Felsturm hinter der Glasröhre am Gipfel
+    [27.6, TURM[4] + 0.4, -95],                                         // 1: Felsturm hinter der Glasröhre am Gipfel
     [-8, 45.2, -270],                                                   // 2: über den Wolkenstufen (Figurenschalter)
   ],
   add: {
@@ -71,7 +73,7 @@ export const LEVEL = remixOf('5-4', {
       // ---------------- Gipfel: Wolkenplattform und Glasröhre zum Felsturm (Stern 1)
       { type: 'cloud', id: 'gipfelwolke', pos: [11.6, T4 + 0.4, -94], size: [3.6, 0.6, 3.2] },
       { type: 'glasspipe', id: 'roehre_turm', radius: 1, coins: 4,
-        path: [[13.2, T4 + 2.05, -94], [16.5, T4 + 2.05, -94], [19.5, T4 + 5, -94.4], [23, T4 + 6, -95], [26, T4 + 4.2, -95], [27.6, TURM[4] + 1.05, -95], [29.4, TURM[4] + 1.05, -95]] },
+        path: [[13.2, T4 + 2.05, -94], [16, T4 + 2.05, -94], [19, T4 + 5.4, -94.5], [22, TURM[4] + 1.05, -95], [25.2, TURM[4] + 1.05, -95]] },
       isl(TURM[0], TURM[1], TURM[2], TURM[3], TURM[4], 5),
       { type: 'sign', pos: [6.6, T4, -97.4], text: 'Wolke →', size: [1.4, 0.6], yaw: -0.5 },
       // ---------------- Plateau: bewegte Wolken und Wolkenlift zum Zielfelsen
@@ -111,14 +113,14 @@ export const LEVEL = remixOf('5-4', {
   // Morgenwiese: Felsflanken, Grasboden, Trampelpfad; Felsturm und Zielfelsen ebenso
   build(level) {
     cliffSkirt(level, rectPoly(WIESE[0], WIESE[1], WIESE[2], WIESE[3], 0.9), S1, BOT, { seed: 61, shadow: true });
-    cliffSkirt(level, rectPoly(TURM[0], TURM[1], TURM[2], TURM[3], 0.7), TURM[4], BOT, { seed: 67, shadow: true });
+    cliffSkirt(level, rectPoly(TURM[0], TURM[1], TURM[2], TURM[3], 0.7), TURM[4], BOT, { seed: 67, shadow: false, step: 2.6, band: 3.2 });
     cliffSkirt(level, rectPoly(ZIELFELS[0], ZIELFELS[1], ZIELFELS[2], ZIELFELS[3], 0.7), ZF, TOP - 0.5, { seed: 71, shadow: true });
     savannaFloor(level, [[WIESE[0], WIESE[1], WIESE[2], WIESE[3], S1, 30], [TURM[0], TURM[1], TURM[2], TURM[3], TURM[4], 4], [ZIELFELS[0], ZIELFELS[1], ZIELFELS[2], ZIELFELS[3], ZF, 6]],
-      { seed: 91, avoid: [[0, 30, 1.6], [31.5, -95, 1.4], [8, -276, 1.6]] });
+      { seed: 91, avoid: [[0, 30, 1.6], [27.6, -95, 1.4], [25, -95, 1.2], [8, -276, 1.6]] });
     dirtPath(level, [[0, 28], [0.6, 18], [-0.6, 10], [0, 6.4]], S1);
   },
   marks: {
-    start: [0, S1, 30], wiese: [0, S1, 20], kanone1: [0, S1, -2.6], gipfel: [1, T4, -96], wolke: [11.6, T4 + 1, -94], turm: [31.5, TURM[4], -95],
+    start: [0, S1, 30], wiese: [0, S1, 20], kanone1: [0, S1, -2.6], gipfel: [1, T4, -96], wolke: [11.6, T4 + 1, -94], turm: [27.6, TURM[4], -95],
     checkpoint: [0, Y3, -147], plateau: [0, TOP, -221], insel: [0, TOP, -237], zielplateau: [0, TOP, -262], lift: [2, TOP, -273.2],
     schalter: [-11.5, TOP, -257.6], ziel: [8, ZF, -276],
   },
