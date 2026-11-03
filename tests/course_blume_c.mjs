@@ -29,6 +29,7 @@ const PI = Math.PI;
 //   (zum Ziel drehen, Aktion) · { bounce: Id, to2 } (Sprung gehalten auf den Gegner, hoher Abprall) · { pound: [x, z] }
 //   · { glide } · { power: Name } · { setTime: s } · { mark } · { kill: true }
 const Y11 = 1;   // B-11: Laufhöhe der Festung
+const Y12 = 2;   // B-12: Arenaboden
 const Y9 = 1, SKY9 = 9, PX9 = 2.5, SX9 = 53.5, SZ9 = 9;   // B-9: Strand, Schwebeinsel, Glasröhre, schlafender Turm
 
 const ROUTES = {
@@ -315,6 +316,49 @@ const ROUTES = {
       ['ziel', [0, Y11, -294]],
     ],
   },
+  'B-12': {
+    start: [0, Y12, 8.5],
+    meta: { title: 'Fünf Schlüssel im Sternenzelt', stars: 3, time: 500, theme: 'bossblitz', music: 'course_bossblitz', variant: null, archetype: 'boss' },
+    enemies: { kippquader_koenig: 1, schattenlaeuferin: 1, lavafelsen_koenig: 1, wirbelbrocken: 1, schlangenkoenig: 2, boss_gruppe: 1, wuerfelblase: 1, bossblitz_box: 6, bossblitz_hub: 1, bruchplatte: 4 },
+    remixChecks: [
+      { name: 'Hub 20 × 20 m mit sechs Warp-Boxen (die der Würfelblase verschlossen), unten links Kippquader-König, oben links Schattenläuferin, oben rechts Lavafelsen-König, unten rechts Wirbelbrocken, Mitte beide Schlangenkönige (Gruppe), sechs Kämpfe im Archetyp boss, Schlüssel 0/5, 500 s',
+        ok: (r) => r.b12 && r.b12.boxes === 'hub_kq:-6,5.5,hub_schatten:-6,-5.5,hub_lava:6,-5.5,hub_wirbel:6,5.5,hub_koenige:0,0,hub_blase:0,-7.5' && r.b12.locked === 'hub_blase'
+          && r.b12.need === 5 && r.b12.keys === 0 && r.b12.bosses === 'kq,schatten,lava,wirbel,koenige,blase' && r.b12.group === 'sk_gruen,sk_rosa' && r.b12.hubSize === '20x20' && r.b12.multi && r.rtLimit === 500 },
+    ],
+    main: [
+      { name: 'Box unten links: Kippquader-König', warp: [-6, 5.5] },
+      { engage: 'kq', center: [-80, 40] }, { fight: 'kq', center: [-80, 40] }, { keyBack: 'kq' },
+      { name: 'Box oben links: Schattenläuferin', warp: [-6, -5.5] },
+      { engage: 'schatten', center: [-80, -50] }, { fight: 'schatten', center: [-80, -50], ring: 5 }, { keyBack: 'schatten' },
+      { name: 'Box oben rechts: Lavafelsen-König', warp: [6, -5.5] },
+      { engage: 'lava', center: [80, -50] }, { fight: 'lava', center: [80, -50] }, { star: 0 }, { keyBack: 'lava' },
+      { name: 'Box unten rechts: Wirbelbrocken', warp: [6, 5.5] },
+      { engage: 'wirbel', center: [80, 40] }, { fight: 'wirbel', center: [80, 40], ring: 6 }, { keyBack: 'wirbel' },
+      { name: 'Box in der Mitte: Schlangenkönige', warp: [0, 0] },
+      { engage: 'koenige', center: [0, -110] }, { fight: 'koenige', center: [0, -110] }, { star: 1 }, { keyBack: 'koenige' },
+      { until: 'blaseOffen', max: 240 },
+      { name: 'letzte Box: Würfelblase', warp: [0, -7.5] },
+      { engage: 'blase', center: [0, 110] }, { fight: 'blase' }, { star: 2 }, { keyBack: 'blase' },
+      { name: 'Zielmast', to: [0, 146], within: 0.3 },
+    ],
+    routeChecks: [
+      { name: 'alle sechs Kämpfe gewonnen, fünf Schlüssel, sechs Rück-Warp-Boxen, alle drei Sterne, Restzeit > 0', ok: (r) => r.mech.keys === 5 && r.mech.warps === 12 && r.rt.stars.slice(0, 3).every(Boolean) && r.rt.time > 0 },
+      { name: 'Würfelblase mit mehr, schnelleren Schockwellen (≥ 3 je Landung)', ok: (r) => r.mech.bosses?.blase?.multi && r.mech.bosses.blase.waves >= 3 },
+    ],
+    targets: [],
+    extra: [],
+    shots: [
+      ['hub', [0, Y12, 8.5]],
+      ['hub_boxen', [0, Y12, 2]],
+      ['kq', [-80, Y12, 47]],
+      ['schatten', [-80, Y12, -42]],
+      ['lava', [80, Y12, -42]],
+      ['wirbel', [80, Y12, 47]],
+      ['koenige', [0, Y12, -99]],
+      ['blase', [0, Y12, 119]],
+      ['zielplatz', [0, Y12, 152]],
+    ],
+  },
 };
 
 
@@ -383,6 +427,8 @@ function install() {
     stern0Sichtbar: () => !!L.runtime.stars[0] || L.entities.some((e) => e.kind === 'star' && e.index === 0 && !e.hidden && !e.removed),
     stern1Sichtbar: () => !!L.runtime.stars[1] || L.entities.some((e) => e.kind === 'star' && e.index === 1 && !e.hidden && !e.removed),
     stern2Sichtbar: () => !!L.runtime.stars[2] || L.entities.some((e) => e.kind === 'star' && e.index === 2 && !e.hidden && !e.removed),
+    // B-12
+    blaseOffen: () => !named('hub_blase')?.locked && !!named('hub')?.open,
     // B-9
     warpOffen9: () => !named('warp1')?.hidden,
     warpZu9: () => !!named('warp1')?.hidden,
@@ -1014,6 +1060,298 @@ function install() {
           if (!top && !Lg.partial) log.push(['FEHLER: Wand nicht erklommen', Lg.climb]);
           continue;
         }
+        // ================================================ B-12 Boss-Marathon (echte Eingaben)
+        // { engage: Id } vom Ankunftspunkt in die Arena gehen, bis der Archetyp den Kampf mit Id beginnt
+        if (Lg.engage) {
+          const A = c.arch, b = named(Lg.engage);
+          const cen = Lg.center;
+          let k = 0;
+          for (; k < 900 && !(A.started && A.cfg?.id === Lg.engage) && !p.dead; k++) tick({ ...this.stick(cen[0] - p.pos.x, cen[1] - p.pos.z, 0.7), run: false });
+          log.push(['Kampf beginnt', Lg.engage, A.started && A.cfg?.id === Lg.engage, k, b?.state]);
+          if (!(A.started && A.cfg?.id === Lg.engage)) { log.push(['FEHLER: Kampf nicht begonnen', Lg.engage]); break; }
+          continue;
+        }
+        // { keyBack: Id } Schlüssel nach dem Sieg holen (aufsteigen lassen, hinlaufen), dann in die Rück-Warp-Box springen
+        if (Lg.keyBack) {
+          const H = named('hub'), f = H.fights.find((x) => x.boss === Lg.keyBack);
+          let k = 0;
+          for (; k < 120 * 10 && !(f.retBox && !f.retBox.hidden && (f.final || (f.key && f.key.state === 'idle') || f.keyGot)); k++) tick({});
+          if (!f.final && !f.keyGot && f.key) {
+            const kp = f.key.pos;
+            for (let n = 0; n < 900 && !f.keyGot && !p.dead; n++) {
+              const dx = kp.x - p.pos.x, dz = kp.z - p.pos.z, d = Math.hypot(dx, dz);
+              tick({ ...this.stick(dx, dz, Math.max(0.3, Math.min(1, d))), run: false, jump: p.mode === 'ground' && d < 0.8 && (n % 50) < 14 });
+            }
+          }
+          for (let n = 0; n < 40; n++) tick({});
+          const rb = f.retBox;
+          let rode = false;
+          if (rb) {
+            const r0 = mech.rides;
+            for (let n = 0; n < 900 && !p.dead; n++) {
+              const dx = rb.pos.x - p.pos.x, dz = rb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              tick({ ...(p.mode === 'air' ? this.airSteer(rb.pos.x, rb.pos.z, 0, 0, 3.4, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.35, d / 1.5)))), jump: p.mode === 'ground' ? d < 2.0 : p.vel.y > 0, run: false });
+              if (mech.rides > r0) { rode = true; break; }
+            }
+            for (let n = 0; n < 60; n++) tick({});
+          }
+          if (rode) mech.warps++;
+          mech.keys = H.keys;
+          log.push(['Schlüssel und zurück', Lg.keyBack, !!f.keyGot, rode, H.keys, +p.pos.x.toFixed(1), +p.pos.z.toFixed(1)]);
+          if ((!f.final && !f.keyGot) || !rode) { log.push(['FEHLER: Schlüssel/Rück-Warp-Box', Lg.keyBack]); break; }
+          continue;
+        }
+        // { fight: 'kq' } Kippquader-König (wie course_w5d): auf das Rückenfeld springen, wenn er liegt; aus der Kipp-Fläche gehen;
+        // über Schockwellen springen
+        if (Lg.fight === 'kq') {
+          const b = named('kq');
+          const [CX, CZ] = Lg.center;
+          const DIRS = [[1, 0], [0, -1], [-1, 0], [0, 1]];
+          const hp0 = b.hp;
+          let k = 0, jumpsOnBack = 0, waveJumps = 0;
+          const inRect = (r, m = 0) => p.pos.x > r.x0 - m && p.pos.x < r.x1 + m && p.pos.z > r.z0 - m && p.pos.z < r.z1 + m;
+          for (; k < 120 * 160 && b.state !== 'gone' && !p.dead; k++) {
+            const s = b.state;
+            const wv = (b.waves ?? []).find((w) => Math.abs(Math.hypot(p.pos.x - w.x, p.pos.z - w.z) - w.r) < 1.1);
+            if (wv && p.mode === 'ground') { waveJumps++; for (let j = 0; j < 16; j++) tick({ jump: true }); continue; }
+            if (s === 'lie' && b.stateT > 0.15) {
+              const f = b.backField();
+              const D = DIRS[b.facing], Pp = [-D[1], D[0]];
+              const side = (p.pos.x - f.x) * Pp[0] + (p.pos.z - f.z) * Pp[1] >= 0 ? 1 : -1;
+              const ax = f.x + Pp[0] * side * 2.7, az = f.z + Pp[1] * side * 2.7;
+              const da = Math.hypot(ax - p.pos.x, az - p.pos.z);
+              if (p.mode === 'ground' && p.ground?.owner !== b && (da > 0.4 || Math.hypot(p.vel.x, p.vel.z) > 1.5)) { tick(da > 0.4 ? { ...this.stick(ax - p.pos.x, az - p.pos.z, Math.min(1, da / 1.5)), run: da > 3 } : {}); continue; }
+              const h0 = b.hp;
+              for (let j = 0; j < 160; j++) {
+                const steer = p.mode === 'air' && p.pos.y > b.pos.y + 1.9 ? this.airSteer(f.x, f.z, 0, 0, 3.4, 7) : {};
+                tick({ ...steer, jump: j < 26, run: false });
+                if (b.hp < h0 || (j > 8 && p.mode === 'ground')) break;
+              }
+              jumpsOnBack++;
+              for (let j = 0; j < 40 && b.state === 'hit'; j++) tick({});
+              continue;
+            }
+            const r = s === 'warn' || s === 'tilt' ? b.lieRect() : null;
+            if (r && inRect(r, 0.9)) {
+              const D = DIRS[b.facing], Pp = [-D[1], D[0]];
+              const side = (p.pos.x - b.pos.x) * Pp[0] + (p.pos.z - b.pos.z) * Pp[1] >= 0 ? 1 : -1;
+              let tx = p.pos.x + Pp[0] * side * 3, tz = p.pos.z + Pp[1] * side * 3;
+              if (Math.abs(tx - CX) > 5.5 || Math.abs(tz - CZ) > 5.5) { tx = p.pos.x - Pp[0] * side * 3; tz = p.pos.z - Pp[1] * side * 3; }
+              tick({ ...this.stick(tx - p.pos.x, tz - p.pos.z, 1), run: true });
+              continue;
+            }
+            const hx = CX, hz = CZ + 3.5;
+            const dx = hx - p.pos.x, dz = hz - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.8 ? { ...this.stick(dx, dz, Math.min(1, d / 2)), run: false } : {});
+          }
+          for (let i = 0; i < 240 && b.state !== 'gone'; i++) tick({});
+          mech.bosses = { ...(mech.bosses ?? {}), kq: { hits: hp0 - b.hp, state: b.state, jumpsOnBack, waveJumps, time: +(k / 120).toFixed(1) } };
+          log.push(['Kippquader-König', JSON.stringify(mech.bosses.kq)]);
+          if (b.state !== 'gone') { log.push(['FEHLER: Kippquader-König nicht besiegt', b.state, b.hp]); break; }
+          continue;
+        }
+        // { fight: 'schatten' | 'wirbel' } Draufspringen, wenn verwundbar (Schattenläuferin: vulnerable; Wirbelbrocken: stunned);
+        // sonst Abstand halten (im Kreis um die Arenamitte, weg vom Boss und von Attrappen)
+        if (Lg.fight === 'schatten' || Lg.fight === 'wirbel') {
+          const b = named(Lg.fight);
+          const [CX, CZ] = Lg.center;
+          const hp0 = b.hp;
+          let k = 0, j0 = -1, stomps = 0;
+          const open = () => (Lg.fight === 'wirbel' ? b.state === 'stunned' : b.vulnerable && b.state !== 'appear');
+          for (; k < 120 * 200 && b.state !== 'gone' && !b.defeated && !p.dead; k++) {
+            const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            let inp;
+            if (open() || (j0 >= 0 && p.mode === 'air')) {
+              if (p.mode === 'ground' && (j0 < 0 || k - j0 > 30) && d < (Lg.at ?? 2.3)) { j0 = k; stomps++; }
+              const jump = j0 >= 0 && k - j0 < 26;
+              const ev = b.vel ?? { x: 0, z: 0 };
+              inp = p.mode === 'air' ? { ...this.airSteer(b.pos.x + ev.x * 0.15, b.pos.z + ev.z * 0.15, ev.x, ev.z, 4, 8), jump } : { ...this.stick(dx, dz, 1), run: d > 3, jump };
+              if (p.mode === 'ground' && j0 >= 0 && k - j0 > 30) j0 = -1;
+            } else {
+              j0 = -1;
+              const rx = p.pos.x - CX, rz = p.pos.z - CZ, rr = Math.hypot(rx, rz) || 1;
+              let ax = 0, az = 0, dmin = Infinity;
+              for (const e of L.entities) {
+                if (e.removed || !(e === b || (/attrappe|klon|clone/.test(e.kind) && e.alive))) continue;
+                const ex = p.pos.x - e.pos.x, ez = p.pos.z - e.pos.z, ed = Math.max(0.5, Math.hypot(ex, ez));
+                dmin = Math.min(dmin, ed);
+                ax += ex / (ed * ed * ed); az += ez / (ed * ed * ed);
+              }
+              const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+              const want = Lg.ring ?? 5.5;
+              const tx = -rz / rr, tz = rx / rr, sg = tx * ax + tz * az >= 0 ? 1 : -1;
+              const kr = (want - rr) * 0.45;
+              const wx = ax * 0.7 + sg * tx * 0.9 + (rx / rr) * kr, wz = az * 0.7 + sg * tz * 0.9 + (rz / rr) * kr;
+              inp = { ...this.stick(wx, wz, dmin < 6 ? 1 : 0.4), run: dmin < 4 };
+              if (p.mode === 'air' && p.vel.y > 0) inp.jump = true;
+            }
+            tick(inp);
+          }
+          for (let i = 0; i < 600 && b.state !== 'gone'; i++) tick({});
+          mech.bosses = { ...(mech.bosses ?? {}), [Lg.fight]: { hits: hp0 - b.hp, state: b.state, stomps, time: +(k / 120).toFixed(1) } };
+          log.push([Lg.fight, JSON.stringify(mech.bosses[Lg.fight])]);
+          if (b.state !== 'gone') { log.push(['FEHLER: Boss nicht besiegt', Lg.fight, b.state, b.hp]); break; }
+          continue;
+        }
+        // { fight: 'lava' } Lavafelsen-König: Lavabrocken betäuben (draufspringen), aufheben (Aktion), auf den König werfen (Aktion)
+        if (Lg.fight === 'lava') {
+          const b = named('lava');
+          const [CX, CZ] = Lg.center;
+          const hp0 = b.hp;
+          let k = 0, throws = 0, grabs = 0, stomps = 0, j0 = -1, cur = null;
+          const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+          const free = (e) => e.kind === 'lavabrocken' && !e.removed && !e.defeated && e.alive && e.state !== 'burst' && e.state !== 'thrown' && !e.carrier && e.state !== 'air';
+          for (; k < 120 * 200 && b.state !== 'gone' && !p.dead; k++) {
+            if (p.holding) {
+              const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+              if (p.mode !== 'ground') { tick({}); continue; }
+              if (d > 6.5) { tick({ ...this.stick(dx, dz, 1), run: false }); continue; }
+              if (d < 2.6) { tick({ ...this.stick(-dx, -dz, 1), run: false }); continue; }
+              const yawWant = Math.atan2(-dz, dx);
+              if (Math.abs(wrap(yawWant - p.yaw)) > 0.12) { tick({ ...this.stick(dx, dz, 0.12) }); continue; }
+              if (b.state === 'hit' || b.state === 'spin' || b.state === 'intro') { tick({}); continue; }
+              tick({ action: true }); throws++;
+              for (let q = 0; q < 20; q++) tick({});
+              continue;
+            }
+            // Ziel festhalten (betäubte zuerst), bis es getragen wird oder weg ist
+            if (!cur || !free(cur)) {
+              const list = L.entities.filter(free).sort((a2, c2) => ((a2.state === 'stunned' ? 0 : 5) + Math.hypot(a2.pos.x - p.pos.x, a2.pos.z - p.pos.z)) - ((c2.state === 'stunned' ? 0 : 5) + Math.hypot(c2.pos.x - p.pos.x, c2.pos.z - p.pos.z)));
+              cur = list[0] ?? null;
+            }
+            const e = cur;
+            if (!e) {
+              // warten: Abstand zum König halten (Kreis um die Mitte)
+              const rx = p.pos.x - CX, rz = p.pos.z - CZ, rr = Math.hypot(rx, rz) || 1;
+              const ex = p.pos.x - b.pos.x, ez = p.pos.z - b.pos.z, ed = Math.max(0.5, Math.hypot(ex, ez));
+              const wx = ex / ed * (ed < 5 ? 1 : 0.2) + (-rz / rr) * 0.6 + (6 - rr) / rr * rx * 0.4, wz = ez / ed * (ed < 5 ? 1 : 0.2) + (rx / rr) * 0.6 + (6 - rr) / rr * rz * 0.4;
+              tick({ ...this.stick(wx, wz, 0.8), run: false });
+              continue;
+            }
+            const dx = e.pos.x - p.pos.x, dz = e.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            // Ausweichpunkt neben dem Ziel: weg von den übrigen Brocken (zur Arenamitte hin)
+            let ox = CX - e.pos.x, oz = CZ - e.pos.z;
+            for (const o2 of L.entities) if (o2 !== e && o2.kind === 'lavabrocken' && !o2.removed && Math.hypot(o2.pos.x - e.pos.x, o2.pos.z - e.pos.z) < 2.5) { ox += (e.pos.x - o2.pos.x) * 2; oz += (e.pos.z - o2.pos.z) * 2; }
+            const ol = Math.hypot(ox, oz) || 1; ox /= ol; oz /= ol;
+            if (e.state === 'stunned' || e.state === 'getup') {
+              // in der Luft: neben den Brocken lenken (sonst federt man auf ihm immer wieder hoch)
+              if (p.mode !== 'ground') { tick(this.airSteer(e.pos.x + ox * 1.1, e.pos.z + oz * 1.1, 0, 0, 4, 5)); continue; }
+              if (d > 0.85) { tick({ ...this.stick(dx, dz, Math.max(0.3, Math.min(1, d / 1.2))), run: false }); continue; }
+              const yawWant = Math.atan2(-dz, dx);
+              if (Math.abs(wrap(yawWant - p.yaw)) > 0.15) { tick({ ...this.stick(dx, dz, 0.12) }); continue; }
+              tick({ action: true }); tick({});
+              if (p.holding) grabs++;
+              continue;
+            }
+            // wach: draufspringen (betäuben); nach dem Abprall neben ihn lenken
+            if (p.mode === 'ground' && (j0 < 0 || k - j0 > 34) && d < 2.0) { j0 = k; stomps++; }
+            const jump = j0 >= 0 && k - j0 < 18;
+            if (p.mode === 'air' && p.vel.y > 7 && k - j0 > 20) { tick(this.airSteer(e.pos.x + ox * 1.1, e.pos.z + oz * 1.1, 0, 0, 4, 5)); continue; }
+            tick(p.mode === 'air' ? { ...this.airSteer(e.pos.x, e.pos.z, e.vel?.x ?? 0, e.vel?.z ?? 0, 4, 7), jump } : { ...this.stick(dx, dz, 1), run: false, jump });
+          }
+          for (let i = 0; i < 600 && b.state !== 'gone'; i++) tick({});
+          mech.bosses = { ...(mech.bosses ?? {}), lava: { hits: hp0 - b.hp, state: b.state, throws, grabs, stomps, time: +(k / 120).toFixed(1) } };
+          log.push(['Lavafelsen-König', JSON.stringify(mech.bosses.lava)]);
+          if (b.state !== 'gone') { log.push(['FEHLER: Lavafelsen-König nicht besiegt', b.state, b.hp]); break; }
+          continue;
+        }
+        // { fight: 'koenige' } zwei Schlangenkönige (wie course_w8d): im Fenster auf den Teller unter dem Kopf, von dort auf den Kopf;
+        // sonst ausweichen (Kreis um die Mitte, weg von Landemarken der Steine)
+        if (Lg.fight === 'koenige') {
+          const G = named('koenige'), K = [named('sk_gruen'), named('sk_rosa')];
+          const [CX, CZ] = Lg.center;
+          const hp0 = G.hp;
+          let n = 0, plateJumps = 0, headJumps = 0, j0 = -99, standN = 0, phase = 'evade', cur = null;
+          const winOf = (b) => b.hp > 0 && (b.state === 'lean' || b.state === 'summon') && b.target && b.target.state === 'up' && !b.target.broken;
+          for (; n < 120 * 300 && G.state !== 'gone' && !p.dead; n++) {
+            if (!cur || !winOf(cur)) cur = K.find((b) => winOf(b) && b.state === 'lean') ?? K.find(winOf) ?? null;
+            let inp = {};
+            if (cur) {
+              const t = cur.target;
+              const onPlate = p.mode === 'ground' && p.ground?.owner === t;
+              if (onPlate) {
+                standN++;
+                if (standN > 3) { j0 = n; headJumps++; standN = 0; phase = 'kopf'; }
+                inp = { jump: n - j0 < 32 };
+              } else if (p.mode === 'air' && phase === 'kopf') {
+                const h = cur.headWorld({});
+                inp = { ...(p.vel.y < 3 ? this.airSteer(h.x, h.z, 0, 0, 3.4, 6) : {}), jump: n - j0 < 32 };
+              } else {
+                standN = 0;
+                const dx = t.pos.x - p.pos.x, dz = t.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+                if (p.mode === 'ground') {
+                  phase = 'teller';
+                  if (d < 1.7 && n - j0 > 40) { j0 = n; plateJumps++; }
+                  inp = { ...this.stick(dx, dz, d > 1.2 ? 1 : 0.5), jump: n - j0 < 30 };
+                } else {
+                  inp = { ...(p.pos.y > t.plateTop + 0.2 || p.vel.y < 0 ? this.airSteer(t.pos.x, t.pos.z, 0, 0, 3.6, 6) : this.stick(dx, dz, 0.6)), jump: n - j0 < 30 };
+                }
+              }
+            } else {
+              phase = 'evade';
+              standN = 0;
+              const rx = p.pos.x - CX, rz = p.pos.z - CZ, rr = Math.hypot(rx, rz) || 1;
+              let ax = -rz / rr * 0.5, az = rx / rr * 0.5;
+              ax += (8.5 - rr) / rr * rx * 0.35; az += (8.5 - rr) / rr * rz * 0.35;
+              const push = (x, z, R2, w = 1) => { const ex = p.pos.x - x, ez = p.pos.z - z, ed = Math.max(0.3, Math.hypot(ex, ez)); if (ed < R2) { ax += (ex / ed) * w * (R2 - ed) / R2 * 3; az += (ez / ed) * w * (R2 - ed) / R2 * 3; } };
+              for (const b of K) {
+                for (const m of b.markers?.list ?? []) push(m.x, m.z, 2.2, 1.5);
+                push(b.pos.x, b.pos.z, 3.4, 1.5);
+                if (b.state === 'strike') { const h = b.headWorld({}); push(h.x, h.z, 3.2, 2); }
+              }
+              inp = { ...this.stick(ax, az, Math.min(1, Math.hypot(ax, az))), run: false };
+              if (p.mode === 'air' && p.vel.y > 0 && n - j0 < 32) inp.jump = true;
+            }
+            tick(inp);
+          }
+          for (let i = 0; i < 600 && G.state !== 'gone'; i++) tick({});
+          mech.bosses = { ...(mech.bosses ?? {}), koenige: { hits: hp0 - G.hp, max: G.maxHp, state: G.state, plateJumps, headJumps, time: +(n / 120).toFixed(1) } };
+          log.push(['Schlangenkönige', JSON.stringify(mech.bosses.koenige)]);
+          if (G.state !== 'gone') { log.push(['FEHLER: Schlangenkönige nicht besiegt', G.state, G.hp]); break; }
+          continue;
+        }
+        // { fight: 'blase' } Würfelblase (wie course_w8d): in der Flucht auf den Hut springen; sonst im Kreis ausweichen, kurz vor
+        // jeder Schockwelle hochspringen
+        if (Lg.fight === 'blase') {
+          const b = named('blase');
+          const A = b.arena;
+          let j0 = -1, stomps = 0, jumps = 0, n = 0;
+          const waveSeen = new Set();
+          const hp0 = b.hp;
+          const waveList = () => { for (const w of b.goldWaves ?? []) waveSeen.add(w); for (const e of L.entities) if (e.kind === 'schockwelle' && e.owner === b && !e.removed) waveSeen.add(e); return [...(b.waves ?? []), ...(b.goldWaves ?? []).filter((w) => !w.removed).map((w) => ({ x: w.pos.x, z: w.pos.z, r: w.r ?? 0 }))]; };
+          for (; n < 120 * 300 && b.state !== 'gone' && !p.dead; n++) {
+            const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            let inp;
+            if (b.vulnerable || (b.state === 'flee' && b.grace > 0)) {
+              if (p.mode === 'ground' && j0 < 0 && d < 2.2 && b.vulnerable) { j0 = n; stomps++; }
+              const jump = j0 >= 0 && n - j0 < 20;
+              inp = p.mode === 'air' ? { ...this.airSteer(b.pos.x, b.pos.z, b.vel.x, b.vel.z, 4, 9), jump } : { ...this.stick(dx, dz, 1), run: d > 2.5, jump };
+              if (p.mode === 'ground' && j0 >= 0 && n - j0 > 26) j0 = -1;
+            } else {
+              j0 = -1;
+              const rx = p.pos.x - A.x, rz = p.pos.z - A.z, rr = Math.hypot(rx, rz) || 1;
+              let ax = -rz / rr * 0.6, az = rx / rr * 0.6;
+              ax += (6.5 - rr) / rr * rx * 0.35; az += (6.5 - rr) / rr * rz * 0.35;
+              const push = (x, z, R2, w = 1) => { const ex = p.pos.x - x, ez = p.pos.z - z, ed = Math.max(0.3, Math.hypot(ex, ez)); if (ed < R2) { ax += (ex / ed) * w * (R2 - ed) / R2 * 3; az += (ez / ed) * w * (R2 - ed) / R2 * 3; } };
+              const giant = /^g/.test(b.state) || b.state === 'form';
+              if (giant) push(b.pos.x, b.pos.z, (b.S ?? 3) / 2 + 3.2, 1.5);
+              if (b.jump && (b.state === 'gcrouch' || b.state === 'gair')) push(b.jump.x1, b.jump.z1, (b.S ?? 3) / 2 + 2.6, 2);
+              for (const e of b.bits ?? []) if (!e.removed && !e.defeated && e.alive) push(e.pos.x, e.pos.z, 1.6, 0.8);
+              inp = { ...this.stick(ax, az, Math.min(1, Math.hypot(ax, az))), run: false };
+              for (const w of waveList()) {
+                const wd = Math.hypot(p.pos.x - w.x, p.pos.z - w.z);
+                if (p.mode === 'ground' && w.r < wd && wd - w.r < 1.3) { inp.jump = true; jumps++; }
+              }
+              if (p.mode === 'air' && p.vel.y > 0) inp.jump = true;
+            }
+            tick(inp);
+          }
+          for (let i = 0; i < 600 && b.state !== 'gone'; i++) tick({});
+          mech.bosses = { ...(mech.bosses ?? {}), blase: { hits: hp0 - b.hp, state: b.state, multi: !!b.multi, waves: waveSeen.size, waveHits: b.waveHits ?? 0, stomps, jumps, time: +(n / 120).toFixed(1) } };
+          log.push(['Würfelblase', JSON.stringify(mech.bosses.blase)]);
+          if (b.state !== 'gone') { log.push(['FEHLER: Würfelblase nicht besiegt', b.state, b.hp]); break; }
+          continue;
+        }
         // ------------------------------------------------ Restzeit setzen (Zeitablauf prüfen)
         if (Lg.setTime !== undefined) { L.runtime.timeLeft = Lg.setTime; log.push(['Restzeit', Lg.setTime]); continue; }
         if (Lg.mark) { window.__mark = { t: L.time, time: L.runtime.timeLeft, coins: L.runtime.coins, ...(typeof Lg.mark === 'object' ? Lg.mark : {}) }; continue; }
@@ -1123,7 +1461,14 @@ function install() {
       return {
         kinds: this.kinds(), remix: d.remix ?? null, theme: d.theme, light: c.view.theme.light ?? null, music: d.music, variant: d.musicVariant ?? null,
         call: calls.filter((x) => x[0] === d.music).slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
-        stamp: !!d.stamp, stars: (d.stars ?? []).length, world: d.world, title: d.title, timeLimit: d.timeLimit, rtLimit: L.runtime.timeLimit,
+        stamp: !!d.stamp, stars: (d.stars ?? []).length, starSlots: L.runtime.stars.length, bossStars: (d.enemies ?? []).filter((e) => e.star).length, world: d.world, title: d.title, timeLimit: d.timeLimit, rtLimit: L.runtime.timeLimit,
+        b12: d.id === 'B-12' ? {
+          boxes: L.entities.filter((e) => e.kind === 'bossblitz_box').map((e) => `${e.spec.id}:${+(e.pos.x - 0).toFixed(1)},${+e.pos.z.toFixed(1)}`).join(','),
+          locked: L.entities.filter((e) => e.kind === 'bossblitz_box' && e.locked).map((e) => e.spec.id).join(','),
+          need: named('hub')?.need ?? null, keys: named('hub')?.keys ?? null, bosses: (d.bosses ?? []).map((b) => b.id).join(','),
+          group: (named('koenige')?.spec?.members ?? []).join(','), hubSize: (d.segments.find((q) => q.id === 'hub')?.size ?? []).join('x'),
+          multi: (named('blase')?.spec?.waves ?? 0) >= 3,
+        } : null,
         b11: d.id === 'B-11' ? {
           lights: (L.searchlights ?? []).length, track: (d.segments ?? []).filter((q) => q.type === 'suchscheinwerfer').every((q) => q.track === false) ? false : true,
           groups: named('suchlichtFallen')?.info().groups ?? 0, traps: named('suchlichtFallen')?.info().traps ?? 0,
@@ -1224,7 +1569,8 @@ for (const id of LEVELS) {
     check(`${id}: lädt ohne Konsolenfehler/-warnungen`, loadErrors.length === 0);
     for (const e of loadErrors.slice(0, 8)) console.log('     ', e);
     const M = R.meta;
-    const starsOk = M.archetype === 'house' ? (r.house?.rooms === M.stars) : r.stars === M.stars;
+    // Boss-Marathon: die Sterne geben die Endgegner (spec.star), LEVEL.stars bleibt leer
+    const starsOk = M.archetype === 'boss' ? r.bossStars === M.stars && r.starSlots === M.stars : r.stars === M.stars;
     check(`${id}: „${M.title}“, Welt 11, ${M.stars} Sterne, kein Stempel, ${M.time ? `${M.time} s, ` : ''}Thema ${M.theme}, Musik ${M.music}${M.variant ? ` (Variante ${M.variant})` : ''}`,
       r.title === M.title && r.world === 11 && starsOk && !r.stamp && (r.kinds.stamp ?? 0) === 0 && (!M.time || r.timeLimit === M.time) && r.theme === M.theme && r.music === M.music && (r.variant ?? null) === (M.variant ?? null));
     if (R.base) {
