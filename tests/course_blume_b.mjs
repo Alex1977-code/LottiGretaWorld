@@ -322,6 +322,103 @@ ROUTES['B-7'] = {
   ],
 };
 
+// ------------------------------------------------------------------ B-8 (Basis 4-3): Piep-Takt 4× schneller (alle 2 Zählzeiten:
+// rot fest bei Zählzeit 0–2 mod 4, blau bei 2–4), Stufen rot/blau im Wechsel – Sprung 0,6 Zählzeiten vor dem Erscheinen der
+// nächsten Farbe (in der Luft beim Wechsel)
+const RED_JUMP = [3.25, 3.45], BLUE_JUMP = [1.25, 1.45];
+/** Treppe: Stufen ab first (Farbe rot zuerst), Schritt d (dx, dz), n Stufen, danach ein fester Absatz bei end. */
+function stairLegs(name, first, d, n, end) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    out.push({ waitBeat: i % 2 ? BLUE_JUMP : RED_JUMP });
+    out.push({ name: i ? undefined : name, to: [first[0] + d[0] * i, first[1] + d[1] * i], jump: 14, within: 0.45, run: false });
+  }
+  out.push({ to: end, jump: 14, within: 0.45, run: false });   // gleich weiter, solange die letzte Stufe noch fest ist
+  return out;
+}
+ROUTES['B-8'] = {
+  base: '4-3',
+  beep: true,
+  start: [0, 1, 5],
+  meta: { stars: 3, time: 400, theme: 'beep', music: 'course_beep', variant: null, archetype: 'parcours' },
+  enemies: { feuer_werfer: 7, pfeld: 1, starring: 1, stamp: 0 },
+  main: [
+    { name: 'Start', to: [0, -6.4] },
+    { name: 'Taktgasse: warten auf Blau', waitBeat: [2.0, 2.2] },
+    { name: 'Taktgasse (Tor offen, Brücke)', to: [0, -17.6], within: 0.5 },
+    { to: [0, -19.4], run: false, within: 0.3 },
+    { name: 'Reihe 1: warten auf Rot', waitBeat: [0.0, 0.15] },
+    { name: 'Reihe 1: drei rote Streifen', to: [0, -27], within: 0.5 },
+    { name: 'Reihe 1: auf dem Absatz warten auf Blau', waitBeat: [2.0, 2.15] },
+    { name: 'Reihe 1: drei blaue Streifen', to: [0, -36.5], within: 0.8 },
+    { to: [0, -43.4], run: false, within: 0.3 },
+    { name: 'Reihe 2: warten auf Rot', waitBeat: [0.0, 0.15] },
+    { name: 'Reihe 2: rot', to: [0, -50], within: 0.5 },
+    { name: 'Reihe 2: auf dem Absatz warten auf Blau', waitBeat: [2.0, 2.15] },
+    { name: 'Reihe 2: blau', to: [0, -57.5], within: 0.6 },
+    { name: 'Insel 2', to: [-1, -59.6] },
+    { to: [0, -65.4], within: 0.4 },
+    { name: 'Reihe 3 (Schachbrett) auf der Fuge', to: [0, -83] },
+    { name: 'Druckfeld', to: [-1.1, -88.5], within: 0.25, run: false },
+    { wait: 60 },
+    { expect: '=ent(\'laser\').opened' },
+    { name: 'Reihe 4: warten', to: [0, -93.4], run: false, within: 0.3 },
+    { waitBeat: [0.0, 0.15] },
+    { name: 'Reihe 4: rot', to: [0, -98.5], within: 0.5 },
+    { waitBeat: [2.0, 2.15] },
+    { name: 'Reihe 4: blau', to: [0, -104.5], within: 0.5 },
+    { waitBeat: [0.0, 0.15] },
+    { name: 'Reihe 4: rot', to: [0, -110.5], within: 0.6 },
+    { name: 'Warp-Insel', to: [-1, -125] },
+    { name: 'Warp-Box', to: [-2.5, -130.5], jump: 30, within: 0.35, run: false, ride: true },
+    { name: 'Turmfuß', to: [-6.6, -157.4] },
+    { to: [-6.6, -159.2], run: false, within: 0.2 },
+    ...stairLegs('Lauf 1 (rot/blau im Wechsel)', [-5.25, -159.2], [1.49, 0], 4, [1.5, -159.4]),
+    { to: [1.5, -160.9], run: false, within: 0.2 },
+    ...stairLegs('Lauf 2', [1.5, -161.95], [0, -1.49], 4, [1.5, -168.8]),
+    { to: [0.3, -169], run: false, within: 0.2 },
+    ...stairLegs('Lauf 3', [-0.75, -169], [-1.49, 0], 4, [-7.5, -169.2]),
+    { to: [-7.5, -170.5], run: false, within: 0.2 },
+    ...stairLegs('Lauf 4', [-7.5, -171.55], [0, -1.49], 4, [-7.5, -178.4]),
+    { name: 'Checkpoint', to: [6.5, -182.4] },
+    { name: 'Abstieg', to: [6, -192.4], run: false },
+    { name: 'Absatz D1', to: [6, -198.5], jump: 8, within: 0.8 },
+    { to: [2, -200.6], run: false, within: 0.4 },
+    { name: 'Absatz D2', to: [1, -206.5], jump: 8, within: 0.8 },
+    { to: [1, -204.6], run: false, within: 0.4 },
+    { name: 'Anlauf und weiter Sprung hinab zu Absatz D4 (über die Piep-Platten)', to: [1, -221.4], jump: 30, jumpAt: 11.4, within: 0.8 },
+    { name: 'Warp-Box zum Uhrenplatz', to: [1, -224], jump: 30, within: 0.35, run: false, ride: true },
+    { name: 'Uhrenplatz', to: [0, -237.5] },
+    { to: [0, -237.8], run: false, within: 0.3 },
+    { name: 'Rutsche (rot/blau gestreift)', to: [0, -244], within: 1, max: 600 },
+    { name: 'Rutschenfuß', to: [0, -258] },
+    { to: [0, -266.7], run: false, within: 0.3 },
+    ...stairLegs('Treppe G1', [0, -267.75], [0, -1.49], 4, [0, -274.4]),
+    { to: [0, -276.2], run: false, within: 0.2 },
+    ...stairLegs('Treppe G2', [0, -277.25], [0, -1.49], 4, [0, -284.2]),
+    { name: 'Zielmast', to: [0, -290.3], within: 0.2 },
+  ],
+  routeChecks: [
+    { name: 'Laserzaun mit einem Druckfeld geöffnet, Warp-Boxen benutzt', ok: (r) => r.mech.rides >= 2 },
+  ],
+  targets: [],
+  extra: [],
+  shots: [
+    ['start', [0, 1, 5]],
+    ['reihe1', [0, 1, -18.5]],
+    ['reihe2', [0, 1, -42]],
+    ['reihe3', [0, 1, -63]],
+    ['warpinsel', [2, 1, -116]],
+    ['treppe', [0, 1, -154]],
+    ['treppe_oben', [-7.5, 23.5, -169]],
+    ['checkpoint', [3, 31, -182]],
+    ['uhrenplatz', [0, 24, -232]],
+    ['rutsche', [0, 24, -238]],
+    ['schlussaufstieg', [0, 18.5, -274.5]],
+    ['ziel', [0, 26, -284.5]],
+  ],
+};
+
 const PORT = 5015;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -442,7 +539,7 @@ function install() {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); step1(); steps++;
         if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); }
-        if (p.mode === 'ground' && !p.dead) {
+        if ((p.mode === 'ground' || p.mode === 'swim') && !p.dead) {
           const t = track[track.length - 1];
           if (!t || Math.hypot(p.pos.x - t[0], p.pos.z - t[2]) > 7 || Math.abs(p.pos.y - t[1]) > 2) track.push([+p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
         }
