@@ -6,7 +6,8 @@
 // Geheimnisse mit der echten Mechanik samt Gegenproben, Kennzahlen je Abschnitt (Zeichenaufrufe < 120 inkl. Schattenpass,
 // Dreiecke < 300 k) und Bilder aus der Spielkamera (tests/out/blume_b_*.png).
 // Aufruf (nach npm run build): node tests/course_blume_b.mjs [B-5|B-6|B-7|B-8]   (Port 5015 + PORT_BASE)
-//   PARTS=load,rules,route,sweep,targets,extra,shots (Standard alle; je Lauf ≤ 10 min) · HEROES=lotti,greta · ONLY=<Text>
+//   PARTS=a|b|c bzw. load,rules,route,sweep,targets,extra,shots (a = load,rules,route,sweep · b = targets,extra · c = shots;
+//   Standard alle – je Level und Teil < 10 min, z. B. PARTS=a node tests/course_blume_b.mjs B-6) · HEROES=lotti,greta · ONLY=<Text>
 //   (nur Ziele/Extras mit diesem Namensteil) · VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> (nur diese Bilder) ·
 //   DETAIL=1 (Zeichenaufrufe je Objekt bei den Bildern) · TRACE=1 (Spur der Figur alle 8 Schritte)
 //
@@ -189,7 +190,7 @@ ROUTES['B-6'] = {
       legs: [{ to: [-4, 10.8], run: false, within: 0.3, max: 300 }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
     { name: 'Stern 1: ins leere Gemälde springen, Warp-Box, Drehraum, Warp-Box auf die Empore, Sofa', star: 1, from: [-0.4, Y6, 1.6],
       legs: [{ name: 'Sprung ins Gemälde', to: [-4.7, 1.6], jump: 14, jumpAt: 1.4, within: 0.25, land: false, max: 200 }, { wait: 60 },
-        { name: 'Warp-Box in der Nische', warp: [-6.4, 1.6] }, { expect: '=P().pos.x < -50' },
+        { name: 'Warp-Box in der Nische', warp: [-6.4, 1.6], skipIfX: -40 }, { expect: '=P().pos.x < -50' },
         { until: '=ent(\'dreh\').quarter === 0 && !ent(\'dreh\').turning', max: 3000 },
         { name: 'Warp-Box im Drehraum', warp: [-60, 41.6] }, { expect: '=P().pos.y > 7.5' },
         { to: [4, 3], run: false, within: 0.3 }, { name: 'aufs Sofa', to: [3.9, 1.4], jump: 20, within: 0.3 }, { star: 1 }], shot: 'stern1' },
@@ -207,10 +208,12 @@ ROUTES['B-6'] = {
       legs: [{ to: [129.6, -100.6], jump: 24, within: 0.4, run: false }, { wait: 240 }], mech: (r) => r.pos[1] < 1.2 && r.pos[1] > 0.8, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
     { name: 'Geheimnis: unten links übers Geländer, unsichtbare Wolken (erscheinen beim Betreten) zur Warp-Box → Schlussbalkon → Ziel', from: [229.8, Y6, -162], heroes: ['lotti', 'greta'],
       legs: [{ to: [229.7, -160.7], within: 0.3, run: false }, { expect: '=!ent(\'gw1\').shown' }, { name: 'unsichtbare Wolke 1', to: [229.6, -158.4], jump: 24, within: 0.4, run: false }, { expect: '=ent(\'gw1\').shown' },
-        { name: 'unsichtbare Wolke 2', to: [226.2, -155.6], jump: 24, within: 0.4, run: false }, { name: 'Wolke 3 mit Warp-Box', warp: [222.8, -152.8] },
+        { name: 'unsichtbare Wolke 2', to: [226.2, -155.6], jump: 24, within: 0.4, run: false }, { name: 'unsichtbare Wolke 3', to: [223.6, -153.6], jump: 24, within: 0.4, run: false },
+        { expect: '=ent(\'gw3\').shown' }, { name: 'Warp-Box auf Wolke 3', warp: [221.6, -151.6] },
         { expect: '=P().pos.x > 250 && P().pos.y > 13' }, { name: 'Zielmast', to: [254.2, -236.2], within: 0.2 }], mech: (r) => r.status === 'goal', mechText: (r) => r.status },
     { name: 'Warp-Box hinter dem Abgrund (neben Balkon 1) schickt zurück an den Anfang', from: [256.5, 9.6, -221.2], heroes: ['lotti'],
-      legs: [{ to: [256, -221.6], within: 0.3, run: false }, { warp: [255.2, -227.2] }, { expect: '=P().pos.z > 7 && Math.abs(P().pos.x) < 3' }] },
+      legs: [{ to: [256.4, -221.6], within: 0.3, run: false }, { name: 'über den Abgrund', to: [256.6, -226.4], jump: 30, within: 0.5, run: false }, { warp: [255.2, -228.2] },
+        { expect: '=P().pos.z > 7 && Math.abs(P().pos.x) < 3' }] },
     { name: 'Zwei falsche Zielmasten rufen Großspuke (Treppe öffnet), der zweite auf der Terrasse gibt kein Ziel', from: [240, Y6, -203], heroes: ['lotti'], probe: 'b6falsch' },
     { name: 'Großspuk jagt ab dem Startflur (lauert, bis die Figur losläuft; angeschaut nur langsam)', from: [0, Y6, 8], heroes: ['lotti'], probe: 'b6jaeger' },
     { name: 'Leeres Gemälde: Rahmen ohne Motiv und Augen, dahinter die Warp-Box', from: [-1, Y6, 1.6], heroes: ['lotti'], probe: 'b6gemaelde' },
@@ -244,7 +247,9 @@ const only = process.argv[2];
 const LEVELS = only ? [only] : Object.keys(ROUTES);
 const ONLY = process.env.ONLY ?? null;
 const pick = (list) => (ONLY ? list.filter((t) => ONLY.split('|').some((k) => t.name.includes(k))) : list);
-const PARTS = new Set((process.env.PARTS ?? 'load,rules,route,sweep,targets,extra,shots').split(','));
+// Teilläufe: a = load,rules,route,sweep · b = targets,extra · c = shots (je Level und Teil < 10 min); ohne PARTS: a,b,c
+const PART_ALIAS = { a: 'load,rules,route,sweep', b: 'targets,extra', c: 'shots' };
+const PARTS = new Set((process.env.PARTS ?? 'a,b,c').split(',').flatMap((x) => (PART_ALIAS[x] ?? x).split(',')));
 const HEROES = (process.env.HEROES ?? 'lotti,greta').split(',');
 const SHOTS = process.env.SHOTS ? new Set(process.env.SHOTS.split('|')) : null;
 
@@ -376,6 +381,7 @@ function install() {
         Lg_ = Lg;
         if (p.dead || L.runtime.status !== 'play') break;
         rode = false;
+        if (Lg.skipIfX !== undefined && p.pos.x < Lg.skipIfX) { log.push(['übersprungen', Lg.name ?? li]); continue; }
         if (Lg.wait && !Lg.to && !Lg.throwAt) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.crouch) { for (let i = 0; i < Lg.crouch; i++) tick({ crouch: true }); for (let i = 0; i < 30; i++) tick({}); settle(); log.push(['röhre', li, +p.pos.x.toFixed(1), +p.pos.y.toFixed(1), +p.pos.z.toFixed(1)]); continue; }
         if (Lg.log) { log.push(['wert', Lg.log, JSON.stringify(new Function('P', 'L', 'ent', 'plat', `return (${Lg.log});`)(P, L, ent, plat))]); continue; }
@@ -441,7 +447,7 @@ function install() {
           const r0 = mech.rides;
           for (; k < 900 && !p.dead; k++) {
             const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
-            const jump = p.mode === 'ground' ? d < 2.0 : p.vel.y > 0;
+            const jump = p.mode === 'ground' ? d < (Lg.jumpAt ?? 2.0) : p.vel.y > 0;
             tick({ ...(p.mode === 'air' ? this.airSteer(tx, tz, 0, 0, 3.4, 6) : this.stick(dx, dz, Math.min(1, Math.max(0.35, d / 1.5)))), jump, run: false });
             if (mech.rides > r0) { ok = true; break; }
           }

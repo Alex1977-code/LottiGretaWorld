@@ -70,7 +70,7 @@ export const LEVEL = remixOf('3-3', {
       { type: 'zielmast_spuk', id: 'falsch2', pos: [240, YT, -220], height: 7, text: 'Schon wieder reingelegt!',
         spawn: { kind: 'spuk', size: 2.5, sight: 16, id: 'ruf2' }, onTrick: { spawn: [{ kind: 'spuk', size: 2.5, sight: 16, id: 'ruf3', pos: [247, YT + 1.6, -219] }] } },
       { type: 'sign', pos: [251, YT, -216.4], text: 'Balkone →', yaw: -0.4, size: [1.6, 0.7] },
-      { type: 'sign', pos: [256.6, FALLE.y, -225.8], text: 'Abkürzung?', yaw: 0.3, size: [1.4, 0.7] },
+      { type: 'sign', pos: [253.8, FALLE.y, -225.6], text: 'Abkürzung?', yaw: 0.3, size: [1.4, 0.7] },
     ],
     enemies: [
       // Startflur: der Jäger lauert links vom Start über Stern 0 und jagt, sobald die Figur losläuft
@@ -78,9 +78,9 @@ export const LEVEL = remixOf('3-3', {
     ],
     items: [
       // Warp-Box hinter dem Abgrund → zurück an den Anfang
-      { kind: 'warpbox', id: 'falle', pos: [255.2, FALLE.y, -227.2], target: [START[0], START[1] + 0.2, START[2] + 1.6] },
+      { kind: 'warpbox', id: 'falle', pos: [255.2, FALLE.y, -228.2], target: [START[0], START[1] + 0.2, START[2] + 1.6] },
       // Geheimnis: Warp-Box auf der letzten unsichtbaren Wolke ↔ Schlussbalkon
-      { kind: 'warpbox', id: 'geheim', pos: [222.8, Y + 1.6, -152.8], target: 'schluss' },
+      { kind: 'warpbox', id: 'geheim', pos: [221.6, Y + 1.6, -151.6], target: 'schluss' },
       { kind: 'warpbox', id: 'schluss', pos: [258.6, B3.y, -238.1], target: 'geheim' },
       // Münzen verraten die unsichtbaren Wolken; Balkone
       line([229.6, Y + 1.0, -158.4], [226.2, Y + 1.8, -155.6], 3),
@@ -102,14 +102,14 @@ export const LEVEL = remixOf('3-3', {
     geisterwolken(level, [
       { id: 'gw1', pos: [229.6, Y - 0.6, -158.4], size: [2.6, 0.6, 2.6] },
       { id: 'gw2', pos: [226.2, Y + 0.2, -155.6], size: [2.6, 0.6, 2.6] },
-      { id: 'gw3', pos: [222.8, Y + 1.0, -152.8], size: [3.2, 0.6, 3.2] },
+      { id: 'gw3', pos: [222.4, Y + 1.0, -152.4], size: [4.2, 0.6, 4.2] },
     ]);
   },
   setup(level) { leeresGemaelde(level, 'gemaelde'); },
   marks: {
     start: START, helm: [2.6, Y, 6.2], stern0: [-4, Y, 10.8], gemaelde: [-4.2, Y, 1.6], empore: [4, Y + 7, 4.6], sofa: [3.9, Y + 7, 1.4],
     hof1: [114.6, Y, -74], fall: [128, Y, -100.6], sims: SIMS, hof2: [235.4, Y, -168], geheim: [229.6, Y, -160], falsch: [240, Y, -205.6],
-    terrasse: [240, YT, -217], balkon1: [256.5, B1.y, -218.6], falle: [255.2, FALLE.y, -227.2], balkon2: [262, B2.y, -227.5], balkon3: [258, B3.y, -236.2],
+    terrasse: [240, YT, -217], balkon1: [256.5, B1.y, -218.6], falle: [255.2, FALLE.y, -228.2], balkon2: [262, B2.y, -227.5], balkon3: [258, B3.y, -236.2],
     ziel: [254.2, B3.y, -236.2],
   },
 });
