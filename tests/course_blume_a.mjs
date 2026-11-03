@@ -590,7 +590,7 @@ const ROUTES = {
       { name: 'Stern 2: oben auf dem Dreier-Pilzlingsturm im Burghof (alle drei Pilzlinge abtragen)', star: 2, from: [0, Y, 5],
         legs: [{ stompAll: 'turm1' }, { star: 2 }], shot: 'stern2', mech: (r) => r.mech.stomped.includes('turm1'), mechText: (r) => `besiegt ${r.mech.stomped.join(' ')}` },
       { name: 'Stern 1: beleuchtete Bodenstelle auf der Hubinsel mit der Stampfattacke öffnen', star: 1, from: [2.0, Y, -86.6],
-        legs: [{ pound: [4.6, -89.4] }, { until: '=starVisible(1)', max: 240 }, { star: 1 }], shot: 'stern1', mech: (r) => r.mech.fleck, mechText: (r) => `Bodenstelle offen ${r.mech.fleck}` },
+        legs: [{ to: [4.6, -89.4], within: 0.2, run: false }, { wait: 20 }, { pound: [4.6, -89.4] }, { until: '=starVisible(1) || L.runtime.stars[1]', max: 240 }, { star: 1 }], shot: 'stern1', mech: (r) => r.mech.fleck, mechText: (r) => `Bodenstelle offen ${r.mech.fleck}` },
       { name: 'Stern 1 nicht ohne Stampfen (darauf laufen und springen)', star: 1, expectNot: true, from: [2.0, Y, -86.6], heroes: ['lotti'],
         legs: [{ to: [4.6, -89.4], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { hop: 30 }, { wait: 60 }], mech: (r) => !r.mech.fleck },
       { name: 'Stern 0: Stampfstein 1 hochfahren (auf den gefallenen Stein springen, mitfahren), links auf den Mauer-Erker', star: 0, from: [-1.8, Y, -170.4],
