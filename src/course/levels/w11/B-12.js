@@ -124,10 +124,10 @@ export const LEVEL = {
       fights: [
         { boss: 'kq', box: P('hub', -6, 5.5), to: P('kq', 0, 8.6), ret: P('kq', 0, 5) },
         { boss: 'schatten', box: P('hub', -6, -5.5), to: P('schatten', 0, 7.6), ret: P('schatten', 0, 4) },
-        { boss: 'lava', box: P('hub', 6, -5.5), to: P('lava', 0, 8.6), ret: P('lava', 3, 4) },
+        { boss: 'lava', box: P('hub', 6, -5.5), to: P('lava', 0, 8.6), ret: P('lava', 4.6, 3) },
         { boss: 'wirbel', box: P('hub', 6, 5.5), to: P('wirbel', 0, 8.6), ret: P('wirbel', 0, 4) },
-        { boss: 'koenige', box: P('hub', 0, 0), to: P('koenige', 0, 11.6), ret: P('koenige', 3, 6), key: P('koenige', 0, 4) },
-        { boss: 'blase', box: P('hub', 0, -7.5), to: P('blase', 0, 10), ret: P('blase', 3, 5), final: true, back: P('ziel', 0, 4, 0.3) },
+        { boss: 'koenige', box: P('hub', 0, 0), to: P('koenige', 0, 11.6), ret: P('koenige', 4.8, 5), key: P('koenige', 0, 4) },
+        { boss: 'blase', box: P('hub', 0, -7.5), to: P('blase', 0, 10), ret: P('blase', 4.6, 4), final: true, back: P('ziel', 0, 4, 0.3) },
       ],
     },
     // Bitcoins im Hub (Ring um den Goldstern) und auf dem Zielplatz
