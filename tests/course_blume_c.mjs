@@ -345,16 +345,46 @@ const ROUTES = {
       { name: 'alle sechs Kämpfe gewonnen, fünf Schlüssel, sechs Rück-Warp-Boxen, alle drei Sterne, Restzeit > 0', ok: (r) => r.mech.keys === 5 && r.mech.warps === 12 && r.rt.stars.slice(0, 3).every(Boolean) && r.rt.time > 0 },
       { name: 'Würfelblase mit mehr, schnelleren Schockwellen (≥ 3 je Landung)', ok: (r) => r.mech.bosses?.blase?.multi && r.mech.bosses.blase.waves >= 3 },
     ],
-    targets: [],
-    extra: [],
+    targets: [
+      { name: 'Stern 0: Lavafelsen-König mit geworfenen Lavabrocken besiegen – erst danach erscheint der Stern in der Arena', star: 0, from: [0, Y12, 8.5],
+        legs: [{ warp: [6, -5.5] }, { engage: 'lava', center: [80, -50] }, { expect: '=!L.entities.some((e) => e.kind === "star" && e.index === 0 && !e.removed)' },
+          { fight: 'lava', center: [80, -50] }, { star: 0 }], shot: 'stern0',
+        mech: (r) => r.mech.bosses?.lava?.throws >= 3, mechText: (r) => `Würfe ${r.mech.bosses?.lava?.throws}` },
+      { name: 'Stern 0 nicht ohne Sieg (im Kampf kein Stern)', star: 0, expectNot: true, from: [0, Y12, 8.5], heroes: ['lotti'],
+        legs: [{ warp: [6, -5.5] }, { engage: 'lava', center: [80, -50] }, { wait: 900 }] },
+      { name: 'Stern 1: beide Schlangenkönige zugleich besiegen (6 Kopftreffer vom Teller aus) – dann der Stern', star: 1, from: [0, Y12, 8.5],
+        legs: [{ warp: [0, 0] }, { engage: 'koenige', center: [0, -110] }, { expect: '=!L.entities.some((e) => e.kind === "star" && e.index === 1 && !e.removed)' },
+          { fight: 'koenige', center: [0, -110] }, { star: 1 }], shot: 'stern1',
+        mech: (r) => r.mech.bosses?.koenige?.hits === 6, mechText: (r) => `Treffer ${r.mech.bosses?.koenige?.hits}/6` },
+      { name: 'Stern 1 nicht ohne Sieg (im Kampf kein Stern)', star: 1, expectNot: true, from: [0, Y12, 8.5], heroes: ['lotti'],
+        legs: [{ warp: [0, 0] }, { engage: 'koenige', center: [0, -110] }, { wait: 900 }] },
+      { name: 'Stern 2: letzte Box (Schlüssel gutgeschrieben) – Würfelblase besiegen, Stern, Rück-Warp-Box zum Zielplatz', star: 2, from: [0, Y12, 8.5],
+        legs: [{ grantKeys: true }, { expect: 'blaseOffen' }, { to: [3.4, 3], within: 0.6 }, { to: [3, -5.6], within: 0.6 }, { warp: [0, -7.5] }, { engage: 'blase', center: [0, 110] }, { fight: 'blase' }, { star: 2 }, { keyBack: 'blase' },
+          { expect: '=P().pos.z > 140' }], shot: 'stern2' },
+    ],
+    extra: [
+      { name: 'Letzte Box bleibt verschlossen, solange Schlüssel fehlen', from: [0, Y12, -4.6], heroes: ['lotti'],
+        legs: [{ expect: '=!!named("hub_blase").locked' }, { to: [0, -7.5], jump: 30, jumpAt: 2, within: 0.3, run: false, max: 300, partial: true }, { wait: 90 }, { expect: '=Math.abs(P().pos.z) < 12 && named("hub_blase").entered === 0' }] },
+      { name: 'Erledigte Box ist zu: nach dem Sieg über den Kippquader-König führt sie nicht mehr hinein', from: [0, Y12, 8.5], heroes: ['lotti'],
+        legs: [{ warp: [-6, 5.5] }, { engage: 'kq', center: [-80, 40] }, { fight: 'kq', center: [-80, 40] }, { keyBack: 'kq' }, { to: [-3.4, 5.5], within: 0.4, run: false },
+          { mark: true }, { to: [-6, 5.5], jump: 30, jumpAt: 2.4, within: 0.3, run: false, max: 300, partial: true }, { wait: 120 },
+          { expect: '=named("hub_kq").done && Math.abs(P().pos.x) < 12' }] },
+      { name: 'Tod im Kampf: Neustart am Eingang des Raums, der Kampf beginnt von vorn, gesammelte Schlüssel bleiben', from: [0, Y12, 8.5], heroes: ['lotti'],
+        legs: [{ warp: [-6, 5.5] }, { engage: 'kq', center: [-80, 40] }, { fight: 'kq', center: [-80, 40] }, { keyBack: 'kq' }, { warp: [6, 5.5] }, { engage: 'wirbel', center: [80, 40] },
+          { fight: 'wirbel', center: [80, 40], ring: 6, untilHp: 2 }, { expect: '=named("wirbel").hp === 2' },
+          { kill: true }, { wait: 600 }, { expect: '=!P().dead && Math.abs(P().pos.x - 80) < 2 && Math.abs(P().pos.z - 48.6) < 2' },
+          { expect: '=named("wirbel").hp === 3 && named("hub").keys === 1' }] },
+      { name: 'Die Uhr läuft im Hub weiter (500 s für alles)', from: [0, Y12, 8.5], heroes: ['lotti'],
+        legs: [{ mark: true }, { wait: 360 }, { expect: '=window.__mark.time - L.runtime.timeLeft > 2.9' }] },
+    ],
     shots: [
       ['hub', [0, Y12, 8.5]],
       ['hub_boxen', [0, Y12, 2]],
-      ['kq', [-80, Y12, 47]],
-      ['schatten', [-80, Y12, -42]],
-      ['lava', [80, Y12, -42]],
-      ['wirbel', [80, Y12, 47]],
-      ['koenige', [0, Y12, -99]],
+      ['kq', [-80, Y12, 47], 420, { y: 0.5 }],
+      ['schatten', [-80, Y12, -42], 520, { y: 0.4 }],
+      ['lava', [80, Y12, -42], 600, { y: 0.35 }],
+      ['wirbel', [80, Y12, 47], 420, { y: 0.4 }],
+      ['koenige', [0, Y12, -99], 900, { y: 0.15 }],
       ['blase', [0, Y12, 119]],
       ['zielplatz', [0, Y12, 152]],
     ],
@@ -1158,7 +1188,7 @@ function install() {
           const hp0 = b.hp;
           let k = 0, j0 = -1, stomps = 0;
           const open = () => (Lg.fight === 'wirbel' ? b.state === 'stunned' : b.vulnerable && b.state !== 'appear');
-          for (; k < 120 * 200 && b.state !== 'gone' && !b.defeated && !p.dead; k++) {
+          for (; k < 120 * 200 && b.state !== 'gone' && !b.defeated && !p.dead && !(Lg.untilHp !== undefined && b.hp <= Lg.untilHp); k++) {
             const dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
             let inp;
             if (open() || (j0 >= 0 && p.mode === 'air')) {
@@ -1187,6 +1217,7 @@ function install() {
             }
             tick(inp);
           }
+          if (Lg.untilHp !== undefined) { log.push([Lg.fight, 'bis hp', b.hp]); continue; }
           for (let i = 0; i < 600 && b.state !== 'gone'; i++) tick({});
           mech.bosses = { ...(mech.bosses ?? {}), [Lg.fight]: { hits: hp0 - b.hp, state: b.state, stomps, time: +(k / 120).toFixed(1) } };
           log.push([Lg.fight, JSON.stringify(mech.bosses[Lg.fight])]);
@@ -1350,6 +1381,15 @@ function install() {
           mech.bosses = { ...(mech.bosses ?? {}), blase: { hits: hp0 - b.hp, state: b.state, multi: !!b.multi, waves: waveSeen.size, waveHits: b.waveHits ?? 0, stomps, jumps, time: +(n / 120).toFixed(1) } };
           log.push(['Würfelblase', JSON.stringify(mech.bosses.blase)]);
           if (b.state !== 'gone') { log.push(['FEHLER: Würfelblase nicht besiegt', b.state, b.hp]); break; }
+          continue;
+        }
+        // ------------------------------------------------ B-12 (Prüfkürzel): Schlüssel der fünf freien Kämpfe gutschreiben (wie course_bonus_enemies) – nur für Ziele hinter der letzten Box
+        if (Lg.grantKeys) {
+          const H = named('hub');
+          for (const f of H.fights) if (!f.final) { f.won = true; f.keyGot = true; f.done = true; f.box?.markDone(); }
+          H.keys = H.need;
+          for (let n = 0; n < 240 && !H.open; n++) tick({});
+          log.push(['Schlüssel gutgeschrieben', H.keys, H.open]);
           continue;
         }
         // ------------------------------------------------ Restzeit setzen (Zeitablauf prüfen)
