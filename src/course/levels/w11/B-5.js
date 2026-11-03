@@ -74,7 +74,7 @@ export const LEVEL = remixOf('5-4', {
       { type: 'cloud', id: 'gipfelwolke', pos: [11.6, T4 + 0.4, -94], size: [3.6, 0.6, 3.2] },
       { type: 'glasspipe', id: 'roehre_turm', radius: 1, coins: 4,
         path: [[13.2, T4 + 2.05, -94], [16, T4 + 2.05, -94], [19, T4 + 5.4, -94.5], [22, TURM[4] + 1.05, -95], [25.2, TURM[4] + 1.05, -95]] },
-      isl(TURM[0], TURM[1], TURM[2], TURM[3], TURM[4], 5),
+      isl(TURM[0], TURM[1], TURM[2], TURM[3], TURM[4], 1.2),   // nur die Deckplatte (die Flanke zeichnet cliffSkirt)
       { type: 'sign', pos: [6.6, T4, -97.4], text: 'Wolke →', size: [1.4, 0.6], yaw: -0.5 },
       // ---------------- Plateau: bewegte Wolken und Wolkenlift zum Zielfelsen
       wolke('wolke_ab', [0, TOP - 0.6, -224.4], [[0, TOP - 0.6, -224.4], [0, TOP - 0.6, -229.6]]),
