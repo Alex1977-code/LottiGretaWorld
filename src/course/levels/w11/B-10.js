@@ -16,6 +16,7 @@
 //   Eiswabe am rechten Rand des Felds geworfen.
 
 import { remixOf } from '../../level/remix.js';
+import { schattenDiaet } from '../w5/_helpers_a.js';
 import { ring, line, wabenUmmalen, wabenListe } from './_helpers_bc.js';
 
 const PI = Math.PI;
@@ -60,7 +61,7 @@ export const LEVEL = remixOf('S-6', {
     { match: { type: 'stachelwalze_rot' }, fn: (e) => ({ ...e, speed: e.speed * 1.5 }) },
     { match: { type: 'mover', id: BLOCK_IDS }, fn: (e) => ({ ...e, speed: e.speed * 1.35, wait: 0.5 }) },
     // Flatterkäfer-Runde: Extraleben statt des Sterns der Basis
-    { match: { id: 'kaeferrunde' }, set: { onClear: { power: 'oneup' }, banner: 'Alle Flatterkäfer besiegt – ein Extraleben!' } },
+    { match: { id: 'kaeferrunde' }, set: { onClear: { power: 'oneup', pos: [0, 1.2, -148.4] }, banner: 'Alle Flatterkäfer besiegt – ein Extraleben!' } },
   ],
   stars: [
     STAR0,                                                               // 0: neben dem Schwebeblock (Wurfsichel)
@@ -83,6 +84,11 @@ export const LEVEL = remixOf('S-6', {
       ring([8.5, 0.6, -30], 1.2, 6),                                     // Ende des rechten Wegs (früher Stern)
       line([-1.41, 0.5, -258.6], [-1.41, 0.5, -261.4], 2),                // zur Eiswabe am Lavafeld
     ],
+  },
+  setup(level) {
+    // Budget (Taglicht mit Sonnenschatten, mehr Gegner): Käfer und Stachelkugler werfen keinen Sonnenschatten (Schattenfleck
+    // bleibt) – von oben sieht man ohnehin vor allem den Fleck
+    schattenDiaet(level, ['krabbelkaefer', 'flatterkaefer', 'stachelkugler'], 0);
   },
   marks: {
     start: [0, 0, 0], schwebe: [-10.2, 1.3, -4.2], stern0: STAR0, roehre: [0, 0, -87.5], rohr: ROHR, insel: [0, 0, -120.5],

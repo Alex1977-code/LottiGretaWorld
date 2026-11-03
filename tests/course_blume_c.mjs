@@ -167,14 +167,14 @@ const ROUTES = {
       { name: 'Glasröhre gefahren, beide Stachelkugler mit der Wurfsichel besiegt, über die Lava-Hürden gesprungen', ok: (r) => r.mech.pipes >= 1 && r.mech.stomped.includes('sk_gabel') && r.mech.stomped.includes('sk_feld') },
     ],
     targets: [
-      { name: 'Stern 0: auf den Schwebeblock nahe dem Start springen und die Wurfsichel hinaus ins All werfen', star: 0, from: [-5.2, 0, -4.2], place: { power: 'sichel' },
-        legs: [{ to: [-6.6, -4.2], within: 0.3, run: false }, { name: 'auf den Schwebeblock', to: [-10.6, -4.2], jump: 24, jumpAt: 2.6, within: 0.4, run: false },
+      { name: 'Stern 0: auf den Schwebeblock nahe dem Start springen und die Wurfsichel hinaus ins All werfen', star: 0, from: [-4.2, 0, -4.9], place: { power: 'sichel' },
+        legs: [{ to: [-6.2, -4.6], within: 0.3, run: false }, { name: 'auf den Schwebeblock', to: [-10.4, -4.2], jump: 30, jumpAt: 5, within: 0.4, run: false },
           { to: [-11.2, -4.2], within: 0.2, run: false, slow: 0.4 }, { sichelAt: [-17.4, -4.2] }, { expect: '=P().mode === "ground" && P().pos.y > 1.2' }], shot: 'stern0' },
       { name: 'Stern 0 nicht vom Waben-Rand aus (die Sichel fliegt zu tief)', star: 0, expectNot: true, from: [-6.4, 0, -4.2], heroes: ['lotti'], place: { power: 'sichel', yaw: PI },
         legs: [{ sichelAt: [-17.4, -4.2] }] },
       { name: 'Stern 1: von der Röhren-Plattform auf die Glasröhre klettern, oben über den Lavasee balancieren, am Scheitel hochspringen', star: 1, from: [2.8, 0, -88.4],
         legs: [{ to: [2.8, -90.8], within: 0.3, run: false }, { name: 'auf die Röhre', to: [0, -92.2], jump: 30, jumpAt: 3, within: 0.4, run: false },
-          { expect: '=P().mode === "ground" && P().ground?.tag === "glasspipe"' }, { to: [0, -100.2], within: 0.3, run: false, slow: 0.6 }, { hop: 30 },
+          { expect: '=P().mode === "ground" && P().ground?.tag === "glasspipe"' }, { to: [0, -101], within: 0.25, run: false, slow: 0.6 }, { hop: 30 },
           { to: [0, -109.4], within: 0.4, run: false, slow: 0.6 }, { to: [0, -113.8], within: 0.6, run: false }, { expect: '=P().pos.z < -110 && !P().dead' }], shot: 'stern1' },
       { name: 'Stern 1 nicht ohne die Röhre (Sprung von der Plattform)', star: 1, expectNot: true, from: [0, 0, -90.8], heroes: ['lotti'], invuln: false,
         legs: [{ hop: 40 }, { wait: 60 }] },
@@ -186,7 +186,7 @@ const ROUTES = {
     ],
     extra: [
       { name: 'Stachelkugler: Draufspringen verletzt (nur Sichel oder drüberspringen)', from: [-4.3, 0, -18.6], heroes: ['lotti'], invuln: false,
-        legs: [{ stompAll: ['sk_gabel'], max: 400, partial: true }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+        legs: [{ stompAll: ['sk_gabel'], max: 160, partial: true }], mech: (r) => r.mech.hurts >= 1 && !!r.alive, mechText: (r) => `Treffer ${r.mech.hurts}` },
       { name: 'Lava-Hürde auf dem mittleren Splitterweg: Hineinlaufen verletzt', from: [0, 0, -178.4], heroes: ['lotti'], invuln: false,
         legs: [{ to: [0, -181.5], within: 0.3, run: false, max: 200, partial: true }, { wait: 40 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
       { name: 'Flatterkäfer-Runde im Käferfeld: alle besiegt → Extraleben', from: [0, 0, -137], heroes: ['lotti'], expectLives: 1,
@@ -915,7 +915,7 @@ function install() {
       c.setInput({});
       mech.hurts = p.hurtTries ?? 0;
       mech.defeated = foes0.filter((e) => e.defeated || !e.alive || e.removed).length;
-      return { log, autoJumps, steps, time: steps / 120, clocks: L.named.get('uhren')?.got ?? 0, room: L.named.get('feuertuerme')?.state ?? null, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, cause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
+      return { alive: !!L.entities.find((e) => e.spec?.id === 'sk_gabel' && !e.removed && !e.defeated), log, autoJumps, steps, time: steps / 120, clocks: L.named.get('uhren')?.got ?? 0, room: L.named.get('feuertuerme')?.state ?? null, pos: [p.pos.x, p.pos.y, p.pos.z], dead: p.dead, cause: p.deathCause ?? null, status: L.runtime.status, info: p.info(), rt: L.runtime.info(), mech, power: p.power, track };
     },
     chase(kind, o = {}) {
       const p = P();
