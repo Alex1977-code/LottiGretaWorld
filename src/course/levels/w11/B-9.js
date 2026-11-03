@@ -17,7 +17,8 @@
 // Krümel feiert in seiner Wandhöhle den Sonnenuntergang (die Krabbelkäfer sind fort, dort liegt eine Zeit-Uhr).
 
 import { remixOf } from '../../level/remix.js';
-import { line, ring, arc, uhrenZurueck, strandfackeln, schlafturm } from './_helpers_bc.js';
+import { schattenDiaet } from '../w5/_helpers_a.js';
+import { line, ring, arc, uhrenZurueck, strandfackeln, schlafturm, reiterPlattformDurchlaessig } from './_helpers_bc.js';
 
 const Y = 1;            // Strand
 const SKY = 9;          // Schwebeinsel (Ziel)
@@ -58,8 +59,8 @@ export const LEVEL = remixOf('5-1', {
   start: { pos: [0, Y, 10], yaw: Math.PI / 2 },
   clocks: {
     id: 'uhren', sec: 10, list: [
-      [-9, Y + 1.4, 6], [-22, Y + 1.4, -4], [-6, Y + 1.4, -9.5], [9, Y + 1.4, 6.5], [24.5, Y + 1.4, 2.5], [6, Y + 1.4, -16.5],
-      [48, Y + 1.2, -6.5],                                         // in Krümels Wandhöhle
+      [-9, Y + 0.9, 6], [-22, Y + 0.9, -4], [-6, Y + 0.9, -9.5], [9, Y + 0.9, 6.5], [24.5, Y + 0.9, 2.5], [6, Y + 0.9, -16.5],
+      [48, Y + 0.9, -6.5],                                         // in Krümels Wandhöhle
     ],
   },
   stars: [
@@ -72,8 +73,8 @@ export const LEVEL = remixOf('5-1', {
     segments: [
       // Glasröhre vom Strand hinauf, das Ende zeigt senkrecht nach oben (schießt die Figur auf die Wolke)
       { type: 'glasspipe', id: 'roehre', oneWay: true, radius: 0.95, exitSpeed: 12, coins: 4,
-        path: [[PX, Y + 0.95, -4.4], [PX, Y + 0.95, -8.6], [PX, Y + 2.0, -11.6], [PX, Y + 4.0, -13.2], [PX, Y + 5.6, -13.7]] },
-      { type: 'cloud', id: 'wolke', pos: [PX, 7.8, -14.4], size: [3.4, 0.6, 3.2] },
+        path: [[PX, Y + 0.95, -4.4], [PX, Y + 0.95, -8.6], [PX, Y + 1.9, -11.8], [PX, Y + 3.6, -13.4], [PX, Y + 4.8, -13.8], [PX, Y + 5.8, -13.8]] },
+      { type: 'cloud', id: 'wolke', pos: [PX, 7.8, -14.2], size: [3.4, 0.6, 3.4] },
       { type: 'sign', pos: [-30.6, Y, 2.8], text: '4 Fackeln mit\nFeuer anzünden!', size: [2.6, 0.9], yaw: 0.35 },
       { type: 'sign', pos: [-4.2, Y, -16.6], text: 'Ziel-Warp-Box:\nerst alle Türme!', size: [2.4, 0.85] },
       { type: 'sign', pos: [46.2, Y, 12.8], text: 'Pst – hier\nschläft ein Turm', size: [2.4, 0.85], yaw: -0.3 },
@@ -110,6 +111,11 @@ export const LEVEL = remixOf('5-1', {
   },
   setup(level) {
     uhrenZurueck(level, 'uhren');
+    reiterPlattformDurchlaessig(level, TUERME);
+    // Budget (offener Strand mit vier Türmen): die Türme werfen keinen Sonnenschatten (Schattenfleck bleibt), die Werfer nur
+    // mit ihrem größten Teil
+    schattenDiaet(level, ['pilzlingsturm'], 0);
+    schattenDiaet(level, ['feuer_werfer'], 1);
     schlafturm(level, 'schlafturm', { regrow: 2.4, min: 1 });
     // Krümel feiert in seiner Wandhöhle den Sonnenuntergang (keine Käfer mehr)
     const k = level.named.get('kruemel');

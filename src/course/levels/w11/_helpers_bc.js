@@ -292,3 +292,23 @@ export function schlafturm(level, id, o = {}) {
   });
   return st;
 }
+
+// =====================================================================================================================
+// B-9: Feuertürme – Feuerbälle durch die Reiter-Plattform
+// =====================================================================================================================
+
+/**
+ * Der Feuer-Werfer auf einem Pilzlingsturm steht auf einer unsichtbaren Plattform (Kollisionsform des Turms, 1 × 1 m, fährt
+ * mit der Turmspitze). Ist der Turm nur noch ein, zwei Pilzlinge hoch, liegt sie in Hüpfhöhe der Feuerbälle der Funkenblüte –
+ * sie prallten an ihr ab, statt den Turm zu treffen. Hier wird sie für Geschosse durchlässig (ballPass, fest bleibt sie für
+ * den Reiter). (LEVEL.setup) ids: Turm-Ids. → Zahl der Plattformen.
+ */
+export function reiterPlattformDurchlaessig(level, ids) {
+  let n = 0;
+  for (const id of ids) {
+    const e = level.named.get(id);
+    const s = e && e.topSid !== null && e.topSid !== undefined ? level.world.get(e.topSid) : null;
+    if (s) { s.ballPass = true; n++; }
+  }
+  return n;
+}
