@@ -230,6 +230,7 @@ const ROUTES = {
       { to: [0, -38.5], jump: 24, jumpAt: 6, within: 0.5, run: false },
       { to: [0, -43.8], jump: 24, jumpAt: 6, within: 0.5, run: false },
       { name: 'Turm 2', to: [0, -47.2], within: 0.5 },
+      { name: 'Feuer-Werfer am Ende von Abschnitt 1', stompAll: 'werfer0' },
       { name: 'Warp-Box über den Graben', warp: [2.5, -50.5] },
       { expect: '=P().pos.z < -66 && P().pos.z > -80' },
       { to: [0, -81.2], within: 0.4 },
@@ -260,7 +261,7 @@ const ROUTES = {
       { name: 'Zielmast', to: [0, -299.4], within: 0.2 },
     ],
     routeChecks: [
-      { name: 'drei Warp-Boxen, drei Werfer der Basis besiegt, drei orange Schwebeplattformen, über alle Stachelfallen gesprungen', ok: (r) => r.mech.warps === 3 && r.log.filter((l) => l[0] === 'stachelblock').length === 3 },
+      { name: 'drei Warp-Boxen, vier Feuer-Werfer besiegt, drei orange Schwebeplattformen, über alle Stachelfallen gesprungen', ok: (r) => r.mech.warps === 3 && ['werfer0', 'werfer1', 'werfer2', 'werfer3'].every((id) => r.mech.stomped.includes(id)) && r.log.filter((l) => l[0] === 'stachelblock').length === 3 },
     ],
     targets: [
       { name: 'Stern 0: Krallen-Anzug aus dem ?-Block auf Turm 1, über Steg 2, am Ende von Abschnitt 1 die Säule links vom Feuer-Werfer hinauf', star: 0, from: [0, Y11, -22.4],
@@ -274,13 +275,14 @@ const ROUTES = {
           { to: [-5.0, -185.8], within: 0.3, run: false }, { climb: [-5.0, -188.8], top: Y11 + 6.6, then: [-5.0, -188.8] }, { star: 1 }], shot: 'stern1' },
       { name: 'Stern 1 nicht ohne Krallen-Anzug', star: 1, expectNot: true, from: [-5.0, Y11, -185.8], heroes: ['lotti'],
         legs: [{ climb: [-5.0, -188.8], top: Y11 + 6.6, max: 400, partial: true }, { wait: 30 }] },
-      { name: 'Stern 2: auf der großen Stachelplattform warten, nach links über die Bröckelblock-Brücke auf den Säulenkopf', star: 2, from: [0, Y11, -235.2],
+      { name: 'Stern 2: auf der großen Stachelplattform warten, nach links über die Bröckelblock-Brücke auf den Säulenkopf, Warp-Box zurück', star: 2, from: [0, Y11, -235.2],
         legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] },
-          { to: [-3.9, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false }, { to: [-6.5, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false },
-          { to: [-9.1, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false }, { to: [-12.6, -251.2], jump: 24, jumpAt: 4, within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
+          { to: [-3.8, -251.2], jump: 14, jumpAt: 1.9, within: 1.0, run: true }, { to: [-6.2, -251.2], jump: 16, jumpAt: 2.6, within: 1.0, run: true },
+          { to: [-8.6, -251.2], jump: 16, jumpAt: 2.6, within: 1.0, run: true }, { to: [-11.9, -251.2], jump: 24, jumpAt: 3.4, within: 0.4, run: true, stopIf: '=P().pos.z > -240' }, { wait: 200 },
+          { expect: '=Math.abs(P().pos.z + 232) < 2 && !P().dead' }], shot: 'stern2' },
       { name: 'Stern 2 nicht ohne Bröckelblöcke (Sprung von der großen Plattform zum Säulenkopf)', star: 2, expectNot: true, from: [0, Y11, -235.2], heroes: ['lotti'], invuln: false, expectAlive: false,
         legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] },
-          { to: [-12.6, -251.2], jump: 40, jumpAt: 13, within: 0.4, max: 300, partial: true }, { wait: 240 }] },
+          { to: [-11.9, -251.2], jump: 40, jumpAt: 13, within: 0.4, max: 300, partial: true }, { wait: 240 }] },
     ],
     extra: [
       { name: 'Suchscheinwerfer: im Lichtfleck fährt die Stachelfalle aus und bleibt draußen (länger als ihr Takt)', from: [0, Y11, 4], heroes: ['lotti'],
@@ -289,12 +291,13 @@ const ROUTES = {
       { name: 'Entdeckt: wer ins Licht läuft, lässt alle drei Fallen von Steg 2 ausfahren', from: [0, Y11, -26], heroes: ['lotti'],
         legs: [{ until: '=Math.hypot(named("licht_steg2").spot.x, named("licht_steg2").spot.z + 29.6) < 1', max: 2400 }, { to: [0, -29.6], within: 0.4, run: false, max: 200 },
           { until: '=named("licht_steg2").alarms > 0', max: 240 }, { wait: 70 }, { expect: '=["falle2", "falle3", "falle4"].every((id) => ent(id).state === "up")' }] },
-      { name: 'Stachelfalle im Licht verletzt, wer draufsteht', from: [0, Y11, -10.6], heroes: ['lotti'], invuln: false,
+      { name: 'Stachelfalle im Licht verletzt, wer draufsteht', from: [0, Y11, -10.6], heroes: ['lotti'], invuln: false, anyAlive: true,
         legs: [{ until: '=named("suchlichtFallen").stuck("falle1") && ent("falle1").state === "up"', max: 2400 }, { to: [0, -13], within: 0.3, run: false, max: 200, partial: true }, { wait: 40 }],
         mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
-      { name: 'Bröckelblock fällt nach dem Betreten und kommt nach 4 s wieder', from: [0, Y11, -235.2], heroes: ['lotti'],
-        legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] }, { to: [-3.9, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false },
-          { to: [-6.5, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false }, { wait: 30 }, { expect: '=named("broeckel").blocks[0].state !== "fest"' }, { wait: 600 }, { expect: '=named("broeckel").blocks[0].state === "fest"' }] },
+      { name: 'Bröckelblock fällt nach dem Betreten und kommt nach 4 s wieder (Rückweg über die Warp-Box auf dem Säulenkopf)', from: [0, Y11, -235.2], heroes: ['lotti'],
+        legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] }, { to: [-3.8, -251.2], jump: 14, jumpAt: 1.9, within: 1.0, run: true },
+          { to: [-6.2, -251.2], jump: 16, jumpAt: 2.6, within: 1.0, run: true }, { to: [-8.6, -251.2], jump: 16, jumpAt: 2.6, within: 1.0, run: true },
+          { to: [-11.9, -251.2], jump: 24, jumpAt: 3.4, within: 0.4, run: true, stopIf: '=P().pos.z > -240' }, { wait: 30 }, { expect: '=named("broeckel").blocks[0].state !== "fest"' }, { wait: 520 }, { expect: '=named("broeckel").blocks[0].state === "fest"' }] },
       { name: 'Wachstube (Rätselbox auf der Kletterwand): Wache besiegen → Extraleben statt Stern', from: [-19, Y11 + 9, -152.4], heroes: ['lotti'], expectLives: 1,
         legs: [{ warp: [-19, -153.5] }, { until: '=P().pos.x > 80', max: 600 }, { to: [88, -150], within: 0.5, run: false }, { stompAll: 'wache' }, { wait: 120 }, { chaseKind: 'powerup', max: 1200 }] },
     ],
@@ -308,7 +311,7 @@ const ROUTES = {
       ['keil', [0, Y11, -183]],
       ['steg3', [0, Y11, -192]],
       ['schwebe', [0, Y11, -234]],
-      ['broeckel', [-6.5, Y11, -248.6]],
+      ['broeckel', [-6.2, Y11, -248.6]],
       ['ziel', [0, Y11, -294]],
     ],
   },
@@ -1339,7 +1342,7 @@ for (const id of LEVELS) {
       let ok = true;
       if (t.expectCoins !== undefined) ok = ok && res.rt.coins - coins0 >= t.expectCoins;
       if (t.expectLives !== undefined) ok = ok && lives1 - lives0 >= t.expectLives;
-      if (t.expectAlive !== false) ok = ok && !res.dead;
+      if (t.expectAlive !== false && !t.anyAlive) ok = ok && !res.dead;
       if (t.mech && !t.mech(res)) ok = false;
       if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));

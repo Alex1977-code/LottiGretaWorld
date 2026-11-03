@@ -18,7 +18,8 @@
 //     Fallblöcke nach der Keil-Gruppe liegen Bitcoins.
 // Sterne (Index): 0 **Ende Abschnitt 1**: Kletter-Säule links vom Feuer-Werfer auf Turm 2 (Krallen-Anzug), 1 **Säule nach dem
 //   Kontrollpunkt** am Platz der Keil-Gruppe (Krallen-Anzug aus dem ?-Block am Kontrollpunkt), 2 **Bröckelblock-Brücke bei der
-//   großen Stachelplattform**: von der großen Plattform nach links über drei Bröckelblöcke auf einen Säulenkopf.
+//   großen Stachelplattform**: von der großen Plattform nach links über drei Bröckelblöcke auf einen Säulenkopf (der Stern
+//   schwebt über einer Warp-Box, die zurück vor die Schwebeplattformen bringt).
 
 import { remixOf } from '../../level/remix.js';
 import { isl, ring, column, fallblockRuhig } from '../w8/_helpers_a.js';
@@ -27,7 +28,7 @@ import { suchlichtFallen, orangeBloecke, blaueStege } from './_helpers_bc.js';
 const Y = 1;
 const SAEULE1 = [-3.4, Y, -49.6];       // Ende Abschnitt 1, links vom Feuer-Werfer (Turm 2)
 const SAEULE2 = [-5.0, Y, -188.8];      // nach dem Kontrollpunkt (Platz der Keil-Gruppe)
-const KOPF = [-12.6, Y, -251.2];        // Säulenkopf hinter der Bröckelblock-Brücke
+const KOPF = [-11.9, Y, -251.2];        // Säulenkopf hinter der Bröckelblock-Brücke
 const licht = (id, path, lamp, o = {}) => ({ type: 'suchscheinwerfer', id, path, lamp, radius: 2.3, speed: 2.4, cooldown: 3, alarmTime: 1.6, track: false, ...o });
 // Stege mit Stachelfallen [x0, x1, zA, zB] (wie in 8-1): blau gepflastert
 const STACHELSTEGE = [[-1.3, 1.3, -6, -20], [-1.2, 1.2, -27, -45], [-1.5, 1.5, -192, -208], [-16, -8, -148.3, -150.7]];
@@ -56,7 +57,7 @@ export const LEVEL = remixOf('8-1', {
   stars: [
     [SAEULE1[0], Y + 6.7, SAEULE1[2]],                                   // 0: Säule links vom Feuer-Werfer (Ende Abschnitt 1)
     [SAEULE2[0], Y + 6.7, SAEULE2[2]],                                   // 1: Säule nach dem Kontrollpunkt
-    [KOPF[0], Y + 1.1, KOPF[2]],                                         // 2: hinter der Bröckelblock-Brücke
+    [KOPF[0], Y + 2.5, KOPF[2]],                                         // 2: hinter der Bröckelblock-Brücke (über der Warp-Box)
   ],
   add: {
     segments: [
@@ -69,8 +70,8 @@ export const LEVEL = remixOf('8-1', {
       { type: 'wall', pos: SAEULE1, size: [1.6, 6.6, 1.6], climbable: true },
       { type: 'wall', pos: SAEULE2, size: [1.6, 6.6, 1.6], climbable: true },
       // Bröckelblock-Brücke von der großen Stachelplattform nach links, Säulenkopf mit dem Stern
-      { type: 'fallblock_bruecke', id: 'broeckel', mode: 'einzeln', blocks: [[-3.9, Y - 0.6, -251.2], [-6.5, Y - 0.4, -251.2], [-9.1, Y - 0.2, -251.2]], size: [1.6, 0.6, 1.6], respawn: 4 },
-      isl(KOPF[0] - 1.2, KOPF[0] + 1.2, KOPF[2] + 1.2, KOPF[2] - 1.2, Y, 8, { top: 'stone' }),
+      { type: 'fallblock_bruecke', id: 'broeckel', mode: 'einzeln', blocks: [[-3.8, Y - 0.6, -251.2], [-6.2, Y - 0.4, -251.2], [-8.6, Y - 0.2, -251.2]], size: [1.6, 0.6, 1.6], warn: 0.7, respawn: 4 },
+      isl(KOPF[0] - 1.5, KOPF[0] + 1.5, KOPF[2] + 1.5, KOPF[2] - 1.5, Y, 8, { top: 'stone' }),
     ],
     blocks: [
       { kind: 'question', pos: [2.6, Y + 1.9, -24.4], content: 'krallen' },              // Turm 1
@@ -82,7 +83,9 @@ export const LEVEL = remixOf('8-1', {
       column(SAEULE1[0], SAEULE1[2] + 1.2, Y + 1.2, Y + 5.6, 4),
       column(SAEULE2[0], SAEULE2[2] + 1.2, Y + 1.2, Y + 5.6, 4),
       ring([17.2, Y + 1, -186.3], 0.8, 5),                                              // Ende der Fallblöcke (früher Stern 2)
-      ring([KOPF[0], Y + 0.8, KOPF[2]], 0.7, 4),
+      ring([KOPF[0], Y + 2.5, KOPF[2]], 1.0, 5),
+      // Warp-Box auf dem Säulenkopf zurück zum Platz vor den Schwebeplattformen
+      { kind: 'warpbox', id: 'kopf_warp', pos: KOPF, target: [0, Y, -232] },
     ],
   },
   build(level) {
