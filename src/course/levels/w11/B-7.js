@@ -19,6 +19,7 @@
 //   Stempel; die springenden Flosslinge am Holzsteg (dort patrouilliert ein Rammfisch).
 
 import { remixOf } from '../../level/remix.js';
+import { LEVEL as BASIS } from '../w3/3-5.js';
 import { felsen } from '../w3/_helpers_d.js';
 
 const Y = 1;           // Land
@@ -48,6 +49,8 @@ export const LEVEL = remixOf('3-5', {
   timeLimit: 400,
   stamp: false,
   remove: [{ kind: 'flossling' }],
+  // Kanal bei den Stachelblöcken: flachere Kamera (blendet mit der Kanal-Schiene), damit Kanzel und Grotte darunter zu sehen sind
+  camera: [...BASIS.camera, { from: -165, to: -181, pitch: 26, dist: 10.5, fov: 40, x: 3, xLock: 0.35, area: [-1, 12] }],
   // der Stachelfisch an der Kanal-Oberfläche weicht den Stachelblöcken aus
   change: [{ match: { id: 'sK' }, set: { pos: [-4, 0, -170] } }],
   stars: [
@@ -58,10 +61,13 @@ export const LEVEL = remixOf('3-5', {
   add: {
     segments: [
       // drei Stachelblöcke als Trittsteine im Kanal (oben begehbar, Seiten stechen)
-      { type: 'stachelblock', id: 'sb1', pos: [5.2, -1, -167.6], size: [2, 2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
-      { type: 'stachelblock', id: 'sb2', pos: [5.2, -1, -173], size: [2, 2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
-      { type: 'stachelblock', id: 'sb3', pos: [5.2, -1, -178.2], size: [2, 2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
+      { type: 'stachelblock', id: 'sb1', pos: [5.2, -0.2, -167.6], size: [2, 1.2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
+      { type: 'stachelblock', id: 'sb2', pos: [5.2, -0.2, -173], size: [2, 1.2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
+      { type: 'stachelblock', id: 'sb3', pos: [5.2, -0.2, -178.2], size: [2, 1.2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
       { type: 'sign', pos: [-3.6, Y, -158.6], text: 'Felswände?\nKanone!', size: [2.2, 0.9], yaw: 0.3 },
+      // Luftblasen steigen vor der Grotte am Kanalgrund auf (verraten die vier Felsblöcke von oben)
+      { type: 'blasen', pos: [5.6, -6, -171.2], height: 6, count: 10 },
+      { type: 'blasen', pos: [5.6, -6, -174.8], height: 6, count: 8 },
     ],
     enemies: [
       // Tiefwasser: Rammfische und Tintlinge statt der Flossling-Schwärme

@@ -1246,7 +1246,7 @@ for (const id of LEVELS) {
       if (!t.expectNot && res.dead) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}${t.mechText ? `, ${t.mechText(res)}` : ''})`, !!ok);
-      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+      if (t.shot && hero === (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))[0]) await shot(`${id}_${t.shot}`);
     }
   }
 
@@ -1273,7 +1273,7 @@ for (const id of LEVELS) {
       if (!t.allowFail && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
       if (!ok || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));
       check(`${id}: ${t.name} (${hero}, Münzen +${res.rt.coins - coins0}, Leben ${lives1 - lives0 >= 0 ? '+' : ''}${lives1 - lives0}${t.mechText ? `, ${t.mechText(res)}` : ''})`, ok);
-      if (t.shot && hero === HEROES[0]) await shot(`${id}_${t.shot}`);
+      if (t.shot && hero === (t.heroes ?? HEROES).filter((h) => HEROES.includes(h))[0]) await shot(`${id}_${t.shot}`);
     }
   }
 

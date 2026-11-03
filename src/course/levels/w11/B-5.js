@@ -18,7 +18,7 @@
 
 import { remixOf } from '../../level/remix.js';
 import { LEVEL as BASIS } from '../w5/5-4.js';
-import { cliffSkirt, rectPoly, savannaFloor, dirtPath } from '../w5/_helpers_b.js';
+import { cliffSkirt, rectPoly, savannaFloor, dirtPath, balloons } from '../w5/_helpers_b.js';
 import { isl, line, arc, sternHier } from './_helpers_bb.js';
 
 const S1 = 10, T1 = 7, T4 = 19, Y3 = 9, TOP = 39;
@@ -118,6 +118,8 @@ export const LEVEL = remixOf('5-4', {
     savannaFloor(level, [[WIESE[0], WIESE[1], WIESE[2], WIESE[3], S1, 30], [TURM[0], TURM[1], TURM[2], TURM[3], TURM[4], 4], [ZIELFELS[0], ZIELFELS[1], ZIELFELS[2], ZIELFELS[3], ZF, 6]],
       { seed: 91, avoid: [[0, 30, 1.6], [27.6, -95, 1.4], [25, -95, 1.2], [8, -276, 1.6]] });
     dirtPath(level, [[0, 28], [0.6, 18], [-0.6, 10], [0, 6.4]], S1);
+    // Morgenhimmel: zwei Heißluftballons steigen neben der Wiese auf
+    balloons(level, [[-19, 17, 2, 0xff8a5a, 0xfff2a0, 0.9], [18, 13, -9, 0x5ad8a0, 0xffffff, 1.0]]);
   },
   marks: {
     start: [0, S1, 30], wiese: [0, S1, 20], kanone1: [0, S1, -2.6], gipfel: [1, T4, -96], wolke: [11.6, T4 + 1, -94], turm: [27.6, TURM[4], -95],
