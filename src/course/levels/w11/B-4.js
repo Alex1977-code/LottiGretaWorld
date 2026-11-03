@@ -25,7 +25,7 @@ import { Bld, litTop } from '../w5/_helpers_b.js';
 const Y = 1;
 const PI = Math.PI;
 const FLECK = [4.6, Y, -89.4];                       // beleuchtete Bodenstelle (Hubinsel)
-const ERKER = { x0: -4.6, x1: -3.0, z0: -176.7, z1: -174.3, top: Y + 8.2 };   // Mauer-Erker über dem ersten Stampfstein
+const ERKER = { x0: -4.6, x1: -3.0, z0: -174.3, z1: -176.7, top: Y + 8.2 };   // Mauer-Erker über dem ersten Stampfstein
 const c = (x, z, y = Y + 1.0) => [x, y, z];
 
 export const UHREN = [

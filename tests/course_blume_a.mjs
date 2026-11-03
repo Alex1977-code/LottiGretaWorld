@@ -597,7 +597,7 @@ const ROUTES = {
         legs: [{ to: [-1.8, -173.5], within: 0.2, run: false }, { until: '=ent(\'stampf1\').state === \'land\'', max: 400 }, { wait: 10 },
           { to: [-1.8, -175.5], y: 2.9, jump: 30, jumpAt: 2.5, within: 0.4, run: false }, { until: '=ent(\'stampf1\').state === \'wait\' && P().pos.y > 7', max: 900 },
           { to: [-3.8, -175.5], y: 9.1, jump: 50, jumpAt: 3, within: 0.5, run: false }, { wait: 30 }],
-        shot: 'stern0', mech: (r) => r.mech.maxY > 9, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(2)}` },
+        shot: 'stern0', mech: (r) => r.pos[1] > 9.1 && !r.dead, mechText: (r) => `steht auf dem Erker in y ${r.pos[1].toFixed(2)}` },
       { name: 'Stern 0 nicht vom Gang aus (Sprünge unter dem Erker)', star: 0, expectNot: true, from: [-3.0, Y, -172.6], heroes: ['lotti', 'greta'],
         legs: [{ to: [-3.4, -175.5], jump: 60, jumpAt: 4, within: 0.4, max: 200, autoJump: false }, { wait: 30 }, { hop: 60 }, { wait: 60 }] },
       { name: 'Stern 0 nicht von der Zinnenmauer (voller Sprung zum Erker)', star: 0, expectNot: true, from: [-4.15, Y + 3.3, -172.4], heroes: ['lotti', 'greta'], allowFail: true,
