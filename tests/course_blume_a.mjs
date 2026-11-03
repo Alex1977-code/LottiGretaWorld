@@ -6,10 +6,11 @@
 // __course.setInput/step, echte Eingaben – kein Teleport auf der Route), alle Sterne und Geheimnisse mit der echten Mechanik
 // samt Gegenproben, Kennzahlen entlang der Route (Zeichenaufrufe < 120 inkl. Schattenpass, Dreiecke < 300 k) und Bilder aus
 // der Spielkamera (tests/out/blume_a_*.png).
-// Aufruf (nach npm run build): node tests/course_blume_a.mjs [B-1|B-2|B-3|B-4]
-//   PARTS=load,rules,route,sweep,targets,extra,shots (Standard alle; je Lauf ≤ 10 min, z. B. PARTS=load,rules,route und
-//   PARTS=targets,extra getrennt) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras/Regeln mit diesem Namensteil) ·
-//   VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> (nur diese Bilder) · DETAIL=1 (Zeichenaufrufe je Objekt) · PORT_BASE
+// Aufruf (nach npm run build): node tests/course_blume_a.mjs B-n (ohne Angabe alle vier – dann PARTS aufteilen)
+//   PARTS=load,rules,route,sweep,targets,extra,shots (Standard alle; je Lauf < 10 min: je Level PARTS=load,rules,route,sweep
+//   und PARTS=targets,extra,shots, B-3 targets allein) · HEROES=lotti,greta · ONLY=<Text> (nur Ziele/Extras/Regeln mit diesem
+//   Namensteil) · VERBOSE=1 (Protokoll der Beine) · TRACE=1 (Spur je 10 Schritte) · SHOTS=<Name|Name> (nur diese Bilder) ·
+//   DETAIL=1 (Zeichenaufrufe je Objekt) · PORT_BASE
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist auf der Route
 // unverwundbar (Abpraller zählen weiter), damit Geometrie und Mechanik geprüft werden; Trefferversuche werden gezählt.
@@ -18,15 +19,17 @@ import { startServer, launchBrowser, makeChecker, OUT } from './helpers.mjs';
 
 // ------------------------------------------------------------------ Routen
 // Beine (legs): { to: [x, z], y (Mindesthöhe beim Landen), jump: Schritte (Sprungtaste gehalten), jumpAt, within, run, slow,
-//   max, land, autoJump, edgeJump, swimJump, stopIf } · { wait } · { hop } · { crouch } (Röhre) · { star: i } · { chaseKind,
-//   ids } · { expect } · { until } (Name aus COND oder Ausdruck '=…') · { acts: [...] } (Aktionen wie course_w1b: go/jump/
-//   waitfor/wallclimb/input/wait, track = mitfahren auf einer Plattform) · { tiles: [[x, z] …] } · { pipe: [x, z] } ·
+//   max, land, autoJump, edgeJump, swimJump, stopIf, vmax } · { wait } · { hop } · { crouch } (Röhre) · { star: i } ·
+//   { chaseKind, ids } · { expect } · { until } (Name aus COND oder Ausdruck '=…') · { acts: [...] } (Aktionen wie course_w1b:
+//   go/jump/waitfor/wallclimb/input/wait, track = mitfahren auf einer Plattform) · { tiles: [[x, z] …], group } · { pipe: [x, z] } ·
 //   { warp: [x, z] } · { stompAll: Id-Anfang } · { pound: [x, z], above } · { bounce: [x, z], at: [x, z], y } (Sprungfeld/Pilz-
-//   Trampolin) · { crusher: id } · { cloud: id, … } (fahrende Wolke im Autoscroller) · { plat: id, when, until } (Plattform
-//   abwarten, aufspringen, mitfahren) · { ride: id, board, exit, to } · { leap: [x, z], from, over } (aus dem Wasser springen) ·
-//   { dive: [x, z], y } · { swimOut: [x, z] } · { fire: Ziel } (Feuerbälle) · { torch: i } (Fackel anzünden) · { throwAt: [x, z] }
-//   (Wurfsichel) · { ball: id, throwTo: [x, z] } (Wurfball aufheben und werfen) · { grab: [x, z] } (Power-up aus ?-Block) ·
-//   { climb: [x, z], top } (Krallen-Anzug) · { long: [x, z] } (Weitsprung) · { die } · { upOnto: [x, z, top] }
+//   Trampolin) · { crusher: id } · { backflip: [fx, fz] } · { cloud: id, on, stand, at, off, rideUntil } (fahrende Wolke im
+//   Autoscroller, wie course_w6d) · { leap: [x, z], from, over } (aus dem Wasser springen, wie course_w8b) · { plat: id, when,
+//   until, fresh } (bewegte Plattform abwarten, aufspringen, mitfahren, wie course_w4a) · { torch: i, from, tries } (Fackel mit
+//   einem Feuerball anzünden) · { throwAt: [x, z] } (Wurfsichel) · { ball: id, throwTo: [x, z] } (Wurfball aufheben und werfen) ·
+//   { grab: [x, z], back, hold } (Power-up aus ?-Block) · { climb: [x, z], top, jumpAt, then } (Krallen-Anzug) · { long: [x, z] }
+//   (Weitsprung) · { die }
+// Je Level `drive: { run, vmax }` setzt die Vorgaben der Wegpunkte (B-2 wie course_w6d: gehen, Luftlenkung 8 m/s).
 const Y = 1;
 const PI = Math.PI;
 const U = 5, SH = 7.2, GOAL_B3 = 8.5;   // B-3: Oberland, Sims über dem Giftbecken, Zielinsel
