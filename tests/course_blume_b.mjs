@@ -114,6 +114,126 @@ const ROUTES = {
   },
 };
 
+// ------------------------------------------------------------------ B-6 (Basis 3-3)
+const Y6 = 1, YT6 = 7.6;
+const k1 = (id) => `=ent('${id}').k >= 0.999`;
+const FLUR = [
+  { name: 'Flur', to: [0, -14] },
+  { name: 'vor die Spuk-Treppe', to: [0, -23.4], run: false, within: 0.4 },
+  { until: k1('treppe_a'), max: 3000 },
+  { name: 'Spuk-Treppe hinauf', to: [0, -29.2], run: false, within: 0.3 },
+  { name: 'Tür zur Bibliothek', to: [0, -32], ride: true, run: false },
+];
+const BIS_HOF2 = [
+  { name: 'Bibliothek', to: [62.2, -41.4], within: 0.3 },
+  { name: 'Regal schieben', to: [62.2, -45.1], run: false, within: 0.3, max: 1600 },
+  { name: 'am Regal vorbei', to: [64.4, -45.1], run: false, within: 0.4 },
+  { name: 'Checkpoint', to: [65.4, -48.4] },
+  { name: 'vor die Treppe', to: [65.4, -51.6], run: false, within: 0.3 },
+  { until: k1('treppe_b1'), max: 3000 },
+  { name: 'Treppe 1 hinauf', to: [65.4, -56.4], run: false, within: 0.3 },
+  { until: k1('treppe_b2'), max: 3000 },
+  { name: 'Treppe 2 hinauf', to: [65.4, -60.4], run: false, within: 0.3 },
+  { name: 'Galerie', to: [59.5, -61.4], run: false, within: 0.3 },
+  { name: 'Tür zum Außenhof', to: [59.5, -64], ride: true, run: false },
+  { name: 'Außenhof 1', to: [114.6, -74] },
+  { to: [114.6, -84.6] },
+  { name: 'Grabenkante', to: [120, -87.4], run: false, within: 0.4 },
+  { name: 'Grabplatte 1', to: [120, -89.8], jump: 30, within: 0.5 },
+  { name: 'Grabplatte 2', to: [117.2, -92.6], jump: 36, within: 0.5 },
+  { name: 'Grabplatte 3', to: [120.4, -95], jump: 34, within: 0.5 },
+  { name: 'über den Graben', to: [120.2, -98.4], jump: 34, within: 0.5 },
+  { name: 'Tür ins Haus', to: [120, -105], ride: true, run: false },
+  { name: 'Stufenhalle', to: [176, -136.4], within: 0.3 },
+  { until: k1('treppe_e1'), max: 3000 },
+  { name: 'Spuk-Treppe 1', to: [176, -143], run: false, within: 0.4 },
+  { name: 'Stufe 1', to: [180, -144.6], run: false, within: 0.3 },
+  { until: k1('treppe_e3'), max: 3000 },
+  { name: 'Spuk-Treppe 2', to: [180, -151], run: false, within: 0.4 },
+  { name: 'Außentür', to: [180, -159], ride: true, run: false },
+];
+const BALKONE = [
+  { name: 'Terrasse rechts', to: [250.8, -218.6], within: 0.3 },
+  { name: 'Balkon 1', to: [255.6, -218.6], jump: 30, within: 0.5 },
+  { to: [258.3, -221.3], within: 0.3, run: false },
+  { name: 'Balkon 2', to: [261.8, -226.2], jump: 30, within: 0.5 },
+  { to: [262.2, -229.8], within: 0.3, run: false },
+  { name: 'Balkon 3 (über den Abgrund)', to: [262, -235.2], jump: 30, within: 0.5 },
+  { name: 'Zielmast am Ende des dritten Balkons', to: [254.2, -236.2], within: 0.2 },
+];
+ROUTES['B-6'] = {
+  base: '3-3',
+  start: [0, Y6, 8],
+  meta: { stars: 3, time: 400, theme: 'ghost@grund+sw', music: 'course_ghost', variant: 'schwarzweiss', archetype: 'parcours' },
+  enemies: { spuk: 16, zielmast_spuk: 2, 'seg:fallplatform': 3, geisterwolke: 3, warpbox: 6, helm_licht: 4, stamp: 0 },
+  main: [
+    ...FLUR, ...BIS_HOF2,
+    { name: 'Außenhof 2', to: [235.4, -168] },
+    { to: [235.4, -176.6] },
+    { name: 'Brücke', to: [240, -181.6] },
+    { to: [240, -189.6] },
+    { to: [234.6, -193] },
+    { to: [234.6, -201.6] },
+    { name: 'falscher Zielmast 1 (ruft einen Großspuk)', to: [240, -205.6], run: false, within: 0.3, max: 400 },
+    { until: k1('zieltreppe'), max: 3000 },
+    { name: 'versteckte Treppe', to: [240, -215.4], run: false, within: 0.4 },
+    ...BALKONE,
+  ],
+  routeChecks: [
+    { name: 'falscher Zielmast 1 berührt (Großspuk gerufen, Treppe offen), Balkone 1–3, Ziel am Ende des dritten Balkons', ok: (r) => r.status === 'goal' && r.pos[0] > 252 && r.pos[1] > 13 && r.mech.rides >= 4 },
+  ],
+  targets: [
+    { name: 'Stern 0: Licht-Helm rechts vom Start, den lauernden Großspuk links vom Start auflösen, Stern dahinter', star: 0, from: [0, Y6, 7.4],
+      legs: [{ to: [2.6, 6.2], run: false, within: 0.3 }, { wait: 10 }, { expect: '=P().helmet === \'licht\'' }, { lightAll: ['jaeger'] }, { to: [-4, 10.8], run: false, within: 0.3 }, { star: 0 }], shot: 'stern0' },
+    { name: 'Stern 0 nicht ohne den Großspuk zu vertreiben (er bewacht ihn: Berührung verletzt)', star: 0, expectNot: true, from: [0, Y6, 7.4], heroes: ['lotti'], invuln: false,
+      legs: [{ to: [-4, 10.8], run: false, within: 0.3, max: 300 }, { wait: 30 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+    { name: 'Stern 1: ins leere Gemälde springen, Warp-Box, Drehraum, Warp-Box auf die Empore, Sofa', star: 1, from: [-0.4, Y6, 1.6],
+      legs: [{ name: 'Sprung ins Gemälde', to: [-4.7, 1.6], jump: 14, jumpAt: 1.4, within: 0.25, land: false, max: 200 }, { wait: 60 },
+        { name: 'Warp-Box in der Nische', warp: [-6.4, 1.6] }, { expect: '=P().pos.x < -50' },
+        { until: '=ent(\'dreh\').quarter === 0 && !ent(\'dreh\').turning', max: 3000 },
+        { name: 'Warp-Box im Drehraum', warp: [-60, 41.6] }, { expect: '=P().pos.y > 7.5' },
+        { to: [4, 3], run: false, within: 0.3 }, { name: 'aufs Sofa', to: [3.9, 1.4], jump: 20, within: 0.3 }, { star: 1 }], shot: 'stern1' },
+    { name: 'Stern 1 nicht vom Flur aus (Empore zu hoch)', star: 1, expectNot: true, from: [2.4, Y6, 1.4], heroes: ['lotti'],
+      legs: [{ to: [3.4, 1.4], run: false, within: 0.3 }, { hop: 40 }, { wait: 30 }] },
+    { name: 'Stern 2: am Ende von Außenhof 1 über drei Fallplattformen zum Felssims', star: 2, from: [126, Y6, -100.6],
+      legs: [{ to: [127.6, -100.6], within: 0.3, run: false }, { name: 'Fallplattform 1', to: [129.6, -100.6], jump: 24, within: 0.6, run: false },
+        { name: 'Fallplattform 2', to: [133.4, -100.8], jump: 24, within: 0.6, run: false }, { name: 'Fallplattform 3', to: [137.2, -101], jump: 24, within: 0.6, run: false },
+        { name: 'Felssims', to: [141.2, -101.2], jump: 24, within: 0.6, run: false }, { star: 2 }], shot: 'stern2' },
+    { name: 'Stern 2 nicht ohne Fallplattformen (Sprung vom Hof zu weit)', star: 2, expectNot: true, from: [128, Y6, -100.6], heroes: ['lotti'], place: { yaw: 0 },
+      legs: [{ long: [141.2, -101.2] }, { wait: 60 }] },
+  ],
+  extra: [
+    { name: 'Fallplattform: wartet man darauf, stürzt sie ab (die Figur landet auf dem Hof)', from: [127.6, Y6, -100.6], heroes: ['lotti'],
+      legs: [{ to: [129.6, -100.6], jump: 24, within: 0.4, run: false }, { wait: 240 }], mech: (r) => r.pos[1] < 1.2 && r.pos[1] > 0.8, mechText: (r) => `y ${r.pos[1].toFixed(1)}` },
+    { name: 'Geheimnis: unten links übers Geländer, unsichtbare Wolken (erscheinen beim Betreten) zur Warp-Box → Schlussbalkon → Ziel', from: [229.8, Y6, -162], heroes: ['lotti', 'greta'],
+      legs: [{ to: [229.7, -160.7], within: 0.3, run: false }, { expect: '=!ent(\'gw1\').shown' }, { name: 'unsichtbare Wolke 1', to: [229.6, -158.4], jump: 24, within: 0.4, run: false }, { expect: '=ent(\'gw1\').shown' },
+        { name: 'unsichtbare Wolke 2', to: [226.2, -155.6], jump: 24, within: 0.4, run: false }, { name: 'Wolke 3 mit Warp-Box', warp: [222.8, -152.8] },
+        { expect: '=P().pos.x > 250 && P().pos.y > 13' }, { name: 'Zielmast', to: [254.2, -236.2], within: 0.2 }], mech: (r) => r.status === 'goal', mechText: (r) => r.status },
+    { name: 'Warp-Box hinter dem Abgrund (neben Balkon 1) schickt zurück an den Anfang', from: [256.5, 9.6, -221.2], heroes: ['lotti'],
+      legs: [{ to: [256, -221.6], within: 0.3, run: false }, { warp: [255.2, -227.2] }, { expect: '=P().pos.z > 7 && Math.abs(P().pos.x) < 3' }] },
+    { name: 'Zwei falsche Zielmasten rufen Großspuke (Treppe öffnet), der zweite auf der Terrasse gibt kein Ziel', from: [240, Y6, -203], heroes: ['lotti'], probe: 'b6falsch' },
+    { name: 'Großspuk jagt ab dem Startflur (lauert, bis die Figur losläuft; angeschaut nur langsam)', from: [0, Y6, 8], heroes: ['lotti'], probe: 'b6jaeger' },
+    { name: 'Leeres Gemälde: Rahmen ohne Motiv und Augen, dahinter die Warp-Box', from: [-1, Y6, 1.6], heroes: ['lotti'], probe: 'b6gemaelde' },
+  ],
+  shots: [
+    ['start', [0, Y6, 8]],
+    ['jaeger', [-1, Y6, 6], 0, null, Math.PI * 0.85],
+    ['gemaelde', [-2.6, Y6, 3]],
+    ['empore', [4, Y6 + 7, 3.2]],
+    ['bibliothek', [64, Y6, -38]],
+    ['hof1', [114, Y6, -76]],
+    ['fallplatten', [126, Y6, -98]],
+    ['sims', [139.5, 6, -100]],
+    ['halle', [176, Y6, -134]],
+    ['hof2', [232, Y6, -166]],
+    ['wolken', [228, Y6 + 0.6, -157]],
+    ['falsch', [237, Y6, -200]],
+    ['terrasse', [246, YT6, -217]],
+    ['balkon2', [262, 11.6, -227.5]],
+    ['balkon3', [259, 13.6, -236]],
+  ],
+};
+
 const PORT = 5015;
 const stop = await startServer(PORT);
 const { browser, page, errors } = await launchBrowser();
@@ -332,6 +452,24 @@ function install() {
           if (!ok) { log.push(['FEHLER: Warp-Box nicht benutzt', Lg.warp]); break; }
           continue;
         }
+        // ------------------------------------------------ Geister (Ids) mit dem Licht-Helm auflösen: hingehen (≈ 4 m), anschauen, warten
+        if (Lg.lightAll) {
+          let k = 0;
+          const alive = () => Lg.lightAll.map((id) => ent(id)).filter((e) => e && e.alive && !e.removed && e.state !== 'defeated');
+          for (; k < (Lg.max ?? 6000) && alive().length && !p.dead; k++) {
+            const list = alive().sort((a, b) => Math.hypot(a.pos.x - p.pos.x, a.pos.z - p.pos.z) - Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z));
+            const e = list[0];
+            const gx = e.pos.x - p.pos.x, gz = e.pos.z - p.pos.z, gl = Math.hypot(gx, gz) || 1;
+            const fv = p.facingVec(), dot = (fv.x * gx + fv.z * gz) / gl;
+            if (gl > (Lg.dist ?? 4.5)) { tick({ ...this.stick(gx, gz, Math.min(1, (gl - 3.5) / 2 + 0.3)), run: false }); continue; }
+            if (gl < 1.8) { tick({ ...this.stick(-gx, -gz, 0.7), run: false }); continue; }
+            tick(dot < 0.97 ? { ...this.stick(gx, gz, 0.14), run: false } : {});
+          }
+          mech.banished = Lg.lightAll.length - alive().length;
+          log.push(['Licht', Lg.lightAll.join(','), k, mech.banished, p.helmet]);
+          if (alive().length) log.push(['FEHLER: Geister übrig', alive().length]);
+          continue;
+        }
         // ------------------------------------------------ Weitsprung
         if (Lg.long) {
           const [tx, tz] = Lg.long;
@@ -521,8 +659,88 @@ RULES['B-5'] = async () => {
     && r.baseBars === 2 && r.baseRing && r.baseStar1 === 1 && r.baseBunnies === 3 && r.baseStart[2] === 3.6 && r.baseGoal[1] === 39 && r.baseStars === 1 && r.baseCam === 6);
 };
 
+RULES['B-6'] = async () => {
+  const r = await sc(() => {
+    const c = window.__course, L = c.level, CL = window.__courseLevels;
+    const base = CL.get('3-3'), raw = CL.raw('B-6');
+    const calls = window.__audio?.music?.__calls ?? [];
+    const ents = (k) => L.entities.filter((e) => e.kind === k && !e.removed);
+    const j = L.entities.find((e) => e.spec?.id === 'jaeger');
+    return {
+      stub: CL.isRemix(raw) && raw.remix.base === '3-3' && !raw.segments, title: L.data.title, theme: L.data.theme, filter: c.view.canvas.style.filter, viewFilter: c.view.filter ?? null,
+      music: L.data.music, variant: L.data.musicVariant, call: calls.filter((x) => x[0] === 'course_ghost').slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
+      limit: L.runtime.timeLimit, stamp: ents('stamp').length, gross: ents('spuk').filter((e) => (e.spec.size ?? 1) > 2).length, jaeger: j ? { hunt: j.hunt, state: j.state, size: j.size } : null,
+      falsch: ents('zielmast_spuk').map((e) => [e.spec.id, e.spec.spawn?.size ?? 1]), goal: L.data.goal.pos, stars: L.data.stars.map((s) => s.pos ?? s),
+      gem: L.entities.find((e) => e.kind === 'bilderrahmen' && e.spec?.id === 'gemaelde')?.leer === true,
+      baseTitle: base.title, baseTheme: base.theme, baseFilter: base.filter ?? null, baseVariant: base.musicVariant ?? null, baseLimit: base.timeLimit, baseStamp: !!base.stamp, baseRemix: base.remix ?? null,
+      baseGoal: base.goal.pos, baseFalsch: base.segments.filter((x) => x.type === 'zielmast_spuk').length, baseSpawn: base.segments.find((x) => x.id === 'falsch')?.spawn ?? null,
+      baseMotif: base.segments.find((x) => x.id === 'gemaelde')?.motif, baseHunter: base.enemies.some((e) => e.hunt), baseStars: base.stars.length, baseStar0: base.stars[0],
+    };
+  });
+  console.log(`  Remix: ${JSON.stringify({ theme: r.theme, filter: r.filter, call: r.call, jaeger: r.jaeger, falsch: r.falsch, goal: r.goal })}`);
+  check('B-6: Remix-Platzhalter (Basis 3-3), eigener Titel; Schwarz-Weiß-Filter über der 3D-Ansicht (Thema ghost+sw, CSS grayscale)', r.stub && r.title === 'Grauspuk in der Mondscheinvilla' && r.theme.endsWith('+sw') && /grayscale\(1\)/.test(r.filter) && r.viewFilter === 'schwarzweiss');
+  check('B-6: Musik der Basis mit Klang-Variante schwarzweiss → music.play(\'course_ghost\', { variant: \'schwarzweiss\' })', r.music === 'course_ghost' && r.variant === 'schwarzweiss' && r.call?.[1]?.variant === 'schwarzweiss' && r.mVariant === 'schwarzweiss');
+  check(`B-6: 400 s, kein Stempel; Großspuk-Jäger im Startflur (${r.jaeger?.state}); ${r.gross} Großspuke`, r.limit === 400 && r.stamp === 0 && r.jaeger?.hunt === true && r.jaeger.size === 2.5 && r.gross === 4);
+  check(`B-6: zwei falsche Zielmasten rufen Großspuke (${JSON.stringify(r.falsch)}), echter Mast am Ende des dritten Balkons (${r.goal.join(', ')}), leeres Gemälde`, r.falsch.length === 2 && r.falsch.every((f) => f[1] === 2.5) && r.goal[0] > 252 && r.goal[1] > 13 && r.gem);
+  check('B-6: Gegenprobe Basis 3-3 unverändert (Titel, Thema ghost, ohne Filter/Variante, 500 s, Stempel, ein falscher Mast mit Spuk, Ziel auf der Terrasse, Spuk-Gemälde, kein Jäger)',
+    r.baseTitle === 'Die Mondscheinvilla' && r.baseTheme === 'ghost' && r.baseFilter === null && r.baseVariant === null && r.baseLimit === 500 && r.baseStamp && r.baseRemix === null
+    && r.baseGoal[0] === 240 && r.baseGoal[1] === 7.6 && r.baseFalsch === 1 && r.baseSpawn === null && r.baseMotif === 'spuk' && !r.baseHunter && r.baseStars === 3 && r.baseStar0[0] === -58.8);
+};
+
 // ------------------------------------------------------------------ Sonder-Proben (extra[].probe)
-const PROBES = {};
+const PROBES = {
+  b6falsch: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb, p = c.player;
+      const gross = () => L.entities.filter((e) => e.kind === 'spuk' && (e.spec.size ?? 1) > 2 && !e.removed).length;
+      W.place([240, 1, -203], { settle: 4, invuln: 99 });
+      const g0 = gross(), t0 = L.named.get('zieltreppe')?.k ?? null;
+      const d1 = W.drive([{ to: [240, -205.6], run: false, within: 0.3, max: 400 }, { wait: 240 }], {});
+      const g1 = gross(), t1 = L.named.get('zieltreppe')?.k ?? null, f1 = L.entities.find((e) => e.spec?.id === 'falsch')?.tricked;
+      W.place([240, 7.6, -217], { settle: 4, invuln: 99 });
+      const d2 = W.drive([{ to: [240, -219.6], run: false, within: 0.3, max: 400 }, { wait: 120 }], {});
+      const g2 = gross(), f2 = L.entities.find((e) => e.spec?.id === 'falsch2')?.tricked;
+      return { g0, g1, g2, t0, t1, f1, f2, st1: d1.status, st2: d2.status, status: L.runtime.status };
+    });
+    console.log(`     Falsche Zielmasten: ${JSON.stringify(r)}`);
+    return r.g1 === r.g0 + 1 && r.t1 > 0.99 && r.f1 && r.f2 && r.g2 === r.g1 + 2 && r.status === 'play';
+  },
+  b6jaeger: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level, W = window.__bb, p = c.player;
+      const j = L.entities.find((e) => e.spec?.id === 'jaeger');
+      W.place([0, 1, 8], { settle: 4, invuln: 99 });
+      for (let i = 0; i < 120; i++) W.step(1);
+      const s0 = j.state, x0 = j.pos.x, z0 = j.pos.z;
+      // losgehen (nach vorn, Blick weg vom Jäger) → er jagt
+      W.drive([{ to: [0, 1], run: false, within: 0.3 }], {});
+      const s1 = j.state, h1 = j.hunting;
+      const d0 = Math.hypot(j.pos.x - p.pos.x, j.pos.z - p.pos.z);
+      for (let i = 0; i < 180; i++) W.step(1);
+      const d1 = Math.hypot(j.pos.x - p.pos.x, j.pos.z - p.pos.z);
+      // umdrehen und ihn ansehen → er wird langsam (Hände vors Gesicht)
+      for (let i = 0; i < 40; i++) { c.setInput(W.stick(j.pos.x - p.pos.x, j.pos.z - p.pos.z, 0.15)); W.step(1); }
+      c.setInput({});
+      const a = Math.hypot(j.pos.x - p.pos.x, j.pos.z - p.pos.z);
+      for (let i = 0; i < 120; i++) W.step(1);
+      const b = Math.hypot(j.pos.x - p.pos.x, j.pos.z - p.pos.z);
+      return { s0, moved0: +Math.hypot(j.pos.x - x0, j.pos.z - z0).toFixed(2), s1, h1, d0: +d0.toFixed(2), d1: +d1.toFixed(2), looked: j.looked, shyGain: +(a - b).toFixed(2), state: j.state };
+    });
+    console.log(`     Jäger: ${JSON.stringify(r)}`);
+    return r.s0 === 'lurk' && r.h1 && r.d1 < r.d0 && r.looked && r.shyGain < 1.0;
+  },
+  b6gemaelde: async () => {
+    const r = await sc(() => {
+      const c = window.__course, L = c.level;
+      const e = L.entities.find((x) => x.kind === 'bilderrahmen' && x.spec?.id === 'gemaelde');
+      let maps = 0, eyesVisible = 0, leer = 0;
+      e.inner?.root?.traverse((o) => { if (!o.isMesh) return; if (o.material?.map) maps++; if (o.userData.leer) leer++; if (!o.material?.vertexColors && !o.material?.map && !o.userData.leer && o.visible) eyesVisible++; });
+      return { leer: e.leer, maps, leerMeshes: leer, eyesVisible, warp: !!e.warp, motif: e.spec.motif };
+    });
+    console.log(`     Gemälde: ${JSON.stringify(r)}`);
+    return r.leer && r.maps === 0 && r.leerMeshes >= 1 && r.eyesVisible === 0 && r.warp;
+  },
+};
 
 for (const id of LEVELS) {
   const R = ROUTES[id];
