@@ -118,9 +118,9 @@ const ROUTES = {
       { name: 'Extraleben: Sternkiste im Kistenraum (Stampfattacke)', from: [53.2, 0, -90.4], heroes: ['lotti'], expectLives: 1,
         legs: [{ acts: [{ jump: [53.2, -91.6], run: false }, { go: [53.2, -92.8], tol: 0.15, max: 200 }, { wait: 20 }, { input: { jump: true }, n: 16 }, { input: { crouch: true }, n: 4 }, { wait: 90 }] },
           { chaseKind: 'powerup', max: 900 }] },
-      { name: 'Hochbühne ohne Pilz-Trampolin nicht erreichbar (Sprung von Bühne A)', from: [-6.4, 3, -73.2], heroes: ['lotti', 'greta'], allowFail: true,
+      { name: 'Hochbühne ohne Pilz-Trampolin nicht erreichbar (Sprung von Bühne A)', from: [-6.4, 3, -73.2], heroes: ['lotti', 'greta'], allowFail: true, expectAlive: false,
         legs: [{ to: [-10.5, -78], jump: 40, within: 0.4, run: true, max: 260, autoJump: false }, { wait: 60 }],
-        mech: (r) => r.pos[1] < 8 && r.mech.bounces === 0, mechText: (r) => `Ende y ${r.pos[1].toFixed(1)}${r.dead ? ' (abgestürzt)' : ''}` },
+        mech: (r) => r.mech.maxY < 8.3 && r.mech.bounces === 0, mechText: (r) => `höchster Punkt y ${r.mech.maxY.toFixed(1)}, Ende y ${r.pos[1].toFixed(1)}${r.dead ? ' (abgestürzt)' : ''}` },
     ],
     rules: [
       { name: 'Licht: Abendvorstellung im Zelt (Thema circus@nacht mit Mond und Figurenlicht), Basis-Thema circus',

@@ -7,11 +7,15 @@
 // Remix-Regeln:
 //   • Wippen-Galerie: die drei Wippen (und der Signal-Quetschblock über Wippe 3) sind weg – stattdessen schweben fünf
 //     Wasserwürfel über dem Abgrund und wippen sanft auf und ab (hineinspringen, schwimmen, oben herausspringen; wer unten
-//     oder seitlich hinausschwimmt, fällt). Die beiden Wuschel kreisen jetzt um das Würfelpaar in der Mitte.
+//     oder seitlich hinausschwimmt, fällt). Die beiden Wuschel kreisen jetzt knapp über dem Würfelpaar in der Mitte (beim
+//     Aussprung aufpassen).
 //   • Zweite Wuschel-Horde kurz vor dem Ende: die Galerie-Horde wartet, bis die Heldin auf dem letzten Felspfeiler steht,
-//     und rollt dann schnell (2,4 m/s) hinterher – über die Wolkenbrücke zum Grubentor (sie hält vor dem Torplatz).
+//     und rollt dann schnell (2,4 m/s) hinterher – über die Wolkenbrücke zum Grubentor (sie hält vor dem Torplatz). Nach
+//     einem Neustart am Kontrollpunkt wartet sie wieder.
 //   • Schacht-Daten: rechts neben der Sohle eine Kletterkammer (Felsrahmen, Glas zur Kamera), hinten an der Mittelstation eine
-//     Nische mit Wolke, verschlossen von zwei Riesenziegeln.
+//     Nische mit Wolke, verschlossen von zwei Riesenziegeln. Die Fahrt beginnt erst mit einem Sprung über das erste Brett
+//     (Auslöser y ≥ 6,9 statt 4,2: Kletterkammer, ?-Block und Sprungfeld in Ruhe); die Absturz-Ebene der Galerie beginnt
+//     erst bei z −7 (die Nische reicht bis z −6,5).
 // Sterne (neu): 0 Kletterkammer rechts der Sohle: Krallen-Anzug aus dem ?-Block am Sprungfeld, in der Kammer den Felspfeiler
 //   mit den Kletterranken hinauf (ohne Krallen zu hoch; die Trennwand zum Schacht lässt kein Wandrutschen zu) · 1 Mittelstation:
 //   Stampfattacke auf die Riesenziegel vor der Nische → auf der Wolke dahinter · 2 Sternring am Torplatz: acht grüne Sternmünzen
