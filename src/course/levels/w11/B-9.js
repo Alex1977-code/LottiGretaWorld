@@ -18,13 +18,13 @@
 
 import { remixOf } from '../../level/remix.js';
 import { schattenDiaet } from '../w5/_helpers_a.js';
-import { line, ring, arc, uhrenZurueck, strandfackeln, schlafturm, reiterPlattformDurchlaessig } from './_helpers_bc.js';
+import { line, ring, arc, column, uhrenZurueck, strandfackeln, schlafturm, reiterPlattformDurchlaessig } from './_helpers_bc.js';
 
 const Y = 1;            // Strand
 const SKY = 9;          // Schwebeinsel (Ziel)
 const PX = 2.5;         // Glasröhre (Mitte)
 const SX = 53.5, SZ = 9;   // schlafender Dreierturm rechts
-const FACKELN = [[-31.4, Y, 8.8], [-32.8, Y, -2.6], [-29.6, Y, -11.6], [-21.2, Y, -11.2]];
+const FACKELN = [[-33.2, Y, -4.4], [-32.4, Y, -11.8], [-24.6, Y, -12.2], [-23.4, Y, -5.2]];
 // Türme und Werfer (Kampfraum)
 const TUERME = ['turm_l', 'turm_m', 'turm_hain', 'turm_r'];
 const WERFER = ['werfer_l', 'werfer_m', 'werfer_hain', 'werfer_r'];
@@ -64,7 +64,7 @@ export const LEVEL = remixOf('5-1', {
     ],
   },
   stars: [
-    { pos: [-29.6, Y + 1.5, -2.6], hidden: true, id: 'stern_fackeln' },   // 0: zwischen den vier Strandfackeln
+    { pos: [-28.4, Y + 1.5, -8.4], hidden: true, id: 'stern_fackeln' },   // 0: zwischen den vier Strandfackeln
     [PX, 9.0, -14.6],                                                    // 1: auf der Wolke über der Glasröhre
     [SX, 7.0, SZ],                                                       // 2: über dem schlafenden Dreierturm
   ],
@@ -75,7 +75,7 @@ export const LEVEL = remixOf('5-1', {
       { type: 'glasspipe', id: 'roehre', oneWay: true, radius: 0.95, exitSpeed: 12, coins: 4,
         path: [[PX, Y + 0.95, -4.4], [PX, Y + 0.95, -8.6], [PX, Y + 1.9, -11.8], [PX, Y + 3.6, -13.4], [PX, Y + 4.8, -13.8], [PX, Y + 5.8, -13.8]] },
       { type: 'cloud', id: 'wolke', pos: [PX, 7.8, -14.2], size: [3.4, 0.6, 3.4] },
-      { type: 'sign', pos: [-30.6, Y, 2.8], text: '4 Fackeln mit\nFeuer anzünden!', size: [2.6, 0.9], yaw: 0.35 },
+      { type: 'sign', pos: [-23.6, Y, -1.2], text: '4 Fackeln mit\nFeuer anzünden!', size: [2.6, 0.9], yaw: -0.25 },
       { type: 'sign', pos: [-4.2, Y, -16.6], text: 'Ziel-Warp-Box:\nerst alle Türme!', size: [2.4, 0.85] },
       { type: 'sign', pos: [46.2, Y, 12.8], text: 'Pst – hier\nschläft ein Turm', size: [2.4, 0.85], yaw: -0.3 },
     ],
@@ -99,6 +99,7 @@ export const LEVEL = remixOf('5-1', {
       line([PX, Y + 0.6, -0.4], [PX, Y + 0.6, -3.2], 3),
       ring([PX, 8.8, -14.4], 1.1, 6),
       ...arc([44, Y + 0.6, 10], [51.6, Y + 0.6, 9.4], 4, 1.2),
+      ...column(SX, SZ, 4.3, 6.1, 3),                              // über dem schlafenden Turm hinauf zum Stern
       ring([48, Y + 0.6, -4], 1.6, 6),
       line([0, SKY + 0.6, -44], [0, SKY + 0.6, -51], 5),
     ],
@@ -122,7 +123,7 @@ export const LEVEL = remixOf('5-1', {
     if (k) { k.state = 'happy'; k.t = 99; }
   },
   marks: {
-    start: [0, Y, 10], fackeln: [-29.6, Y, -2.6], turmL: [-19.4, Y, 5.6], turmM: [-4, Y, -5.4], hain: [16.5, Y, 8.6], turmR: [31, Y, -4.6],
+    start: [0, Y, 10], fackeln: [-28.4, Y, -8.4], turmL: [-19.4, Y, 5.6], turmM: [-4, Y, -5.4], hain: [16.5, Y, 8.6], turmR: [31, Y, -4.6],
     roehre: [PX, Y, -3.6], wolke: [PX, 8.4, -14.4], schlaf: [SX, Y, SZ], hoehle: [48, Y, -4], warp: [1, Y, -23], ziel: [0, SKY, -54],
   },
 });
