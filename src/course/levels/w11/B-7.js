@@ -11,8 +11,8 @@
 //   Statt der Flossling-Schwärme: **Tintlinge** (Zickzack-Stöße, Tintenwölkchen) und **Rammfische** (rammen geradeaus).
 //   **Drei Felsblockwände** (rissige Felswand, nur Kanonenkugel/Bombe/Riesentrank sprengen sie):
 //     1 am Ende des Tiefwassers rechts unten: Nische in der Felswand, davor eine Felswand → Stern 0.
-//     2 im Kanal: drei **Stachelblöcke** ragen aus dem Wasser (Trittsteine, die Seiten stechen); über ihnen eine Felskanzel an der
-//       rechten Kanalwand, vorn eine Felswand → Stern 1 (vom zweiten Stachelblock aus schießen).
+//     2 im Kanal: drei **Stachelblöcke** ragen aus dem Wasser (Trittsteine, die Seiten stechen); neben ihnen eine Felskanzel an der
+//       rechten Kanalwand, vorn eine Felswand → Stern 1 (vom zweiten Stachelblock aus schießen, dann hineingehen).
 //     3 tief darunter am Kanalgrund eine Grotte, verschlossen von **vier Felsblöcken** (2 × 2) → Sternring: acht Sternmünzen im
 //       Kanal (18 s) → Stern 2.
 // Weggefallen: Sterne der Basis (Flutkammer-Nische, Goldraum, versteckter Raum – Goldraum und Raum bleiben als Münz-Geheimnisse),
@@ -28,8 +28,9 @@ const ROCK = { color: 0xc8a882, dark: 0x7a6250, top: 0xb8d870 };
 const NISCHE1 = [    // Ende Tiefwasser, rechts unten (Innenraum x 8,6 … 11, z −86,2 … −89,8, y −8 … −4,6; offen nach −x)
   [8.0, 11, -85.6, -86.2, -8, -4.0], [8.0, 11, -89.8, -90.4, -8, -4.0], [8.0, 11, -85.6, -90.4, -4.6, -4.0],
 ];
-const KANZEL = [     // Kanal, rechte Wand über den Stachelblöcken (Innenraum x 7 … 9, z −170,4 … −175,6, y 1,2 … 3,6; offen nach −x)
-  [7.0, 9, -169.8, -176.2, 0.6, 1.2], [6.6, 9, -169.8, -170.4, 1.2, 4.2], [6.6, 9, -175.6, -176.2, 1.2, 4.2], [6.6, 9, -169.8, -176.2, 3.6, 4.2],
+const KANZEL = [     // Kanal, rechte Wand über den Stachelblöcken (Innenraum x 7 … 9, z −170,4 … −175,6, y 1 … 3,6; offen nach −x;
+  //                    Boden bündig mit den Stachelblöcken – nach dem Sprengen geht man hinein)
+  [6.4, 9, -169.8, -176.2, 0.4, 1.0], [6.4, 9, -169.8, -170.4, 1.0, 4.2], [6.4, 9, -175.6, -176.2, 1.0, 4.2], [6.4, 9, -169.8, -176.2, 3.6, 4.2],
 ];
 const GROTTE = [     // Kanalgrund unter der Kanzel (Innenraum x 7 … 9, z −169,8 … −176,2, y −6 … −2,8; offen nach −x)
   [6.6, 9, -169.2, -169.8, -6, -2.2], [6.6, 9, -176.2, -176.8, -6, -2.2], [6.6, 9, -169.2, -176.8, -2.8, -2.2],
@@ -51,15 +52,15 @@ export const LEVEL = remixOf('3-5', {
   change: [{ match: { id: 'sK' }, set: { pos: [-4, 0, -170] } }],
   stars: [
     [9.8, -7.4, -88],                                    // 0: Nische hinter der Felswand am Ende des Tiefwassers
-    [8, Y + 0.4, -173],                                  // 1: Felskanzel über den Stachelblöcken
+    [8, Y + 0.2, -173],                                  // 1: Felskanzel neben den Stachelblöcken
     { pos: [3.4, -4.6, -173], hidden: true, id: 'stern_ring' },   // 2: Sternring in der Grotte (vier Felsblöcke)
   ],
   add: {
     segments: [
       // drei Stachelblöcke als Trittsteine im Kanal (oben begehbar, Seiten stechen)
-      { type: 'stachelblock', id: 'sb1', pos: [5.2, -1, -167.6], size: [2, 2, 2], color: 'blau', spikes: ['+x', '-x', '+z', '-z'] },
-      { type: 'stachelblock', id: 'sb2', pos: [5.2, -1, -173], size: [2, 2, 2], color: 'blau', spikes: ['+x', '-x', '+z', '-z'] },
-      { type: 'stachelblock', id: 'sb3', pos: [5.2, -1, -178.2], size: [2, 2, 2], color: 'blau', spikes: ['+x', '-x', '+z', '-z'] },
+      { type: 'stachelblock', id: 'sb1', pos: [5.2, -1, -167.6], size: [2, 2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
+      { type: 'stachelblock', id: 'sb2', pos: [5.2, -1, -173], size: [2, 2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
+      { type: 'stachelblock', id: 'sb3', pos: [5.2, -1, -178.2], size: [2, 2, 2], color: 'blau', spikes: ['-x', '+z', '-z'] },
       { type: 'sign', pos: [-3.6, Y, -158.6], text: 'Felswände?\nKanone!', size: [2.2, 0.9], yaw: 0.3 },
     ],
     enemies: [
@@ -81,7 +82,7 @@ export const LEVEL = remixOf('3-5', {
       // Felswand 1 vor der Nische am Ende des Tiefwassers
       wand('fels1', [8.3, -8, -88], [0.6, 3.4, 3.6]),
       // Felswand 2 vor der Kanzel über den Stachelblöcken
-      wand('fels2', [6.7, 1.2, -173], [0.6, 2.4, 5.2]),
+      wand('fels2', [6.7, 1.0, -173], [0.6, 2.6, 5.2]),
       // Felswand 3: vier Felsblöcke vor der Grotte am Kanalgrund
       wand('fels3a', [6.7, -6, -171.4], [0.6, 1.6, 3.2]), wand('fels3b', [6.7, -6, -174.6], [0.6, 1.6, 3.2]),
       wand('fels3c', [6.7, -4.4, -171.4], [0.6, 1.6, 3.2]), wand('fels3d', [6.7, -4.4, -174.6], [0.6, 1.6, 3.2]),
