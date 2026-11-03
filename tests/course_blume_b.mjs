@@ -65,7 +65,8 @@ const ROUTES = {
     ],
     targets: [
       { name: 'Stern 0: den Riesenhasen auf der Morgenwiese fangen (Items im Kreis, Stern an der Fangstelle)', star: 0, from: [0, S1, 30],
-        legs: [{ chaseKind: 'bunny', ids: ['riesenhase'], max: 6000 }, { wait: 60 }, { expect: '=L.entities.filter((e) => e.kind === \'powerup\' && !e.removed).length >= 3' }, { star: 0 }], shot: 'stern0',
+        legs: [{ chaseKind: 'bunny', ids: ['riesenhase'], max: 6000 }, { wait: 2 }, { log: 'L.entities.filter((e) => e.kind === \'powerup\' || e.kind === \'coin\' && Math.hypot(e.pos.x - P().pos.x, e.pos.z - P().pos.z) < 4).map((e) => [e.kind, e.power, !!e.removed, +e.pos.x.toFixed(1), +e.pos.z.toFixed(1)])' },
+          { expect: '=(L.signals?.riesenhase ?? 0) === 1 && L.entities.filter((e) => e.kind === \'powerup\' && !e.removed).length >= 2 && L.entities.filter((e) => e.kind === \'coin\' && Math.hypot(e.pos.x - P().pos.x, e.pos.z - P().pos.z) < 4).length >= 4' }, { star: 0 }], shot: 'stern0',
         mech: (r) => r.giant?.caught, mechText: (r) => `Haken ${r.giant?.hooks}, Pausen ${r.giant?.rests}` },
       { name: 'Stern 0 nicht ohne Fangen (Stern bleibt versteckt)', star: 0, expectNot: true, from: [0, S1, 30], heroes: ['lotti'],
         legs: [{ to: [0, 12], run: false }, { wait: 240 }] },
