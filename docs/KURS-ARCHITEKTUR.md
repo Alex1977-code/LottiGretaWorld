@@ -9710,3 +9710,97 @@ Routen (Bot, Lotti/Greta): P-5 ≈ 89/81 s, P-6 ≈ 162/134 s, P-7 ≈ 64/63 s. 
 Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und Höchstwert, Bilder Höchstwert): P-5 Ø 80, max
 115 / 272 k (Saal, 2. Stock), Bilder ≤ 107 / 246 k; P-6 Ø 65, max 79 / 225 k, Bilder ≤ 84 / 223 k; P-7 Ø 59, max 74 / 227 k,
 Bilder ≤ 75 / 213 k; P-Haus Bilder ≤ 69 / 125 k. Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level B-1, B-2, B-3 und B-4)
+
+Welt Blume (Präfix `B`, Welt 11, Remix-Welt 2), Level 1 bis 4 – additiv zur Tabelle „Welt Blume (11)“. Dateien
+`src/course/levels/w11/B-1.js` … `B-4.js` (je `export const LEVEL = remixOf('<Basis>', { … })`) und die eigene Hilfsdatei
+`src/course/levels/w11/_helpers_ba.js` (kein `LEVEL`, nur für diese vier Level). **Kein Motor-Code geändert**, keine
+gemeinsamen Hilfsdateien angefasst; Basislevel unverändert (der Test vergleicht ihre Rohdaten vor und nach dem Auflösen und
+lädt sie erneut). Alles Level-Lokale hängt an den Remix-Haken `build`/`setup` (nach denen der Basis), `level.onStep` und
+`addObject`. Alle: `world: 11`, kein Stempel, je 3 Sterne, eigene deutsche Titel.
+
+| Level | Titel | Basis | Licht / Thema | Musik | Zeit |
+|---|---|---|---|---|---|
+| B-1 | Funkentanz in der Kippfeld-Manege | 1-5 | `nacht` / circus@nacht | course_circus (Basis, ohne Variante) | 400 s |
+| B-2 | Wasserwürfel im Glitzerschacht | 6-7 | Basis / fuzzymine | course_fuzzymine (Basis, ohne Variante) | 400 s |
+| B-3 | Fackelnacht am Lila Nebelmoor | 4-2 | `nacht` / poison@nacht | course_poison + `nacht` | 400 s |
+| B-4 | Uhrenhatz durch die Werferburg | 7-1 | Basis / bluelava | course_fortfire + `schnell` | 30 s + Zeit-Uhren |
+
+### B-1 „Funkentanz in der Kippfeld-Manege“ (remixOf('1-5'))
+
+- Regeln: Abendvorstellung (circus@nacht, Scheinwerfer-Kegel). **5 Funkenflämmchen** hüpfen über die Schaltfelder (zwei
+  umrunden Feld 1, je eines Feld 2 und die grüne Bühne, eines fährt auf der Wechselschalter-Fähre mit). In der
+  Flatterkäfer-Zone federn **zwei Pilz-Trampoline** auf zwei Hochbühnen (y 8,5 / 9) mit je einem **Hammer-Werfer** (Hämmer
+  fliegen auch auf den Weg darunter; Sicht der Werfer höchstens 6 m senkrecht – deshalb die niedrigen Bühnen). Die
+  **Glasrohr-Kanone** zur Zielbühne sitzt in einem goldenen Gitterkäfig (`kanonenSperre`: Vordergitter, Seiten, Dach – der
+  Einstiegsbereich der Röhre reicht 1 m vor die Öffnung); erst wenn alle sechs **Wechselfelder der fahrenden Fähre** an sind,
+  springt das Schloss auf (`onAll` statt Stern der Basis). Krallen-?-Block → Wurfsichel, Sternkiste → Extraleben.
+- Sterne: 0 **Rätselbox** hinter dem Start → Wandschalter-Kammer (x −60): vier Schaltfelder an den Innenwänden eines
+  Wandsprung-Schachts (`wandSchalter`: nur im Sprung/Wandrutschen erreichbar) → Stern oben im Schacht · 1 **Sternring** auf der
+  Checkpoint-Trommel: acht Sternmünzen über den Pilz-Trampolinen und auf den Hochbühnen, 20 s · 2 **Wurfbude** rechts neben dem
+  Sims an der Zielbühne (`wurfbude`: geschlossene, verglaste Bude über dem Abgrund mit Zielscheibe vorn): Wurfball vom Sims oder
+  Wurfsichel trifft die Scheibe → der Stern fliegt auf den Sims (Anspringen und Dach zählen nicht).
+
+### B-2 „Wasserwürfel im Glitzerschacht“ (remixOf('6-7'))
+
+- Regeln: Wippen-Galerie ohne die drei Wippen und den Signal-Quetschblock; **fünf schwebende Wasserwürfel** (`schwebewuerfel`:
+  eigene Wasserkörper, wippen ±0,35 m, Schwimmer wippen mit; unten oder seitlich hinaus = Absturz). Die Wuschel kreisen knapp
+  über dem Würfelpaar. **Zweite Wuschel-Horde** kurz vor dem Ende: die Galerie-Horde wartet bis zum letzten Felspfeiler und rollt
+  dann mit 2,4 m/s (Basis 1,1 m/s ab dem Kontrollpunkt) bis vor den Torplatz; nach einem Neustart wartet sie wieder. Die Fahrt
+  beginnt erst mit dem Sprung über das erste Brett (Auslöser y ≥ 6,9 statt 4,2); die Absturz-Ebene der Galerie beginnt bei z −7.
+  Schachtdaten über `hohlraum` (Felsquader um Hohlräume beschnitten): Kletterkammer rechts der Sohle, Nische hinter der
+  Mittelstation.
+- Sterne: 0 **Wand nahe dem Start**: Krallen-Anzug aus dem ?-Block am Sprungfeld, in der Kletterkammer den Felspfeiler mit Ranken
+  hinauf (`kletterpfeiler`; Trennwand zum Schacht ohne Wandrutschen) · 1 **Wolke hinter einem großen Ziegel**: Stampfattacke auf
+  einen der zwei Riesenziegel (`grossbloecke` aus den Welt-9-Hilfen, nur importiert) an der Mittelstation · 2 **8 grüne Münzen
+  vor dem Ende**: Sternring am Torplatz, Münzen an den Deckrändern (fern vom Zielmast), 14 s, Stern vorn links auf dem Deck.
+
+### B-3 „Fackelnacht am Lila Nebelmoor“ (remixOf('4-2'))
+
+- Regeln: Nacht, Klang `nacht`. **Kein Untergrund-Teil**: die Höhle ist eine offene Schlucht (Überhänge, Deckentropfsteine,
+  hängende Rankenschnapper, Wächter, Warp-Box, Sternkammer, Moorkeller samt Röhre und Röhren-Ranke entfernt; eigener
+  `setup` statt dem der Basis – gleiche Kulisse ohne Höhlen-/Kammer-Stimmung, `baseHooks: { setup: false }`). **23 Moorfackeln**
+  (`moorfackeln`): Giftpfad 8, Schlucht/Rückkehr/Moorsee 12, Oberland/Plattformfahrt 3; nur Feuerbälle der Funkenblüte zünden
+  sie (Funkenblüten am Start, auf I3, am Schluchteingang, am Kontrollpunkt, am Moorsee, im Oberland). Schiebeplattformen mp1–mp4
+  1,35× schneller, 2,3 statt 3 m, Wege an den Inseln 0,2 m weiter draußen: jede Lücke 0,5–0,9 m breiter, Paare im Takt.
+  Welt-Warp hinter dem Giftwasserfall entfällt (Münzschatz).
+- Sterne: je Bereich alle Fackeln an → Stern: 0 letzte Insel vor der Schlucht · 1 Insel mit der Röhre hinauf (eine Fackel
+  oben auf dem Sims über dem Giftbecken – über die vier Stufen-Ranken) · 2 Zielröhren-Insel.
+- Geheimnis (statt der Geheimröhre): vom Sims drei **unsichtbare Wolken** (`wolkenlift` reveal 'touch', je eine Münze darüber)
+  auf die rechte Schluchtwand → **Geheimgarten mit Extraleben**; die Wandfläche darüber lässt kein Wandrutschen zu.
+
+### B-4 „Uhrenhatz durch die Werferburg“ (remixOf('7-1'))
+
+- Regeln: **30 s**, nur **Zeit-Uhren** (`clocks`, 16 × +10 s) verlängern: 13 auf der Ideallinie, drei bei den Sternen; nach
+  einem Neustart am Kontrollpunkt wieder 30 s (dahinter noch fünf Uhren). Gleicher Aufbau; Geheimgang der Basis
+  (unsichtbare Blöcke, grüne Röhre zum Kugelsaal) und Sternenring entfernt, Klang `schnell`.
+- Sterne: 0 **ersten Stampfstein hochfahren, links**: auf den gefallenen Stein springen, oben mitfahren, links auf einen
+  Mauer-Erker (y 9,2; von Gang und Zinnenmauer zu hoch) · 1 **beleuchtete Bodenstelle** auf der Hubinsel nach den
+  Lava-Glasröhren (`leuchtfleck`: Laterne am Galgen, Lichtkegel; Stampfattacke öffnet sie) · 2 **oben auf dem Dreier-
+  Pilzlingsturm** im Burghof (`carries: 'star:2'`).
+- Geheimnis: zwei **unsichtbare längliche ?-Blöcke** links vom ersten Stampfstein (`geheimLaengsblock` aus den Welt-7-Hilfen,
+  nur importiert; je fünf Münzen).
+
+### Hilfen `_helpers_ba.js`
+
+`stage/line/ring/arc`; B-1 `wandSchalter`, `kanonenSperre`, `wurfbude`; B-2 `hohlraum`, `kletterpfeiler`, `schwebewuerfel`;
+B-3 `moorfackeln` (vier Instanz-Gruppen für alle Fackeln – Sockel/Pfahl/Korb, Flammen, Lichtschein als Punkte, Hinweis-Ring –
+plus drei Punktlichter bei den nächsten brennenden; Fackeln bleiben nach einem Neustart an); B-4 `leuchtfleck`.
+
+### Test `tests/course_blume_a.mjs`
+
+Port 5005 (+ `PORT_BASE`), `node tests/course_blume_a.mjs B-n`, `PARTS=load,rules,route,sweep,targets,extra,shots` (je Lauf
+< 10 min, z. B. `load,rules,route,sweep`, dann `targets,extra,shots`; B-3 `targets` allein), `HEROES`, `ONLY`, `VERBOSE`,
+`TRACE`, `SHOTS`, `DETAIL`; Bilder `tests/out/blume_a_*.png`. Prüft Laden ohne Konsolenfehler, Meta (Titel, Welt, Thema mit
+Licht, Musik und `music.play(thema, { variant })`, Zeit, Sterne, kein Stempel, Gegnerzahlen), Gegenprobe Basis, Remix-Regeln
+mit Gegenprobe (Licht, Flämmchen-Wege, Werfer-Lage, Kanonen-Sperre; Wasserwürfel, Horde, Kammer/Ziegel/Auslöser; kein
+Untergrund, Fackelgruppen 7/8 → kein Stern, Plattform-Lücken und Takt, Wolken; Zeit-Uhren, neue Sternorte), Routen-Bot Lotti
+und Greta vom Start bis zum Zielmast (echte Eingaben, Figur unverwundbar, Treffer-Versuche gezählt; B-4: Zeit läuft mit, nur
+die Uhren reichen), Messgang über die Route, alle Sterne mit echter Mechanik und Gegenproben, Geheimnisse und Extras. Neue
+Bot-Beine: `cloud` (Wolke im Autoscroller), `leap` (aus dem Wasser springen), `plat` (Plattform abwarten mit `fresh`),
+`torch` (Fackel anzünden), `climb`, `grab` mit `hold`.
+Routen (Bot, Lotti/Greta): B-1 ≈ 56/56 s, B-2 ≈ 97/96 s, B-3 ≈ 61/61 s, B-4 ≈ 43/40 s (knappste Restzeit 29 s, im Ziel
+≈ 93/120 s). Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Höchstwert, Bilder Höchstwert): B-1 84 / 157 k,
+Bilder ≤ 83 / 146 k; B-2 93 / 226 k, Bilder ≤ 92 / 233 k; B-3 82 / 242 k, Bilder ≤ 105 / 268 k (Geheimgarten mit Blick über die
+ganze Schlucht), sonst ≤ 80 / 235 k; B-4 83 / 215 k, Bilder ≤ 79 / 227 k. Grenzen < 120 / < 300 k.
