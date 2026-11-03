@@ -269,6 +269,21 @@ Wer S-2 schafft, schaltet das **Sternenglanz-Kostüm** frei (Schalter „Glanz�
 | S-8 | Geisterreigen im Schneenebelmoor | Verschneiter Nebelfriedhof, 5 Schlüsselmünzen, Floß, Nebelplattformen |
 | S-9 | Kanonenhelm-Express durch die Neonstation | Schienenbretter mit Weichen, Kugelwand, Unterwassertunnel, Kanonen-Helm |
 
+**Welt Pilz „Pilz-Remix“** – zweite Bonuswelt (frei nach S-8 über die Röhre „WP“; P-7 ab 310 ★). Remix-Level übernehmen ein
+bekanntes Level als Vorlage und mischen es neu (Licht, Zeitdruck, neue Gefahren, neue Sterne), die Musik des Originals läuft
+in einer Klang-Variante; kein Stempel:
+
+| Id | Titel | Basis | Art |
+| --- | --- | --- | --- |
+| P-1 | Mondscheinwalzen am Mühlenhügel | 2-4 | Nacht, 30 s, Zeit-Uhren als Ideallinie, Stachelkugler |
+| P-2 | Stachelranken im Abendrot | 1-3 | Sonnenuntergang, Stachelringe, Glockenbäume, 5 Schlüsselmünzen |
+| P-3 | Spukfloß im Finsterdschungel | 6-4 | Stockdunkel mit Licht-Helm, Floß mit Spuken, drei Großspuke |
+| P-4 | Schattenspuk-Gerangel | 2-3 | Schattenbühne in 100 s, Turm aus 30 Pilzlingen, alle Gegner besiegen |
+| P-5 | Werfertrubel im Sonnensaal | 6-3 | Tag, Werfer in allen Stockwerken, 5 Schlüsselmünzen, pendelnder Zielmast |
+| P-Haus | Haus Zehnkampf | – | Kampf-Haus: 10 Räume à 10 s, je Raum alle Gegner besiegen |
+| P-6 | Riesenwracks im Morgenwind | 6-2 | Riesen-Wracks über 5 Warp-Boxen, 8 Schubser ins Meer stoßen |
+| P-7 | Sinkschollen über dem Blauglutsee | 7-4 | Nacht, sinkende Schollen über blauer Lava, Gleitblatt |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 

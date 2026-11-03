@@ -9539,3 +9539,174 @@ auf dem Netz nach Turm 3 zur Seite (`hold`), sonst träfe er die Weiche voraus. 
 (Greta), S-9 ≈ 80 s / 76 s. Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und
 Höchstwert, Bilder Höchstwert): S-8 Ø 66 / 147 k, max 82 / 244 k (Großblock-Treppe), Bilder ≤ 87 / 239 k; S-9 Ø 72 / 154 k,
 max 99 / 206 k (Kugelwand), Bilder ≤ 107 / 248 k (Stempel mit Brücke). Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level P-1, P-2, P-3 und P-4)
+
+Welt Pilz (Präfix `P`, Welt 10, Remix-Welt), Level 1 bis 4. Dateien: `src/course/levels/w10/P-1.js` … `P-4.js` (je
+`export const LEVEL = remixOf('<Basis>', { … })`) und die eigene Hilfsdatei `src/course/levels/w10/_helpers_pa.js` (kein
+`LEVEL`, nur von diesen vier Leveln benutzt). **Kein Motor-Code geändert**, Basislevel unverändert (Gegenprobe im Test):
+alle Sonderteile sind level-seitig (Remix-Regeln, Haken `build`/`setup`, eigene Entitäten in `_helpers_pa.js`). Kein
+Stempel (Pilz-Welt), je 3 Sterne. Eigene deutsche Titel, keine fremden Namen/Figuren.
+
+| Level | Titel | Basis | Licht / Thema | Musik (Basis + Variante) | Zeit |
+|---|---|---|---|---|---|
+| P-1 | Mondscheinwalzen am Mühlenhügel | 2-4 | `nacht` / grass@nacht | course_hills + `nacht` | 30 s, 9 Zeit-Uhren je +5 s |
+| P-2 | Stachelranken im Abendrot | 1-3 | `abend` / grass@abend | course_grass + `abend` | 500 s |
+| P-3 | Spukfloß im Finsterdschungel | 6-4 | `dunkel` / jungle@dunkel | course_jungle + `dunkel` | 400 s |
+| P-4 | Schattenspuk-Gerangel | 2-3 | Basis / shadow | course_shadow + `schnell` | 100 s |
+
+### Präzisierung (Level P-1, P-2, P-3 und P-4): P-1 „Mondscheinwalzen am Mühlenhügel“
+
+Nacht, kürzer: `keep` schneidet die Graswiese mit Glasröhren, Figurenschaltern und Kletterfels weg (Start oben auf dem
+Rollhügel), kein Checkpoint. 30 s Startzeit; neun **Zeit-Uhren** (`clocks`, +5 s) liegen auf der Ideallinie über Walzen,
+Stufenhügel, Keller und Riesenräder – ohne sie ist die Zeit vor dem Ziel um. `uhrenZurueck` (Hilfsdatei) legt nach jedem
+Neustart alle Uhren wieder hin. `replaceKind: { huepfmaus: 'huepfmaus_stachel' }` (12 Stachel-Hüpfmäuse, auch Laufzeit-Spawns),
+neu 4 Stachelkugler (pendeln zwischen den Walzen, rollen den Grashügel hinab, im Keller). Roter Ring der Basis → Sternring.
+Oberer Kellerweg über `holzbretter` (Dielen-Look). Sterne: **0** Sternring über der dritten Hügelwalze (acht Sternmünzen rund um
+den Stufenhügel in 12 s), **1** oberer Weg im Mühlenkeller (Kiste, Sims, Bretter an der rechten Wand), **2** unterer Weg:
+Kristalldeckel stampfen → Röhre → Farbfeld-Raum (alle 16 Felder). Geheimnisse der Basis (versteckter Block, Röhren) bleiben.
+
+### Präzisierung (Level P-1, P-2, P-3 und P-4): P-2 „Stachelranken im Abendrot“
+
+Sonnenuntergang. Neu: 4 Stachelkugler (POW-Hang, Doppelhügel), 2 Walzenwerfer, 5 **Stachelringe** an den Ranken
+(`stachelringe`: fahren im Takt aus, vorher Warnzucken – abwarten). Gipfelbrücke und Riesenschnappblume entfallen; stattdessen
+Rankenplateau (y 30) → **Glockenhain** mit drei **Glockenbäumen** (`glockenbaeume`: Kletterstamm nur mit Krallen-Anzug,
+Krone als von unten durchlässige Plattform y 34,5 / 38,5 / 42,5, Glocke läutet beim Landen; darunter Wurzelboden y 24 mit
+Rückweg-Ranke) → Glockenplatz (y 42,5) mit der verschlossenen **Ziel-Warp-Box** (`bossblitz_box`, `locked`): sie öffnet erst
+mit allen **5 Schlüsselmünzen** (Gruppe `schluessel`, `onAll` → `unlock()`, vorher Ansage) → Gipfel y 50 (10 m höher als in
+der Basis, nur über die Box). Dritte Ranke 11,6 m. **Geheimröhre**: Ziegel in der Wand der Rankennische hinter Stern 0
+(zerkratzen/stampfen) verbergen die Röhre zum P-Schalter-Raum der Basis (die alte Röhre in der POW-Nische entfällt).
+Sterne: **0** hinter der Spitze der dritten Ranke, **1** alle blauen Münzen im P-Schalter-Raum, **2** über der Wolke am Gipfel.
+
+### Präzisierung (Level P-1, P-2, P-3 und P-4): P-3 „Spukfloß im Finsterdschungel“
+
+Stockdunkel (jungle@dunkel: kaum Grundlicht, naher Nebel, kräftiges Figurenlicht). **4 Licht-Helme am Start** (Licht und
+Waffe; Nachschub 2 am Checkpoint, 1 auf der Landeinsel; `respawn`). Statt Brummern und Rankenschnappern: 3 Spuke und
+2 Großspuke über dem Floßweg, 5 Kreisgeister über dem Gift; auf der Landeinsel **3 Großspuke** (Kampfraum mit `ids`) – erst
+wenn alle im Lichtkegel verblasst sind, erscheint die Ziel-Warp-Box (`hidden`, `reveal`). Sternenring der Basis entfällt.
+Sterne: **0** über einer Kettenreihe (drei Kettenzäune im Gift links vom Steg: hinaufklettern, von Zaun zu Zaun, oben
+abspringen), **1** auf einer **Lichtplattform** über dem Floßweg (`lichtplattformen`: unsichtbar, von unten durchlässig, im
+Lichtkegel sichtbar – vom fahrenden Floß hinaufspringen), **2** über der Ziel-Warp-Box per Wandsprung zwischen zwei Felswänden.
+
+### Präzisierung (Level P-1, P-2, P-3 und P-4): P-4 „Schattenspuk-Gerangel“
+
+Nur der Schatten-Abschnitt der Basis (`keep` z −73 … −97: Seitenbühne und Schattenbühne mit Unterbühne; Foyer,
+Fahrplattformen, Checkpoint, Kulissen und Rätselbox entfallen), Start im Gang, 100 s. Die Tür auf dem Podest bleibt zu
+(`locked`, ohne Ziel); Feuer-Schnappblume, Extraleben-Block, Stempel-Kisten und die Wuschel der weggeschnittenen Teile entfallen
+(Kreis-Wuschel mit `center` erfasst `keep` nicht – sie werden per `remove`/`where` entfernt); der Schatten-Baum der Leinwand
+wandert von der Tür an den Sichel-Block (`change` mit `fn`). **Dicht mit Gegnern**: elf besiegbare in der Bühnenmitte
+(4 Pilzlinge, 2 Krallen-Pilzlinge, Panzerkröte, 2 Schnappblumen, Riesenschnappblume, der Turm) plus zwei unbesiegbare Wuschel.
+**Pilzlingsturm aus 30 Pilzlingen** (18,8 m, `topple` mit `'cannon'`) versperrt die Bohlen zwischen den Lücken: ein
+Kanonenkugel-Treffer wirft ihn ganz um, Panzer/Feuer nehmen je eine Stufe. **Kanonen-Helme** im Gang, links auf der Bühne,
+hinter der Falltür (`respawn`). Kampfraum mit `ids` über die elf Gegner (Wuschel zählen nicht; `count: false` geht bei
+Wuscheln nicht, ihr `count` ist die Zahl hintereinander) → Ziel-Warp-Box rechts auf dem Podest erscheint → Applaus-Bühne
+mit dem Zielmast (rechts hinter der Kulisse, eigene Kameraschiene). Bühnenkamera flach wie aus dem Zuschauerraum (Neigung 6°),
+damit der Lambrequin die Loge über der Tür nicht verdeckt. Schwerere Schatten-Rätsel (unsichtbare Schattenwege mit Schatten):
+Sterne **0** über der Tür in einer unsichtbaren **Loge** (Boden, Dach, Wände; links ein Schlitz 0,44 m – zu eng für jede Figur,
+auch geduckt): nur die **Wurfsichel** aus dem ?-Block vor dem Podest fliegt hindurch, vom unsichtbaren Sims links der Loge
+im Stand geworfen (Sichel-Mitte = Füße + 0,9 m = Schlitzmitte; vorher den Kanonen-Helm absetzen – Ducken + Aktion – sonst
+feuert die Aktion die Kanone), **1** links vom großen Turm auf einer unsichtbaren Stufe (Schattenstern; erst den Turm
+umwerfen, von Schattenplatte C hinauf), **2** auf dem Sims rechts vom Turm (von Schattenplatte D über der Riesenschnappblume).
+Stern 0 und 1 sind Schattensterne (Aufbau-Haken der Basis, `shadowStars`).
+
+### Präzisierung (Level P-1, P-2, P-3 und P-4): Test `tests/course_pilz_a.mjs`
+
+Port 5035 (+ `PORT_BASE`), `PARTS=load,rules,route,sweep,targets,extra,shots`, `HEROES`, `ONLY`, `VERBOSE`, `SHOTS`, `DETAIL`;
+Bilder `tests/out/pilz_a_*.png`; je Level ein Lauf (`node tests/course_pilz_a.mjs P-n`, je < 7 min). Prüft Laden ohne
+Konsolenfehler, Meta und Gegnerzahlen, Remix-Regeln (Licht/Thema, `music.play(thema, { variant })`, Zeit, entfernte/ersetzte/
+neue Objekte) samt Gegenprobe „Basislevel unverändert“, Routen-Bot Lotti und Greta vom Start bis zum Zielmast (echte
+Eingaben, Zeit läuft mit; P-4 zusätzlich verwundbar ohne Treffer), Messgang über die Route, alle Sterne mit Gegenproben und
+Extras (Zeit-Uhren, Neustart, Stachel-Hüpfmaus, Stachelring, Schlüssel/Box, Großspuke/Box, Lichtplattform, Kampfraum/Box,
+Turm, Helm-Nachschub, Unterbühne). Routen (Bot): P-1 ≈ 45 / 42 s (Lotti/Greta, Restzeit ≈ 30 s), P-2 ≈ 73 / 70 s,
+P-3 ≈ 90 / 89 s, P-4 ≈ 32 / 32 s (Restzeit ≈ 68 s). Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke, Höchstwerte
+Messgang bzw. Bilder): P-1 80 / 176 k bzw. 91 / 171 k; P-2 86 / 212 k bzw. 88 / 203 k; P-3 70 / 166 k bzw. 64 / 153 k;
+P-4 101 / 207 k bzw. 95 / 228 k (Sparmaßnahme: der 30er-Turm wirft keinen Sonnenschatten – spart ≈ 66 k Dreiecke im
+Schattenpass, sein Schatten steht auf der Leinwand); Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level P-5, P-6, P-7 und P-Haus)
+
+Additiv zur Tabelle „Welt Pilz (10) – Remix-Welt 1“: Titel, Remix-Regeln, Sterne und Geheimnisse von P-5, P-6, P-7 und dem
+Kampf-Haus P-Haus. Dateien `src/course/levels/w10/P-5.js`, `P-6.js`, `P-7.js`, `P-Haus.js`, eigene Hilfen
+`src/course/levels/w10/_helpers_pb.js` (kein `LEVEL`, nur für diese vier Level; `_helpers_pa.js` gehört P-1 … P-4), Test
+`tests/course_pilz_b.mjs`. **Kein Motor-Code geändert**; alles Level-Lokale hängt an den Remix-Haken `build`/`setup` (laufen
+nach denen der Basis), `level.onStep` und `view.onFrame`. P-5 … P-7 entstehen mit `remixOf(basis, regeln)` – die Basislevel
+bleiben unverändert (der Test vergleicht ihre Rohdaten vor und nach dem Auflösen und lädt sie). Alle: `world: 10`, kein Stempel,
+P-5 … P-7 je 3 Sterne und 400 s, P-Haus 10 Sterne.
+
+### P-5 „Werfertrubel im Sonnensaal“ (remixOf('6-3') · fareast@tag · course_fareast · 400 s)
+
+- Regeln: Licht `tag`, Basis-Musik ohne Variante. Statt der Stachelwerfer **Werfer** im Saal: Bumerang-Werfer im Erdgeschoss,
+  zwei Hammer-Werfer im 1. Stock, ein Feuer-Werfer im 2. Stock (`werferStockwerk`: sie zielen nur auf Figuren auf ihrem
+  Stockwerk; Pilz-Maske wie in 6-3). Rätselboxen, Gong-Warp und Schlüsselmünzen der Basis entfernt, **fünf neue
+  Schlüsselmünzen** (Gruppe `saal`): unter der Treppe · im 1. Stock zwischen den Hammer-Werfern · hinter der Schiebetür 1a ·
+  hinter Schiebetür 2c und zwei Scheinwänden · hinter der **Schattenblock-Wand** (`appear` 'schattenwand', der Gong im
+  2. Stock blendet sie aus). Alle fünf → Warp-Box hinaus erscheint. Drei **Wurfbälle**, ?-Block mit Funkenblüte im
+  Erdgeschoss. Kein Zielmast am Boden (`goal: null`): ein **pendelnd fliegender Zielmast** (`fliegender_zielmast` mode
+  'pendel') schwingt über dem obersten Dach – nur von zwei Wolkenplattformen aus zu fangen.
+- Sterne: 0 **verstopfte Glasröhre** im 2. Stock (`pfropfen`: eine Stachelkugel steckt in der Mündung; Wurfball oder Feuerball
+  sprengt sie) → Röhre auf den Sternbalkon, Warp-Box zurück · 1 **Sternring** auf der Ankunftsterrasse (8 Sternmünzen, 12 s) ·
+  2 **Terrassengong** nach dem Checkpoint → Warp-Box in den **Münzraum**, der goldene Gong zeigt den Stern.
+
+### P-6 „Riesenwracks im Morgenwind“ (remixOf('6-2') · wreck@morgen · course_wreck · 400 s)
+
+- Regeln: Licht `morgen`, Basis-Musik ohne Variante, **keine Spuke**, Stern-Aufgabe des Schubsers entfernt. **Fünf
+  Warp-Fahrten**: Wrackfelsen → **Wrack 2** (abseits bei x −110: Riesen-Kippschiff 30 × 12 m mit Plankendeck, Riesentrank-?-
+  Block, zwei Schubser an den Bordwänden, Pustewolke mit Gegenwind; am Bug **hebt** eine Hebebühne die Figur 4 m auf das
+  Vorderdeck, dort ein Krakenpilz) → Vorderdeck → Laderaum der Basis → Checkpoint (Krakenpilz) und **kippende Trümmer**
+  (drei Kippbrücken, Pustewolke) und Trümmerschiff mit zwei Schubsern → Bugfelsen → **Wrack 4** (Riesen-Kippschiff mit
+  **acht Schubsern**, Gruppe `wrack4`: alle ins Meer → Warp-Box) → **Mastturm** auf der Zielinsel: **Kippplattform** (Kippsteg)
+  zur **Mastspitze** (Extraleben). Mehr Gegner: 13 Schubser, 3 Pustewolken, 3 Krakenpilze.
+- Sterne: 0 **Sternring** am Anleger (8 Sternmünzen über Anleger, Kippschiff 1 und Kippsteg, 15 s; Walzenwerfer rollt
+  weiter) · 1 Ende des **schmalen Stegs** (0,6 m) rechts der Warp-Box auf dem Vorderdeck von Wrack 2 · 2 Ende des langen
+  Stegs links an Wrack 2 hinter einer **6 m hohen Steinblock-Wand** (höher als jeder Sprung) – nur als Riese.
+- Geheimnisse: Bitcoins unter dem **gehobenen Wrackheck** auf der Sandbank neben dem Anleger (`wrackheck`, ein Krakenpilz
+  bewacht sie) · **unsichtbarer Extraleben-Block** vorn auf dem Vorderdeck von Wrack 2 · **unsichtbarer Riesentrank-Block**
+  am Heck von Wrack 4 (der Riese wirft Schubser bei Berührung um).
+- Hinweise: große Kippschiffe sanft (maxTilt 6, slide 0,5); Krakenpilze am Rand ihrer Sicht (6 m), Schubser auf Wrack 4 mit
+  sight 3,6 in Reihen 6 m auseinander (immer nur einer greift an).
+
+### P-7 „Sinkschollen über dem Blauglutsee“ (remixOf('7-4') · bluelava@nacht · course_bluebelt, Variante nacht · 400 s)
+
+- Regeln: Licht und Klang `nacht`, **keine Schubser und keine Knochenflieger**, Kipp-Aufgabe und Sternring der Basis entfernt;
+  die Pfeilplattformen über der Lava sind **14 Sinkschollen** (`sinkschollen`: sinken unter Last bis in die Lava, steigen ohne
+  Last wieder auf; die drei Pfeilplattformen an der Mauer bleiben), ?-Blöcke mit **Gleitblatt** statt Wurfsichel, Rätselbox
+  ohne Aufgabe (Münzraum), Walzeninsel mit Stachelwalze am Seitenweg G → H.
+- Sterne: 0 auf den **sinkenden Schollen** links vom Start (auf der zweiten hochspringen) · 1 über die **Walzeninsel** (im
+  Sprung über die Stachelwalze) · 2 mit dem Gleitblatt vom Röhrendach hinter die Röhre gleiten – die **unsichtbare Plattform**
+  (`geheimPlatte`) erscheint, Warp-Box zurück.
+
+### P-Haus „Haus Zehnkampf“ (house · house · course_house · 10 Räume à 10 s)
+
+- Zehn Kampfstuben (14 × 16 m, x 0, z 0 / −64 / … / −576; Raumhüllen aus den Welt-4-Hilfen `hausRaum`/`hausFertig`, nur
+  importiert), Ziel je Raum `defeatAll`, `fail: 'exit'`. Eine **Kraftkapsel** (`kraftKapsel`) gibt beim Raumstart das
+  Werkzeug des Raums bzw. nimmt ein mitgebrachtes ab (Funkenblüte/Krallen/Maske kommen nach Verlust nach 1,2 s nach):
+  1 Bullenstall – 3 Rammbock-Bullen, Riesentrank · 2 Eisstube – 3 Schneesäulen, Funkenblüte · 3 Flugstube – Flatterkäfer und
+  Brummer, draufspringen · 4 Bumerangbahn – 3 Bumerang-Werfer, Krallen-Anzug (Tatzenhieb) · 5 Münzflur – Münzmarder
+  (rennend einholen, 2 hp) · 6 Turmzimmer – 3 Pilzlingstürme, POW-Block (Türme herankommen lassen) · 7 Glutküche –
+  3 Funkenflämmchen, Funkelstern · 8 Zauberzimmer – 3 Zauberkröten, Funkenblüte (nur sichtbar treffbar) · 9 Rankengarten –
+  3 Rankenschnapper (`mode: 'static'`), Stampfattacke auf die Köpfe · 10 Hammerhalle – 3 Hammer-Werfer, Pilz-Maske.
+
+### Hilfen `_helpers_pb.js`
+
+`Bld/litTop/isl/line/ring/arc` (aus den Welt-5-Hilfen); P-5: `pfropfen`, `werferStockwerk`, `sternBalkon`; P-6: `wrackheck`,
+`deckPlanken` (Längsplanken an der Darstellung eines Kippschiffs, kippen mit; nur Optik); P-7: `sinkschollen`,
+`geheimPlatte`; P-Haus: `kraftKapsel`.
+
+### Test `tests/course_pilz_b.mjs`
+
+Port 4995, `PARTS=load,base,route,sweep,targets,extra,shots,haus,haus-extra` (je Lauf < 10 min, z. B. `load,base,route,sweep`,
+dann `targets,extra,shots`; P-Haus `load,haus,haus-extra`, dann `shots`), `HEROES`, `ONLY` (Alternativen mit `|`), `SHOTS`,
+`RAUM`, `DETAIL`, `VERBOSE`, `TRACE`; Bilder `tests/out/pilz_b_*.png`. Prüft je Level Laden ohne Konsolenfehler, Daten (Welt,
+Titel, Thema mit Licht-Variante, Musik mit Klang-Variante im Musiksystem, Zeit, Sterne, kein Stempel), Remix-Regeln
+(entfernte/getauschte/neue Gegner, Warp-Kette, Schollen, Gleitblatt), Gegenprobe Basis (Rohdaten unverändert, Basis lädt wie
+bisher), Routen-Bot Lotti und Greta vom Start bis zum Zielmast mit echten Eingaben (Figur auf der Route unverwundbar,
+Treffer-Versuche werden gezählt und müssen 0 sein), Messgang über die Route, alle Sterne mit Gegenproben, Geheimnisse und
+Extras; P-Haus: alle zehn Räume je Heldin unter 10 s, Ergebnis 10/10 gespeichert, Gegenproben ohne Kraftkapsel
+(Flämmchen heiß, Schneesäule verliert nur Segmente, Bulle nur 1 hp je Sprung) und Zeitablauf (Haus verlassen, 2/10).
+Neue Bot-Beine: `shootR` (Gegner radial anvisieren, Aktion), `poundOn` (Stampfattacke auf Köpfe), `bait`/`dodge` am
+`stompAll` (Krakenpilz spucken lassen, zur Seite treten, dann anspringen).
+Routen (Bot, Lotti/Greta): P-5 ≈ 89/81 s, P-6 ≈ 162/134 s, P-7 ≈ 64/63 s. P-Haus Raumzeiten Lotti 1,5 · 2,2 · 6,3 · 2,9 ·
+2,1 · 1,3 · 6,7 · 2,3 · 7,5 · 4,7 s, Greta 1,5 · 2,1 · 7,6 · 2,9 · 1,9 · 1,3 · 5,6 · 2,3 · 7,2 · 4,7 s.
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und Höchstwert, Bilder Höchstwert): P-5 Ø 80, max
+115 / 272 k (Saal, 2. Stock), Bilder ≤ 107 / 246 k; P-6 Ø 65, max 79 / 225 k, Bilder ≤ 84 / 223 k; P-7 Ø 59, max 74 / 227 k,
+Bilder ≤ 75 / 213 k; P-Haus Bilder ≤ 69 / 125 k. Grenzen < 120 / < 300 k.
