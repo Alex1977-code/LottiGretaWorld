@@ -28,6 +28,7 @@ const PI = Math.PI;
 //   · { shootR: [Ids], dist } (Gegner radial anvisieren, Aktion: Feuerball/Sichel) · { fire: [x, z] } / { throwAt: [x, z] }
 //   (zum Ziel drehen, Aktion) · { bounce: Id, to2 } (Sprung gehalten auf den Gegner, hoher Abprall) · { pound: [x, z] }
 //   · { glide } · { power: Name } · { setTime: s } · { mark } · { kill: true }
+const Y11 = 1;   // B-11: Laufhöhe der Festung
 const Y9 = 1, SKY9 = 9, PX9 = 2.5, SX9 = 53.5, SZ9 = 9;   // B-9: Strand, Schwebeinsel, Glasröhre, schlafender Turm
 
 const ROUTES = {
@@ -206,6 +207,109 @@ const ROUTES = {
       ['flaeche', [0, 0, -240]],
       ['lavafeld', [-1.2, 0, -262.4]],
       ['turm', [0, 0, -288]],
+    ],
+  },
+  'B-11': {
+    base: '8-1',
+    start: [0, Y11, 6],
+    meta: { title: 'Stachelstege im Suchlicht', stars: 3, time: 400, theme: 'rainfort@nacht', music: 'course_rainfort', variant: 'nacht', archetype: 'parcours', light: 'nacht' },
+    enemies: { stachelfalle: 7, feuer_werfer: 4, knochenflieger_gruppe: 5, warpbox: 8, task: 1 },
+    baseEnemies: { stachelfalle: 7, feuer_werfer: 3 },
+    remixChecks: [
+      { name: 'vier Suchscheinwerfer über den Stachelstegen (folgen der Figur nicht), sieben Stachelfallen unter Licht-Steuerung, blaue Stege, drei orange Schwebeplattformen × 1,6 (die mittlere 4,4 m groß), Feuer-Werfer am Ende von Abschnitt 1, Säule der Basis entfernt, zwei neue Kletter-Säulen, Wachstube ohne Stern, Bröckelblock-Brücke',
+        ok: (r) => r.b11 && r.b11.lights === 4 && r.b11.track === false && r.b11.groups === 4 && r.b11.traps === 7 && r.b11.speeds === '3.84,3.84,2.88' && r.b11.waits === '0.8,0.8' && r.b11.big === 4.4
+          && r.b11.tinted === 3 && r.b11.werfer0 && r.b11.walls === '-19,-3.4,-5' && r.b11.taskStar === null && r.b11.broeckel === 3 },
+    ],
+    main: [
+      { name: 'Torhof', to: [0, -5], within: 0.6 },
+      { name: 'Steg 1: über die Stachelfalle springen', to: [0, -10.2], within: 0.4, run: false },
+      { to: [0, -16.4], jump: 30, jumpAt: 7, within: 0.6, run: false },
+      { name: 'Turm 1', to: [0, -25.6], within: 0.5 },
+      { name: 'Steg 2: drei Fallen', to: [0, -28.8], within: 0.4, run: false },
+      { to: [0, -33.5], jump: 24, jumpAt: 6, within: 0.5, run: false },
+      { to: [0, -38.5], jump: 24, jumpAt: 6, within: 0.5, run: false },
+      { to: [0, -43.8], jump: 24, jumpAt: 6, within: 0.5, run: false },
+      { name: 'Turm 2', to: [0, -47.2], within: 0.5 },
+      { name: 'Warp-Box über den Graben', warp: [2.5, -50.5] },
+      { expect: '=P().pos.z < -66 && P().pos.z > -80' },
+      { to: [0, -81.2], within: 0.4 },
+      { name: '3-m-Lücke', to: [0, -86.5], jump: 24, jumpAt: 9, within: 0.6 },
+      { name: 'Feuer-Werfer 1', stompAll: 'werfer1' },
+      { to: [0, -97.3], within: 0.3 },
+      { name: 'Lücke zum Steg', to: [0, -103.5], jump: 24, jumpAt: 9, within: 0.6 },
+      { to: [0, -106.3], within: 0.3 },
+      { name: 'Lücke zu Werfer-Platz 2', to: [0, -112.5], jump: 24, jumpAt: 9, within: 0.6 },
+      { name: 'Feuer-Werfer 2', stompAll: 'werfer2' },
+      { to: [0, -122], within: 0.5 },
+      { name: 'Hammer-Werfer', stompAll: 'werfer3' },
+      { name: 'Warp-Box zur Kontrollpunkt-Insel', warp: [2.5, -129] },
+      { name: 'Kontrollpunkt', to: [0, -157.5], within: 0.6 },
+      { to: [0, -164], within: 0.6 },
+      { name: 'Knochenflieger-Strecke', to: [0, -179], within: 0.6 },
+      { name: 'Platz der Keil-Gruppe', to: [0, -191], within: 0.6 },
+      { name: 'Steg 3: zwei Fallen', to: [0, -194.4], within: 0.4, run: false },
+      { to: [0, -200], jump: 24, jumpAt: 6, within: 0.5, run: false },
+      { to: [0, -206.8], jump: 24, jumpAt: 7, within: 0.5, run: false },
+      { name: 'Platz der Ring-Gruppe', to: [0, -219], within: 0.6 },
+      { to: [0, -235.2], within: 0.4, run: false },
+      { name: 'orange Schwebeplattform 1', block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] },
+      { name: 'große orange Stachelplattform', block: 'schwebe2', board: [0, -251.2], exit: [8, -251.2] },
+      { name: 'orange Schwebeplattform 3 (ohne Pause)', block: 'schwebe3', board: [8, -255.4], exit: [8, -262.4], moving: true },
+      { to: [8, -266.5], jump: 20, within: 0.5, run: false },
+      { name: 'Warp-Box zum Zielturm', warp: [8, -269] },
+      { name: 'Zielmast', to: [0, -299.4], within: 0.2 },
+    ],
+    routeChecks: [
+      { name: 'drei Warp-Boxen, drei Werfer der Basis besiegt, drei orange Schwebeplattformen, über alle Stachelfallen gesprungen', ok: (r) => r.mech.warps === 3 && r.log.filter((l) => l[0] === 'stachelblock').length === 3 },
+    ],
+    targets: [
+      { name: 'Stern 0: Krallen-Anzug aus dem ?-Block auf Turm 1, über Steg 2, am Ende von Abschnitt 1 die Säule links vom Feuer-Werfer hinauf', star: 0, from: [0, Y11, -22.4],
+        legs: [{ grabQ: [2.6, -24.4], back: [2.6, -22.4] }, { expect: 'krallen' }, { to: [0, -28.8], within: 0.4, run: false },
+          { to: [0, -33.5], jump: 24, jumpAt: 6, within: 0.5, run: false }, { to: [0, -38.5], jump: 24, jumpAt: 6, within: 0.5, run: false }, { to: [0, -43.8], jump: 24, jumpAt: 6, within: 0.5, run: false },
+          { to: [-3.4, -46.4], within: 0.3, run: false }, { climb: [-3.4, -49.6], top: Y11 + 6.6, then: [-3.4, -49.6] }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne Krallen-Anzug (an der Säule nur Wandrutschen)', star: 0, expectNot: true, from: [-3.4, Y11, -46.6], heroes: ['lotti'],
+        legs: [{ climb: [-3.4, -49.6], top: Y11 + 6.6, max: 400, partial: true }, { wait: 30 }] },
+      { name: 'Stern 1: Krallen-Anzug am Kontrollpunkt, nach dem Kontrollpunkt die Säule am Platz der Keil-Gruppe hinauf', star: 1, from: [0, Y11, -157],
+        legs: [{ grabQ: [-2.5, -152], back: [-2.5, -154.4] }, { expect: 'krallen' }, { to: [0, -164], within: 0.6 }, { to: [0, -179], within: 0.6 },
+          { to: [-5.0, -185.8], within: 0.3, run: false }, { climb: [-5.0, -188.8], top: Y11 + 6.6, then: [-5.0, -188.8] }, { star: 1 }], shot: 'stern1' },
+      { name: 'Stern 1 nicht ohne Krallen-Anzug', star: 1, expectNot: true, from: [-5.0, Y11, -185.8], heroes: ['lotti'],
+        legs: [{ climb: [-5.0, -188.8], top: Y11 + 6.6, max: 400, partial: true }, { wait: 30 }] },
+      { name: 'Stern 2: auf der großen Stachelplattform warten, nach links über die Bröckelblock-Brücke auf den Säulenkopf', star: 2, from: [0, Y11, -235.2],
+        legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] },
+          { to: [-3.9, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false }, { to: [-6.5, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false },
+          { to: [-9.1, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false }, { to: [-12.6, -251.2], jump: 24, jumpAt: 4, within: 0.4, run: false }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stern 2 nicht ohne Bröckelblöcke (Sprung von der großen Plattform zum Säulenkopf)', star: 2, expectNot: true, from: [0, Y11, -235.2], heroes: ['lotti'], invuln: false, expectAlive: false,
+        legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] },
+          { to: [-12.6, -251.2], jump: 40, jumpAt: 13, within: 0.4, max: 300, partial: true }, { wait: 240 }] },
+    ],
+    extra: [
+      { name: 'Suchscheinwerfer: im Lichtfleck fährt die Stachelfalle aus und bleibt draußen (länger als ihr Takt)', from: [0, Y11, 4], heroes: ['lotti'],
+        legs: [{ until: '=named("suchlichtFallen").stuck("falle1")', max: 2400 }, { mark: true },
+          { until: '=!named("suchlichtFallen").stuck("falle1")', max: 2400 }, { expect: '=L.time - window.__mark.t > 3.4' }] },
+      { name: 'Entdeckt: wer ins Licht läuft, lässt alle drei Fallen von Steg 2 ausfahren', from: [0, Y11, -26], heroes: ['lotti'],
+        legs: [{ until: '=Math.hypot(named("licht_steg2").spot.x, named("licht_steg2").spot.z + 29.6) < 1', max: 2400 }, { to: [0, -29.6], within: 0.4, run: false, max: 200 },
+          { until: '=named("licht_steg2").alarms > 0', max: 240 }, { wait: 70 }, { expect: '=["falle2", "falle3", "falle4"].every((id) => ent(id).state === "up")' }] },
+      { name: 'Stachelfalle im Licht verletzt, wer draufsteht', from: [0, Y11, -10.6], heroes: ['lotti'], invuln: false,
+        legs: [{ until: '=named("suchlichtFallen").stuck("falle1") && ent("falle1").state === "up"', max: 2400 }, { to: [0, -13], within: 0.3, run: false, max: 200, partial: true }, { wait: 40 }],
+        mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Bröckelblock fällt nach dem Betreten und kommt nach 4 s wieder', from: [0, Y11, -235.2], heroes: ['lotti'],
+        legs: [{ block: 'schwebe1', board: [0, -238.2], exit: [0, -247.2] }, { block: 'schwebe2', board: [0, -251.2], exit: [0, -251.2] }, { to: [-3.9, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false },
+          { to: [-6.5, -251.2], jump: 20, jumpAt: 4, within: 0.4, run: false }, { wait: 30 }, { expect: '=named("broeckel").blocks[0].state !== "fest"' }, { wait: 600 }, { expect: '=named("broeckel").blocks[0].state === "fest"' }] },
+      { name: 'Wachstube (Rätselbox auf der Kletterwand): Wache besiegen → Extraleben statt Stern', from: [-19, Y11 + 9, -152.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ warp: [-19, -153.5] }, { until: '=P().pos.x > 80', max: 600 }, { to: [88, -150], within: 0.5, run: false }, { stompAll: 'wache' }, { wait: 120 }, { chaseKind: 'powerup', max: 1200 }] },
+    ],
+    shots: [
+      ['start', [0, Y11, 6]],
+      ['steg1', [0, Y11, -6]],
+      ['steg2', [0, Y11, -26.4]],
+      ['turm2', [0, Y11, -44]],
+      ['werfer', [0, Y11, -86]],
+      ['cp', [0, Y11, -150]],
+      ['keil', [0, Y11, -183]],
+      ['steg3', [0, Y11, -192]],
+      ['schwebe', [0, Y11, -234]],
+      ['broeckel', [-6.5, Y11, -248.6]],
+      ['ziel', [0, Y11, -294]],
     ],
   },
 };
@@ -870,9 +974,46 @@ function install() {
           }
           continue;
         }
+        // ------------------------------------------------ Stachelblock-Schwebeplattform bzw. mover (Id): am Einstieg warten, aufspringen, mitfahren (wie course_w8a)
+        if (Lg.block) {
+          const h = L.named.get(Lg.block);
+          const mb = h.mb ?? { get pos() { return h.pm.pos; }, get top() { return h.shape.max[1]; }, mover: h.mover };
+          const [ax, az] = Lg.board, [ex, ez] = Lg.exit;
+          const atB = (x, z, r = 0.25) => Math.hypot(mb.pos.x - x, mb.pos.z - z) < r;
+          let k = 0;
+          const ready = (x, z) => (Lg.moving || !h.mb ? atB(x, z, 0.45) : atB(x, z) && h.state === 'wartet');
+          for (; k < 2400 && !ready(ax, az); k++) tick({});
+          let n = 0;
+          for (; n < 300 && !p.dead; n++, k++) {
+            const dx = mb.pos.x - p.pos.x, dz = mb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            if (d < 0.5 && p.mode === 'ground' && Math.abs(p.pos.y - mb.top) < 0.2) break;
+            tick({ ...(p.mode === 'air' ? this.airSteer(mb.pos.x, mb.pos.z, mb.mover.vx, mb.mover.vz, 4, 6) : this.stick(dx, dz, 1)), run: false, jump: p.mode === 'ground' && d < (Lg.jumpAt ?? 3.6) && n < 400 });
+          }
+          for (n = 0; n < 2400 && !p.dead && !ready(ex, ez); n++, k++) {
+            const dx = mb.pos.x - p.pos.x, dz = mb.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+            tick(d > 0.15 && p.mode === 'ground' ? { ...this.stick(dx, dz, Math.min(1, d)), run: false } : {});
+          }
+          log.push(['stachelblock', Lg.block, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          continue;
+        }
+        // ------------------------------------------------ mit dem Krallen-Anzug an einer Wand hinauf: zur Wand springen und dagegen drücken (wie course_w8a)
+        if (Lg.climb) {
+          const [tx, tz] = Lg.climb;
+          let k = 0, top = false;
+          for (; k < (Lg.max ?? 900) && !p.dead; k++) {
+            const dx = tx - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+            if (p.pos.y > (Lg.top ?? 99) - 0.1 && p.mode === 'ground') { top = true; break; }
+            if (p.mode === 'wall') { mech.climbs = (mech.climbs ?? 0) + 1; tick({ ...this.stick(dx, dz, 1), run: false }); continue; }
+            tick({ ...this.stick(dx, dz, 1), run: false, jump: p.mode === 'ground' ? d < (Lg.jumpAt ?? 1.6) : p.vel.y > 0 });
+          }
+          if (Lg.then) for (let n = 0; n < 300 && !p.dead; n++, k++) { const dx = Lg.then[0] - p.pos.x, dz = Lg.then[1] - p.pos.z, d = Math.hypot(dx, dz); if (d < 0.3 && p.mode === 'ground') break; tick({ ...this.stick(dx, dz, Math.min(1, Math.max(0.3, d))), run: false }); }
+          log.push(['klettern', `${Lg.climb}`, top, k, +p.pos.x.toFixed(2), +p.pos.y.toFixed(2), +p.pos.z.toFixed(2)]);
+          if (!top && !Lg.partial) log.push(['FEHLER: Wand nicht erklommen', Lg.climb]);
+          continue;
+        }
         // ------------------------------------------------ Restzeit setzen (Zeitablauf prüfen)
         if (Lg.setTime !== undefined) { L.runtime.timeLeft = Lg.setTime; log.push(['Restzeit', Lg.setTime]); continue; }
-        if (Lg.mark) { window.__mark = { time: L.runtime.timeLeft, coins: L.runtime.coins, ...(typeof Lg.mark === 'object' ? Lg.mark : {}) }; continue; }
+        if (Lg.mark) { window.__mark = { t: L.time, time: L.runtime.timeLeft, coins: L.runtime.coins, ...(typeof Lg.mark === 'object' ? Lg.mark : {}) }; continue; }
         if (!Lg.to) continue;
         // ------------------------------------------------ Wegpunkt (optional mit Sprung)
         const max = Lg.max ?? 900;
@@ -980,6 +1121,16 @@ function install() {
         kinds: this.kinds(), remix: d.remix ?? null, theme: d.theme, light: c.view.theme.light ?? null, music: d.music, variant: d.musicVariant ?? null,
         call: calls.filter((x) => x[0] === d.music).slice(-1)[0] ?? null, mVariant: window.__audio?.music?.variant ?? null,
         stamp: !!d.stamp, stars: (d.stars ?? []).length, world: d.world, title: d.title, timeLimit: d.timeLimit, rtLimit: L.runtime.timeLimit,
+        b11: d.id === 'B-11' ? {
+          lights: (L.searchlights ?? []).length, track: (d.segments ?? []).filter((q) => q.type === 'suchscheinwerfer').every((q) => q.track === false) ? false : true,
+          groups: named('suchlichtFallen')?.info().groups ?? 0, traps: named('suchlichtFallen')?.info().traps ?? 0,
+          speeds: ['schwebe1', 'schwebe2', 'schwebe3'].map((id) => +(d.segments.find((q) => q.id === id)?.speed ?? 0).toFixed(2)).join(','),
+          waits: ['schwebe1', 'schwebe2'].map((id) => +(d.segments.find((q) => q.id === id)?.wait ?? 0).toFixed(2)).join(','),
+          big: d.segments.find((q) => q.id === 'schwebe2')?.size?.[0] ?? null,
+          tinted: c.view.frameFns.filter((f) => f.obj?.name === 'stachelblock' && f.obj.userData.orange).length,
+          werfer0: !!ent('werfer0'), walls: d.segments.filter((q) => q.type === 'wall' && q.climbable).map((q) => q.pos[0]).join(','),
+          taskStar: d.items.find((i) => i.id === 'raetsel2')?.task?.star ?? null, broeckel: named('broeckel')?.blocks?.length ?? 0,
+        } : null,
         b10: d.id === 'B-10' ? {
           space: (d.segments ?? []).filter((q) => q.type === 'deco_star').reduce((a, q) => a + (q.items ?? []).filter((i) => ['planet', 'rakete', 'komet', 'sterne'].includes(i.kind)).length, 0),
           wolken: (d.segments ?? []).filter((q) => q.type === 'deco_w6').reduce((a, q) => a + (q.items ?? []).filter((i) => i.kind === 'wolkenberg').length, 0),

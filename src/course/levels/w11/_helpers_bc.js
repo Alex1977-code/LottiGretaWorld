@@ -9,7 +9,7 @@
 // (je 1 Zeichenaufruf) ohne Sonnenschatten.
 
 import * as THREE from 'three';
-import { lin, hex, colorize, merge, mixc, smooth, addObject } from '../../blocks/kit.js';
+import { lin, hex, colorize, merge, mixc, smooth, addObject, addStatic, box } from '../../blocks/kit.js';
 import { CourseEntity } from '../../entities/CourseEntity.js';
 import { runAction, visDt } from '../../entities/gimmick.js';
 
@@ -344,3 +344,142 @@ export const wabenListe = (list, tol = 0.45) => (x, z, ch) => {
   for (const [cx, cz, nch] of list) if (Math.abs(cx - x) < tol && Math.abs(cz - z) < tol) return nch;
   return undefined;
 };
+
+// =====================================================================================================================
+// B-11: Suchscheinwerfer über den Stachelstegen
+// =====================================================================================================================
+
+/**
+ * Stachelfallen unter Suchscheinwerfern (B-11 „im Licht fahren Stacheln aus und bleiben draußen“). Je Gruppe ein Scheinwerfer
+ * (Baustein suchscheinwerfer, 5-7) und die Stachelfallen seines Stegs (Entität stachelfalle der Basis 8-1):
+ *   - Liegt der Lichtfleck auf einer Falle (Abstand Fleckmitte–Fallenmitte < radius + reach), fährt sie nach kurzer Vorwarnung
+ *     (warn s) aus und **bleibt draußen**, solange das Licht auf ihr liegt und noch hold s danach – der feste Takt der Basis
+ *     ruht so lange (er läuft im Hintergrund weiter).
+ *   - Entdeckt der Scheinwerfer eine Figur („Entdeckt!“), fahren alle Fallen seines Stegs aus und bleiben alarm s draußen.
+ *   - Neustart: alle Fallen wieder im Takt.
+ * Der Scheinwerfer folgt der Figur nicht (track: false in den Daten) – er fährt seine Bahn weiter. (LEVEL.setup)
+ *   groups: [{ light: Id, traps: [Ids], reach: 0.9, hold: 2, alarm: 4, warn: 0.45 }]
+ * → { groups, lit (Zahl der Fallen im Licht), alarms, stuck(id), info() }
+ */
+export function suchlichtFallen(level, groups) {
+  const st = { groups: [], lit: 0, alarms: 0, forced: 0 };
+  const now = () => level.time;
+  for (const g of groups) {
+    const light = level.named.get(g.light);
+    const traps = g.traps.map((id) => level.named.get(id) ?? level.entities.find((e) => e.spec?.id === id)).filter(Boolean);
+    if (!light || !traps.length) continue;
+    const G = { light, traps, reach: g.reach ?? 0.9, hold: g.hold ?? 2, alarm: g.alarm ?? 4, warn: g.warn ?? 0.45, alarms: 0 };
+    st.groups.push(G);
+    for (const t of traps) {
+      t._litUntil = 0; t._forceT = 0; t.litCount = 0;
+      const orig = t.update.bind(t);
+      t.update = (dt) => {
+        if (now() >= t._litUntil) { t._forceT = 0; return orig(dt); }
+        // gezwungen draußen: Takt läuft im Hintergrund weiter, Zustand nach eigener Regel
+        if (!t.ctrl) t.clock += dt;
+        const wasUp = t._forceT > 0 || t.state === 'up';
+        t._forceT += dt;
+        const s = wasUp && t.state === 'up' ? 'up' : t._forceT >= G.warn ? 'up' : 'warn';
+        if (s !== t.state) {
+          if (s === 'warn') level.sfx('switch');
+          if (s === 'up') { t.cycles++; level.sfx('slam'); }
+          t.state = s;
+        }
+        t.upK = s === 'up' ? Math.min(1, t.upK + dt / 0.12) : Math.max(0, t.upK - dt / 0.25);
+        if (t.upK > 0.5) t.hurtFigures();
+      };
+    }
+    light.onDetect?.(() => {
+      G.alarms++; st.alarms++;
+      for (const t of traps) t._litUntil = Math.max(t._litUntil, now() + G.alarm);
+    });
+  }
+  level.onStep(() => {
+    let lit = 0;
+    for (const G of st.groups) {
+      const sp = G.light.spot, r = G.light.radius ?? 2.2;
+      if (!sp) continue;
+      for (const t of G.traps) {
+        if (t.removed) continue;
+        const half = Math.max(t.sx ?? 2, t.sz ?? 2) / 2;
+        if (Math.hypot(sp.x - t.pos.x, sp.z - t.pos.z) < r + Math.min(half, G.reach)) {
+          if (now() >= t._litUntil) t.litCount++;
+          t._litUntil = Math.max(t._litUntil, now() + G.hold);
+          lit++;
+        }
+      }
+    }
+    st.lit = lit;
+  });
+  const rt = level.runtime;
+  if (rt && !rt._suchlichtBC) {
+    rt._suchlichtBC = true;
+    const orig = rt.respawn.bind(rt);
+    rt.respawn = () => { for (const G of st.groups) for (const t of G.traps) { t._litUntil = 0; t._forceT = 0; } return orig(); };
+  }
+  st.stuck = (id) => { for (const G of st.groups) for (const t of G.traps) if (t.spec?.id === id) return now() < t._litUntil; return false; };
+  st.info = () => ({ groups: st.groups.length, traps: st.groups.reduce((a, G) => a + G.traps.length, 0), lit: st.lit, alarms: st.alarms,
+    out: st.groups.flatMap((G) => G.traps.filter((t) => now() < t._litUntil).map((t) => t.spec?.id)) });
+  level.named.set('suchlichtFallen', st);
+  return st;
+}
+
+/**
+ * Blaue Stachelstege (B-11 „Suchscheinwerfer über den blauen Brücken“; nur Darstellung): ein blauer Plattenbelag mit hellem Rand
+ * auf jedem Steg (über den Bodenplatten der Regenfestung, ohne Kollision; statisch verschmolzen – keine zusätzlichen
+ * Zeichenaufrufe).
+ * list: [[x0, x1, zA, zB] …], y = Laufhöhe. (LEVEL.build)
+ */
+export function blaueStege(level, list, y) {
+  if (!level.view) return;
+  for (const [x0, x1, zA, zB] of list) {
+    const z0 = Math.max(zA, zB), z1 = Math.min(zA, zB), w = x1 - x0, d = z0 - z1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    addStatic(level, box(w - 0.2, 0.05, d - 0.1, cx, y + 0.02, cz, 0x9ac4ff, { r: 0.02 }));
+    addStatic(level, box(w - 0.5, 0.06, d - 0.4, cx, y + 0.03, cz, 0x2f62d8, { r: 0.02, topColor: 0x3a74ee }));
+  }
+}
+
+// =====================================================================================================================
+// B-11: orange Schwebebrücken (nur Darstellung)
+// =====================================================================================================================
+
+const _hsl = { h: 0, s: 0, l: 0 };
+/**
+ * Stachelblöcke (Baustein stachelblock: Modelle blau/rot) orange einfärben – B-11 „orange Brücken fahren schneller“. Beim ersten
+ * Bild werden die Darstellungen der Blöcke gesucht (Objekt-Name des Bausteins, Lage = Block), ihre Geometrien und Materialien
+ * kopiert und alle Farben auf den Orange-Farbton gedreht (Helligkeit und Sättigung bleiben, Grau bleibt grau). (LEVEL.setup)
+ * ids: Block-Ids, hue 0.075. → { tinted }
+ */
+export function orangeBloecke(level, ids, hue = 0.075) {
+  const st = { tinted: 0 };
+  if (!level.view) return st;
+  const blocks = ids.map((id) => level.named.get(id)).filter((h) => h?.mb);
+  const tone = (c) => { c.getHSL(_hsl); if (_hsl.s > 0.18) c.setHSL(hue, Math.min(1, _hsl.s * 1.1), Math.min(0.66, _hsl.l * 1.35 + 0.06)); };
+  const tint = (root) => {
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      const col = o.geometry?.getAttribute?.('color');
+      if (col) {
+        o.geometry = o.geometry.clone();
+        const a = o.geometry.getAttribute('color'), c = new THREE.Color();
+        for (let i = 0; i < a.count; i++) { c.setRGB(a.getX(i), a.getY(i), a.getZ(i)); tone(c); a.setXYZ(i, c.r, c.g, c.b); }
+        a.needsUpdate = true;
+      }
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const out = mats.map((m) => { const n = m.clone(); if (n.color) tone(n.color); if (n.emissive) tone(n.emissive); return n; });
+      o.material = Array.isArray(o.material) ? out : out[0];
+    });
+  };
+  let done = false;
+  const off = level.view.onFrame(() => {
+    if (done) return;
+    done = true;
+    const roots = level.view.frameFns.map((f) => f.obj).filter((o) => o?.name === 'stachelblock');
+    for (const h of blocks) {
+      const r = roots.find((o) => Math.hypot(o.position.x - h.mb.pos.x, o.position.z - h.mb.pos.z) < 0.6 && Math.abs(o.position.y - h.mb.pos.y) < 0.6);
+      if (r && !r.userData.orange) { r.userData.orange = true; tint(r); st.tinted++; }
+    }
+    setTimeout(() => off?.(), 0);
+  });
+  return st;
+}
