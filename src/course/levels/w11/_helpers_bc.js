@@ -448,9 +448,10 @@ const _hsl = { h: 0, s: 0, l: 0 };
  * Stachelblöcke (Baustein stachelblock: Modelle blau/rot) orange einfärben – B-11 „orange Brücken fahren schneller“. Beim ersten
  * Bild werden die Darstellungen der Blöcke gesucht (Objekt-Name des Bausteins, Lage = Block), ihre Geometrien und Materialien
  * kopiert und alle Farben auf den Orange-Farbton gedreht (Helligkeit und Sättigung bleiben, Grau bleibt grau). (LEVEL.setup)
- * ids: Block-Ids, hue 0.075. → { tinted }
+ * Dazu ein leichtes oranges Eigenleuchten (glow), damit sie auch nachts orange wirken. ids: Block-Ids, hue 0.06, glow 0.12.
+ * → { tinted }
  */
-export function orangeBloecke(level, ids, hue = 0.075) {
+export function orangeBloecke(level, ids, hue = 0.06, glow = 0.12) {
   const st = { tinted: 0 };
   if (!level.view) return st;
   const blocks = ids.map((id) => level.named.get(id)).filter((h) => h?.mb);
@@ -466,7 +467,13 @@ export function orangeBloecke(level, ids, hue = 0.075) {
         a.needsUpdate = true;
       }
       const mats = Array.isArray(o.material) ? o.material : [o.material];
-      const out = mats.map((m) => { const n = m.clone(); if (n.color) tone(n.color); if (n.emissive) tone(n.emissive); return n; });
+      const out = mats.map((m) => {
+        const n = m.clone();
+        if (n.color) tone(n.color);
+        // nachts gut sichtbar: leichtes oranges Eigenleuchten
+        if (n.emissive) { n.emissive.setHSL(hue, 1, 0.5); n.emissiveIntensity = Math.max(n.emissiveIntensity ?? 0, glow); }
+        return n;
+      });
       o.material = Array.isArray(o.material) ? out : out[0];
     });
   };
