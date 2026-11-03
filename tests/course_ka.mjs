@@ -86,6 +86,31 @@ const ROUTES = {
       { name: 'Feuer-Werfer 3', stompAll: 'werfer3' },
       { name: 'Warp-Box 1', warp: [0, -210.4] },
       { expect: '=at(-3.6, 3.6, 13.5, -216, -228)' },
+      // ---------------------------------------------- 3 Piep-Block-Strecke (Wechsel jeden Takt) und Zauberarena
+      { sec: 's3', from: [0, 14, -221.4] },
+      { to: [0, -226.5], within: 0.3, run: false },
+      { name: 'Piep rot 1', beep: 'rot', need: 1.0, to: [0, -234], within: 0.5 },
+      { name: 'Piep blau 2', beep: 'blau', need: 1.1, to: [0, -240.3], within: 0.4 },
+      { name: 'Piep rot 3 (Sprung im Wechsel)', beep: 'rot', lead: 0.3, to: [0, -243.5], jump: 18, within: 0.6, run: false },
+      { to: [0, -248], within: 0.4 },
+      { name: 'Piep-Treppe rot', beep: 'rot', need: 1.1, to: [0, -251.3], jump: 30, within: 0.4, run: false },
+      { name: 'Piep-Treppe blau (Sprung im Wechsel)', beep: 'blau', lead: 0.3, to: [0, -254.3], jump: 34, within: 0.5, run: false },
+      { name: 'Rastinsel 4', to: [-2, -266.4], within: 0.3, run: false },
+      { name: 'Zickzack rot', beep: 'rot', need: 1.0, to: [-1, -272], within: 0.4 },
+      { name: 'Zickzack blau (Sprung im Wechsel)', beep: 'blau', lead: 0.3, to: [2, -272.5], jump: 18, within: 0.5, run: false },
+      { to: [1, -278], within: 0.4 },
+      { name: 'Zickzack rot (Sprung im Wechsel)', beep: 'rot', lead: 0.3, to: [-2, -278.5], jump: 18, within: 0.5, run: false },
+      { to: [-1, -284], within: 0.4 },
+      { to: [0, -284.6], within: 0.3, run: false },
+      { name: 'Trittstein 1 (blau)', beep: 'blau', need: 1.2, to: [0, -288], jump: 22, within: 0.5, run: false },
+      { name: 'Trittstein 2 (rot)', beep: 'rot', lead: 0.3, to: [0, -292.5], jump: 22, within: 0.5, run: false },
+      { name: 'Trittstein 3 (blau)', beep: 'blau', lead: 0.3, to: [0, -297], jump: 22, within: 0.5, run: false },
+      { name: 'Kanonen-Insel', to: [0, -302], jump: 22, within: 0.5, run: false },
+      { name: 'Glasröhren-Kanone in die Zauberarena', pipe: [0, -305.4] },
+      { expect: '=at(-12.5, 12.5, 13.5, -349, -356)' },
+      { name: 'drei Zauberkröten', toads: ['zk1', 'zk2', 'zk3'], center: [0, -362] },
+      { name: 'Warp-Box 2', warp: [0, -362] },
+      { expect: '=at(-4.6, 4.6, 8.5, -384, -396)' },
     ],
     targets: [],
     extra: [],
@@ -114,6 +139,8 @@ function install() {
   const c = window.__course;
   c.setManual(true);
   c.level.muted = true;
+  // Taktuhr der Piep-Blöcke: im Test nur die Simulationszeit (die Musik-Uhr läuft in Echtzeit, step() nicht)
+  if (c.level.beepClock) c.level.beepClock.mode = 'level';
   window.__game.scene.getScene('CourseUI')?.touchCtl?.setVisible(false);
   const P = () => c.player;
   const L = c.level;
@@ -191,7 +218,7 @@ function install() {
           if (!t || Math.hypot(q.pos.x - t[0], q.pos.z - t[2]) > 7 || Math.abs(q.pos.y - t[1]) > 2) track.push([+q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2)]);
         }
         if (steps % 6 === 0) { hist.push([+q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), q.mode, q.ground?.tag ?? '']); if (hist.length > 30) hist.shift(); }
-        if (window.__trace && steps % 10 === 0) log.push(['spur', +q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), q.mode, q.state, q.power, q.helmet ?? '-', q.ground?.tag ?? '']);
+        if (window.__trace && steps % 10 === 0) log.push(['spur', +q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), q.mode, q.state, q.power, q.helmet ?? '-', q.ground?.tag ?? '', L.piep ? [...L.piep.groups.values()].map((g) => g.color[0] + (g.on ? 1 : 0)).join('') : '']);
         if (q.dead && !deadLogged) { deadLogged = true; log.push(['TOD', q.deathCause, JSON.stringify(hist)]); }
         if (q.mode === 'script' && L.runtime.status === 'play' && !q.dead && !o.keepScript) {
           let n = 0;
@@ -376,6 +403,22 @@ function install() {
           const toads = Lg.toads.map((id) => L.entities.find((e) => e.spec?.id === id)).filter(Boolean);
           const alive = () => toads.filter((t) => !t.defeated && !t.removed && t.state !== 'poof');
           const [mx, mz] = Lg.center;
+          // Wege über den Marmorring statt quer über das Bröckelfeld (Innenfeld |dx|, |dz| < ringIn)
+          const RI = (Lg.ringIn ?? 7) + 0.45, RC = Lg.ringMid ?? 9.75;
+          const inside = (x, z) => Math.abs(x - mx) < RI && Math.abs(z - mz) < RI;
+          const crosses = (ax, az, bx, bz) => { for (let t = 0.04; t < 1; t += 0.04) if (inside(ax + (bx - ax) * t, az + (bz - az) * t)) return true; return false; };
+          const corners = [[mx - RC, mz + RC], [mx + RC, mz + RC], [mx + RC, mz - RC], [mx - RC, mz - RC]];
+          const via = (tx, tz) => {
+            const q = P();
+            if (!crosses(q.pos.x, q.pos.z, tx, tz)) return [tx, tz];
+            let best = null, bd = Infinity;
+            for (const [cx, cz] of corners) {
+              if (crosses(q.pos.x, q.pos.z, cx, cz)) continue;
+              const d = Math.hypot(cx - q.pos.x, cz - q.pos.z) + Math.hypot(tx - cx, tz - cz) + (crosses(cx, cz, tx, tz) ? 12 : 0);
+              if (d < bd) { bd = d; best = [cx, cz]; }
+            }
+            return best ?? [tx, tz];
+          };
           let k = 0, jumps = 0;
           for (; k < (Lg.max ?? 12000) && alive().length && !P().dead; k++) {
             const q = P();
@@ -384,8 +427,9 @@ function install() {
             aimToad = null;
             if (vis.length) {
               const t = vis[0], dx = t.pos.x - q.pos.x, dz = t.pos.z - q.pos.z, d = Math.hypot(dx, dz);
-              if (d < (Lg.jumpAt ?? 3.2) && q.mode === 'ground') { aimToad = t; jumps++; tick({ ...this.stick(dx, dz, 0.6), jump: true, run: false }); continue; }
-              tick({ ...this.stick(dx, dz, 1), run: d > 3 });
+              if (d < (Lg.jumpAt ?? 3.2) && q.mode === 'ground' && !crosses(q.pos.x, q.pos.z, t.pos.x, t.pos.z)) { aimToad = t; jumps++; tick({ ...this.stick(dx, dz, 0.6), jump: true, run: false }); continue; }
+              const [gx, gz] = via(t.pos.x, t.pos.z);
+              tick({ ...this.stick(gx - q.pos.x, gz - q.pos.z, 1), run: d > 3 });
               continue;
             }
             // keine sichtbar: die Kröte, die als Nächste erscheint, an ihrem nächsten Punkt erwarten (2,9 m davor zur Mitte hin)
@@ -393,9 +437,12 @@ function install() {
             if (!nx) { tick({}); continue; }
             let i = (nx.spot + 1) % nx.spots.length;
             for (let g = 0; g < nx.spots.length; g++) { const s = nx.spots[i]; if (Math.hypot(q.pos.x - s.x, q.pos.z - s.z) >= 2.5 || nx.spots.length === 1) break; i = (i + 1) % nx.spots.length; }
-            const s = nx.spots[i], ux = mx - s.x, uz = mz - s.z, ul = Math.hypot(ux, uz) || 1;
-            const wx = s.x + (ux / ul) * 2.9, wz = s.z + (uz / ul) * 2.9, wd = Math.hypot(wx - q.pos.x, wz - q.pos.z);
-            tick(wd > 0.3 ? { ...this.stick(wx - q.pos.x, wz - q.pos.z, Math.min(1, Math.max(0.3, wd / 1.5))), run: wd > 3 } : {});
+            // Wartepunkt 2,9 m neben dem Auftrittspunkt auf dem Ring: Nord-/Südseite längs X (zur Mitte), West-/Ostseite längs Z
+            const s = nx.spots[i], ns = Math.abs(s.z - mz) > (Lg.ringIn ?? 7);
+            const wx = ns ? s.x + (s.x > 0.1 ? -2.9 : 2.9) : s.x, wz = ns ? s.z : s.z + (s.z <= mz ? 2.9 : -2.9);
+            const wd = Math.hypot(wx - q.pos.x, wz - q.pos.z);
+            const [gx, gz] = via(wx, wz), gd = Math.hypot(gx - q.pos.x, gz - q.pos.z);
+            tick(wd > 0.3 ? { ...this.stick(gx - q.pos.x, gz - q.pos.z, Math.min(1, Math.max(0.3, gd / 1.5))), run: wd > 3 } : {});
           }
           for (let i = 0; i < 30; i++) tick({});
           mech.toads = toads.length - alive().length;

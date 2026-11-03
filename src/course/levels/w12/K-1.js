@@ -40,7 +40,7 @@ import {
 const Y1 = 0;        // Start, Schiebeblöcke (steigt bis 3)
 const YS = 3;        // Ende Abschnitt 1, Glasröhre
 const YA = 10, YB = 17, YC = 23, YG = 29;   // Aufzugsschacht: Sims A, Steg 1, Steg 2, Gipfel
-const YP = 14, YT = 18.5, YK = 16;          // Piep-Strecke, Treppe oben, Kanonen-Insel
+const YP = 14, YT = 18, YK = 16;          // Piep-Strecke, Treppe oben, Kanonen-Insel
 const YR = 14;       // Zauberarena
 const YG4 = 9;       // graue Plattformen
 const YF = 4, YL1 = 11, YL2 = 20, YL3 = 28, YL4 = 35;   // Turm
@@ -58,7 +58,7 @@ export const MK1 = {
   SIMS_C: { x0: -2.5, x1: 2.5, z0: -190, z1: -196.7, top: YC },
   GIPFEL: { x0: -4.5, x1: 4.5, z0: -199.9, z1: -213, top: YG },
   TAKT: { x0: -3.5, x1: 3.5, z0: -217, z1: -227, top: YP },
-  R4: { x0: -3.5, x1: 3.5, z0: -258, z1: -268, top: YT },
+  R4: { x0: -3.5, x1: 3.5, z0: -255, z1: -267, top: YT },
   R5: { x0: -5, x1: 5, z0: -300, z1: -312, top: YK },
   ARENA: { x: 0, z: -362, half: 12.5, inner: 7, top: YR },
   G0: { x0: -4.5, x1: 4.5, z0: -385, z1: -395, top: YG4 },
@@ -235,19 +235,20 @@ export const LEVEL = {
     piep('p2', 'blau', [0, YP - 1, -238], [3, 1, 6]),
     piep('p3', 'rot', [0, YP - 1, -244], [3, 1, 6]),
     marmor(-1.5, 1.5, -247, -249, YP, 1, { under: 0 }),
-    { type: 'piep_treppe', id: 'ptreppe', from: [0, YP, -249.75], dir: [0, -1], steps: 6, rise: 0.75, run: 1.5, width: 3, colors: ['rot', 'rot', 'rot', 'blau', 'blau', 'blau'], ...BEEP },
+    { type: 'piep_treppe', id: 'ptreppe', from: [0, YP, -249.75], dir: [0, -1], steps: 4, rise: 1, run: 1.5, width: 3, colors: ['rot', 'rot', 'blau', 'blau'], ...BEEP },
     marmor(M.R4.x0, M.R4.x1, M.R4.z0, M.R4.z1, YT, 3),
     // Zickzack-Feld (Zellen 2 m): rote Spur links, blaue Spur rechts, zweimal hinüber
-    { type: 'piep_block', id: 'pfeld', pos: [0, YT - 1, -276], cell: 2, map: ['rr..', 'rr..', 'rrbb', '..bb', '..bb', 'rrbb', 'rr..', 'rr..'], ...BEEP },
-    marmor(-2, 2, -284, -286, YT, 1, { under: 0 }),
-    piep('t1', 'blau', [0, YT - 1.5, -288.5], [3, 1, 3]),
-    piep('t2', 'rot', [0, YT - 2.2, -293], [3, 1, 3]),
-    piep('t3', 'blau', [0, YT - 2.9, -297.5], [3, 1, 3]),
+    { type: 'piep_block', id: 'pfeld', pos: [0, YT - 2, -275], cell: 2, map: ['rr..', 'rr..', 'rrbb', '..bb', '..bb', 'rrbb', 'rr..', 'rr..'], ...BEEP },
+    marmor(-2, 2, -283, -285, YT, 1, { under: 0 }),
+    piep('t1', 'blau', [0, YT - 1.5, -288], [3, 1, 3]),
+    piep('t2', 'rot', [0, YT - 2.2, -292.5], [3, 1, 3]),
+    piep('t3', 'blau', [0, YT - 2.9, -297], [3, 1, 3]),
     marmor(M.R5.x0, M.R5.x1, M.R5.z0, M.R5.z1, YK, 3),
     sign(3.6, YK, -302, 'Kanone zur\nZauberarena', { size: [2.4, 0.9], yaw: -0.2 }),
     // hinter der Kanonen-Insel: drei Piep-Blöcke zum Sternsockel (Stern 0)
     piep('ps1', 'rot', [-3.8, YK - 1, -314.6], [2, 1, 2]),
     piep('ps2', 'blau', [-6.6, YK - 1, -317.2], [2, 1, 2]),
+    marmor(-11.4, -8.6, -319.6, -322.4, YK, 2, { under: 0 }),
     { type: 'glasspipe', id: 'kanone_arena', path: [[0, YK + 1, -305.4], [0, YK + 1, -309.6], [0, YK + 2.4, -311.6]], radius: 1, speed: 12, oneWay: true, cannon: { target: [0, YR, -351.6], arc: 6 } },
 
     // =================================================================================== 3b Zauberarena
@@ -376,9 +377,9 @@ export const LEVEL = {
     { kind: 'feuer_werfer', id: 'werfer2', pos: [0, YC, -194.6], axis: [1, 0], pace: 1.2, sight: 11, interval: 2.4, first: 1.4 },
     { kind: 'feuer_werfer', id: 'werfer3', pos: [2, YG, -206], axis: [1, 0], pace: 1.4, sight: 11, interval: 2.2, first: 1.2 },
     // Zauberarena
-    { kind: 'zauberkroete', id: 'zk1', spots: [[-10, YR, -352.5], [10, YR, -352.5], [0, YR, -362]], hidden: 1.4 },
-    { kind: 'zauberkroete', id: 'zk2', spots: [[-10, YR, -371.5], [-10, YR, -362], [10, YR, -371.5]], hidden: 1.6 },
-    { kind: 'zauberkroete', id: 'zk3', spots: [[10, YR, -362], [0, YR, -371.5], [-5, YR, -352.5]], hidden: 1.8 },
+    { kind: 'zauberkroete', id: 'zk1', spots: [[-10, YR, -352.5], [10, YR, -352.5], [10, YR, -371.5]], hidden: 1.4 },
+    { kind: 'zauberkroete', id: 'zk2', spots: [[-10, YR, -371.5], [-10, YR, -362], [10, YR, -362]], hidden: 1.6 },
+    { kind: 'zauberkroete', id: 'zk3', spots: [[0, YR, -352.5], [0, YR, -371.5], [-5, YR, -371.5]], hidden: 1.8 },
     // Graue Plattformen: Wuschel-Schwärme
     { kind: 'wuschel', id: 'w_g3', center: [0, YG4 + 0.2, -419.5], radius: 3, count: 3, spacing: 6.3, speed: 2 },
     { kind: 'wuschel', id: 'w_luft1', path: [[-5, YG4 + 1.6, -404], [5, YG4 + 1.6, -404]], count: 2, spacing: 2, speed: 2.2 },
@@ -416,10 +417,10 @@ export const LEVEL = {
     line([0, YC + 0.8, -175], [0, YC + 0.8, -187], 6),
     ring([0, YG + 1, -207], 2.2, 8),
     line([0, YP + 0.8, -228], [0, YP + 0.8, -246], 8),
-    ...[0, 1, 2, 3, 4, 5].map((i) => ({ kind: 'coin', pos: [0, YP + 1.55 + i * 0.75, -250.5 - i * 1.5] })),
-    line([-1, YT + 0.8, -269], [-1, YT + 0.8, -273], 3),
-    line([3, YT + 0.8, -274], [3, YT + 0.8, -278], 3),
-    line([-1, YT + 0.8, -279], [-1, YT + 0.8, -283], 3),
+    ...[0, 1, 2, 3].map((i) => ({ kind: 'coin', pos: [0, YP + 1.8 + i, -249.75 - i * 1.5] })),
+    line([-2, YT + 0.8, -268], [-2, YT + 0.8, -272], 3),
+    line([2, YT + 0.8, -273], [2, YT + 0.8, -277], 3),
+    line([-2, YT + 0.8, -278], [-2, YT + 0.8, -282], 3),
     line([-3.8, YK + 0.8, -314.6], [-6.6, YK + 0.8, -317.2], 2),
     ring([0, YR + 1, A.z], 4.6, 10, { kind: 'coins' }),
     line([0, YG4 + 0.8, -399], [0, YG4 + 0.8, -401], 2),
