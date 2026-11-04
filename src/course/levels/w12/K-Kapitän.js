@@ -40,7 +40,7 @@ const KL = MKK.KLIPPE;
 
 function scene(level) {
   const Q = new Quads();
-  const box = (x0, x1, z0, z1, top, o = {}) => brickBox(level, Q, { x0, x1, z0, z1, top, y0: o.y0 ?? -4, hot: o.hot ?? HI, stone: o.stone ?? 'basalt', bw: o.bw ?? 1.6, bh: o.bh ?? 0.8, cell: o.cell ?? 1.0, faces: o.faces ?? '+z+x-x-z', ...o });
+  const box = (x0, x1, z0, z1, top, o = {}) => brickBox(level, Q, { x0, x1, z0, z1, top, y0: o.y0 ?? -4, hot: o.hot ?? LO + 0.8, stone: o.stone ?? 'basalt', bw: o.bw ?? 1.6, bh: o.bh ?? 0.8, cell: o.cell ?? 1.0, faces: o.faces ?? '+z+x-x-z', ...o });
   // ---------------- Kessel (Wände 8,5 hoch, halten die Lava)
   box(-16, 16, 14.5, 15.5, 8.5, { tag: 'kessel', faces: '+z-z+x-x', bands: [3.5] });
   box(-16, 16, -16, -15, 8.5, { tag: 'kessel', faces: '-z+z+x-x', bands: [3.5] });

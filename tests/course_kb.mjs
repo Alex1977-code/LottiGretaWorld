@@ -232,6 +232,39 @@ async function kapitaen() {
       r.stars.every(Boolean) && r.stamp && r.deaths === 0);
     check(`${id}: der fünfte Stern beendet das Level (Schatz-Ergebnis, gespeichert)`, r.status !== 'play');
   }
+  if (PARTS.has('shots')) await kapitaenShots();
+}
+
+/** Bilder: Überblick (zwei Zoomstufen, Lava unten/oben), Krümel an den Stern-Stellen (Orbit-Kamera wie im Spiel). */
+async function kapitaenShots() {
+  const id = 'K-Kapitän';
+  if (!(await load(id, { fresh: true }))) return;
+  const S = [
+    // [Name, Marke, Orbit-Gier (°) oder null, Zoom nah?, Lava-Spiegel (fest) oder null]
+    ['ueberblick', 'start', null, false, null],
+    ['ueberblick_flut', 'start', 200, false, 7.6],
+    ['start', 'start', null, true, null],
+    ['nische', 'nische', -20, true, 0],
+    ['floss', 'balkon', 10, true, 7.6],
+    ['propeller', 'p2', 40, true, 2],
+    ['bruecke', 'bruecke', -30, true, 0],
+    ['wolke', 'wolke', 30, true, 3],
+    ['stube', 'tuer', 10, true, 0],
+  ];
+  for (const [name, mark, yaw, near, lava] of S) {
+    if (!wantShot(name)) continue;
+    await sc(([m, y, n, lv]) => {
+      const B = window.__kb, L = B.L, o = L.archetype.orbit;
+      const lav = L.named.get('glut');
+      if (lv !== null) { B.place(L.data.marks.start, { settle: 2 }); B.until(() => Math.abs(lav.top - lv) < 0.25 && (lv > 1 || lav.state === 'unten'), 4000); }
+      B.place(L.data.marks[m], { yaw: Math.PI / 2, settle: 2 });
+      if (y !== null) L.archetype.setOrbit?.(y);
+      if ((o.zoom === 1) !== n) o.toggleZoom();
+      for (let k = 0; k < 60; k++) { B.tick({}); }
+      return o.info?.();
+    }, [mark, yaw, near, lava]);
+    await shot(`kk_${name}`);
+  }
 }
 
 // ====================================================================================================================
