@@ -10006,7 +10006,9 @@ sich auf, Stachelkugler, Lava-Hürde, Extraleben der Flatterkäfer, Licht hält 
 Bröckelblöcke kommen wieder, Wachstube; erledigte und verschlossene Box, Tod im Kampf, Uhr im Hub). Neue Bot-Beine: `bounce`
 (Abprall vom Gegner), `sichelAt`, `grabQ`, `steps`, `block` (auch für mover), `climb`, `engage`/`fight`/`keyBack` (B-12),
 `grantKeys` (Prüfkürzel nur für das Stern-2-Ziel hinter der letzten Box), `setTime`, `mark`.
-Routen (Bot, Lotti/Greta): B-9 ≈ 35/36 s (Restzeit ≈ 124 s), B-10 ≈ 46/44 s, B-11 ≈ 54/54 s, B-12 ≈ 308/314 s (Restzeit ≈ 189/184 s).
-Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und Höchstwert, Bilder Höchstwert): B-9 Ø 76, max 100 / 287 k,
-Bilder ≤ 88 / 274 k (Palmenhain); B-10 Ø 59, max 76 / 270 k, Bilder ≤ 89 / 250 k; B-11 Ø 72, max 89 / 196 k, Bilder ≤ 76 / 188 k;
-B-12 Ø 29, max 66 / 140 k, Bilder ≤ 75 / 223 k (Schlangenkönige). Grenzen < 120 / < 300 k.
+Routen (Bot, Lotti/Greta): B-9 ≈ 37/51 s (Restzeit ≥ 109 s; Greta braucht je nach Turmrest einen Nachstampfer), B-10 ≈ 46/44 s,
+B-11 ≈ 54/54 s, B-12 ≈ 308/315 s (Restzeit ≈ 189/183 s).
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und Höchstwert, Bilder Höchstwert): B-9 Ø 76, max 99 / 290 k
+(Palmenhain – die offene Strandkulisse der Basis liegt dort schon nah an der Grenze), Bilder ≤ 87 / 274 k; B-10 Ø 59, max 76 /
+269 k, Bilder ≤ 90 / 256 k; B-11 Ø 72, max 88 / 196 k, Bilder ≤ 80 / 188 k; B-12 Ø 29, max 67 / 140 k, Bilder ≤ 76 / 223 k
+(Schlangenkönige). Grenzen < 120 / < 300 k.
