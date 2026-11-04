@@ -9979,6 +9979,119 @@ läuft die Taktuhr auf der Simulationszeit (`beepClock.mode = 'level'`). Routen 
 Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke): Messgang (58 Punkte) höchstens 103 / 256 k (Rankenschnapper-Kette mit
 Blick über die Wasserwürfel), Bilder (41 Abschnitte) ≤ 86 / 232 k. Grenzen < 120 / < 300 k.
 
+## Präzisierung (Level B-9, B-10, B-11 und B-12)
+
+Welt Blume (Präfix `B`, Welt 11, Remix-Welt 2), Level 9 bis 12 – additiv zur Tabelle „Welt Blume (11)“. Dateien
+`src/course/levels/w11/B-9.js` … `B-12.js` und die eigene Hilfsdatei `src/course/levels/w11/_helpers_bc.js` (kein `LEVEL`, nur
+für diese vier Level; `_helpers_ba.js`/`_helpers_bb.js` gehören B-1 … B-8). B-9 … B-11 entstehen mit `remixOf(basis, regeln)`
+(Basislevel unverändert – der Test vergleicht ihre Rohdaten vor und nach dem Auflösen und lädt sie erneut), B-12 ist kein Remix,
+sondern ein Level nur aus Daten nach „Präzisierung (Gegner Bonuswelten): Boss-Marathon B-12“. **Kein Motor-Code geändert**,
+keine gemeinsamen Hilfsdateien angefasst (nur gelesen/importiert: `schattenDiaet` aus `w5/_helpers_a.js`, `isl`, `ring`,
+`column`, `fallblockRuhig` aus `w8/_helpers_a.js`). Alles Level-Lokale hängt an den Remix-Haken `build`/`setup` (nach denen der
+Basis), `level.onStep` und `addObject`. Alle: `world: 11`, kein Stempel, je 3 Sterne, eigene deutsche Titel.
+
+| Level | Titel | Basis | Licht / Thema | Musik | Zeit |
+|---|---|---|---|---|---|
+| B-9 | Feuertürme im Abendrot | 5-1 | `abend` / beach@abend | course_beach + `abend` | 100 s + 7 Zeit-Uhren je +10 s |
+| B-10 | Honigwaben am Taghimmel | S-6 | `tag` / honeycomb@tag | course_honeycomb + `tag` | 400 s |
+| B-11 | Stachelstege im Suchlicht | 8-1 (+ Suchscheinwerfer aus 5-7) | `nacht` / rainfort@nacht | course_rainfort + `nacht` | 400 s |
+| B-12 | Fünf Schlüssel im Sternenzelt | – (Boss-Marathon) | bossblitz | course_bossblitz | 500 s für alles |
+
+### B-9 „Feuertürme im Abendrot“ (remixOf('5-1'))
+
+- Regeln: nur der **Sandstrand** samt lila Fels und der Schwebeinsel (`keep`), Archetyp `parcours` statt `parcours_ride`
+  (`ride: null`), kein Kontrollpunkt. Schlüsselmünzen, Rammbock-Bullen, Sandtaucher, die Hain- und Burg-Panzerkröten, zwei
+  Münzmarder und die Höhlen-Käfer entfallen. **Vier Feuertürme**: Pilzlingstürme aus 4 Pilzlingen (`behavior 'walk'` auf kurzen
+  Bahnen) mit je einem **Feuer-Werfer** als Reiter (`rider`) – links am Rettungsturm, Mitte am Ufer, im Palmenhain, rechts zwischen
+  den Sandsteinmauern. Ein `kampfraum` mit `ids` zählt die vier Türme und vier Werfer; sind alle besiegt, erscheint die
+  **Ziel-Warp-Box** (warp1 der Basis) auf der Sandbank → Schwebeinsel mit dem Zielmast. Funkenblüte im ?-Block am Start, zwei
+  weitere ?-Blöcke mit Funkenblüte (Palmenhain, Sandsteinmauern). 100 s, **sieben Zeit-Uhren** (+10 s, eine in Krümels Wandhöhle);
+  nach jedem Neustart liegen alle Uhren wieder da (`uhrenZurueck`). Die rechte Sandskulptur enthält Bitcoins statt des Sterns,
+  Krümel feiert in seiner Höhle (keine Käfer, keine Aufgabe).
+- Sterne: 0 **links vier Strandfackeln** (`strandfackeln`, nur Feuerbälle zünden sie) → der Stern erscheint zwischen ihnen · 1
+  **Mitte**: eine **Glasröhre** vom Strand hinauf, deren Mündung senkrecht nach oben zeigt (`exitSpeed` 12) – sie schießt einen
+  auf die **Wolke** darüber, dort liegt der Stern (vom Boden zu hoch) · 2 **rechts über einem schlafenden Dreierturm**
+  (`schlafturm`: Pilzlingsturm mit `wake: 0`; Draufspringen mit gehaltener Sprungtaste gibt den hohen Abprall bis zum Stern; er
+  fällt nie ganz um und stapelt sich nach 2,4 s wieder zum Dreierturm auf; „Z“ steigen auf; Münzsäule als Hinweis).
+- Hinweise: Die Reiter-Plattform eines Feuerturms liegt bei niedrigem Turm in Hüpfhöhe der Feuerbälle – `reiterPlattformDurchlaessig`
+  macht sie für Geschosse durchlässig (`ballPass`, Wunsch an den Gegner-Baustein). Budget: Türme ohne Sonnenschatten, Werfer nur
+  mit dem größten Teil (`schattenDiaet`); der offene Strand ist auch in 5-1 nah an der Grenze.
+
+### B-10 „Honigwaben am Taghimmel“ (remixOf('S-6'))
+
+- Regeln: **Taghimmel statt Weltraum** (`light: 'tag'`): Planeten, Raketen, Kometen und Sternenstaub entfallen, tief darunter
+  treiben Wolkenberge (`deco_w6 wolkenberg`, weit außerhalb der Waben). **Schwerer**: 23 zusätzliche Lava-Waben (`wabenUmmalen`
+  mit Zellen-Liste – vor der dritten Stachelwalze, je zwei Lava-Hürden auf dem mittleren und den äußeren Splitterwegen, ein
+  Lavastreifen und eine Lavareihe auf der großen Wabenfläche, das Lavafeld links nahe dem Ende fast doppelt so groß), eine
+  **Eiswabe** als einziger Wurfplatz am Lavafeld, Stachelwalzen × 1,5, fliegende Blöcke × 1,35 (kürzere Pause), **zwei
+  Stachelkugler** (linker Weg der Gabelung, Käferfeld – nur Wurfsichel oder drüberspringen), zwei Brummer mehr (einer kreist über
+  dem Lavafeld). Die Flatterkäfer-Runde gibt ein **Extraleben** statt des Sterns, am Ende des rechten Wegs liegen Bitcoins;
+  Münzreihen über den neuen Lava-Hürden schweben in Sprunghöhe. Der Waben-Fugen-Workaround der Basis (`wabenOhneLoecher`) läuft
+  als Basis-Haken mit.
+- Sterne: 0 neben dem **Schwebeblock nahe dem Start** im All, in Wurfhöhe des Blocks (y 2,2) – nur vom Schwebeblock aus mit der
+  **Wurfsichel** (vom Waben-Rand fliegt sie zu tief) · 1 über der **Glasröhre** im ersten Lavabereich: von der Röhren-Plattform auf
+  die (feste) Röhre klettern, oben über den Lavasee balancieren und am Scheitel hochspringen · 2 über dem **Lavafeld links nahe
+  dem Ende** – nur mit der Wurfsichel, von der Eiswabe am rechten Feldrand geworfen.
+
+### B-11 „Stachelstege im Suchlicht“ (remixOf('8-1') mit Suchscheinwerfern aus 5-7)
+
+- Regeln: Regennacht (`nacht`). Die vier Stege mit Stachelfallen sind **blau** gepflastert (`blaueStege`, nur Optik). Über jedem
+  kreist ein **Suchscheinwerfer** (Baustein `suchscheinwerfer`, `track: false`): liegt sein Lichtfleck auf einer Falle, fährt sie
+  nach 0,45 s Vorwarnung aus und **bleibt draußen**, solange das Licht auf ihr liegt und 2 s danach; wer sich erwischen lässt
+  („Entdeckt!“), lässt alle Fallen seines Stegs 4 s ausfahren; ohne Licht laufen sie im Takt der Basis (`suchlichtFallen`).
+  Die drei Stachel-Schwebeplattformen sind **orange** (`orangeBloecke`: Farbton gedreht, leichtes Eigenleuchten) und fahren
+  1,6× so schnell mit kürzeren Pausen – alle drei im gemeinsamen Takt 6,68 s so versetzt, dass die nächste wartet, wenn die vorige
+  ankommt; die mittlere ist die **große Stachelplattform** (4,4 × 4,4 m). Neu: Feuer-Werfer auf Turm 2, ?-Block mit Krallen-Anzug
+  auf Turm 1. Die Kletter-Säule der Basis im Werferabschnitt entfällt, die Wachstube (Rätselbox) gibt ein Extraleben statt des
+  Sterns, am Ende der Fallblöcke nach der Keil-Gruppe liegen Bitcoins.
+- Sterne: 0 **Ende Abschnitt 1**: Kletter-Säule links vom Feuer-Werfer auf Turm 2 (Krallen-Anzug) · 1 **Säule nach dem
+  Kontrollpunkt** am Platz der Keil-Gruppe (Krallen-Anzug aus dem ?-Block am Kontrollpunkt) · 2 **Bröckelblock-Brücke bei der
+  großen Stachelplattform**: wenn sie am Anfang wartet, nach links über drei Bröckelblöcke (`fallblock_bruecke` mode `einzeln`,
+  warn 0,7 s, kommen nach 4 s wieder) auf einen Säulenkopf – der Stern schwebt über einer Warp-Box, die zurück vor die
+  Schwebeplattformen bringt.
+
+### B-12 „Fünf Schlüssel im Sternenzelt“ (Boss-Marathon, Archetyp boss)
+
+- Aufbau wie die Probe 0-36, nur aus Daten: **Sternenkuppel-Hub** (x 0, z 0, 20 × 20 m, `weltraum_arena` eckig) mit sechs
+  Warp-Boxen (`bossblitz_hub`): unten links Kippquader-König, oben links Schattenläuferin, oben rechts Lavafelsen-König, unten
+  rechts Wirbelbrocken, Mitte beide Schlangenkönige (`boss_gruppe`), hinten unter einem Sternentor die verschlossene Box der
+  **Würfelblase** (`waves: 3`, erste Welle 9,5 m/s). Arena-Räume ≥ 80 m auseinander mit eigener Kameraschiene; Rück-Warp-Boxen
+  liegen abseits der Sterne (Lava 4,6 m seitlich, Schlangenkönige 4,8 m, Würfelblase in der Arenamitte). Kulisse: Sternensäulen,
+  Planeten, Raketen, Sternschnuppen am Hub, je Raum zwei Planeten, Sternschnuppe und Sternenstaub; Zielplatz mit Sternentor.
+- Ablauf: Box → Kampf → Schlüssel → Rück-Warp-Box (die Box ist erledigt) … alle fünf Schlüssel → letzte Box → Würfelblase →
+  Rück-Warp-Box zum Zielplatz. 500 s für alles, die Uhr läuft im Hub weiter; Tod im Kampf: Neustart am Raumeingang, Kampf von vorn.
+- Sterne: 0 nach dem **Lavafelsen-König**, 1 nach den **Schlangenkönigen**, 2 nach der **Würfelblase** (je `star` des Endgegners
+  bzw. der Gruppe; `LEVEL.stars` bleibt leer).
+
+### Hilfen `_helpers_bc.js`
+
+`line/ring/arc/column`; B-9 `uhrenZurueck`, `strandfackeln` (Entität `strandfackel`), `schlafturm`, `reiterPlattformDurchlaessig`;
+B-10 `wabenUmmalen`, `wabenListe` (Waben-Felder als Daten neu bemalen, Lage wie der Baustein); B-11 `suchlichtFallen`,
+`blaueStege`, `orangeBloecke`.
+
+### Test `tests/course_blume_c.mjs`
+
+Port 5025 (+ `PORT_BASE`), `node tests/course_blume_c.mjs B-n`, `PARTS=load,base,route,sweep,targets,extra,shots` (je Lauf
+< 10 min: `load,base,route,sweep`, dann `targets,extra`, dann `shots`), `HEROES`, `ONLY`, `VERBOSE`, `TRACE`, `SHOTS`, `DETAIL`,
+`PROBE` (Fehlersuche: eigene Beine ab einem Punkt); Bilder `tests/out/blume_c_*.png`. Prüft Laden ohne Konsolenfehler, Meta
+(Titel, Welt 11, Thema mit Licht, Musik mit `music.play(thema, { variant })`, Zeit, Sterne, kein Stempel, Gegnerzahlen),
+Remix-Regeln (B-9 Türme/Reiter/Kampfraum/Uhren/keep; B-10 Wolken statt Weltraum, Lava-Zahl, Eis-Wurfplatz, Tempo; B-11
+Scheinwerfer-Gruppen, Takt der orangen Plattformen, Säulen, Bröckelbrücke; B-12 Boxen, Bosse, Gruppe), Gegenprobe Basis,
+Routen-Bot Lotti und Greta vom Start bis zum Zielmast mit echten Eingaben (B-12: alle sechs Kämpfe mit echten Eingaben – Rückenfeld
+des Kippquader-Königs, Draufspringen bei Schattenläuferin/Wirbelbrocken, Lavabrocken betäuben, tragen, werfen, Teller → Kopf bei
+den Schlangenkönigen, Hut der Würfelblase in der Flucht –, Schlüssel einsammeln, Rück-Warp-Boxen), Messgang über die Route, alle
+Sterne mit Gegenproben und Extras (Warp-Box verborgen, Reiter fällt mit, Uhren nach Neustart, Zeitablauf, schlafender Turm stapelt
+sich auf, Stachelkugler, Lava-Hürde, Extraleben der Flatterkäfer, Licht hält Falle draußen, „Entdeckt“ fährt alle Fallen aus,
+Bröckelblöcke kommen wieder, Wachstube; erledigte und verschlossene Box, Tod im Kampf, Uhr im Hub). Neue Bot-Beine: `bounce`
+(Abprall vom Gegner), `sichelAt`, `grabQ`, `steps`, `block` (auch für mover), `climb`, `engage`/`fight`/`keyBack` (B-12),
+`grantKeys` (Prüfkürzel nur für das Stern-2-Ziel hinter der letzten Box), `setTime`, `mark`.
+Routen (Bot, Lotti/Greta): B-9 ≈ 37/51 s (Restzeit ≥ 109 s; Greta braucht je nach Turmrest einen Nachstampfer), B-10 ≈ 46/44 s,
+B-11 ≈ 54/54 s, B-12 ≈ 308/315 s (Restzeit ≈ 189/183 s).
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Ø und Höchstwert, Bilder Höchstwert): B-9 Ø 76, max 99 / 290 k
+(Palmenhain – die offene Strandkulisse der Basis liegt dort schon nah an der Grenze), Bilder ≤ 87 / 274 k; B-10 Ø 59, max 76 /
+269 k, Bilder ≤ 90 / 256 k; B-11 Ø 72, max 88 / 196 k, Bilder ≤ 80 / 188 k; B-12 Ø 29, max 67 / 140 k, Bilder ≤ 76 / 223 k
+(Schlangenkönige). Grenzen < 120 / < 300 k.
+
 ## Präzisierung (Level K-Kapitän und K-Haus)
 
 Additiv zur Tabelle „Welt Krone (12) – Abschlussprüfung“: Titel und Besonderheiten der beiden frei zugänglichen Krone-Level.
