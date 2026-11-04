@@ -9804,3 +9804,98 @@ Routen (Bot, Lotti/Greta): B-1 ≈ 56/56 s, B-2 ≈ 97/96 s, B-3 ≈ 61/61 s, B-
 ≈ 93/120 s). Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Höchstwert, Bilder Höchstwert): B-1 84 / 157 k,
 Bilder ≤ 83 / 146 k; B-2 93 / 226 k, Bilder ≤ 92 / 233 k; B-3 82 / 242 k, Bilder ≤ 105 / 268 k (Geheimgarten mit Blick über die
 ganze Schlucht), sonst ≤ 80 / 235 k; B-4 83 / 215 k, Bilder ≤ 79 / 227 k. Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level B-5, B-6, B-7 und B-8)
+
+Welt Blume (Präfix `B`, Welt 11, Remix-Welt 2), Level 5 bis 8 – additiv zur Tabelle „Welt Blume (11)“. Dateien
+`src/course/levels/w11/B-5.js` … `B-8.js` (je `export const LEVEL = remixOf('<Basis>', { … })`) und die eigene Hilfsdatei
+`src/course/levels/w11/_helpers_bb.js` (kein `LEVEL`, nur für diese vier Level). **Kein Motor-Code geändert**, keine
+gemeinsamen Hilfsdateien angefasst; Basislevel unverändert (Gegenprobe im Test). Die Hilfen der Basislevel werden nur
+importiert (B-5: `w5/_helpers_b.js` cliffSkirt, rectPoly, savannaFloor, dirtPath, balloons; B-6: `w3/_helpers_c.js` hauntFloor,
+ironFence, facade; B-7: `w3/_helpers_d.js` felsen, instanceEnemies), Kameraschienen als `[...BASIS.camera, …]`. Alles
+Level-Lokale hängt an den Remix-Haken `prebuild`/`build`/`setup` (nach denen der Basis). Alle: `world: 11`, kein Stempel, je
+3 Sterne, eigene deutsche Titel.
+
+| Level | Titel | Basis | Licht / Thema | Musik | Zeit |
+|---|---|---|---|---|---|
+| B-5 | Hasenhatz im Morgenrot | 5-4 | `morgen` / savanna@morgen | course_savanna + `morgen` | 500 s |
+| B-6 | Grauspuk in der Mondscheinvilla | 3-3 | Filter `schwarzweiss` / ghost@grund+sw | course_ghost + `schwarzweiss` | 400 s |
+| B-7 | Kanonenhelm-Tauchgang im Leuchtturmriff | 3-5 | Basis / water | course_water (Basis, ohne Variante) | 400 s |
+| B-8 | Turbo-Piep über dem Neonsteg | 4-3 | Basis / beep | course_beep (Basis, Taktuhr der Piep-Blöcke) | 400 s |
+
+### B-5 „Hasenhatz im Morgenrot“ (remixOf('5-4'))
+
+- Regeln: Morgenrot. Neu hinter der Startsäule die **Morgenwiese** (30 × 28 m, y 10, z 6 … 34, eigene Kameraschiene, Start
+  dort): **Riesenhase** (`bunny` mit `size: 'giant'`, Kreis r 12,5; Items Wachstumsbeere, Funkenblüte, Krallen-Anzug,
+  5 Münzen) und drei kleine Hasen; weitere Hasen auf dem Landeplatz und dem dritten Berg – **10 Hasen**, gefangen geben alle
+  Items (`reward`: Gleitblatt, Münzen, Funkenblüte, Wachstumsbeere, Krallen-Anzug, Funkelstern beim grün leuchtenden, 1-Up).
+  Am Ende statt der zwei Drehbalken und des Sternrings: **bewegte Wolke** (entlang z) zur Insel, **quer bewegte Wolke** zum
+  Zielplateau, **Wolkenlift** auf den Zielfelsen (y 47) mit dem Zielmast. Ameisenbau bleibt (Münzen, Riesenameise).
+- Sterne: 0 **Riesenhasen fangen** – der versteckte Stern erscheint an der Fangstelle (`sternHier`) · 1 nach der
+  Terrassen-„Treppe“ am Gipfel: **Wolkenplattform** rechts, daneben eine **Glasröhre** (in beide Richtungen) zum Felsturm
+  (y 25 – über jeder Sprunghöhe von der Wolke, auch mit Gleitblatt; eigene Kameraschiene) · 2 **Figurenschalter** für die
+  Pilzkopf-Figur (`hero: 'greta'`) auf dem Zielplateau → Wolkenstufen (`appear`, `style: 'cloud'`) zum Stern; Lotti drückt ihn nicht.
+
+### B-6 „Grauspuk in der Mondscheinvilla“ (remixOf('3-3'))
+
+- Regeln: Schwarz-Weiß-Filter (Klang „altes Radio“). Im Startflur lauert links vom Start ein **Großspuk-Jäger** (`spuk`
+  `size: 2.5`, `hunt`, Auslöser Flur bis z 3,5, `huntSpeed` 1,9, `giveUp` 26) und jagt die Figur, sobald sie losläuft. Das
+  Spuk-Gemälde ist ein **leeres Gemälde** (`leeresGemaelde`: nur Goldrahmen, Nische und Warp-Box bleiben). Der falsche
+  Zielmast ruft einen **Großspuk** (öffnet weiter die Treppe), auf der Terrasse steht ein **zweiter falscher Zielmast** (zwei
+  Großspuke). Der echte Mast steht **am Ende des dritten Balkons**: rechts der Terrasse am Seitenflügel (Fassade x 265) drei
+  Balkone über dem Abgrund (y 9,6 / 11,6 / 13,6, eigene Kameraschiene); **hinter dem Abgrund** neben Balkon 1 eine Warp-Box
+  zurück an den Anfang (Schild „Abkürzung?“).
+- Geheimnis: unten links im Außenhof 2 übers Geländer – drei **unsichtbare Wolken** (`geisterwolken`, Entität
+  `geisterwolke`: Einweg, fest, kaum sichtbar, beim Betreten eingeblendet; Münzen verraten sie) → Warp-Box ↔ Schlussbalkon.
+- Sterne: 0 **links vom Start hinter dem Großspuk** (Licht-Helm rechts vom Start löst ihn auf, oder weglocken) · 1 hinter dem
+  leeren Gemälde → Drehraum → Warp-Box auf die Empore → **Sofa** · 2 **Ende von Bereich 3** (Außenhof 1): drei
+  **Fallplattformen** über den Zaun hinaus zum Felssims.
+
+### B-7 „Kanonenhelm-Tauchgang im Leuchtturmriff“ (remixOf('3-5'))
+
+- Regeln: **Kanonen-Helme überall** (Strand, Riffkante, Flutkammer-Sims, Bucht, Kanalufer, Zielinsel; `respawn` 4) – die
+  Kanone feuert auch unter Wasser. Flosslinge entfernt → **4 Tintlinge, 3 Rammfische** (einer unter dem Holzsteg); als
+  Instanzen ohne Sonnenschatten, ferne Felsblöcke/Helme/Sternring ausgeblendet. **Drei Felsblockwände** (`felsblock`,
+  `look: 'wand'`; nur Kanonenkugel/Bombe/Riesentrank). Felsnischen, Kanzel und Grotte mit `felsen` der Basis-Hilfen; drei
+  **Stachelblöcke** (`stachelblock`, oben begehbar) als Trittsteine im Kanal; Luftblasen über der Grotte; flachere
+  Kamera am Kanzelabschnitt.
+- Sterne: 0 **Ende Tauchabschnitt 1**: Nische in der Felsmasse am Felsbogen, Felswand zur Kamera (geradeaus schießen) ·
+  1 **über den ersten 3 Stachelblöcken** in Tauchabschnitt 2: Felskanzel an der rechten Kanalwand (Boden bündig mit den
+  Blöcken), vom zweiten Block die Felswand sprengen, hineingehen · 2 **tief darunter 4 Felsblöcke** (2 × 2) vor einer Grotte am
+  Kanalgrund sprengen → **Sternring**: acht Sternmünzen im Kanal (18 s).
+
+### B-8 „Turbo-Piep über dem Neonsteg“ (remixOf('4-3'))
+
+- Regeln: `beepSpeed: 4`, `beepWarn: false` – alle Piep-Blöcke wechseln alle 2 Zählzeiten (128 BPM ≈ 0,94 s je Farbe), ohne
+  Blinken (die Musik bleibt die Taktuhr; ihre Glockenspur der Basis klingt weiter im Achtertakt). **Gleitblätter statt
+  Spiegelfrüchte**: Inseln, ?-Blöcke und die Klon-Automaten (Hülle um `level.spawn` im `prebuild`), dazu Gleitblatt-?-Blöcke am
+  Start und auf der Warp-Insel; ohne Klone öffnet **ein** Druckfeld den Laserzaun, die Druckfelder am Rutschenfuß entfallen.
+  Fairness bei 4×: **feste Neon-Absätze** (`platform`, Stil `block`) – Reihe 1 rot ×3 | Absatz | blau ×3, Reihe 2 rot 5 m |
+  Absatz | blau 5 m, Reihe 4 rot | Absatz | blau | Absatz | rot (je Teilstück ein Lauf in einer Farbphase); Schachbrett
+  unverändert (auf der Fuge zweier Spalten trägt immer ein Block); **Treppen und Rutsche im Farbwechsel** (`colors:
+  'wechsel'`: von Stufe zu Stufe im Takt hüpfen – Turmfuß und Fangnetze fangen Stürze). **Viele Stacheln**: 17 Stachelböden
+  an Insel-, Plateau- und Platzrändern (abseits der Laufwege), 3 Stachelstangen.
+- Sterne: 0 **Ende Bereich 1 über einem ?-Block** (Warp-Insel, Block oben 4 m: anstoßen → Gleitblatt, hinauf, Stern darüber) ·
+  1 **Sternring am Checkpoint** (acht Sternmünzen im Kreis, jede zweite mit Hüpfer, 14 s) · 2 **mitten auf der
+  Piep-Block-Rutsche** (im richtigen Takt losrutschen).
+
+### Hilfen `_helpers_bb.js`
+
+`line`, `ring`, `arc`, `isl`; `sternHier(index, dy)` (Aktion `{ fn }`: versteckter Stern erscheint an der Auslösestelle –
+Riesenhase); `leeresGemaelde(level, id)`; `geisterwolken(level, list)` (Entität `geisterwolke`: `pos`, `size`, `hint`, `id`;
+Laufzeit `shown`, `k`, `info()`).
+
+### Test `tests/course_blume_b.mjs`
+
+Port 5015 (+ `PORT_BASE`), `node tests/course_blume_b.mjs B-n`, `PARTS=a|b|c` (a = load,rules,route,sweep · b = targets,extra ·
+c = shots; je Level und Teil < 10 min) bzw. einzelne Teile, `HEROES`, `ONLY`, `VERBOSE`, `TRACE`, `SHOTS`, `DETAIL`; Bilder
+`tests/out/blume_b_*.png`. Prüft Laden ohne Konsolenfehler, Meta und Zahlen (Gegner, Bausteine), Remix-Regeln (Licht bzw.
+Filter samt CSS, `music.play(thema, { variant })`, Zeit, Hasen/Wolken/Schalter, Jäger/Masten/Gemälde, Fischtausch/Helme/
+Felswände, Piep-Gruppen `every` 2 / `warn` 0, Gleitblätter, Stacheln) mit Gegenprobe „Basislevel unverändert“, Routen-Bot Lotti
+und Greta vom Start bis zum Zielmast (echte Eingaben, Zeit läuft mit; B-8 mit manueller Musik-Uhr, Sprünge im Takt), Messgang
+über die Route (auch unter Wasser), alle Sterne mit Gegenproben und Extras (Hasen-Items, Wolkenlift, Gleitblatt, Jäger,
+falsche Masten, Fallplattform, Geheimwolken, Rück-Warp-Box, Tintling/Rammfisch/Helm, Takt-Messung, Automaten, Laserzaun,
+Stachelboden). Routen (Bot, Lotti/Greta): B-5 56 / 56 s, B-6 50 / 49 s, B-7 47 / 40 s, B-8 74 / 72 s. Kennzahlen
+(Zeichenaufrufe inkl. Schattenpass / Dreiecke; Messgang Höchstwert, Bilder Höchstwert): B-5 67 / 284 k, Bilder ≤ 74 / 287 k
+(Gipfel – die Basis liegt dort schon bei ≈ 260 k); B-6 76 / 244 k, Bilder ≤ 80 / 251 k; B-7 105 / 241 k (Kanalufer bzw. unter
+Wasser im Tiefwasser), Bilder ≤ 96 / 222 k; B-8 100 / 214 k, Bilder ≤ 92 / 173 k. Grenzen < 120 / < 300 k.
