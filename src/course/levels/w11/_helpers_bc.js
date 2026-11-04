@@ -4,7 +4,12 @@
 //   Daten        line, ring, arc, column (Bitcoin-Reihen)
 //   B-9          uhrenZurueck (Zeit-Uhren nach jedem Neustart wieder da), strandfackeln (Entität `strandfackel`: Bambusfackel,
 //                nur Feuer zündet sie; alle einer Gruppe an → Aktion), schlafturm (schlafender Pilzlingsturm: steht still,
-//                stapelt sich nach dem Draufspringen wieder auf, fällt nie ganz um; „Zzz“ über dem Kopf)
+//                stapelt sich nach dem Draufspringen wieder auf, fällt nie ganz um; „Zzz“ über dem Kopf),
+//                reiterPlattformDurchlaessig (Feuerbälle fliegen durch die Plattform des Reiters auf einem Feuerturm)
+//   B-10         wabenUmmalen, wabenListe (Waben-Felder als Daten Zelle für Zelle neu bemalen – Remix-Regel change)
+//   B-11         suchlichtFallen (Stachelfallen unter Suchscheinwerfern: im Licht draußen, „Entdeckt“ → alle draußen),
+//                blaueStege (blauer Belag auf den Stachelstegen), orangeBloecke (Stachelblöcke orange einfärben)
+//   B-12         braucht keine eigenen Hilfen (nur Daten: weltraum_arena, bossblitz_hub, boss_gruppe)
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes, belebte Kleinigkeiten sind je ein Mesh bzw. eine Punktwolke
 // (je 1 Zeichenaufruf) ohne Sonnenschatten.
 
