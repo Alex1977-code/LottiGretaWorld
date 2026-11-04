@@ -10,7 +10,7 @@
 //     die Kanone feuert auch unter Wasser – sie sprengt Felsblöcke und vertreibt Tintlinge und Rammfische.
 //   Statt der Flossling-Schwärme: **Tintlinge** (Zickzack-Stöße, Tintenwölkchen) und **Rammfische** (rammen geradeaus).
 //   **Drei Felsblockwände** (rissige Felswand, nur Kanonenkugel/Bombe/Riesentrank sprengen sie):
-//     1 am Ende des Tiefwassers rechts unten: Nische in der Felswand, davor eine Felswand → Stern 0.
+//     1 am Ende des Tiefwassers rechts unten in der Felsmasse am Felsbogen: Nische, davor eine Felswand (zur Kamera) → Stern 0.
 //     2 im Kanal: drei **Stachelblöcke** ragen aus dem Wasser (Trittsteine, die Seiten stechen); neben ihnen eine Felskanzel an der
 //       rechten Kanalwand, vorn eine Felswand → Stern 1 (vom zweiten Stachelblock aus schießen, dann hineingehen).
 //     3 tief darunter am Kanalgrund eine Grotte, verschlossen von **vier Felsblöcken** (2 × 2) → Sternring: acht Sternmünzen im
@@ -26,8 +26,9 @@ const Y = 1;           // Land
 const ROCK = { color: 0xc8a882, dark: 0x7a6250, top: 0xb8d870 };
 
 // Felsnischen [x0, x1, zA, zB, y0, y1] (Kollision + Fels-Optik der Basis)
-const NISCHE1 = [    // Ende Tiefwasser, rechts unten (Innenraum x 8,6 … 11, z −86,2 … −89,8, y −8 … −4,6; offen nach −x)
-  [8.0, 11, -85.6, -86.2, -8, -4.0], [8.0, 11, -89.8, -90.4, -8, -4.0], [8.0, 11, -85.6, -90.4, -4.6, -4.0],
+const NISCHE1 = [    // Ende Tiefwasser, rechts unten in der Felsmasse am Felsbogen (Innenraum x 7 … 10, z −89,6 … −92, y −8 … −4,8;
+  //                    offen nach +z – zur Kamera, man schießt geradeaus)
+  [6.4, 7.0, -89.6, -92, -8, -4.2], [10.0, 10.6, -89.6, -92, -8, -4.2], [6.4, 10.6, -89.6, -92, -4.8, -4.2],
 ];
 const KANZEL = [     // Kanal, rechte Wand über den Stachelblöcken (Innenraum x 7 … 9, z −170,4 … −175,6, y 1 … 3,6; offen nach −x;
   //                    Boden bündig mit den Stachelblöcken – nach dem Sprengen geht man hinein)
@@ -54,7 +55,7 @@ export const LEVEL = remixOf('3-5', {
   // der Stachelfisch an der Kanal-Oberfläche weicht den Stachelblöcken aus
   change: [{ match: { id: 'sK' }, set: { pos: [-4, 0, -170] } }],
   stars: [
-    [9.8, -7.4, -88],                                    // 0: Nische hinter der Felswand am Ende des Tiefwassers
+    [8.5, -7.4, -91],                                    // 0: Nische hinter der Felswand am Ende des Tiefwassers
     [8, Y + 0.2, -173],                                  // 1: Felskanzel neben den Stachelblöcken
     { pos: [3.4, -4.6, -173], hidden: true, id: 'stern_ring' },   // 2: Sternring in der Grotte (vier Felsblöcke)
   ],
@@ -86,7 +87,7 @@ export const LEVEL = remixOf('3-5', {
       helm('helm_start', 2.6, Y, 4.4), helm('helm_riff', -3, Y, -34.6), helm('helm_flut', 2, 5.6, -109.6),
       helm('helm_kanal', 2.6, Y, -161.6), helm('helm_ziel', 2.6, 5, -238.6),
       // Felswand 1 vor der Nische am Ende des Tiefwassers
-      wand('fels1', [8.3, -8, -88], [0.6, 3.4, 3.6]),
+      wand('fels1', [8.5, -8, -89.6], [3.0, 3.2, 0.6]),
       // Felswand 2 vor der Kanzel über den Stachelblöcken
       wand('fels2', [6.7, 1.0, -173], [0.6, 2.6, 5.2]),
       // Felswand 3: vier Felsblöcke vor der Grotte am Kanalgrund
@@ -108,7 +109,7 @@ export const LEVEL = remixOf('3-5', {
     instanceEnemies(level, ['tintling', 'rammfisch', 'felsblock', 'starring', 'helm_kanone'], { far: 34, noShadow: ['tintling', 'rammfisch'] });
   },
   marks: {
-    start: [0, Y, 8], riff: [0, Y, -32], tief: [0, 0, -40], nische1: [9.8, -8, -88], flut: [0, -4, -100], bucht: [0, Y, -132],
+    start: [0, Y, 8], riff: [0, Y, -32], tief: [0, 0, -40], nische1: [8.5, -8, -91], flut: [0, -4, -100], bucht: [0, Y, -132],
     checkpoint: [0, Y, -156], ufer: [2.6, Y, -162], sb1: [5.2, 1, -167.6], sb2: [5.2, 1, -173], kanzel: [8, Y + 0.2, -173], grotte: [8, -6, -173],
     kanal: [0, 0, -178], ausgang: [0, Y, -229], ziel: [0, 5, -245],
   },
