@@ -144,7 +144,7 @@ async function load(id, o = {}) {
   }
   await page.waitForTimeout(300);
   await sc(install);
-  await sc(() => { window.__course.level.runtime.save.lives = 9; });
+  await sc((t) => { window.__course.level.runtime.save.lives = 9; window.__trace = t; }, !!process.env.TRACE);
   return true;
 }
 
@@ -210,6 +210,7 @@ function kapitaenRoute(arg) {
 
 async function kapitaen() {
   const id = 'K-Kapitän';
+  if (!['load', 'route', 'targets', 'extra', 'shots'].some((q) => PARTS.has(q))) return;
   console.log(`\n${id}: Lavaturm-Diorama`);
   if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
   if (PARTS.has('load')) {
@@ -268,10 +269,563 @@ async function kapitaenShots() {
 }
 
 // ====================================================================================================================
+// K-Haus: Raum-Bot (in der Seite, echte Eingaben)
+// ====================================================================================================================
+const HAUS_NAMES = ['Panzerparade', 'Schaukelsaal', 'Glutfelder', 'Fackelstube', 'Kreiselzimmer', 'Kistenlager', 'Pilzlingsschar', 'Kullerhang',
+  'Hackbeil-Hof', 'Stampfsteinfahrt', 'Eisrutsche', 'Krallenschalter', 'Kanonenturm', 'Piep-Treppe', 'Großblock-Fall', 'Ringwand', 'Hasenjagd',
+  'Sprungfeld-Wurf', 'Holzlabyrinth', 'Schubser-Kessel', 'Riesen-?-Türme', 'Himmelssteg', 'Rankentreppe', 'Schalterfelder', 'Topfgarten',
+  'Schnappkarussell', 'Scheinwerferschacht', 'Donutbrücke', 'Wirbelbrocken', 'Siegerflur'];
+
+function installHaus() {
+  const c = window.__course, L = c.level, B = window.__kb, H = L.data._haus, Y = H.Y;
+  const A = () => c.arch.info();
+  const zu = (i, u) => H.Z0[i] - u;
+  const S = { hits: 0, lastInv: 0, jumps: 0, throws: 0, shots: 0 };
+  const log = [];
+  const P = () => L.player;
+  const step = (inp = {}) => {
+    B.tick(inp);
+    const p = P();
+    if (p.invuln > S.lastInv + 0.5 && !p.dead && A().phase === 'play') S.hits++;
+    S.lastInv = p.invuln;
+  };
+  const live = (i) => A().room === i && A().phase === 'play' && !P().dead;
+  const wrap = (a) => { a %= Math.PI * 2; return a > Math.PI ? a - Math.PI * 2 : a < -Math.PI ? a + Math.PI * 2 : a; };
+  const U = (i) => +(H.Z0[i] - P().pos.z).toFixed(2);
+  const here = (i) => [+P().pos.x.toFixed(2), +P().pos.y.toFixed(2), U(i)];
+  const ent = (id) => L.named.get(id) ?? L.entities.find((e) => e.spec?.id === id && !e.removed) ?? null;
+  const dead = new Set(['break', 'squashed', 'burst', 'fall', 'leave', 'down', 'flipped', 'gone', 'defeated', 'caught', 'eaten', 'bitten']);
+  const alive = (e) => e && !e.removed && e.alive !== false && !e.defeated && !dead.has(e.state);
+  const prev = new Map();
+  const vel = (e) => {
+    const q = prev.get(e);
+    return q ?? { vx: e.vel?.x ?? 0, vz: e.vel?.z ?? 0 };
+  };
+  const track = () => {
+    for (const e of L.entities) {
+      if (!e.enemy && !['stachelwalze', 'suchkopf', 'projektilkopf', 'kreisgeist_glied', 'wuschel', 'bunny', 'panzer'].includes(e.kind)) continue;
+      const q = prev.get(e);
+      if (q) { q.vx = (e.pos.x - q.x) * 120; q.vz = (e.pos.z - q.z) * 120; q.x = e.pos.x; q.z = e.pos.z; } else prev.set(e, { x: e.pos.x, z: e.pos.z, vx: 0, vz: 0 });
+    }
+  };
+  const st = (inp = {}) => { step(inp); track(); };
+  /** Zum Punkt (x, u) im Raum i gehen; o: { within, max, run, mag, dodge: [Arten], tJump, r, avoid: fn → true = warten } */
+  const walkTo = (i, x, u, o = {}) => {
+    const tz = zu(i, u);
+    let n = 0, hold = 0;
+    for (; n < (o.max ?? 700) && live(i); n++) {
+      const p = P(), dx = x - p.pos.x, dz = tz - p.pos.z, d = Math.hypot(dx, dz);
+      if (d < (o.within ?? 0.3) && p.mode === 'ground') break;
+      let jump = hold > 0;
+      if (hold > 0) hold--;
+      if (o.dodge && p.mode === 'ground' && hold <= 0) {
+        const dg = danger(o.dodge, o);
+        if (dg && dg.t < (o.tJump ?? 0.4)) { hold = o.hold ?? 16; jump = true; S.jumps++; log.push(['sprung', dg.e.kind, +dg.t.toFixed(2), U(i)]); }
+      }
+      if (o.avoid && p.mode === 'ground' && o.avoid()) { st({}); continue; }
+      const s = p.mode === 'air' && o.air !== false ? B.airSteer(x, tz, 0, 0, 3.2, o.vmax ?? 7) : B.stick(dx, dz, Math.max(o.minMag ?? 0.25, Math.min(o.mag ?? 1, d / 1.0)));
+      st({ ...s, run: o.run ?? false, jump });
+      if (window.__trace && n % 24 === 0) log.push(['weg', here(i), p.mode, p.state]);
+    }
+    return n;
+  };
+  /** Nächste drohende Berührung (Annäherung in ≤ horizon s näher als r m). */
+  const danger = (kinds, o = {}) => {
+    const p = P();
+    let best = null;
+    for (const e of L.entities) {
+      if (!kinds.includes(e.kind) || !alive(e)) continue;
+      const q = vel(e);
+      const rx = e.pos.x - p.pos.x, rz = e.pos.z - p.pos.z;
+      if (Math.hypot(rx, rz) > 12 || Math.abs(e.pos.y - p.pos.y) > (o.dy ?? 2.4)) continue;
+      const vx = q.vx - p.vel.x, vz = q.vz - p.vel.z, vv = vx * vx + vz * vz;
+      const t = vv > 1e-6 ? Math.max(0, Math.min(o.horizon ?? 0.6, -(rx * vx + rz * vz) / vv)) : 0;
+      const d = Math.hypot(rx + vx * t, rz + vz * t);
+      if (d < (o.r ?? 1.2) && (!best || t < best.t)) best = { e, t, d };
+    }
+    return best;
+  };
+  /** Zum Ziel drehen (sanft lenken, bis die Blickrichtung passt). */
+  const face = (i, tx, tz, mag = 0.14) => {
+    for (let n = 0; n < 60 && live(i); n++) {
+      const p = P(), want = Math.atan2(-(tz - p.pos.z), tx - p.pos.x);
+      if (Math.abs(wrap(want - p.yaw)) < 0.04 && n > 2) break;
+      st({ ...B.stick(tx - p.pos.x, tz - p.pos.z, mag) });
+    }
+  };
+  const action = (n = 2) => { st({ action: true }); for (let k = 1; k < n; k++) st({}); };
+  /** Ball aufheben (6-Haus-Bot). */
+  const grab = (i, id) => {
+    const b = ent(id);
+    if (!b) return false;
+    for (let n = 0; n < 400 && live(i) && !P().holding; n++) {
+      const p = P(), dx = b.pos.x - p.pos.x, dz = b.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+      if (d < 0.85 && p.mode === 'ground') {
+        const err = Math.abs(wrap(Math.atan2(-dz, dx) - p.yaw));
+        if (err > 0.08) { st({ ...B.stick(dx, dz, 0.12) }); continue; }
+        action();
+        continue;
+      }
+      st({ ...B.stick(dx, dz, Math.max(0.3, Math.min(1, d))), run: false });
+    }
+    return !!P().holding;
+  };
+  const throwToward = (i, tx, tz, k = 8, mag = 0.3) => {
+    for (let n = 0; n < Math.max(k, 40) && live(i); n++) {
+      const p = P(), want = Math.atan2(-(tz - p.pos.z), tx - p.pos.x);
+      if (n >= k && Math.abs(wrap(want - p.yaw)) < 0.025) break;
+      st({ ...B.stick(tx - p.pos.x, tz - p.pos.z, mag) });
+    }
+    action(); S.throws++;
+  };
+  /** Sprung auf ein (bewegtes) Ziel: Anlauf bis reach m, dann Sprung mit Luftlenkung auf die vorausgesagte Lage. */
+  const jumpOnto = (i, target, o = {}) => {
+    const p = P();
+    let n = 0;
+    for (; n < (o.max ?? 500) && live(i); n++) {
+      const t = target(); if (!t) return false;
+      const d = Math.hypot(t.x - p.pos.x, t.z - p.pos.z);
+      if (d <= (o.reach ?? 2.2) && p.mode === 'ground') break;
+      st({ ...B.stick(t.x - p.pos.x, t.z - p.pos.z, 1), run: o.run ?? false });
+    }
+    S.jumps++;
+    for (let k = 0; k < 220 && live(i); k++) {
+      const t = target(); if (!t) break;
+      const inp = p.mode === 'air' ? B.airSteer(t.x + (t.vx ?? 0) * 0.15, t.z + (t.vz ?? 0) * 0.15, t.vx ?? 0, t.vz ?? 0, o.k ?? 4, o.vmax ?? 8) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1);
+      st({ ...inp, jump: k < (o.hold ?? 14), crouch: !!(o.pound && p.mode === 'air' && k > 6 && p.vel.y < 1.5 && Math.hypot(t.x - p.pos.x, t.z - p.pos.z) < 0.6) });
+      if (k > 6 && p.mode !== 'air') break;
+    }
+    return true;
+  };
+  /** Gegner anspringen, bis er besiegt ist. */
+  const stomp = (i, id, o = {}) => {
+    let e = ent(id), n = 0;
+    while (e && alive(e) && live(i) && n++ < (o.tries ?? 6)) {
+      jumpOnto(i, () => (alive(e) ? { x: e.pos.x, z: e.pos.z, vx: vel(e).vx, vz: vel(e).vz } : null), o);
+      for (let k = 0; k < 30 && P().mode === 'air' && live(i); k++) st({});
+      e = ent(id) ?? e;
+    }
+    log.push(['stampf', id, n, alive(e) ? 'lebt' : 'besiegt', here(i)]);
+  };
+  const waitPlay = (i, max = 1500) => { let n = 0; while (!(A().room === i && A().phase === 'play') && n++ < max) st({}); return A().room === i && A().phase === 'play'; };
+  const waitClear = (i, max = 1400) => { let n = 0; while (live(i) && n++ < max) st({}); for (let k = 0; k < 240 && A().flying; k++) st({}); return n; };
+  const star = (i) => L.entities.find((e) => e.kind === 'star' && e.index === i && !e.removed);
+  const toStar = (i, o = {}) => {
+    for (let k = 0; k < 90 && live(i) && (!star(i) || star(i).hidden); k++) st({});
+    const s = star(i);
+    if (!s || s.hidden) { log.push(['kein Stern', i, !!s]); return; }
+    for (let k = 0; k < 3 && live(i) && !L.runtime.stars[i]; k++) walkTo(i, s.pos.x, H.Z0[i] - s.pos.z, { within: 0.2, ...o });
+  };
+  /** Drehdiorama-Lage: lokaler Punkt (dx, dz) → Welt. */
+  const rot = (d, cx, cz, lx, lz) => { const a = d.angle ?? 0, ca = Math.cos(a), sa = Math.sin(a); return { x: cx + lx * ca + lz * sa, z: cz - lx * sa + lz * ca }; };
+
+  // ------------------------------------------------------------------ Raum-Löser
+  const R = [];
+  // 1 Panzerparade
+  R[0] = (i) => { for (const k of [1, 2, 3]) stomp(i, `k1_kroete${k}`, { reach: 2.0, hold: 10 }); };
+  // 2 Schaukelsaal: Schaukeln (Sprung so, dass die Landung in den Umkehrpunkt fällt), dann an den Walzen vorbei
+  R[1] = (i) => {
+    const sw = [1, 2, 3].map((k) => L.named.get(`k2_schaukel${k}`));
+    const Pd = sw[0].period, amp = sw[0].amp;
+    const now = () => sw[0].t ?? 0;
+    const at = (k, t) => { const th = amp * Math.sin(2 * Math.PI * (t / Pd + sw[k].phase)); return { x: 0, z: sw[k].pivot[2] + Math.sin(th) * sw[k].rope }; };
+    walkTo(i, 0, 5.55, { within: 0.25, mag: 0.7 });
+    const ledge = { x: 0, z: P().pos.z }, end = { x: 0, z: zu(i, 32.4) };
+    const FL = 0.85;
+    const hops = [[() => ledge, (t) => at(0, t)], [(t) => at(0, t), (t) => at(1, t)], [(t) => at(1, t), (t) => at(2, t)], [(t) => at(2, t), () => end]];
+    for (let h = 0; h < hops.length && live(i); h++) {
+      const [from, to] = hops[h];
+      const g = (t) => Math.abs(to(t).z - from(t).z);
+      const t0 = now();
+      let best = null;
+      for (let s = FL * 0.5 + 0.3; s < Pd * 1.5; s += 1 / 120) { const v = g(t0 + s); if (v < 4.6 && v <= g(t0 + s - 1 / 120) && v <= g(t0 + s + 1 / 120)) { best = s; break; } }
+      if (best === null) { log.push(['FEHLER: kein Umkehrpunkt', h]); break; }
+      const tJump = t0 + best - FL * 0.5;
+      let w = 0;
+      while (now() < tJump && w++ < 900 && live(i)) { const p = P(), f = from(now()); const dx = f.x - p.pos.x, dz = f.z - p.pos.z, dd = Math.hypot(dx, dz); st(dd > 0.12 && p.mode === 'ground' ? { ...B.stick(dx, dz, Math.min(0.6, dd)) } : {}); }
+      let k = 0, landed = false;
+      for (; k < 200 && live(i); k++) {
+        const p = P(), tg = to(now() + Math.max(0, FL - k / 120)), dx = tg.x - p.pos.x, dz = tg.z - p.pos.z;
+        st({ ...B.stick(dx, dz, Math.min(1, Math.hypot(dx, dz) / 1.2)), run: true, jump: k < 30 });
+        if (k > 8 && p.mode === 'ground') { landed = true; break; }
+      }
+      log.push([`schaukel${h + 1}`, w, k, landed, U(i)]);
+      if (!landed) break;
+    }
+    walkTo(i, 0, H.R2.star, { within: 0.3, run: true, dodge: ['stachelwalze'], tJump: 0.38, r: 1.3 });
+  };
+  // 3 Glutfelder: Felder links, rechts, hinten, dann der Stern in der Mitte (über Lavabrocken springen)
+  R[2] = (i) => {
+    const dg = { dodge: ['lavabrocken'], tJump: 0.42, r: 1.5, run: true };
+    for (const [x, u] of [H.R3.felder[0], H.R3.felder[1], H.R3.felder[2]]) walkTo(i, x, u, { within: 0.5, ...dg });
+    for (let k = 0; k < 30 && live(i); k++) st({});
+    toStar(i, dg);
+  };
+  // 4 Fackelstube: aus der Raummitte jede Fackel anvisieren und mit der Funkenblüte treffen
+  R[3] = (i) => {
+    walkTo(i, 0, 9.5, { within: 0.3, run: true });
+    const f = L.named.get('k4_fackeln');
+    for (let k = 0; k < 4 && live(i); k++) {
+      const t = f.torches[k];
+      for (let tries = 0; tries < 3 && !t.lit && live(i); tries++) {
+        face(i, t.x, t.z, 0.12);
+        action(); S.shots++;
+        for (let q = 0; q < 70 && !t.lit && live(i); q++) st({});
+      }
+      log.push(['fackel', k + 1, t.lit, here(i)]);
+    }
+    toStar(i);
+  };
+  // 5 Kreiselzimmer: Lücken der Kreisgeist-Ringe abpassen, auf die Kommode, auf den Schrank
+  R[4] = (i) => {
+    const d = L.named.get('k5_dreh'), cz = zu(i, H.R5.c);
+    const kom = () => rot(d, 0, cz, H.R5.kommode, 0);
+    const ghosts = () => L.entities.filter((e) => e.kind === 'kreisgeist_glied' && alive(e));
+    const frei = (x, z, t = 0.55, r = 1.25) => ghosts().every((e) => { const q = vel(e); for (const s of [0, t * 0.5, t]) if (Math.hypot(e.pos.x + q.vx * s - x, e.pos.z + q.vz * s - z) < r) return false; return true; });
+    // warten, bis der Weg zur Kommode frei ist und sie nicht gerade dreht
+    let n = 0;
+    for (; n < 900 && live(i); n++) {
+      const k = kom();
+      const p = P(), mid = { x: (p.pos.x + k.x) / 2, z: (p.pos.z + k.z) / 2 };
+      if (!d.turning && frei(k.x, k.z, 0.9) && frei(mid.x, mid.z, 0.6) && Math.hypot(k.x - p.pos.x, k.z - p.pos.z) < 8) break;
+      st({});
+    }
+    jumpOnto(i, () => { const k = kom(); return { x: k.x, z: k.z }; }, { reach: 2.4, run: true, hold: 16 });
+    log.push(['kommode', here(i), n]);
+    for (let k = 0; k < 20 && P().mode !== 'ground'; k++) st({});
+    jumpOnto(i, () => ({ x: 0, z: cz }), { reach: 3, hold: 30 });
+    for (let k = 0; k < 60 && live(i); k++) st({});
+  };
+  // 6 Kistenlager: links neben die Sternkiste, Tatzenhieb, Stern holen
+  R[5] = (i) => {
+    const [gx, gu] = H.R6.groups[3];
+    walkTo(i, gx - 2.55, gu, { within: 0.15, run: true });
+    face(i, gx - 1, zu(i, gu), 0.12);
+    for (let k = 0; k < 3 && ent('k6_sternkiste') && live(i); k++) { action(); for (let q = 0; q < 24; q++) st({}); }
+    for (let q = 0; q < 20; q++) st({});
+    toStar(i);
+  };
+  // 7 Pilzlingsschar: vor den POW-Block, warten bis die Schar heran ist, draufspringen; Rest anspringen
+  R[6] = (i) => {
+    walkTo(i, 0, 5.4, { within: 0.3 });
+    const pow = ent('k7_pow');
+    for (let n = 0; n < 200 && live(i); n++) {
+      const near = L.entities.filter((e) => e.kind === 'pilzling' && alive(e) && Math.hypot(e.pos.x - pow.pos.x, e.pos.z - pow.pos.z) < 6.5).length;
+      if (near >= 6) break;
+      st({});
+    }
+    jumpOnto(i, () => ({ x: pow.pos.x, z: pow.pos.z }), { reach: 2.2, hold: 20 });
+    for (let k = 0; k < 20; k++) st({});
+    for (const e of L.entities.filter((q) => q.kind === 'pilzling' && alive(q))) if (live(i)) stomp(i, e.spec.id, { reach: 2.2, hold: 10 });
+  };
+  // 8 Kullerhang: Ball holen, den Hang hinab rollen lassen
+  R[7] = (i) => {
+    for (const id of ['k8_ball2', 'k8_ball1', 'k8_ball3']) {
+      if (!live(i)) break;
+      grab(i, id);
+      walkTo(i, 0, 5.2, { within: 0.25, mag: 0.6 });
+      throwToward(i, 0, zu(i, H.R8.star));
+      for (let k = 0; k < 300 && live(i); k++) st({});
+      log.push(['wurf', id, L.runtime.stars[i]]);
+    }
+  };
+  // 9 Hackbeil-Hof: am rechten Rand vorbei zum Federklotz, hoch zum Stern
+  R[8] = (i) => {
+    walkTo(i, 6.3, 6.6, { within: 0.4, run: true });
+    walkTo(i, 6.3, 12.6, { within: 0.4, run: true, dodge: ['hackbeil_pilz'], tJump: 0.3, r: 1.2 });
+    const f = ent('k9_feder');
+    jumpOnto(i, () => ({ x: f.pos.x, z: f.pos.z }), { reach: 1.6, hold: 60 });
+    for (let k = 0; k < 160 && live(i); k++) st({ ...(P().mode === 'air' ? B.airSteer(H.R9.star[0], zu(i, H.R9.star[1]), 0, 0, 4, 5) : {}), jump: true });
+  };
+  // 10 Stampfsteinfahrt: Stein locken, draufspringen, mitfahren, über die unsichtbaren Stege
+  R[9] = (i) => {
+    const s = ent('k10_stein');
+    walkTo(i, 0, H.R10.stein - 1.9, { within: 0.15 });
+    for (let k = 0; k < 400 && live(i) && s.state !== 'land'; k++) st({});
+    for (let k = 0; k < 10; k++) st({});
+    jumpOnto(i, () => ({ x: 0, z: zu(i, H.R10.stein) }), { reach: 3, hold: 30 });
+    for (let k = 0; k < 600 && live(i) && !(s.state === 'wait' && P().pos.y > Y + 4.9); k++) st({});
+    log.push(['oben', here(i), s.state]);
+    walkTo(i, 0, H.R10.stein + 0.6, { within: 0.2 });
+    jumpOnto(i, () => ({ x: 0, z: zu(i, H.R10.wolken[0][0]) }), { reach: 6, hold: 40, run: true });
+    walkTo(i, 0, H.R10.wolken[0][0] + 0.6, { within: 0.25 });
+    jumpOnto(i, () => ({ x: 0, z: zu(i, H.R10.wolken[1][0]) }), { reach: 6, hold: 40, run: true });
+    walkTo(i, 0, H.R10.wolken[1][0] + 0.6, { within: 0.25 });
+    jumpOnto(i, () => ({ x: 0, z: zu(i, H.R10.ende[0] + 1.2) }), { reach: 6, hold: 40, run: true });
+    toStar(i);
+  };
+  // 11 Eisrutsche: auf dem Schlittschuh gerade hinab und über die Stachelstreifen
+  R[10] = (i) => { for (let k = 0; k < 900 && live(i); k++) { const p = P(), s = star(i); if (!s) break; st({ ...B.stick(s.pos.x - p.pos.x, s.pos.z - p.pos.z, 1) }); } };
+  // 12 Krallenschalter: rechten Turm hinauf, aufs Druckfeld, hinab, linken Turm hinauf zum Stern
+  R[11] = (i) => {
+    const climb = (x, top) => {
+      walkTo(i, x, H.R12.u[0] - 1.1, { within: 0.2 });
+      for (let k = 0; k < 360 && live(i) && !(P().mode === 'ground' && P().pos.y > top - 0.1); k++) st({ ...B.stick(0, -1, 1), jump: k < 30 });
+    };
+    climb(5, H.R12.top);
+    walkTo(i, 5, 7.5, { within: 0.3 });
+    for (let k = 0; k < 20; k++) st({});
+    log.push(['schalter', here(i), ent('k12_schalter')?.done]);
+    walkTo(i, 2.6, 7.5, { within: 0.4, run: true, max: 200 });
+    walkTo(i, -5, H.R12.u[0] - 1.1, { within: 0.25, run: true });
+    climb(-5, H.R12.top);
+    toStar(i);
+  };
+  // 13 Kanonenturm: Stufe für Stufe, Projektilköpfe abwarten
+  R[12] = (i) => {
+    const frei = (x, z, y) => !L.entities.some((e) => e.kind === 'projektilkopf' && alive(e) && Math.abs(e.pos.y - y) < 2 && Math.abs(e.pos.z - z) < 1.4 && Math.abs(e.pos.x + vel(e).vx * 0.6 - x) < 2.6);
+    for (const [u, top] of [[9.0, H.R13.tiers[0][3]], [11.5, H.R13.tiers[1][3]], [14, H.R13.tiers[2][3]]]) {
+      for (let k = 0; k < 400 && live(i) && !frei(0, zu(i, u), top); k++) st({});
+      jumpOnto(i, () => ({ x: 0, z: zu(i, u) }), { reach: 2.4, hold: 30 });
+    }
+    toStar(i);
+  };
+  // 14 Piep-Treppe: Stufe für Stufe, wenn die nächste fest ist
+  R[13] = (i) => {
+    const tr = L.named.get('k14_treppe');
+    const solid = (k) => { const g = tr.info?.()?.[k]; return !!g && g.on && g.solid > 0; };
+    const uOf = (k) => H.R14.from + H.R14.run * (k + 0.5);
+    walkTo(i, 0, H.R14.from - 0.9, { within: 0.25 });
+    for (let k = 0; k < H.R14.steps && live(i); k++) {
+      for (let q = 0; q < 600 && live(i) && !solid(k); q++) st({ ...B.stick(0, zu(i, uOf(k - 1) ?? 0) - P().pos.z, 0) });
+      jumpOnto(i, () => ({ x: 0, z: zu(i, uOf(k)) }), { reach: 2.4, hold: 22 });
+      log.push(['stufe', k, here(i)]);
+    }
+    toStar(i);
+  };
+  // 15 Großblock-Fall: von Block zu Block springen, bevor er fällt
+  R[14] = (i) => {
+    walkTo(i, 0, 4.4, { within: 0.3, run: true });
+    for (const u of [...H.R15.bloecke, H.R15.ende + 1.2]) jumpOnto(i, () => ({ x: 0, z: zu(i, u) }), { reach: 3.4, hold: 24, run: true });
+    toStar(i, { run: true });
+  };
+  // 16 Ringwand: warten, bis die Lücke vorn steht, durch die Lücke zum Stern
+  R[15] = (i) => {
+    const d = L.named.get('k16_ring');
+    walkTo(i, 0, 4.4, { within: 0.3 });
+    for (let k = 0; k < 900 && live(i); k++) {
+      const a = ((d.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      if (!d.turning && Math.min(a, 2 * Math.PI - a) < 0.05 && !danger(['wuschel'], { r: 1.6, horizon: 1.2 })) break;
+      st({});
+    }
+    walkTo(i, 0, H.R16.c, { within: 0.3, run: true });
+  };
+  // 17 Hasenjagd: beide Hasen rennend einholen
+  R[16] = (i) => {
+    for (const id of ['k17_hase1', 'k17_hase2']) {
+      const h = ent(id);
+      for (let k = 0; k < 900 && live(i) && h && !h.removed && h.state !== 'caught'; k++) { const p = P(); st({ ...B.stick(h.pos.x + vel(h).vx * 0.25 - p.pos.x, h.pos.z + vel(h).vz * 0.25 - p.pos.z, 1), run: true }); }
+      log.push(['hase', id, here(i)]);
+    }
+  };
+  // 18 Sprungfeld-Wurf: Ball holen, aufs Sprungfeld, im Scheitel auf den Schalter werfen, dann den Stern holen
+  R[17] = (i) => {
+    grab(i, 'k18_ball');
+    walkTo(i, 0, H.R18.sprung - 2.0, { within: 0.3 });
+    const tz = zu(i, H.R18.sprung);
+    let bounced = false, thrown = false;
+    for (let n = 0; n < 900 && live(i); n++) {
+      const p = P();
+      if (!bounced && p.jumpKind === 'bounce') bounced = true;
+      if (bounced && !thrown && p.vel.y < 0.6) { st({ ...B.stick(0, -1, 0.15), action: true }); st({}); S.throws++; thrown = true; continue; }
+      if (bounced && !thrown) { st({ ...B.stick(0, -1, 0.15), jump: true }); continue; }
+      const s = p.mode === 'air' ? B.airSteer(0, tz, 0, 0, 3, 5) : B.stick(-p.pos.x, tz - p.pos.z, 1);
+      st({ ...s, jump: p.mode === 'ground' ? n % 30 < 12 : true });
+      if (thrown && p.mode === 'ground' && p.ground?.tag !== 'trampoline') break;
+    }
+    log.push(['wurf', bounced, thrown, ent('k18_schalter')?.state]);
+    for (let k = 0; k < 900 && live(i); k++) { const p = P(); st({ ...(p.mode === 'air' ? B.airSteer(0, tz, 0, 0, 3, 5) : B.stick(-p.pos.x, tz - p.pos.z, 1)), jump: p.mode === 'ground' ? k % 30 < 12 : true }); }
+  };
+  // 19 Holzlabyrinth: Eingang abpassen, dann dem Gang folgen (Punkte drehen mit dem Labyrinth)
+  R[18] = (i) => {
+    const d = L.named.get('k19_lab'), cz = zu(i, H.R19.c);
+    walkTo(i, -3, 3.4, { within: 0.3 });
+    for (let k = 0; k < 900 && live(i); k++) { const a = ((d.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); if (!d.turning && Math.min(a, 2 * Math.PI - a) < 0.05) break; st({}); }
+    for (const [lx, lz] of [[-3, 4.6], [-3, 2.8], [3, 2.8], [3, 0.2], [0, 0.2]]) {
+      for (let n = 0; n < 300 && live(i); n++) {
+        const t = rot(d, 0, cz, lx, lz), p = P(), dx = t.x - p.pos.x, dz = t.z - p.pos.z;
+        if (Math.hypot(dx, dz) < 0.35) break;
+        st({ ...B.stick(dx, dz, 1) });
+      }
+    }
+    for (let k = 0; k < 30 && live(i); k++) st({});
+  };
+  // 20 Schubser-Kessel: von innen anrennen, damit sie über den Rand rutschen
+  R[19] = (i) => {
+    for (const id of ['k20_schubser1', 'k20_schubser2']) {
+      const e = ent(id);
+      for (let tries = 0; tries < 5 && alive(e) && live(i); tries++) {
+        // auf die Inselseite gegenüber dem nächsten Rand stellen, dann anspringen
+        const ex = e.pos.x, eu = H.Z0[i] - e.pos.z;
+        const dir = Math.abs(ex) > 1.2 ? Math.sign(ex) : 0;
+        const [px, pu] = dir ? [ex - dir * 2.2, eu] : [ex, eu - 2.2];
+        walkTo(i, Math.max(-4.4, Math.min(4.4, px)), Math.max(6, Math.min(14.4, pu)), { within: 0.5, run: true, max: 200 });
+        jumpOnto(i, () => (alive(e) ? { x: e.pos.x, z: e.pos.z } : null), { reach: 2.2, hold: 10, run: true });
+        for (let k = 0; k < 60 && live(i); k++) st({});
+      }
+      log.push(['schubser', id, alive(e), here(i)]);
+    }
+  };
+  // 21 Riesen-?-Türme: drauf, stampfen, mitfahren – dreimal
+  R[20] = (i) => {
+    const towers = ['k21_turm1', 'k21_turm2', 'k21_turm3'].map(ent);
+    for (const [k, t] of towers.entries()) {
+      if (!live(i) || !t) break;
+      jumpOnto(i, () => ({ x: t.pos.x, z: t.pos.z }), { reach: 2.2, hold: 30, pound: true });
+      for (let q = 0; q < 160 && live(i) && t.state !== 'turm'; q++) st({});
+      for (let q = 0; q < 20; q++) st({});
+      log.push(['turm', k + 1, t.state, here(i)]);
+      if (k === 0) walkTo(i, -1.6, 8.3, { within: 0.4 });
+      if (k === 1) walkTo(i, 4.0, 8.3, { within: 0.4 });
+    }
+    for (let k = 0; k < 60 && live(i); k++) st({});
+  };
+  // 22 Himmelssteg: über den Steg, Suchköpfen ausweichen (Sprung)
+  R[21] = (i) => { walkTo(i, 0, 4.2, { within: 0.3 }); walkTo(i, 0, 37.4, { within: 0.4, run: true, dodge: ['suchkopf'], tJump: 0.42, r: 1.2, max: 1100 }); };
+  // 23 Rankentreppe: von Ranke zu Ranke hinauf
+  R[22] = (i) => {
+    walkTo(i, 0, 3.4, { within: 0.25 });
+    for (const [, u, h] of H.R23.ranken) jumpOnto(i, () => ({ x: 0, z: zu(i, u) }), { reach: 3.2, hold: 30 });
+    jumpOnto(i, () => ({ x: 0, z: zu(i, H.R23.ledge[0] + 1) }), { reach: 3.2, hold: 30 });
+    toStar(i);
+  };
+  // 24 Schalterfelder: drei Würfe auf drei Scheiben
+  R[23] = (i) => {
+    const ziele = H.R24.ziele;
+    for (let k = 0; k < 3 && live(i); k++) {
+      const z = L.entities.find((e) => e.kind === 'zielscheibe' && e.spec?.id === `k24_ziel${k + 1}`);
+      for (let tries = 0; tries < 2 && z && !z.done && live(i); tries++) {
+        const free = L.entities.filter((e) => e.kind === 'wurfball' && !e.removed && !e.carrier && e.state !== 'flying').sort((a, b) => Math.hypot(a.pos.x - P().pos.x, a.pos.z - P().pos.z) - Math.hypot(b.pos.x - P().pos.x, b.pos.z - P().pos.z))[0];
+        if (!free) break;
+        grab(i, free.spec.id);
+        walkTo(i, ziele[k][0] * 0.4, 6.4, { within: 0.3 });
+        throwToward(i, ziele[k][0], zu(i, ziele[k][1]), 6, 0.25);
+        for (let q = 0; q < 60 && !z.done && live(i); q++) st({});
+      }
+      log.push(['scheibe', k + 1, z?.done, here(i)]);
+    }
+    toStar(i);
+  };
+  // 25 Topfgarten: Topf aufheben und zu den Wuscheln tragen, bis er sie gefressen hat
+  R[24] = (i) => {
+    grab(i, 'k25_topf1');
+    for (const id of ['k25_wuschel1', 'k25_wuschel2', 'k25_wuschel3']) {
+      const w = ent(id);
+      for (let k = 0; k < 600 && live(i) && alive(w); k++) {
+        const p = P(), dx = w.pos.x - p.pos.x, dz = w.pos.z - p.pos.z, d = Math.hypot(dx, dz);
+        const want = d > 1.7 ? 1 : d < 1.3 ? -0.4 : 0.05;
+        st({ ...B.stick(dx, dz, Math.abs(want)), ...(want < 0 ? B.stick(-dx, -dz, 0.4) : {}) });
+      }
+      log.push(['wuschel', id, alive(w), here(i)]);
+    }
+  };
+  // 26 Schnappkarussell: zwischen den Schnappblumen hindurch auf den Sockel
+  R[25] = (i) => {
+    const cz = zu(i, H.R26.c);
+    walkTo(i, 0, 3.6, { within: 0.3 });
+    const blumen = () => L.entities.filter((e) => e.kind === 'schnappblume' && alive(e));
+    for (let k = 0; k < 900 && live(i); k++) {
+      // Weg (x 0, von vorn zur Mitte) frei: keine Blume näher als 1,9 m an der Linie für die nächsten 0,9 s
+      const ok = blumen().every((e) => { const dx = e.pos.x, du = cz - e.pos.z; const a = Math.atan2(du, dx) - 0.55 * 0.9; const r = Math.hypot(dx, du); return Math.abs(r * Math.cos(Math.atan2(du, dx))) > 1.9 && Math.abs(r * Math.cos(a)) > 1.9; });
+      if (ok) break;
+      st({});
+    }
+    jumpOnto(i, () => ({ x: 0, z: cz }), { reach: 2.0, hold: 26, run: true });
+    for (let k = 0; k < 40 && live(i); k++) st({});
+  };
+  // 27 Scheinwerferschacht: im Zickzack die Simse hinauf
+  R[26] = (i) => {
+    const Ls = H.R27.leisten;
+    walkTo(i, -3, 10.6, { within: 0.3, run: true });
+    for (const [x0, x1] of Ls) jumpOnto(i, () => ({ x: (x0 + x1) / 2, z: zu(i, 14) }), { reach: 4.2, hold: 30, run: true });
+    toStar(i);
+  };
+  // 28 Donutbrücke: nicht stehen bleiben, über Walzen springen
+  R[27] = (i) => { walkTo(i, 0, 5.4, { within: 0.3 }); walkTo(i, 0, 27, { within: 0.4, run: true, dodge: ['stachelwalze'], tJump: 0.36, r: 1.2, max: 1100 }); };
+  // 29 Wirbelbrocken: Abstand halten, solange er rennt und wirbelt; taumelt er, draufspringen
+  R[28] = (i) => {
+    const b = ent('k29_wirbel'), cz = zu(i, 10);
+    walkTo(i, 0, 5.2, { within: 0.4 });
+    for (let k = 0; k < 1200 && live(i) && b.hp > 0; k++) {
+      if (b.state === 'stunned' && b.stateT < 1.0) { jumpOnto(i, () => ({ x: b.pos.x, z: b.pos.z }), { reach: 3.0, hold: 12, run: true }); continue; }
+      // fliehen: Punkt auf dem Kreis gegenüber
+      const p = P(), ax = p.pos.x - b.pos.x, az = p.pos.z - b.pos.z, al = Math.hypot(ax, az) || 1;
+      let tx = 0 + (ax / al) * 5, tz = cz + (az / al) * 5;
+      tx = Math.max(-5.6, Math.min(5.6, tx)); tz = Math.max(zu(i, 18.4), Math.min(zu(i, 1.6), tz));
+      const far = Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z) > 4.5;
+      st(far && b.state !== 'stunned' ? {} : { ...B.stick(tx - p.pos.x + (az / al) * 2, tz - p.pos.z - (ax / al) * 2, 1), run: true });
+    }
+    for (let k = 0; k < 40 && live(i); k++) st({});
+    toStar(i, { run: true });
+  };
+  // 30 Siegerflur: geradeaus über den Münzweg (Stempel) zum Stern
+  R[29] = (i) => { walkTo(i, 0, 27.5, { within: 0.3, run: true }); };
+
+  window.__haus = {
+    A, S, waitPlay, waitClear, live, step: st, walkTo, R,
+    solve(i) {
+      log.length = 0;
+      if (!waitPlay(i)) return { error: 'kein Start', a: A() };
+      const t0 = L.time, h0 = S.hits;
+      try { R[i](i); } catch (e) { log.push(['AUSNAHME', String(e), e.stack?.split('\n')[1]]); }
+      const t = +(L.time - t0).toFixed(2);
+      const got0 = !!L.runtime.stars[i];
+      waitClear(i);
+      return { t, got: !!L.runtime.stars[i], got0, log: log.slice(), hurts: S.hits - h0, a: A(), dead: P().dead, pos: here(i), deaths: B.deaths };
+    },
+  };
+  return true;
+}
+
+async function haus() {
+  const id = 'K-Haus';
+  if (!['load', 'haus'].some((q) => PARTS.has(q))) return;
+  console.log(`\n${id}: Marathon-Haus mit 30 Räumen`);
+  const RAUM = process.env.RAUM ? process.env.RAUM.split('-').map((v) => Number(v) - 1) : null;
+  const from = RAUM ? RAUM[0] : 0, to = RAUM ? (RAUM[1] ?? RAUM[0]) : 29;
+  for (const hero of HEROES) {
+    if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+    await sc((h) => { window.__course.player.setHero(h); }, hero);
+    if (hero === HEROES[0] && PARTS.has('load')) {
+      const d = await sc(() => {
+        const c = window.__course, L = c.level, D = L.data;
+        return { title: D.title, theme: D.theme, music: D.music, arch: D.archetype, world: D.world, rooms: D.house.rooms.length, goals: D.house.rooms.map((r) => r.goal),
+          times: D.house.rooms.map((r) => r.time), fail: D.house.fail, starCount: L.runtime.starCount, stamp: !!D.stamp, kinds: window.__kb.kinds() };
+      });
+      console.log(`  „${d.title}“, Welt ${d.world}, Thema ${d.theme}, Musik ${d.music}, Räume ${d.rooms}, Ziele ${[...new Set(d.goals)].join('/')}, Arten ${JSON.stringify(d.kinds)}`);
+      check(`${id}: lädt ohne Konsolenfehler/-warnungen`, errors.length === 0);
+      for (const e of errors.slice(0, 8)) console.log('      ', e);
+      check(`${id}: „Haus Marathon“, Welt 12, Archetyp house, Thema house, Musik course_house, 30 Räume à 10 s, 30 Sterne + Stempel, fail 'exit'`,
+        d.title === 'Haus Marathon' && d.world === 12 && d.arch === 'house' && d.theme === 'house' && d.music === 'course_house' && d.rooms === 30 && d.times.every((t) => t === 10) && d.fail === 'exit' && d.starCount === 30 && d.stamp);
+    }
+    if (!PARTS.has('haus')) continue;
+    await sc(installHaus);
+    const times = [];
+    for (let i = from; i <= to; i++) {
+      const r = await sc(([k, first]) => {
+        const c = window.__course;
+        if (k !== first || c.arch.info().room !== k) { if (c.arch.info().room !== k) c.arch.enterRoom(k); }
+        return window.__haus.solve(k);
+      }, [i, from]);
+      times.push(r.t);
+      const ok = r.got && !r.error && r.t < 10;
+      check(`${id}: ${hero} Raum ${i + 1} ${HAUS_NAMES[i]} in ${r.t} s (< 10 s, Treffer ${r.hurts})`, ok);
+      if (VERBOSE || !ok) { console.log(`       ${JSON.stringify(r.a).slice(0, 200)} tot ${r.dead} bei ${JSON.stringify(r.pos)}`); for (const l of r.log ?? []) console.log('      ', JSON.stringify(l)); }
+    }
+    console.log(`  ${hero}: Raumzeiten ${times.join(' · ')}`);
+    if (from === 0 && to === 29) {
+      const fin = await sc(() => { const c = window.__course; for (let k = 0; k < 2400 && !c.finished; k++) c.step(1); return { finished: c.finished, res: c.lastResult ?? null, a: c.arch.info(), stamp: c.level.runtime.stamp }; });
+      check(`${id}: ${hero} Ergebnis 30/30 und Stempel (${(fin.res?.stars ?? []).filter(Boolean).length} Sterne)`, fin.finished && fin.res?.stars?.filter(Boolean).length === 30 && fin.stamp && !fin.a.exited);
+    }
+  }
+}
+
+// ====================================================================================================================
 // Ablauf
 // ====================================================================================================================
 try {
   if (!ONLY_LEVEL || ONLY_LEVEL === 'K-Kapitän') await kapitaen();
+  if (!ONLY_LEVEL || ONLY_LEVEL === 'K-Haus') await haus();
 } catch (e) {
   console.log('Abbruch:', e);
   check('Testlauf ohne Ausnahme', false);
