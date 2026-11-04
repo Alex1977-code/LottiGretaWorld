@@ -9900,6 +9900,85 @@ Stachelboden). Routen (Bot, Lotti/Greta): B-5 56 / 56 s, B-6 50 / 49 s, B-7 47 /
 (Gipfel – die Basis liegt dort schon bei ≈ 260 k); B-6 76 / 244 k, Bilder ≤ 80 / 251 k; B-7 105 / 241 k (Kanalufer bzw. unter
 Wasser im Tiefwasser), Bilder ≤ 96 / 222 k; B-8 100 / 214 k, Bilder ≤ 92 / 173 k. Grenzen < 120 / < 300 k.
 
+## Präzisierung (Level K-1)
+
+Additiv zur Liste „Bonuswelten – Level-Liste und Freischaltung“, Welt Krone (12): Titel und Besonderheiten von K-1. Dateien
+`src/course/levels/w12/K-1.js` und die eigene Hilfsdatei `src/course/levels/w12/_helpers_a.js` (kein `LEVEL`, nur für K-1;
+K-Kapitän/K-Haus haben eigene Dateien), Test `tests/course_ka.mjs`. **Kein Motor-Code geändert**; alles Neue ist level-seitig
+(Haken `LEVEL.prebuild`/`build`/`setup`, `level.onStep`, `view.onFrame`).
+
+| Level | Titel | Archetyp | Thema / Musik | Sterne | Zeit |
+|---|---|---|---|---|---|
+| K-1 | Siegerstraße über dem Wolkenmeer | `parcours` (extrem) | skyway + lokale Variante „Kronen-Gipfel“ / course_champion | 3 + Stempel | 500 s |
+
+### K-1 „Siegerstraße über dem Wolkenmeer“ (parcours · skyway@Kronen-Gipfel · course_champion · 500 s)
+
+- Der längste und schwerste Kurs: ≈ 1 km nach −Z (z 9 … −996, Höhe 0 … 36) hoch über einem Wolkenmeer, **kein Kontrollpunkt**
+  (`checkpoint: null` – jeder Sturz führt an den Start), **keine Power-ups** (nur Bitcoins und Extraleben), **vier Warp-Boxen**
+  (eine Richtung; Box 2 und 4 erscheinen erst nach Kampfraum bzw. Schlüsselmünzen). Rastinseln mit Gras, Blumen und Fahnen,
+  Marmor mit Goldleisten (`gold: true` an den Inseln → `goldkanten`), Bitcoin-Pfade als Wegweiser.
+- Stimmung (`LEVEL.prebuild` → `kronenHimmel`): das gemeinsame Thema `skyway` bleibt unverändert, das Level setzt eine lokale
+  Variante – tiefblauer Zenit, Gold und Pfirsich am Horizont, Marmor-/Sandsteinfarben; Kulisse Wolkenmeer, Marmorgipfel mit
+  goldenen Spitzen, schwebende Goldkronen (die große über dem Ziel).
+- Abschnitte: **1 Schiebeblock-Auftakt** (z 9 … −127): Startplatz mit Kronentor, bunte Schwebeblöcke, dazwischen Schiebeblöcke
+  (`mover` 3 × 1 × 3, gleiten von der Seite in die 3-m-Lücken, verweilen 1,6 s), ein Fahrblock längs, Krakenpilze auf vier
+  Schiebeblöcken und zwei Rastinseln. **2 Aufzugsschacht** (z −127 … −213, y 3 → 29): Glasröhre hinauf zum ersten Sims, goldenes
+  Gerüst, drei Aufzüge, zwei 1 m schmale Stege mit je zwei rennenden Pilzlingen, drei Feuer-Werfer (Simse und Gipfel),
+  Warp-Box 1. **3 Piep-Block-Strecke** (z −217 … −312): `LEVEL.beepTheme: 'course_champion'` – die Taktuhr folgt der
+  Levelmusik (150 BPM), Wechsel alle 4 Zählzeiten (= jeden Takt, doppeltes Tempo gegenüber 4-3), 2 Warn-Zählzeiten; die Pieps
+  spielt das Level selbst (`piepTakt`, die Musik hat keine Piep-Spur): Streifen mit festen Absätzen, Treppe (rot → blau),
+  Zickzack-Feld (rote und blaue Spur, zweimal im Wechsel hinüber), drei Trittsteine; **Glasröhren-Kanone** in die **Zauberarena**
+  (25 × 25 m Marmorring um ein Kreuz aus Bröckelbrücken, die nach 3,5 s nachwachsen, darüber vier Feuerstäbe; drei Zauberkröten
+  auf dem Ring; `kampfraum` → Warp-Box 2 auf dem Mittelsockel). **4 Graue Plattformen** (z −385 … −545): graue Blöcke und
+  Fähren, sieben Pendelstacheln, zwei rotierende Stachelwalzen, Wuschel-Schwärme, zwei Topf-Schnappblumen (Start und
+  Erholungsinsel), Sternplatz mit Warp-Box 3. **5 Wandsprung-Turm** (z −556 … −597, y 4 → 35): Federplattform, Wandsprung-Schacht
+  (Marmorwände 3,2 m auseinander), **Hörner-Ameisen als Stufen** – zwei Ameisen-Ströme (`spawner`, alle 4,2 s) kommen aus Löchern
+  am Fuß der Turmwand und klettern nur aufwärts (niemand kommt entgegen), oben verschwinden sie –, **Rankenschnapper-Kette**
+  (drei Ranken, Maßstab 1,5, wachsen nacheinander waagerecht aus der Wand, Köpfe vorn; Zickzack hinauf); **drei Wasserwürfel**
+  (je ≈ 30 m, `wasserkoerper`) mit blauen Stachelbalken (Takt, oben/unten durch) und roten Stachelblöcken (kreisen ohne Pause),
+  Glasröhre hinab. **6 Boost-Finale** (z −737 … −946): goldene Bahn mit Rennbahn-Randsteinen, drei Boost-Pfeilen, zwei Lücken,
+  neun Feuerringen (Puls = Schockwellen), fünf Schlüsselmünzen (Seitensims links, über einer Schockwelle, Seitensims rechts,
+  Goldblock, Platz) öffnen Warp-Box 4 auf dem Platz (20 × 22 m) → **Siegerplatz** mit Kronentor, Goldtreppe mit rotem Teppich,
+  Siegerpodest mit Krone, Pokal und dem **goldenen Zielmast** (`goldenerZielmast`: Goldsockel, Spiralmast, Krone, Kronenfahne –
+  Mechanik der Entität `goal` unverändert); beim Greifen **Siegesfeier** (`siegesfeier`: Konfetti aus vier Kanonen, Feuerwerk,
+  Krümel und Häschen jubeln, Ansage „Champion! Die Krone gehört dir!“).
+- Sterne: 0 **hinter der Piep-Block-Strecke** – hinter der Kanonen-Insel über zwei Piep-Blöcke (rot, im Wechsel blau) zum
+  Sternsockel · 1 **Sternplatz** am Ende der grauen Plattformen, umkreist von acht Wuscheln – die Topf-Schnappblume frisst den
+  Ring (ohne sie: Treffer) · 2 **am Ende der Boost-Strecke**: hinter dem Platz über den Goldsteg, an dem eine pinke Schockwelle
+  vorbeistreicht, zum Sockel. Stempel: **zweite Stufe der Goldtreppe** vor der Zielfahne, rechts über der Stufe (Hüpfer; auf der
+  Treppenmitte geht man vorbei). Extraleben: unsichtbare Blöcke auf Rastinsel 2, auf dem Aufzugs-Gipfel und auf der
+  Erholungsinsel.
+- Gegner: Krakenpilz 6, Pilzling 4, Feuer-Werfer 3, Zauberkröte 3, Wuschel 22, Hörner-Ameisen 2 Ströme (je ≤ 4), Rankenschnapper 3,
+  Feuerringe 9; Fallen: Stachelblöcke 7 (blau 4 in eigener Optik, rot 3), Feuerstäbe 4, Pendelstacheln 7, Stachelwalzen 2.
+- Leistung: Feuerringe `farHide: 52`; `fernAus` blendet ferne Bausteine ohne eigene Regel (Stachelblöcke, Feuerstäbe, Pendel,
+  Walzen, Boost-Pfeile, Fahrblöcke, Wasserwürfel) weiter als 62 m aus (nur Darstellung); die blauen Stachelbalken nutzen die
+  eigene Optik (`look: 'eigen'`, das Registry-Modell kostete für 8 m breite Balken ≈ 18 k Dreiecke je Stück).
+
+### Hilfen `_helpers_a.js`
+
+`line`, `ring`, `arc`, `column`, `sign`, `marmor` (Insel über die Grundfläche, Marmor-Decke, `gold`), `block` (bunter
+Schwebeblock), `Bld`, `litTop`, `gradY`; `kronenHimmel` (Themen-Variante, prebuild), `goldkanten`, `geruest` (Aufzugsgerüst),
+`randsteine`, `turmZier` (Fenster, Banner, Ameisenlöcher), `kronenTor`, `sockel`, `fahnen` (wehend, ein Objekt), `ballons`,
+`zauberkreis`; `piepTakt`, `goldenerZielmast`, `siegesfeier` (Laufzeit `level.named.get('siegesfeier')` = { fired,
+bursts, confetti }), `fernAus`.
+
+### Test `tests/course_ka.mjs`
+
+Port 5045 (+ `PORT_BASE`), `PARTS=load,route,sweep,targets,extra,shots` (load,route,sweep ≈ 2 min · targets,extra ≈ 1,2 min ·
+shots ≈ 4 min), `HEROES`, `ONLY`, `SEC=s1…s6` (nur ein Abschnitt der Route, `s3+` bis zum Ziel), `VULN=1`, `SWEEP_STEP`,
+`VERBOSE`, `TRACE`, `SHOTS`, `DETAIL`; Bilder `tests/out/ka_*.png`. Prüft Laden ohne Konsolenfehler, Meta und Zahlen, die Regeln
+der Abschlussprüfung (kein Kontrollpunkt, keine Power-ups, vier Warp-Boxen), Piep-Blöcke mit `every` 4 und die Taktuhr im
+Gleichschritt mit der Musik (manuelle Musik-Uhr: Quelle `music`, 150 BPM, jeder Wechsel auf einem Taktanfang), Routen-Bot Lotti
+und Greta vom Start bis zum goldenen Zielmast ohne Teleport (Schiebeblöcke im Halt, Krakenpilze von oben, Glasröhren, Aufzüge,
+sieben Gegner der Stege besiegt, Piep-Sprünge im Wechsel, drei Zauberkröten, Federplattform, Wandsprung-Kette, Ameisen-Fahrt,
+Rankenschnapper, Stachelbalken im Takt durchtauchen, fünf Schlüssel, vier Warp-Boxen), Messgang über die Route, alle Sterne und
+den Stempel mit Gegenproben (Sockel ohne Piep-Blöcke zu weit, Wuschel-Ring ohne Topf verletzt, Stempel nicht im Vorbeigehen) und
+Extras (drei Extraleben, Ameisen-Fahrt verwundbar ohne Treffer, Hörner-Ameise am Boden, auf Rot stehen bleiben, Warp-Box 2 mit
+einer Kröte übrig bzw. Warp-Box 4 mit vier Schlüsseln verborgen, Sturz → Start, Feuerstab, Pendelstachel, Siegesfeier). Im Test
+läuft die Taktuhr auf der Simulationszeit (`beepClock.mode = 'level'`). Routen (Bot, Spielzeit): Lotti ≈ 270 s, Greta ≈ 255–267 s.
+Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke): Messgang (58 Punkte) höchstens 103 / 256 k (Rankenschnapper-Kette mit
+Blick über die Wasserwürfel), Bilder (41 Abschnitte) ≤ 86 / 232 k. Grenzen < 120 / < 300 k.
+
 ## Präzisierung (Level B-9, B-10, B-11 und B-12)
 
 Welt Blume (Präfix `B`, Welt 11, Remix-Welt 2), Level 9 bis 12 – additiv zur Tabelle „Welt Blume (11)“. Dateien
