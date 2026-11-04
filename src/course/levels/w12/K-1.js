@@ -88,14 +88,14 @@ const piep = (id, color, pos, size, o = {}) => ({ type: 'piep_block', id, color,
 // ---------------------------------------------------------------- Abschnitt 3: Zauberarena (Bröckelblöcke im Innenfeld)
 const A = M.ARENA;
 export const FEUERSTAB_ORTE = [[-3.5, -358.5], [3.5, -358.5], [-3.5, -365.5], [3.5, -365.5]];
-// Bröckelbrücken: ein Kreuz aus drei Block breiten Stegen vom Marmorring zum Mittelsockel; dazwischen geht es in die Tiefe, die
+// Bröckelbrücken: ein Kreuz aus zwei Block breiten Stegen vom Marmorring zum Mittelsockel; dazwischen geht es in die Tiefe, die
 // Feuerstäbe kreisen über den Stegen
 const arenaFeld = () => {
   const out = [];
   for (let ix = 0; ix < 14; ix++) for (let iz = 0; iz < 14; iz++) {
     const x = -6.5 + ix, z = A.z + 6.5 - iz;
     if (Math.abs(x) < 1.6 && Math.abs(z - A.z) < 1.6) continue;                                   // Mittelsockel
-    if (Math.abs(x) > 1.6 && Math.abs(z - A.z) > 1.6) continue;                                   // nur das Kreuz
+    if (Math.abs(x) > 1.1 && Math.abs(z - A.z) > 1.1) continue;                                   // nur das Kreuz (2 Blöcke breit)
     out.push([x, YR - 1, z]);
   }
   return out;
@@ -147,7 +147,7 @@ function build(level) {
     [0, YR + 6, A.z, 0.7, 0xffd0ff], [-4, 14, -455, 0.35], [0, 40, -593, 0.5], [0, 22, -925, 0.45], [0, 34, -966, 0.6],
   ]);
   randsteine(level, [[-3, 3, -737, -790, YBO], [-3, 3, -797, -850, YBO], [-2.5, 2.5, -857, -905, YBO]]);
-  kronenTor(level, [[0, Y1, -2.6, 9.4, 4.6], [0, YBO, -752, 7.4, 3.6], [0, YBO, -820, 7.4, 3.6], [0, YBO, -884, 6.4, 3.6], [0, YPL, -916.4, 8.4, 4.2], [0, YZ, -959, 7, 4.2]]);
+  kronenTor(level, [[0, Y1, -2.6, 9.4, 4.6], [0, YBO, -752, 7.4, 3.6, false], [0, YBO, -820, 7.4, 3.6, false], [0, YBO, -884, 6.4, 3.6, false], [0, YZ, -959, 7, 4.2]]);
   turmZier(level, {
     faces: [
       { z: -568, x0: -6, x1: 6, y0: YF, y1: YL1, windows: 0, banners: [-4.2, 4.2] },
@@ -366,13 +366,13 @@ export const LEVEL = {
     { type: 'deco', items: [
       { kind: 'flowers', pos: [-3, Y1, -38.5], size: [2, 2.5], n: 8 }, { kind: 'bush', pos: [3.4, Y1, -34], size: 0.7 }, { kind: 'lantern', pos: [-3.8, Y1, -32.8] },
       { kind: 'flowers', pos: [3, 2, -78], size: [2.2, 2], n: 8 }, { kind: 'bush', pos: [-3.6, 2, -70.2], size: 0.7 }, { kind: 'lantern', pos: [3.8, 2, -69.8] },
-      { kind: 'flowers', pos: [-3.4, YS, -124.5], size: [2.4, 3], n: 9 }, { kind: 'bush', pos: [3.8, YS, -125.8], size: 0.8 }, { kind: 'tree', pos: [4, YS, -116.4], size: 3.4 },
+      { kind: 'flowers', pos: [-3.4, YS, -124.5], size: [2.4, 3], n: 9 }, { kind: 'bush', pos: [3.8, YS, -116.4], size: 0.8 }, { kind: 'tree', pos: [4, YS, -125.8], size: 3.4 },
       { kind: 'flowers', pos: [2.4, YP, -225], size: [1.8, 2.4], n: 7 }, { kind: 'lantern', pos: [-3, YP, -226.4] },
       { kind: 'flowers', pos: [2.6, YT, -263], size: [1.4, 3], n: 7 }, { kind: 'bush', pos: [-3, YT, -256], size: 0.6 },
-      { kind: 'flowers', pos: [3.8, YK, -310.4], size: [2, 2], n: 7 }, { kind: 'tree', pos: [-4.2, YK, -301.4], size: 3.6 }, { kind: 'bush', pos: [4.2, YK, -305], size: 0.7 },
+      { kind: 'flowers', pos: [-3.6, YK, -303], size: [2, 2], n: 7 }, { kind: 'tree', pos: [4.3, YK, -311], size: 3.6 }, { kind: 'bush', pos: [4.2, YK, -305], size: 0.7 },
       { kind: 'flowers', pos: [-3.4, YG4, -393.4], size: [2, 2.4], n: 8 }, { kind: 'lantern', pos: [3.9, YG4, -394.2] },
-      { kind: 'flowers', pos: [-3, YG4, -458.4], size: [1.8, 2.4], n: 7 }, { kind: 'tree', pos: [3.4, YG4, -451.2], size: 3.2 },
-      { kind: 'flowers', pos: [4, 10.5, -541], size: [2.6, 3], n: 9 }, { kind: 'flowers', pos: [-4.4, 10.5, -540], size: [2, 3], n: 8 }, { kind: 'tree', pos: [-5, 10.5, -523], size: 3.6 },
+      { kind: 'flowers', pos: [-3, YG4, -452.2], size: [1.8, 2.4], n: 7 }, { kind: 'tree', pos: [-3.3, YG4, -459.2], size: 3.2 },
+      { kind: 'flowers', pos: [4, 10.5, -541], size: [2.6, 3], n: 9 }, { kind: 'flowers', pos: [-4.4, 10.5, -540], size: [2, 3], n: 8 }, { kind: 'tree', pos: [-5, 10.5, -543.6], size: 3.6 },
       { kind: 'flowers', pos: [-4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'flowers', pos: [4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.8, YF, -558], size: 0.8 },
       { kind: 'flowers', pos: [-3.6, 36, -716], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.2, 36, -718.6], size: 0.7 },
       { kind: 'flowers', pos: [-9, YS - 0.01, -320.5], size: [1.2, 1.2], n: 4 },

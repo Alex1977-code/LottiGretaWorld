@@ -264,7 +264,7 @@ const ROUTES = {
         legs: [{ wait: 500 }], mech: (r) => r.mech.hurts >= 1 || (r.rt.deaths ?? 0) > 0, mechText: (r) => `Treffer ${r.mech.hurts}, Stürze ${r.rt.deaths ?? 0}` },
       { name: 'Siegesfeier am goldenen Zielmast: Konfetti und Feuerwerk', from: [0, 28, -987], heroes: ['lotti'],
         legs: [{ to: [0, -989.6], within: 0.2 }, { tail: 360 }],
-        mech: (r) => r.mech.feier?.fired && r.mech.feier.bursts >= 3 && r.mech.feier.confetti >= 3, mechText: (r) => JSON.stringify(r.mech.feier ?? {}) },
+        mech: (r) => r.mech.feier?.fired && r.mech.feier.bursts >= 3 && r.mech.feier.confetti >= 3, mechText: (r) => JSON.stringify(r.mech.feier ?? {}), shot: 'feier' },
     ],
     shots: [
       ['start', [0, 0, 6]],

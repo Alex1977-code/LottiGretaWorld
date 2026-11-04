@@ -337,11 +337,11 @@ export function turmZier(level, o) {
 
 /**
  * Kronentor (statisch; Pfeiler mit Kollision): zwei Marmorpfeiler mit Goldkapitellen, ein goldener Bogen mit Glühbirnen und oben
- * eine Krone mit Edelsteinen. list [[x, y, z, Breite, Höhe] …] (Bogen quer zur Laufrichtung −Z).
+ * eine Krone mit Edelsteinen (krone false: ohne). list [[x, y, z, Breite, Höhe, krone] …] (Bogen quer zur Laufrichtung −Z).
  */
 export function kronenTor(level, list) {
   const b = new Bld(), g = new Bld();
-  for (const [x, y, z, W, H] of list) {
+  for (const [x, y, z, W, H, krone = true] of list) {
     for (const s of [-1, 1]) {
       const px = x + s * W / 2;
       level.world.add({ type: 'box', min: [px - 0.45, y, z - 0.45], max: [px + 0.45, y + H, z + 0.45], tag: 'kronentor' });
@@ -360,6 +360,7 @@ export function kronenTor(level, list) {
       if (i % 2 === 0) g.sphere(0.13, cx, cy + 0.12, z + 0.28, i % 4 ? 0xff8aa0 : 0xfff0a0, { ws: 8, hs: 6 });
     }
     // Krone oben
+    if (!krone) continue;
     const parts = [];
     kroneGeo(0.6, 0.7, parts, [x, y + H + R * 0.55 + 0.1, z]);
     const kg = merge(parts);
