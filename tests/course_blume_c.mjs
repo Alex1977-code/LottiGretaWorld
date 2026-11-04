@@ -527,7 +527,7 @@ function install() {
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
-        if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); if (window.__trace) log.push(['TREFFER', p.lastHurt, steps, JSON.stringify(hist.slice(-12))]); }
+        if ((p.hurtTries ?? 0) > lastHurts) { lastHurts = p.hurtTries; mech.hurtList.push(`${typeof p.lastHurt === "object" ? (p.lastHurt?.kind ?? p.lastHurt?.spec?.kind ?? p.lastHurt?.name ?? "Quelle") : p.lastHurt}@${p.pos.x.toFixed(0)},${p.pos.y.toFixed(0)},${p.pos.z.toFixed(0)}`); if (window.__trace) log.push(['TREFFER', p.lastHurt, steps, JSON.stringify(hist.slice(-12))]); }
         if (p.mode === 'ground' && p.ground?.tag === 'sinkscholle' && !schollenSeen.has(p.ground)) { schollenSeen.add(p.ground); mech.schollen++; }
         if (p.mode === 'ground' && !p.dead) {
           const t = track[track.length - 1];
