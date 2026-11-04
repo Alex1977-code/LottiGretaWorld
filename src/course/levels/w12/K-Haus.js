@@ -50,7 +50,7 @@ const cliff = (i, x0, x1, u0, u1, top, color) => isl(x0, x1, zu(i, u0), zu(i, u1
 const R2 = { swings: [11, 18.5, 26], walze: 34, star: 36.4 };
 const R3 = { felder: [[-4.5, 6.5], [4.5, 6.5], [0, 12.8]], star: [0, 9.2] };
 const R4 = { fackeln: [[-5, 5.5], [5, 5.5], [-5, 13.5], [5, 13.5]], star: [0, 9.5] };
-const R5 = { c: 9.5, disc: 5.6, kommode: 1.8, schrankTop: Y + 0.3 + 3.0 };
+const R5 = { c: 9.5, disc: 5.6, kommode: 1.8, schrankTop: Y + 0.25 + 3.0 };
 const R6 = { groups: [[-4, 6], [4, 6], [-4, 12.5], [4, 12.5]] };
 const R8 = { balkon: Y + 3, kraft: 6.4, rampe: [6, 13], star: 19.5 };
 const R9 = { pilze: [-4.8, -1.6, 1.6, 4.8], feder: [5.2, 13.6], star: [5.2, 13.6, Y + 6.2] };
@@ -58,11 +58,11 @@ const R10 = { pad: [5, 8.6], stein: 6.8, wolken: [[11.6, 2.6], [16.6, 2.6]], end
 const R11 = { oben: Y + 5, rampe: [5, 17], stachel: [21, 25.5], star: 30.5 };
 const R12 = { rechts: [3.4, 6.6], links: [-6.6, -3.4], u: [6, 9], top: Y + 4.6 };
 const R13 = { tiers: [[-5, 5, 8, Y + 2.2], [-3.5, 3.5, 10.5, Y + 4.4], [-2, 2, 13, Y + 6.6]], back: 16 };
-const R14 = { from: 5, steps: 7, run: 1.3 };
+const R14 = { from: 5, steps: 7, run: 1.3, colors: ['rot', 'rot', 'blau', 'blau', 'rot', 'rot', 'blau'], every: 3, warn: 1 };
 const R15 = { bloecke: [7.5, 12.5, 17.5, 22.5], ende: 25.5 };
 const R16 = { c: 10, half: 3 };
 const R17 = { boosts: [6, 15] };
-const R18 = { ball: [-1.6, 3.6], sprung: 6.5, turm: 13.5, top: Y + 6.1 };
+const R18 = { ball: [-1.6, 3.6], sprung: 6.5, turm: 13.5, top: Y + 5.05 };
 const R19 = { c: 10.5 };
 const R20 = { insel: [-5, 5, 5.5, 15], lava: Y - 0.6 };
 const R21 = { t1: [-4.5, 7.5], s1: [-2.8, 3.2, 6, 10.5, Y + 4], t2: [1.2, 8.3], s2: [3.2, 7, 6, 13, Y + 8], t3: [5.1, 10.6] };
@@ -139,7 +139,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: 5, style: 'puzzle' }, { u0: R15.ende, u1: 30, style: 'puzzle' }], cam: { pitch: 42, dist: 14.5, follow: true },
     pictures: [{ wall: 'l', u: 3, y: 2.3, motif: 'zielfahne' }, { wall: 'r', u: 3, y: 2.3, motif: 'lotti' }], clocks: [{ wall: 'r', u: 15, y: 5, r: 0.45 }],
     props: [{ kind: 'teddy', x: 5.4, u: 28.5, yaw: -0.4 }] },
-  { name: 'Ringwand', title: 'Ringwand: Schlüpf durch die Lücke zum Stern!', len: 20, h: 6, paper: 'k:garten', wood: 0x3a7a3a, star: [0, R16.c, Y + 0.3 + 0.25],
+  { name: 'Ringwand', title: 'Ringwand: Schlüpf durch die Lücke zum Stern!', len: 20, h: 6, paper: 'k:garten', wood: 0x3a7a3a, star: [0, R16.c, Y + 0.25 + 0.25],
     floors: [{ u0: -1, u1: 20, style: 'teppich' }], cam: { pitch: 52, dist: 17, c: R16.c },
     pictures: [{ wall: 'l', u: 3, motif: 'see' }, { wall: 'r', u: 3, motif: 'berg' }], clocks: [{ wall: 'l', u: 16, y: 3.4, r: 0.42 }],
     props: [{ kind: 'pflanze', x: -6, u: 1.4 }, { kind: 'pflanze', x: 6, u: 18.4 }] },
@@ -151,7 +151,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: 22, style: 'uni', color: 0x2a3a7a }], cam: { pitch: 40, dist: 17, c: 9 },
     pictures: [{ wall: 'l', u: 3, y: 2.3, motif: 'trampolin' }, { wall: 'r', u: 3, y: 2.3, motif: 'berg' }], clocks: [{ wall: 'r', u: 18, y: 6, r: 0.45 }],
     props: [{ kind: 'lampe', x: -6, u: 1.2 }] },
-  { name: 'Holzlabyrinth', title: 'Holzlabyrinth: Wart auf die Öffnung, dann hinein!', len: 20, h: 6, paper: 'dachboden', wood: 0x6a4422, star: [0, R19.c, Y + 0.3 + 0.25],
+  { name: 'Holzlabyrinth', title: 'Holzlabyrinth: Wart auf die Öffnung, dann hinein!', len: 20, h: 6, paper: 'dachboden', wood: 0x6a4422, star: [0, R19.c, Y + 0.25 + 0.25],
     floors: [{ u0: -1, u1: 20, style: 'holz' }], cam: { pitch: 58, dist: 17, c: R19.c },
     pictures: [{ wall: 'l', u: 3, motif: 'pflaume' }, { wall: 'r', u: 3, motif: 'kruemel' }], clocks: [{ wall: 'r', u: 17, y: 3.4, r: 0.42 }],
     props: [{ kind: 'truhe', x: -5.4, u: 1.8, yaw: 0.3 }] },
@@ -223,8 +223,8 @@ EN.push({ kind: 'lavabrocken', id: 'k3_brocken2', roomId: room(2), pos: P(2, 5, 
 
 // --- 4 Fackelstube (Fackeln im setup)
 // --- 5 Kreiselzimmer: Drehdiorama mit Schrank und Kommode, zwei gegenläufige Kreisgeist-Ringe
-SEG.push({ type: 'drehdiorama', id: 'k5_dreh', pos: P(4, 0, R5.c, Y), time: 1.0, disc: { radius: R5.disc, height: 0.3, color: 0x6a4a8a },
-  parts: [{ pos: [0, 0.3, 0], size: [1.6, 3.0, 1.2], color: 0x8a5a2e, top: 0xc89a6a }, { pos: [R5.kommode, 0.3, 0], size: [1.4, 1.1, 1.2], color: 0x6a3a8a, top: 0xc8a8e8 }] });
+SEG.push({ type: 'drehdiorama', id: 'k5_dreh', pos: P(4, 0, R5.c, Y + 0.25), time: 1.0, disc: { radius: R5.disc, height: 0.25, color: 0x6a4a8a },
+  parts: [{ pos: [0, 0, 0], size: [1.6, 3.0, 1.2], color: 0x8a5a2e, top: 0xc89a6a }, { pos: [R5.kommode, 0, 0], size: [1.4, 1.1, 1.2], color: 0x6a3a8a, top: 0xc8a8e8 }] });
 EN.push({ kind: 'kreisgeist_kreis', id: 'k5_ring1', roomId: room(4), pos: P(4, 0, R5.c, Y + 0.3), count: 3, radius: 3.1, speed: 2.0, cw: true });
 EN.push({ kind: 'kreisgeist_kreis', id: 'k5_ring2', roomId: room(4), pos: P(4, 0, R5.c, Y + 0.3), count: 4, radius: 4.7, speed: 2.2, cw: false, phase: 0.12 });
 
@@ -271,7 +271,7 @@ EN.push({ kind: 'kanone_turm', id: 'k13_kanone2', roomId: room(12), pos: P(12, -
 EN.push({ kind: 'kanone_turm', id: 'k13_kanone3', roomId: room(12), pos: P(12, 6.2, 14.0, Y), dir: [-1, 0], height: 7.0, interval: 2.4, first: 2.4, range: 30, max: 2, speed: 6.5 });
 
 // --- 14 Piep-Treppe
-SEG.push({ type: 'piep_treppe', id: 'k14_treppe', from: P(13, 0, R14.from + R14.run / 2, Y), dir: [0, -1], steps: R14.steps, rise: 1, run: R14.run, width: 3, colors: 'wechsel', every: 4, warn: 2 });
+SEG.push({ type: 'piep_treppe', id: 'k14_treppe', from: P(13, 0, R14.from + R14.run / 2, Y), dir: [0, -1], steps: R14.steps, rise: 1, run: R14.run, width: 3, colors: R14.colors, every: R14.every, warn: R14.warn });
 
 // --- 15 Großblock-Fall: Start- und Zielpodest, vier große Fallblöcke
 SEG.push(cliff(14, -7, 7, -1, 5, Y, 0xd8a83a), cliff(14, -7, 7, R15.ende, 30, Y, 0xd8a83a));
@@ -279,11 +279,11 @@ SEG.push({ type: 'fallblock_bruecke', id: 'k15_bloecke', blocks: R15.bloecke.map
 
 // --- 16 Ringwand: Drehdiorama mit vierseitiger Mauer (Lücke vorn), zwei Wuschel kreisen außen
 const H16 = R16.half, T16 = 0.5, M16 = 2.2;
-SEG.push({ type: 'drehdiorama', id: 'k16_ring', pos: P(15, 0, R16.c, Y), time: 1.0, disc: { radius: 4.6, height: 0.3, color: 0x3a8a4a },
+SEG.push({ type: 'drehdiorama', id: 'k16_ring', pos: P(15, 0, R16.c, Y + 0.25), time: 1.0, disc: { radius: 4.6, height: 0.25, color: 0x3a8a4a },
   parts: [
-    { pos: [-H16, 0.3, 0], size: [T16, M16, 2 * H16 + T16], color: 0xe8e0c8, top: 0xffd23d }, { pos: [H16, 0.3, 0], size: [T16, M16, 2 * H16 + T16], color: 0xe8e0c8, top: 0xffd23d },
-    { pos: [0, 0.3, -H16], size: [2 * H16 - T16, M16, T16], color: 0xe8e0c8, top: 0xffd23d },
-    { pos: [-(H16 + 0.9) / 2 - 0.2, 0.3, H16], size: [H16 - 1.1, M16, T16], color: 0xe8e0c8, top: 0xffd23d }, { pos: [(H16 + 0.9) / 2 + 0.2, 0.3, H16], size: [H16 - 1.1, M16, T16], color: 0xe8e0c8, top: 0xffd23d },
+    { pos: [-H16, 0, 0], size: [T16, M16, 2 * H16 + T16], color: 0xe8e0c8, top: 0xffd23d }, { pos: [H16, 0, 0], size: [T16, M16, 2 * H16 + T16], color: 0xe8e0c8, top: 0xffd23d },
+    { pos: [0, 0, -H16], size: [2 * H16 - T16, M16, T16], color: 0xe8e0c8, top: 0xffd23d },
+    { pos: [-(H16 + 0.9) / 2 - 0.2, 0, H16], size: [H16 - 1.1, M16, T16], color: 0xe8e0c8, top: 0xffd23d }, { pos: [(H16 + 0.9) / 2 + 0.2, 0, H16], size: [H16 - 1.1, M16, T16], color: 0xe8e0c8, top: 0xffd23d },
   ] });
 EN.push({ kind: 'wuschel', id: 'k16_wuschel', roomId: room(15), center: P(15, 0, R16.c, Y + 0.6), radius: 5.2, speed: 2.4, count: 2, spacing: 16.3 });
 
@@ -292,7 +292,7 @@ R17.boosts.forEach((u) => SEG.push({ type: 'boost', pos: P(16, 0, u, Y), dir: [0
 [[-3, 18], [3.5, 24]].forEach(([x, u], k) => IT.push({ kind: 'bunny', id: `k17_hase${k + 1}`, roomId: room(16), pos: P(16, x, u), area: { min: [-6.4, zu(16, 29.4)], max: [6.4, zu(16, 9)] }, speed: 5.4, alert: 6, reward: { coins: 3 } }));
 
 // --- 18 Sprungfeld-Wurf: Sprungfeld vor dem Kraftfeld, Turm mit Druckschalter dahinter
-SEG.push({ type: 'trampoline', pos: P(17, 0, R18.sprung), strength: 18, size: 1.8 });
+SEG.push({ type: 'trampoline', pos: P(17, 0, R18.sprung), strength: 17, size: 1.8 });
 SEG.push(isl(-1.22, 1.22, zu(17, R18.turm - 1.22), zu(17, R18.turm + 1.22), R18.top, R18.top - Y, { top: 'none', under: 0, color: 0xe8323a }));
 IT.push({ kind: 'wurfball', id: 'k18_ball', roomId: room(17), pos: P(17, R18.ball[0], R18.ball[1]), life: 1.5, respawn: 0.8 });
 IT.push({ kind: 'wurfball', id: 'k18_ball2', roomId: room(17), pos: P(17, R18.ball[0] - 0.9, R18.ball[1] - 0.3), life: 1.5, respawn: 0.8, color: 'gelb' });
@@ -300,18 +300,18 @@ IT.push({ kind: 'pswitch', id: 'k18_schalter', roomId: room(17), pos: P(17, 0, R
 
 // --- 19 Holzlabyrinth: Drehdiorama mit Irrgarten-Wänden (Eingang vorn), der Stern in der Mitte
 const LAB = [
-  // Außenmauer (Lücke vorn bei x 0)
-  [-4, 0, 0.4, 8.4], [4, 0, 0.4, 8.4], [0, -4, 8.4, 0.4], [-2.5, 4, 3.4, 0.4], [2.5, 4, 3.4, 0.4],
-  // innere Wände: Gang vorn nach links, hinten herum, von links in die Mitte
-  [1.0, 2.2, 0.4, 3.2], [-1.4, 1.6, 4.8, 0.4], [1.8, -1.4, 4.4, 0.4], [-2.2, -0.2, 0.4, 2.8],
+  // Außenmauer, Eingang vorn links (x −3,8 … −1,8)
+  [-4, 0, 0.4, 8.4], [4, 0, 0.4, 8.4], [0, -4, 8.4, 0.4], [1.2, 4, 6.0, 0.4],
+  // vorderer Gang nach rechts, mittlerer Gang (mit dem Stern) nach links, hinten eine Sackgasse
+  [-0.9, 1.6, 5.8, 0.4], [0.9, -1.2, 5.8, 0.4],
 ];
-SEG.push({ type: 'drehdiorama', id: 'k19_lab', pos: P(18, 0, R19.c, Y), time: 1.0, disc: { radius: 6.2, height: 0.3, color: 0x8a5a2e },
-  parts: LAB.map(([x, z, w, d]) => ({ pos: [x, 0.3, z], size: [w, 1.6, d], color: 0xb07a3e, top: 0xe8b070 })) });
+SEG.push({ type: 'drehdiorama', id: 'k19_lab', pos: P(18, 0, R19.c, Y + 0.25), time: 1.0, disc: { radius: 6.2, height: 0.25, color: 0x8a5a2e },
+  parts: LAB.map(([x, z, w, d]) => ({ pos: [x, 0, z], size: [w, 1.6, d], color: 0xb07a3e, top: 0xe8b070 })) });
 
 // --- 20 Schubser-Kessel: Insel im Lavabecken
 SEG.push({ type: 'lavaspiegel', id: 'k20_lava', mode: 'fest', pos: [0, Y - 3, zu(19, 11.75)], size: [W, 3 - 0.6, 13.5], low: R20.lava, color: 'rot' });
 SEG.push(floor(19, -7, 7, -1, R20.insel[2], Y, 4), floor(19, R20.insel[0], R20.insel[1], R20.insel[2], R20.insel[3], Y, 4, 0x6a5a5a));
-[[-2.4, 11], [2.6, 12.6]].forEach(([x, u], k) => EN.push({ kind: 'schubser', id: `k20_schubser${k + 1}`, roomId: room(19), pos: P(19, x, u), behavior: 'chase', sight: 5, warn: 0.7, wake: 40 }));
+[[-3.4, 9.5, 1], [3.4, 12.5, -1]].forEach(([x, u, d], k) => EN.push({ kind: 'schubser', id: `k20_schubser${k + 1}`, roomId: room(19), pos: P(19, x, u), dir: [d, 0], behavior: 'guard', sight: 3.2, warn: 0.9, wake: 40 }));
 
 // --- 21 Riesen-?-Türme: Turm 1 am Boden, Turm 2 und 3 auf Simsen
 SEG.push(floor(20, R21.s1[0], R21.s1[1], R21.s1[2], R21.s1[3], R21.s1[4], R21.s1[4] - Y, 0x8a6a2a), floor(20, R21.s2[0], R21.s2[1], R21.s2[2], R21.s2[3], R21.s2[4], R21.s2[4] - Y, 0x9a7a3a));

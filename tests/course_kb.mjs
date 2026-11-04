@@ -389,8 +389,10 @@ function installHaus() {
       st({ ...B.stick(t.x - p.pos.x, t.z - p.pos.z, 1), run: o.run ?? false });
     }
     S.jumps++;
+    let bounced = false;
     for (let k = 0; k < 220 && live(i); k++) {
-      const t = target(); if (!t) break;
+      if (o.safe && k > 8 && p.vel.y > 6) bounced = true;
+      const t = bounced ? { x: o.safe[0], z: o.safe[1] } : target(); if (!t) break;
       const inp = p.mode === 'air' ? B.airSteer(t.x + (t.vx ?? 0) * 0.15, t.z + (t.vz ?? 0) * 0.15, t.vx ?? 0, t.vz ?? 0, o.k ?? 4, o.vmax ?? 8) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1);
       st({ ...inp, jump: k < (o.hold ?? 14), crouch: !!(o.pound && p.mode === 'air' && k > 6 && p.vel.y < 1.5 && Math.hypot(t.x - p.pos.x, t.z - p.pos.z) < 0.6) });
       if (k > 6 && p.mode !== 'air') break;
@@ -580,16 +582,22 @@ function installHaus() {
     }
     toStar(i);
   };
-  // 14 Piep-Treppe: Stufe für Stufe, wenn die nächste fest ist
+  // 14 Piep-Treppe: Stufe für Stufe; ist die nächste Stufe die andere Farbe, kurz vor dem Wechsel abspringen
   R[13] = (i) => {
-    const tr = L.named.get('k14_treppe');
-    const solid = (k) => { const g = tr.info?.()?.[k]; return !!g && g.on && g.solid > 0; };
+    const sys = L.piep, clock = sys.clock;
+    const grp = (k) => [...sys.groups.values()].find((g) => g.color === H.R14.colors[k]);
+    const toSwitch = (g) => ((g.every - g.k) * 60) / clock.bpm;                 // s bis zum nächsten Wechsel
     const uOf = (k) => H.R14.from + H.R14.run * (k + 0.5);
-    walkTo(i, 0, H.R14.from - 0.9, { within: 0.25 });
+    walkTo(i, 0, H.R14.from - 0.8, { within: 0.25 });
     for (let k = 0; k < H.R14.steps && live(i); k++) {
-      for (let q = 0; q < 600 && live(i) && !solid(k); q++) st({ ...B.stick(0, zu(i, uOf(k - 1) ?? 0) - P().pos.z, 0) });
+      const g = grp(k), gPrev = k > 0 ? grp(k - 1) : null;
+      for (let q = 0; q < 900 && live(i); q++) {
+        if (g.on && toSwitch(g) > 0.75) break;                                  // Stufe fest und bleibt es lange genug
+        if (!g.on && (!gPrev || gPrev !== g) && toSwitch(gPrev ?? g) < 0.3) break;   // gleich wechselt es: jetzt abspringen
+        st({});
+      }
       jumpOnto(i, () => ({ x: 0, z: zu(i, uOf(k)) }), { reach: 2.4, hold: 22 });
-      log.push(['stufe', k, here(i)]);
+      log.push(['stufe', k, here(i), g.on]);
     }
     toStar(i);
   };
@@ -620,14 +628,19 @@ function installHaus() {
   };
   // 18 Sprungfeld-Wurf: Ball holen, aufs Sprungfeld, im Scheitel auf den Schalter werfen, dann den Stern holen
   R[17] = (i) => {
-    grab(i, 'k18_ball');
+    log.push(['griff', grab(i, 'k18_ball'), P().holding?.spec?.id]);
     walkTo(i, 0, H.R18.sprung - 2.0, { within: 0.3 });
     const tz = zu(i, H.R18.sprung);
     let bounced = false, thrown = false;
     for (let n = 0; n < 900 && live(i); n++) {
       const p = P();
       if (!bounced && p.jumpKind === 'bounce') bounced = true;
-      if (bounced && !thrown && p.vel.y < 0.6) { st({ ...B.stick(0, -1, 0.15), action: true }); st({}); S.throws++; thrown = true; continue; }
+      if (bounced && !thrown && p.vel.y < 0 && p.pos.y <= H.R18.top + 0.45) {
+        const ball = p.holding;
+        log.push(['scheitel', here(i)]); st({ ...B.stick(0, -1, 0.15), action: true }); st({}); S.throws++; thrown = true;
+        if (window.__trace && ball) for (let k = 0; k < 72; k++) { st({}); if (k % 6 === 0) log.push(['ball', +ball.pos.x.toFixed(2), +ball.pos.y.toFixed(2), +(H.Z0[i] - ball.pos.z).toFixed(2)]); }
+        continue;
+      }
       if (bounced && !thrown) { st({ ...B.stick(0, -1, 0.15), jump: true }); continue; }
       const s = p.mode === 'air' ? B.airSteer(0, tz, 0, 0, 3, 5) : B.stick(-p.pos.x, tz - p.pos.z, 1);
       st({ ...s, jump: p.mode === 'ground' ? n % 30 < 12 : true });
@@ -636,32 +649,50 @@ function installHaus() {
     log.push(['wurf', bounced, thrown, ent('k18_schalter')?.state]);
     for (let k = 0; k < 900 && live(i); k++) { const p = P(); st({ ...(p.mode === 'air' ? B.airSteer(0, tz, 0, 0, 3, 5) : B.stick(-p.pos.x, tz - p.pos.z, 1)), jump: p.mode === 'ground' ? k % 30 < 12 : true }); }
   };
-  // 19 Holzlabyrinth: Eingang abpassen, dann dem Gang folgen (Punkte drehen mit dem Labyrinth)
+  // 19 Holzlabyrinth: außen um das Labyrinth herum zum Eingang (er dreht sich mit), dann dem Gang folgen
   R[18] = (i) => {
     const d = L.named.get('k19_lab'), cz = zu(i, H.R19.c);
-    walkTo(i, -3, 3.4, { within: 0.3 });
-    for (let k = 0; k < 900 && live(i); k++) { const a = ((d.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); if (!d.turning && Math.min(a, 2 * Math.PI - a) < 0.05) break; st({}); }
-    for (const [lx, lz] of [[-3, 4.6], [-3, 2.8], [3, 2.8], [3, 0.2], [0, 0.2]]) {
-      for (let n = 0; n < 300 && live(i); n++) {
+    const ang = (x, z) => Math.atan2(-(z - cz), x);
+    const goLocal = (lx, lz, within = 0.35, max = 300) => {
+      for (let n = 0; n < max && live(i); n++) {
         const t = rot(d, 0, cz, lx, lz), p = P(), dx = t.x - p.pos.x, dz = t.z - p.pos.z;
-        if (Math.hypot(dx, dz) < 0.35) break;
+        if (Math.hypot(dx, dz) < within) return true;
         st({ ...B.stick(dx, dz, 1) });
       }
+      return false;
+    };
+    walkTo(i, 0, H.R19.c - 5.4, { within: 0.4 });
+    // auf dem Kreis r 5,4 außen herum, bis der Eingang erreicht ist
+    for (let n = 0; n < 900 && live(i); n++) {
+      const e = rot(d, 0, cz, -2.8, 5.4), p = P();
+      const ae = ang(e.x, e.z), ap = ang(p.pos.x, p.pos.z);
+      const da = wrap(ae - ap);
+      if (Math.hypot(e.x - p.pos.x, e.z - p.pos.z) < 0.6) break;
+      const a2 = ap + Math.sign(da) * Math.min(Math.abs(da), 0.45);
+      const tx = Math.cos(a2) * 5.4, tz = cz - Math.sin(a2) * 5.4;
+      st({ ...B.stick(tx - p.pos.x, tz - p.pos.z, 1) });
     }
+    log.push(['eingang', here(i), +(d.angle ?? 0).toFixed(2)]);
+    for (const [lx, lz] of [[-2.8, 4.4], [-2.8, 2.8], [2.9, 2.8], [2.9, 0.2], [0, 0.2]]) { const ok = goLocal(lx, lz); log.push(['gang', lx, lz, ok, here(i), +(d.angle ?? 0).toFixed(2)]); }
     for (let k = 0; k < 30 && live(i); k++) st({});
   };
-  // 20 Schubser-Kessel: von innen anrennen, damit sie über den Rand rutschen
+  // 20 Schubser-Kessel: von der Inselmitte her anspringen, damit sie über den nächsten Rand rutschen
   R[19] = (i) => {
+    const I = { x0: -5, x1: 5, u0: 5.5, u1: 15 };
     for (const id of ['k20_schubser1', 'k20_schubser2']) {
       const e = ent(id);
-      for (let tries = 0; tries < 5 && alive(e) && live(i); tries++) {
-        // auf die Inselseite gegenüber dem nächsten Rand stellen, dann anspringen
+      for (let tries = 0; tries < 4 && alive(e) && live(i); tries++) {
         const ex = e.pos.x, eu = H.Z0[i] - e.pos.z;
-        const dir = Math.abs(ex) > 1.2 ? Math.sign(ex) : 0;
-        const [px, pu] = dir ? [ex - dir * 2.2, eu] : [ex, eu - 2.2];
-        walkTo(i, Math.max(-4.4, Math.min(4.4, px)), Math.max(6, Math.min(14.4, pu)), { within: 0.5, run: true, max: 200 });
-        jumpOnto(i, () => (alive(e) ? { x: e.pos.x, z: e.pos.z } : null), { reach: 2.2, hold: 10, run: true });
-        for (let k = 0; k < 60 && live(i); k++) st({});
+        // nächster Rand
+        const cand = [[-1, 0, ex - I.x0], [1, 0, I.x1 - ex], [0, -1, eu - I.u0], [0, 1, I.u1 - eu]].sort((a, b) => a[2] - b[2])[0];
+        const [dx, du] = cand;
+        const px = Math.max(-4.3, Math.min(4.3, ex - dx * 3.6)), pu = Math.max(6.2, Math.min(14.3, eu - du * 3.6));
+        walkTo(i, px, pu, { within: 0.5, run: true, max: 220 });
+        for (let k = 0; k < 160 && live(i) && ['warn', 'charge', 'skid', 'pushed', 'recover'].includes(e.state); k++) st({ ...B.stick(0 - P().pos.x, zu(i, 10.2) - P().pos.z, 0.5) });
+        log.push(['anlauf', id, [+ex.toFixed(2), +eu.toFixed(2)], cand.slice(0, 2), here(i), e.state]);
+        // mit vollem Tempo anrennen: er rutscht mit dem 1,1-fachen Tempo über den Rand
+        for (let k = 0; k < 90 && live(i) && alive(e) && !['pushed', 'fall'].includes(e.state); k++) { const p = P(); st({ ...B.stick(e.pos.x + dx * 1.2 - p.pos.x, e.pos.z - du * 1.2 - p.pos.z, 1), run: true }); }
+        for (let k = 0; k < 90 && live(i) && alive(e); k++) st({ ...B.stick(0 - P().pos.x, zu(i, 10.2) - P().pos.z, 0.7) });
       }
       log.push(['schubser', id, alive(e), here(i)]);
     }
