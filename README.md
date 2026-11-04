@@ -302,6 +302,16 @@ schwerer als im Pilz-Remix, dazu zum Schluss ein Boss-Marathon; kein Stempel:
 | B-11 | Stachelstege im Suchlicht | 8-1 | Suchscheinwerfer lassen Stachelfallen ausfahren, schnelle Stachelplattformen |
 | B-12 | Fünf Schlüssel im Sternenzelt | – | Boss-Marathon: sechs Warp-Boxen zu den großen Bossen, fünf Schlüssel öffnen die Würfelblase |
 
+**Welt Krone** – letzte Bonuswelt (Röhre „WK“ nach B-12 und 330 Sternen). Krümels Glutturm und das Marathon-Haus
+sind gleich frei; die Siegerstraße oben auf dem Siegerplatz öffnet sich erst mit der vollständigen Sammlung (alle
+Sterne und Stempel aller anderen Welten):
+
+| Id | Titel | Art |
+| --- | --- | --- |
+| K-Kapitän | Krümels Glutturm-Finale | Krümel-Diorama: steigende Glut, Glutfloß, Propellerplattformen, Lochwolke; 5 Sterne |
+| K-Haus | Haus Marathon | Haus: 30 Räume à 10 s aus allen Welten, je Raum ein Stern; Werkzeug-Kapseln am Raumstart |
+| K-1 | Siegerstraße über dem Wolkenmeer | Rund 1 km ohne Rücksetzpunkt und ohne Kraftkapseln, 4 Warp-Boxen, goldener Zielmast |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 

@@ -68,7 +68,7 @@ export const MAP = {
   levels: [
     { id: 'WB', world: 11, next: 11, label: 'Welt Blume', stars: 0 },
     { id: 'K-Kapitän', stars: 5, stamp: true },
-    { id: 'K-Haus', stars: 30 },
+    { id: 'K-Haus', stars: 30, stamp: true },
     { id: 'K-1', collection: true, stars: 3, stamp: true },
   ],
 
