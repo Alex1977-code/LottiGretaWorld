@@ -37,6 +37,15 @@ const MALEN = [
   [-11.32, -259.94, 'l'], [-11.32, -264.84, 'l'], [-1.41, -262.39, 'i'],
 ];
 const BLOCK_IDS = ['flug1', 'flug2', 'flug3', 'flug4'];
+const NEU_LAVA = MALEN.filter((m) => m[2] === 'l');
+/** Münzreihe der Basis (kind 'coins', from–to, n) in Einzelmünzen; über neuen Lava-Waben schweben sie in Sprunghöhe. */
+const muenzenUeberLava = (e) => Array.from({ length: e.n }, (_, i) => {
+  const t = e.n === 1 ? 0.5 : i / (e.n - 1);
+  const x = e.from[0] + (e.to[0] - e.from[0]) * t, z = e.from[2] + (e.to[2] - e.from[2]) * t;
+  const heiss = NEU_LAVA.some(([lx, lz]) => Math.hypot(lx - x, lz - z) < 1.5);
+  return { kind: 'coin', pos: [+x.toFixed(2), heiss ? 2.6 : e.from[1], +z.toFixed(2)] };
+});
+const linie = (x0, z0, x1, z1) => ({ kind: 'coins', where: (e) => Array.isArray(e.from) && Math.abs(e.from[0] - x0) < 0.1 && Math.abs(e.from[2] - z0) < 0.1 && Math.abs(e.to[0] - x1) < 0.1 && Math.abs(e.to[2] - z1) < 0.1 });
 
 /** Wolkenberge tief unter den Waben (Taghimmel), seitlich und darunter. */
 const WOLKEN = [
@@ -56,6 +65,8 @@ export const LEVEL = remixOf('S-6', {
     { in: 'deco', kind: ['planet', 'rakete', 'komet', 'sterne'] },          // Weltraum-Kulisse (am Tag: Wolken)
     { kind: 'coins', box: [-11.5, 0, -25, -7, 2, -21.5] },                 // Münzspur hinaus zum Stempel der Basis
   ],
+  // Münzreihen der Splitterwege: über den neuen Lava-Hürden schweben die Münzen in Sprunghöhe
+  replace: [linie(-8.5, -175, -8.5, -192), linie(0, -175, 0, -192), linie(0, -199, 0, -219)].map((m) => ({ match: m, with: muenzenUeberLava })),
   change: [
     { match: { type: 'waben' }, fn: (seg) => wabenUmmalen(seg, wabenListe(MALEN)) },
     { match: { type: 'stachelwalze_rot' }, fn: (e) => ({ ...e, speed: e.speed * 1.5 }) },
