@@ -113,10 +113,8 @@ export const LEVEL = remixOf('5-1', {
   setup(level) {
     uhrenZurueck(level, 'uhren');
     reiterPlattformDurchlaessig(level, TUERME);
-    // Budget (offener Strand mit vier Türmen): die Türme werfen keinen Sonnenschatten (Schattenfleck bleibt), die Werfer nur
-    // mit ihrem größten Teil
-    schattenDiaet(level, ['pilzlingsturm'], 0);
-    schattenDiaet(level, ['feuer_werfer'], 1);
+    // Budget (offener Strand mit vier Feuertürmen): Türme und Werfer werfen keinen Sonnenschatten (der Schattenfleck bleibt)
+    schattenDiaet(level, ['pilzlingsturm', 'feuer_werfer'], 0);
     schlafturm(level, 'schlafturm', { regrow: 2.4, min: 1 });
     // Krümel feiert in seiner Wandhöhle den Sonnenuntergang (keine Käfer mehr)
     const k = level.named.get('kruemel');
