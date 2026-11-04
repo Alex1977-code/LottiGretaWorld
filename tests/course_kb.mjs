@@ -288,6 +288,14 @@ async function kapitaenProben() {
     B.place([-6.5, 16, -9.5]);
     B.until(() => p.pos.y < 14 || p.dead, 400);
     out.donut = { y: B.pos()[1], fallen: L.named.get('donuts').blocks.filter((b) => b.state !== 'idle').length };
+    // 6b) Geheimnis: unten auf der Felsklippe wartet ein Extraleben
+    B.until(() => (p.mode === 'ground' && p.pos.y < 9.5) || p.dead, 600);
+    B.wait(90);
+    const l0 = L.runtime.save.lives;
+    out.klippe = { y: B.pos()[1] };
+    B.walk(-12.6, -4.2, { within: 0.3, max: 900 });
+    B.wait(20);
+    out.klippe.leben = L.runtime.save.lives - l0;
     // 7) Stern 3 schwebt hoch über der ruhenden Propellerplattform
     const s3 = L.entities.find((e) => e.kind === 'star' && e.index === 2);
     out.stern3 = s3 ? +(s3.pos.y - 12).toFixed(2) : null;
@@ -303,6 +311,7 @@ async function kapitaenProben() {
   check(`${id}: Krümel springt nicht (Höhe ${g.sprung} m)`, g.sprung < 0.05);
   check(`${id}: Donut-Blöcke fallen, wenn man stehen bleibt (y ${g.donut.y}, ${g.donut.fallen} gefallen)`, g.donut.y < 14 && g.donut.fallen > 0);
   check(`${id}: Stern 3 schwebt ${g.stern3} m über der ruhenden oberen Propellerplattform (nur durch Anheben)`, g.stern3 > 4);
+  check(`${id}: Geheimnis – wer von der Donut-Brücke fällt, landet auf der Felsklippe (y ${g.klippe.y}) und findet ein Extraleben (+${g.klippe.leben})`, Math.abs(g.klippe.y - 9) < 0.1 && g.klippe.leben === 1);
 }
 
 /** Bilder: Überblick (zwei Zoomstufen, Lava unten/oben), Krümel an den Stern-Stellen (Orbit-Kamera wie im Spiel). */
@@ -997,7 +1006,12 @@ async function hausExtra() {
   g.boss = await run(28, `const b = L.entities.find((e) => e.kind === 'wirbelbrocken' && !e.removed); B.until(() => b.state === 'run', 900); p.invuln = 5;
     for (let k = 0; k < 120 && b.state === 'run'; k++) { const t = { x: b.pos.x, z: b.pos.z }; B.tick({ ...(p.mode === 'air' ? B.airSteer(t.x, t.z, 0, 0, 5, 9) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1)), jump: k % 40 < 12, run: true }); }
     return { hp: b.hp, state: b.state };`);
+  // Raum 30: unsichtbarer Block mit Extraleben über dem Läufer
+  g.leben = await run(29, `const l0 = L.runtime.save.lives; B.walk(0, zu(11), { within: 0.15 }); B.hop(30); B.wait(60);
+    for (let k = 0; k < 900; k++) { const o = L.entities.find((e) => e.kind === 'powerup' && !e.removed); if (!o) break; B.tick({ ...B.stick(o.pos.x - p.pos.x, o.pos.z - p.pos.z, 1) }); }
+    B.wait(10); return { leben: L.runtime.save.lives - l0 };`);
   for (const [k, v] of Object.entries(g)) console.log(`       ${k}: ${JSON.stringify(v)}`);
+  check(`${id}: Raum 30 – unsichtbarer Block über dem Läufer gibt ein Extraleben (+${g.leben.leben})`, g.leben.leben === 1);
   check(`${id}: Raum 3 – zwei von drei Druckfeldern reichen nicht (Stern versteckt)`, g.felder.hidden && !g.felder.got);
   check(`${id}: Raum 4 – ohne Funkenblüte bleiben die Fackeln aus (${g.fackel.lit} an)`, g.fackel.lit === 0);
   check(`${id}: Raum 6 – ohne Krallen-Anzug bleibt die Sternkiste heil, der Stern versteckt`, g.kiste.kiste && g.kiste.hidden);

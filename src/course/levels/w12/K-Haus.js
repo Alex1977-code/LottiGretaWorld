@@ -112,7 +112,7 @@ const RAEUME = [
     pictures: [{ wall: 'l', u: 3, y: 5, motif: 'trampolin' }, { wall: 'r', u: 3, y: 5, motif: 'see' }], clocks: [{ wall: 'l', u: 17, y: 3.6, r: 0.45 }],
     props: [{ kind: 'ball', x: 5.6, u: 20, color: 0xff6a8a }, { kind: 'ball', x: -5.6, u: 20.6, r: 0.25, color: 0x5ab8ff }] },
   { name: 'Hackbeil-Hof', title: 'Hackbeil-Hof: Der rechte Klotz federt dich hoch!', len: 18, h: 10, paper: 'zirkus', wood: 0xa8283a, star: R9.star,
-    floors: [{ u0: -1, u1: 18, style: 'parkett' }], cam: { pitch: 46, dist: 17, c: 9.5 },
+    floors: [{ u0: -1, u1: 18, style: 'parkett' }], cam: { pitch: 38, dist: 17.5, c: 10.5 },
     pictures: [{ wall: 'l', u: 4, motif: 'baron' }, { wall: 'r', u: 4, motif: 'trampolin' }], clocks: [{ wall: 'l', u: 13, y: 4, r: 0.45 }],
     props: [{ kind: 'trommel', x: -6, u: 1.6 }, { kind: 'stange', x: 6.3, u: 0.8, h: 3 }] },
   { name: 'Stampfsteinfahrt', title: 'Stampfsteinfahrt: Mit dem Stein hinauf – dann über unsichtbare Stege!', len: 24, h: 12, pit: true, paper: 'maschine', wood: 0x3a4a5a, star: [0, 22.5, R10.hoch + 0.25],
@@ -362,8 +362,9 @@ SEG.push(cliff(27, -1.6, 1.6, R28.mitte[0], R28.mitte[1], Y, 0xd86aa8));
 // --- 29 Wirbelbrocken: ein Treffer genügt
 EN.push({ kind: 'wirbelbrocken', id: 'k29_wirbel', roomId: room(28), pos: P(28, 0, 11.5), arena: { center: P(28, 0, 10), r: 6 }, hp: 1, wakeR: 14 });
 
-// --- 30 Siegerflur: Münzweg, Stempel, Stern
+// --- 30 Siegerflur: Münzweg, Stempel, Stern; Geheimnis: unsichtbarer Block mit Extraleben über dem Läufer, Münzblock daneben
 IT.push(line(P(29, 0, 4, Y + 0.6), P(29, 0, 25, Y + 0.6), 15));
+BL.push({ kind: 'hidden', pos: P(29, 0, 11, Y + 2.6), content: 'oneup' }, { kind: 'coinblock', pos: P(29, -2.2, 15, Y + 2.6), count: 6 });
 
 // ====================================================================== Level-Haken
 function setup(level) {
@@ -403,6 +404,13 @@ function setup(level) {
   deco.push(cyl(0.8, 0.9, R26.sockel - Y, 0, Y, zu(25, R26.c), 0xffc83a, 18), cyl(0.85, 0.85, 0.1, 0, R26.sockel - 0.1, zu(25, R26.c), 0xd8283a, 18));
   // 30 Siegerflur: Goldsäulen und Krone über dem Ausgang
   for (const u of [8, 14, 20, 26]) for (const sx of [-1, 1]) deco.push(cyl(0.22, 0.26, 4.2, sx * 3.2, Y, zu(29, u), 0xffd860, 12), sph(0.32, sx * 3.2, Y + 4.4, zu(29, u), 0xffc83a));
+  // 9 Hackbeil-Hof: Leuchtpfeil über dem Federklotz zeigt zum hohen Stern
+  for (let k = 0; k < 3; k++) deco.push(blk(0.18, 0.7, 0.18, R9.feder[0], Y + 1.6 + k * 1.3, zu(8, R9.feder[1]), 0xffd23d), cyl(0.0, 0.32, 0.4, R9.feder[0], Y + 2.3 + k * 1.3, zu(8, R9.feder[1]), 0xffd23d, 8));
+  // Wimpelketten und Girlanden quer durch viele Räume (bunt, je Raum eigene Farben)
+  const WIMPEL = [[0, 8, 4.4], [2, 9, 4.4], [3, 9, 5.4], [5, 9, 4.4], [6, 8, 4.4], [8, 6, 9.4], [11, 4, 8.4], [12, 4, 11.4], [14, 3, 7.4], [16, 10, 5.4], [16, 22, 5.4],
+    [19, 4, 5.4], [23, 4, 6.4], [24, 13, 5.4], [25, 3, 5.4], [28, 6, 6.4], [28, 15, 6.4], [29, 6, 6.4], [29, 14, 6.4], [29, 22, 6.4]];
+  const FARBEN = [[0xff5a5a, 0xffd23d, 0x4aa8ff], [0xd8283a, 0xffffff, 0xffc21a], [0x5ac85a, 0xffd23d, 0xff6a8a], [0xc87aff, 0x7ad8ff, 0xffffff], [0xffc83a, 0xd8283a, 0xffc83a]];
+  wimpel(level, WIMPEL.map(([i, u, y], k) => ({ z: zu(i, u), y: Y + y, sag: 0.7, colors: FARBEN[i === 29 ? 4 : k % 4] })));
   bakeParts(level, deco, { castShadow: false });
 
   // Sterne nach Bedingung

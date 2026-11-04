@@ -198,6 +198,9 @@ export const LEVEL = {
     line([7.8, WOLKE + 0.5, -6], [7.8, WOLKE + 0.5, -10.6], 3),
     // Turmstube: Bitcoin-Häufchen
     ring([10.5, STUBE + 0.5, -6.4], 0.8, 4),
+    // Geheimnis: wer von der Donut-Brücke fällt, landet auf der Felsklippe – dort wartet ein Extraleben (und Bitcoins)
+    { kind: 'powerup', power: 'oneup', pos: [-12.6, KL, -4.2], speed: 0 },
+    line([-8.6, KL + 0.5, -6.2], [-11.2, KL + 0.5, -4.2], 3),
   ],
   stars: [
     [-3.4, BAL + 0.05, 1.7],          // 1: Glutbalkon – nur mit dem Glutfloß (warten, bis die Lava steigt)
