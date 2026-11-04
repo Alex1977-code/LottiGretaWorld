@@ -12,9 +12,13 @@
 // (tests/out/ka_*.png).
 // Aufruf (nach npm run build): PORT_BASE=0 node tests/course_ka.mjs
 //   PARTS=load,route,sweep,targets,extra,shots (Standard alle; je Lauf ≤ 10 min) · HEROES=lotti,greta · ONLY=<Text>
-//   (nur Ziele/Extras mit diesem Namensteil) · LEGS=a-b (nur Beine a bis b der Route, Start an der Stelle des Beins a) ·
-//   VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> (nur diese Bilder) · DETAIL=1 (Zeichenaufrufe je Objekt bei den
-//   Bildern) · TRACE=1 (Spur der Figur)
+//   (nur Ziele/Extras mit diesem Namensteil) · SEC=s1…s6 (nur dieser Abschnitt der Route, Start an seinem from; s3+ = ab s3
+//   bis zum Ziel) · VULN=1 (Route verwundbar – zeigt, wo der Bot ohne Ausweichen getroffen wird) · SWEEP_STEP=12 (m zwischen den
+//   Messpunkten) · VERBOSE=1 (Protokoll der Beine) · SHOTS=<Name|Name> (nur diese Bilder) · DETAIL=1 (Zeichenaufrufe je Objekt
+//   bei den Bildern) · TRACE=1 (Spur der Figur)
+// Laufzeiten (gemessen): load,route,sweep ≈ 2 min · targets,extra ≈ 1,2 min · shots ≈ 4 min (zusammen ≈ 7 min).
+// Die Taktuhr der Piep-Blöcke läuft im Test auf der Simulationszeit (level.beepClock.mode 'level'); dass sie im Spiel der Musik
+// folgt, prüft der Teil load mit manueller Musik-Uhr.
 //
 // Der Bot lenkt je Schritt zum nächsten Wegpunkt (Stick relativ zur Kamera-Gier wie im Spiel). Die Figur ist auf der Route
 // unverwundbar (Abpraller zählen weiter), damit Geometrie und Mechanik geprüft werden; Trefferversuche werden gezählt.
@@ -1125,7 +1129,7 @@ for (const id of LEVELS) {
       from = legs[i0].from; legs = legs.slice(i0, i1);
     }
     await W('place', from, { hero, settle: 2 });
-    const res = await W('drive', legs, {});
+    const res = await W('drive', legs, process.env.VULN ? { invuln: false } : {});
     const reached = res.status === 'goal' || res.status === 'done';
     console.log(`  ${hero}: ${res.time.toFixed(1)} s Spielzeit, Status ${res.status}, Ende bei ${res.pos.map((v) => v.toFixed(1)).join(', ')}, Nachsprünge ${res.autoJumps}, Treffer-Versuche ${res.mech.hurts} ${res.mech.hurtList.slice(0, 8).join(' ')}, Mechanik ${JSON.stringify({ ...res.mech, hurtList: undefined })}`);
     if (!reached || process.env.VERBOSE) for (const l of res.log) console.log('     ', JSON.stringify(l));

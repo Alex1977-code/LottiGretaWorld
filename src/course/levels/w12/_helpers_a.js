@@ -10,10 +10,11 @@
 //                     ferne schwebende Goldkronen (Kulisse, unbeleuchtet)
 //   3) Zier           goldkanten (Goldleisten um Marmorinseln), geruest (goldenes Aufzugsgerüst), fahnen (Fahnenmasten mit
 //                     wehenden Wimpeln – ein Objekt), ballons (schwebende Ballontrauben – ein Objekt), zauberkreis (leuchtender
-//                     Kreis der Zauberarena), sockel, sternchen (funkelnde Sterne, Glüh-Material)
+//                     Kreis der Zauberarena), sockel, randsteine (Rennbahn-Ränder), turmZier (Fenster, Banner, Ameisenlöcher),
+//                     kronenTor (Marmorpfeiler, Goldbogen mit Glühbirnen, Krone)
 //   4) Mechanik       piepTakt (Warn-Pieps der Piep-Blöcke, wenn ihre Uhr der Levelmusik folgt), goldenerZielmast (der Zielmast
 //                     bekommt ein goldenes Kleid mit Krone und Kronenfahne), siegesfeier (Konfetti und Feuerwerk, sobald der Mast
-//                     gegriffen ist; Krümel und seine Freunde jubeln)
+//                     gegriffen ist; Krümel und seine Freunde jubeln), fernAus (ferne bewegte Bausteine nicht zeichnen)
 // Statische Teile gehen über addStatic in die Abschnitts-Meshes (keine zusätzlichen Zeichenaufrufe); belebte Kleinigkeiten sind je
 // ein Mesh ohne Sonnenschatten.
 
@@ -236,18 +237,6 @@ export function goldkanten(level) {
     for (const x of [x0 - 0.08, x1 + 0.08]) g.sphere(0.13, x, y + 0.09, z0 + 0.08, 0xff4a5a, { ws: 8, hs: 6 });
   }
   b.flush(level, { castShadow: false });
-  g.flush(level, { material: 'glow', castShadow: false });
-}
-
-/** Funkelnde Sternchen (Glüh-Material, statisch): list [[x, y, z, size, farbe?] …]. */
-export function sternchen(level, list) {
-  if (!level.view) return;
-  const g = new Bld();
-  for (const [x, y, z, s = 0.4, c = 0xfff0a0] of list) {
-    const sh = new THREE.Shape();
-    for (let i = 0; i < 10; i++) { const a = PI / 2 + (i / 10) * TAU, r = i % 2 ? s * 0.45 : s; const px = Math.cos(a) * r, py = Math.sin(a) * r; if (i) sh.lineTo(px, py); else sh.moveTo(px, py); }
-    g.add(new THREE.ExtrudeGeometry(sh, { depth: s * 0.25, bevelEnabled: false }), c, { p: [x, y, z] });
-  }
   g.flush(level, { material: 'glow', castShadow: false });
 }
 

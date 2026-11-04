@@ -1,5 +1,5 @@
 // K-1 „Siegerstraße über dem Wolkenmeer“ – Welt Krone „Kronen-Gipfel“ (Bonuswelt 12, die Abschlussprüfung; Bauplan: Detail K-1,
-// eigene Gestaltung). Der längste und schwerste Kurs des Spiels: ≈ 950 m nach −Z hoch über einem goldenen Wolkenmeer, 500 s,
+// eigene Gestaltung). Der längste und schwerste Kurs des Spiels: ≈ 1 km nach −Z hoch über einem Wolkenmeer, 500 s,
 // **kein Kontrollpunkt, keine Power-ups, vier Warp-Boxen** – fast alle Gimmicks des Spiels hintereinander, mit Erholungsinseln
 // (Marmor mit Goldkanten) und Bitcoin-Pfaden als Wegweiser. Thema skyway mit lokaler Variante „Kronen-Gipfel“ (LEVEL.prebuild),
 // Musik course_champion; die Piep-Blöcke folgen dem Takt dieser Musik (150 BPM, Wechsel jeden Takt = doppeltes Tempo).
@@ -13,11 +13,11 @@
 //     Warp-Box 1.
 //   3 Piep-Block-Strecke und Zauberarena (z −217 … −375, y 14 → 18.5 → 16 → 14): rote und blaue Piep-Blöcke wechseln in
 //     **jedem Takt** (doppeltes Tempo), Treppe, Zickzack-Feld, Trittsteine; Glasröhren-Kanone in die Zauberarena (25 × 25 m:
-//     Marmorring um ein Feld nachwachsender Bröckelblöcke, vier Feuerstäbe, drei Zauberkröten; alle besiegt → Warp-Box 2).
+//     Marmorring um ein Kreuz aus nachwachsenden Bröckelbrücken, vier Feuerstäbe, drei Zauberkröten; alle besiegt → Warp-Box 2).
 //   4 Graue Plattformen (z −385 … −545, y 9 → 10.5): Pendelstacheln, rotierende Stachelwalzen, Wuschel-Schwärme; die
 //     Topf-Schnappblume vom Start frisst Wuschel. Stern 2 und Warp-Box 3 am Ende.
 //   5 Wandsprung-Turm und Wasserwürfel (z −556 … −720, y 4 → 35 → 36): Federplattform, Wandsprung-Schacht, Hörner-Ameisen als
-//     Stufen an der Turmwand, Rankenschnapper-Kette; drei schwebende Wasserwürfel mit blauen (Takt) und roten (ohne Pause)
+//     Stufen an der Turmwand (zwei Ströme, nur aufwärts), Rankenschnapper-Kette; drei schwebende Wasserwürfel mit blauen (Takt) und roten (ohne Pause)
 //     Stachelblöcken; Glasröhre hinab zum Finale.
 //   6 Boost-Finale (z −737 … −946, y 12 → 16): goldene Bahn mit Boost-Pfeilen und Lücken, Feuerring-Schockwellen zum
 //     Überspringen, fünf Schlüsselmünzen öffnen Warp-Box 4 auf dem Platz (20 × 22 m) → Siegerplatz mit Goldtreppe und dem
@@ -25,11 +25,12 @@
 //
 // Sterne: 0 hinter der Piep-Block-Strecke (hinter der Kanonen-Insel über drei Piep-Blöcke zum Sternsockel) · 1 Sternplatz am
 //         Ende der grauen Plattformen, umkreist von einem dichten Wuschel-Ring – die Topf-Schnappblume frisst ihn auf · 2 am
-//         Ende der Boost-Strecke: hinter dem Platz über den schmalen Goldsteg zwischen zwei Feuerring-Schockwellen zum Sockel.
+//         Ende der Boost-Strecke: hinter dem Platz über den schmalen Goldsteg an einer Feuerring-Schockwelle vorbei zum Sockel.
 // Stempel: zweite Stufe der Goldtreppe vor der Zielfahne (rechts). Extraleben: unsichtbare Blöcke auf Rastinsel 2, auf dem
 // Aufzugs-Gipfel und auf der Erholungsinsel der grauen Plattformen.
 // Gegner: Krakenpilz 6, Pilzling 4 (rennen auf den Stegen), Feuer-Werfer 3, Zauberkröte 3, Wuschel 22 (Schwärme), Hörner-
-// Ameise 6, Rankenschnapper 3, Stachelblöcke 7 (blau 4, rot 3), Feuerringe 9, Feuerstäbe 4, Pendelstacheln 7, Stachelwalzen 2.
+// Ameisen 2 Ströme (je ≤ 4), Rankenschnapper 3, Feuerringe 9; Fallen: Stachelblöcke 7 (blau 4, rot 3), Feuerstäbe 4,
+// Pendelstacheln 7, Stachelwalzen 2.
 
 import {
   PI, line, ring, arc, column, sign, marmor, block, kronenHimmel, goldkanten, geruest, sockel, fahnen, ballons,
@@ -411,7 +412,7 @@ export const LEVEL = {
     // Graue Plattformen: Wuschel-Schwärme
     { kind: 'wuschel', id: 'w_g3', center: [0, YG4 + 0.2, -419.5], radius: 3, count: 3, spacing: 6.3, speed: 2 },
     { kind: 'wuschel', id: 'w_luft1', path: [[-5, YG4 + 1.6, -404], [5, YG4 + 1.6, -404]], count: 2, spacing: 2, speed: 2.2 },
-    { kind: 'wuschel', id: 'w_g5', path: [[-2, YG4 + 0.2, -443], [2, YG4 + 0.2, -443]], count: 1, speed: 1.6 },
+    { kind: 'wuschel', id: 'w_g5', path: [[-3.4, YG4 + 1.5, -430.5], [3.4, YG4 + 1.5, -430.5]], count: 1, speed: 1.8 },
     { kind: 'wuschel', id: 'w_g9', path: [[-4, YG4 + 1.4, -486], [4, YG4 + 1.4, -490], [-4, YG4 + 1.4, -492]], loop: true, count: 3, spacing: 4, speed: 2.4 },
     { kind: 'wuschel', id: 'w_steg', path: [[-3, 10.7, -503.5], [3, 10.7, -503.5]], count: 2, spacing: 2.2, speed: 2 },
     { kind: 'wuschel', id: 'w_stern', center: [-3.4, 10.7, -531], radius: 1.7, count: 8, spacing: 1.33, speed: 1.4 },
