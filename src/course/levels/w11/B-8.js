@@ -23,8 +23,6 @@ const PI = Math.PI;
 
 /** fester Neon-Absatz in einer Piep-Reihe (Oberkante y 1, Mitte x/z, Breite w, Tiefe d). */
 const neon = (x, z, w, d) => ({ type: 'platform', style: 'block', color: 0x8a7cff, pos: [x, Y - 1, z], size: [w, 1, d] });
-/** fester Neon-Absatz (Plattform) mit Oberkante top. */
-const absatz = (x, top, z, w = 2.4, d = 2.4) => ({ type: 'platform', style: 'stone', pos: [x, top - 0.6, z], size: [w, 0.6, d] });
 const stachelboden = (x, y, z, w, d) => ({ type: 'stachelboden', pos: [x, y, z], size: [w, 0.3, d] });
 
 export const LEVEL = remixOf('4-3', {
@@ -103,4 +101,3 @@ export const LEVEL = remixOf('4-3', {
     uhrenplatz: [0, YU, -233], rutsche: [0, YU, -239.5], rutschenfuss: [0, YR, -258], ziel: [0, YZ, -290.7],
   },
 });
-void absatz;
