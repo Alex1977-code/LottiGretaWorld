@@ -1,5 +1,5 @@
 // Welt Blume (Remix-Welt 2, Präfix B, Welt 11): B-9 „Feuertürme im Abendrot“ (Remix von 5-1), B-10 „Honigwaben am Taghimmel“
-// (Remix von S-6), B-11 „Stachelstege im Suchlicht“ (Remix von 8-1 mit Suchscheinwerfern aus 5-7) und B-12 „Boss-Blitz unterm
+// (Remix von S-6), B-11 „Stachelstege im Suchlicht“ (Remix von 8-1 mit Suchscheinwerfern aus 5-7) und B-12 „Fünf Schlüssel im
 // Sternenzelt“ (Boss-Marathon). Prüft je Level: Laden ohne Konsolenfehler/-warnungen, Daten (Welt 11, Titel, Thema mit
 // Licht-Variante, Musik mit Klang-Variante im Musiksystem, Zeit, Sterne, kein Stempel), Remix-Regeln wirksam (Licht im Thema,
 // Klang-Variante, Gegner entfernt/getauscht/neu, Zeitlimit), Gegenprobe: das Basislevel bleibt unverändert (Rohdaten vor/nach
@@ -343,7 +343,7 @@ const ROUTES = {
     ],
     routeChecks: [
       { name: 'alle sechs Kämpfe gewonnen, fünf Schlüssel, sechs Rück-Warp-Boxen, alle drei Sterne, Restzeit > 0', ok: (r) => r.mech.keys === 5 && r.mech.warps === 12 && r.rt.stars.slice(0, 3).every(Boolean) && r.rt.time > 0 },
-      { name: 'Würfelblase mit mehr, schnelleren Schockwellen (≥ 3 je Landung)', ok: (r) => r.mech.bosses?.blase?.multi && r.mech.bosses.blase.waves >= 3 },
+      { name: 'Würfelblase mit mehr, schnelleren Schockwellen (≥ 3 je Landung, erste ≥ 9 m/s)', ok: (r) => r.mech.bosses?.blase?.multi && r.mech.bosses.blase.waves >= 3 && r.mech.bosses.blase.maxSpeed >= 9 },
     ],
     targets: [
       { name: 'Stern 0: Lavafelsen-König mit geworfenen Lavabrocken besiegen – erst danach erscheint der Stern in der Arena', star: 0, from: [0, Y12, 8.5],
@@ -380,12 +380,13 @@ const ROUTES = {
     shots: [
       ['hub', [0, Y12, 8.5]],
       ['hub_boxen', [0, Y12, 2]],
-      ['kq', [-80, Y12, 47], 420, { y: 0.5 }],
-      ['schatten', [-80, Y12, -42], 520, { y: 0.4 }],
-      ['lava', [80, Y12, -42], 600, { y: 0.35 }],
-      ['wirbel', [80, Y12, 47], 420, { y: 0.4 }],
-      ['koenige', [0, Y12, -99], 900, { y: 0.15 }],
-      ['blase', [0, Y12, 119]],
+      ['kq', { legs: [{ warp: [-6, 5.5] }, { engage: 'kq', center: [-80, 40] }, { wait: 300 }] }],
+      ['schatten', { legs: [{ warp: [-6, -5.5] }, { engage: 'schatten', center: [-80, -50] }, { wait: 420 }] }],
+      ['lava', { legs: [{ warp: [6, -5.5] }, { engage: 'lava', center: [80, -50] }, { wait: 520 }] }],
+      ['wirbel', { legs: [{ warp: [6, 5.5] }, { engage: 'wirbel', center: [80, 40] }, { wait: 420 }] }],
+      ['koenige', { legs: [{ warp: [0, 0] }, { engage: 'koenige', center: [0, -110] }, { wait: 700 }] }],
+      ['blase', { legs: [{ grantKeys: true }, { to: [3.4, 3], within: 0.6 }, { to: [3, -5.6], within: 0.6 }, { warp: [0, -7.5] }, { engage: 'blase', center: [0, 110] }, { to: [0, 114.5], within: 0.6, run: false }, { until: '=named("blase").state === "grest"', max: 120 * 20 }, { wait: 50 }] }],
+      ['hub_erledigt', { legs: [{ grantKeys: true }, { wait: 120 }] }],
       ['zielplatz', [0, Y12, 152]],
     ],
   },
@@ -1378,7 +1379,7 @@ function install() {
             tick(inp);
           }
           for (let i = 0; i < 600 && b.state !== 'gone'; i++) tick({});
-          mech.bosses = { ...(mech.bosses ?? {}), blase: { hits: hp0 - b.hp, state: b.state, multi: !!b.multi, waves: waveSeen.size, waveHits: b.waveHits ?? 0, stomps, jumps, time: +(n / 120).toFixed(1) } };
+          mech.bosses = { ...(mech.bosses ?? {}), blase: { hits: hp0 - b.hp, state: b.state, multi: !!b.multi, waves: waveSeen.size, maxSpeed: +Math.max(0, ...[...waveSeen].map((w) => w.speed ?? 0)).toFixed(2), waveHits: b.waveHits ?? 0, stomps, jumps, time: +(n / 120).toFixed(1) } };
           log.push(['Würfelblase', JSON.stringify(mech.bosses.blase)]);
           if (b.state !== 'gone') { log.push(['FEHLER: Würfelblase nicht besiegt', b.state, b.hp]); break; }
           continue;
@@ -1743,6 +1744,15 @@ for (const id of LEVELS) {
   await load(id);
   for (const [name, pos, steps = 0, input = null, yaw = PI / 2] of R.shots ?? []) {
     if (SHOTS && !SHOTS.has(name)) continue;
+    // Beine statt Lage (Boss-Marathon): frisch laden, vom Start aus fahren (Warp-Box, Kampf beginnen …), dann das Bild
+    if (pos.legs) {
+      await load(id);
+      await W('place', R.start, { settle: 10 });
+      const res = await W('drive', pos.legs, {});
+      if (res.log.some((l) => String(l[0]).startsWith('FEHLER'))) for (const l of res.log) if (l[0] !== 'spur') console.log('     ', JSON.stringify(l));
+      await shot(`${id}_${name}`);
+      continue;
+    }
     await W('place', pos, { settle: 10, yaw });
     if (steps) await sc(([n, inp]) => { const c = window.__course; c.player.invuln = 99; c.setInput(inp); c.step(n); c.player.invuln = 0; c.setInput(null); }, [steps, input ?? {}]);
     await shot(`${id}_${name}`);
