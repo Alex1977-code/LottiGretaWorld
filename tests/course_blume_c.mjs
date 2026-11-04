@@ -1711,6 +1711,7 @@ for (const id of LEVELS) {
       await W('place', t.from, { hero, settle: 10, ...(t.place ?? {}) });
       const res = await W('drive', t.legs, { invuln: t.invuln });
       const rt = await W('rt');
+      if (process.env.VERBOSE) console.log('      Sterne', JSON.stringify(rt.stars), 'tot', res.dead);
       let ok = rt.stars[t.star];
       if (t.expectNot) ok = !ok;
       if (!t.expectNot && res.log.some((l) => String(l[0]).startsWith('FEHLER'))) ok = false;
