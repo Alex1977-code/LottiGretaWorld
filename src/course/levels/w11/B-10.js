@@ -93,6 +93,7 @@ export const LEVEL = remixOf('S-6', {
     ],
     items: [
       ring([8.5, 0.6, -30], 1.2, 6),                                     // Ende des rechten Wegs (früher Stern)
+      line([-12.6, 2.2, -4.2], [-14.6, 2.2, -4.2], 2),                    // Hinweis: vom Schwebeblock hinaus zum Stern (Sichelhöhe)
       line([-1.41, 0.5, -258.6], [-1.41, 0.5, -261.4], 2),                // zur Eiswabe am Lavafeld
     ],
   },
