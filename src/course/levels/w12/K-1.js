@@ -32,7 +32,7 @@
 // Ameise 6, Rankenschnapper 3, Stachelblöcke 7 (blau 4, rot 3), Feuerringe 9, Feuerstäbe 4, Pendelstacheln 7, Stachelwalzen 2.
 
 import {
-  PI, line, ring, arc, column, sign, marmor, block, kronenHimmel, goldkanten, sternchen, geruest, sockel, fahnen, ballons,
+  PI, line, ring, arc, column, sign, marmor, block, kronenHimmel, goldkanten, geruest, sockel, fahnen, ballons,
   zauberkreis, piepTakt, goldenerZielmast, siegesfeier, fernAus, randsteine, turmZier, kronenTor, Bld, GOLD, gradY,
 } from './_helpers_a.js';
 
@@ -141,10 +141,6 @@ function build(level) {
     [-11, 6, -20, 5], [12, 8, -60, 4], [-12, 12, -150, 5], [11, 20, -185, 4], [-10, 20, -250, 5], [13, 22, -330, 4],
     [-14, 14, -420, 5], [12, 14, -500, 4], [-11, 30, -620, 5], [12, 33, -690, 4], [-12, 18, -800, 5], [12, 20, -880, 4],
     [-13, 30, -965, 6], [13, 31, -980, 6],
-  ]);
-  sternchen(level, [
-    [0, 5.2, -2.5, 0.5], [-3, 3.2, -36, 0.35], [3.2, 5, -74, 0.35], [-2, 34, -206, 0.4], [2.5, 22, -262, 0.35],
-    [0, YR + 6, A.z, 0.7, 0xffd0ff], [-4, 14, -455, 0.35], [0, 40, -593, 0.5], [0, 22, -925, 0.45], [0, 34, -966, 0.6],
   ]);
   randsteine(level, [[-3, 3, -737, -790, YBO], [-3, 3, -797, -850, YBO], [-2.5, 2.5, -857, -905, YBO]]);
   kronenTor(level, [[0, Y1, -2.6, 9.4, 4.6], [0, YBO, -752, 7.4, 3.6, false], [0, YBO, -820, 7.4, 3.6, false], [0, YBO, -884, 6.4, 3.6, false], [0, YZ, -959, 7, 4.2]]);
@@ -312,8 +308,8 @@ export const LEVEL = {
     sign(-4, YF, -558, 'Federplattform,\ndann Wandsprung!', { size: [2.6, 0.95], yaw: 0.2 }),
     { type: 'trampoline', id: 'feder', pos: [0, YF, -565.6], strength: 21, size: 1.8 },
     marmor(-6, 6, -568, -574, YL1, YL1 + 8, { under: 0 }),
-    { type: 'wall', pos: [-2.1, YL1, -571.5], size: [1, 11, 5], style: 'stone' },
-    { type: 'wall', pos: [2.1, YL1, -571.5], size: [1, 11, 5], style: 'stone' },
+    { type: 'wall', pos: [-2.1, YL1, -571.5], size: [1, 11, 5], style: 0xf2e4cc },
+    { type: 'wall', pos: [2.1, YL1, -571.5], size: [1, 11, 5], style: 0xf2e4cc },
     marmor(-6, 6, -574, -582, YL2, YL2 + 8, { under: 0 }),
     { type: 'ameisenweg', id: 'aw_l', path: ameisenWand(-2.2).path, show: true },
     { type: 'ameisenweg', id: 'aw_r', path: ameisenWand(2.2).path, show: true },
@@ -364,13 +360,13 @@ export const LEVEL = {
       { kind: 'modell', name: 'pokal_gross', pos: [4.4, YZ + 4, -993.5], opts: { size: 2.6 } },
     ] },
     { type: 'deco', items: [
-      { kind: 'flowers', pos: [-3, Y1, -38.5], size: [2, 2.5], n: 8 }, { kind: 'bush', pos: [3.4, Y1, -34], size: 0.7 }, { kind: 'lantern', pos: [-3.8, Y1, -32.8] },
-      { kind: 'flowers', pos: [3, 2, -78], size: [2.2, 2], n: 8 }, { kind: 'bush', pos: [-3.6, 2, -70.2], size: 0.7 }, { kind: 'lantern', pos: [3.8, 2, -69.8] },
+      { kind: 'flowers', pos: [-3, Y1, -38.5], size: [2, 2.5], n: 8 }, { kind: 'bush', pos: [3.4, Y1, -34], size: 0.7 },
+      { kind: 'flowers', pos: [3, 2, -78], size: [2.2, 2], n: 8 }, { kind: 'bush', pos: [-3.6, 2, -70.2], size: 0.7 },
       { kind: 'flowers', pos: [-3.4, YS, -124.5], size: [2.4, 3], n: 9 }, { kind: 'bush', pos: [3.8, YS, -116.4], size: 0.8 }, { kind: 'tree', pos: [4, YS, -125.8], size: 3.4 },
-      { kind: 'flowers', pos: [2.4, YP, -225], size: [1.8, 2.4], n: 7 }, { kind: 'lantern', pos: [-3, YP, -226.4] },
+      { kind: 'flowers', pos: [2.4, YP, -225], size: [1.8, 2.4], n: 7 },
       { kind: 'flowers', pos: [2.6, YT, -263], size: [1.4, 3], n: 7 }, { kind: 'bush', pos: [-3, YT, -256], size: 0.6 },
       { kind: 'flowers', pos: [-3.6, YK, -303], size: [2, 2], n: 7 }, { kind: 'tree', pos: [4.3, YK, -311], size: 3.6 }, { kind: 'bush', pos: [4.2, YK, -305], size: 0.7 },
-      { kind: 'flowers', pos: [-3.4, YG4, -393.4], size: [2, 2.4], n: 8 }, { kind: 'lantern', pos: [3.9, YG4, -394.2] },
+      { kind: 'flowers', pos: [-3.4, YG4, -393.4], size: [2, 2.4], n: 8 },
       { kind: 'flowers', pos: [-3, YG4, -452.2], size: [1.8, 2.4], n: 7 }, { kind: 'tree', pos: [-3.3, YG4, -459.2], size: 3.2 },
       { kind: 'flowers', pos: [4, 10.5, -541], size: [2.6, 3], n: 9 }, { kind: 'flowers', pos: [-4.4, 10.5, -540], size: [2, 3], n: 8 }, { kind: 'tree', pos: [-5, 10.5, -543.6], size: 3.6 },
       { kind: 'flowers', pos: [-4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'flowers', pos: [4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.8, YF, -558], size: 0.8 },
@@ -489,7 +485,7 @@ export const LEVEL = {
     { pos: [0, YPL + 0.9, -947], id: 'stern_schockwelle' },                  // 2 hinter dem Platz am Ende der Boost-Strecke
   ],
   stamp: [3.3, YZ + 3.2, -979.5],
-  goal: { pos: [0, YZ + 4, -990], height: 10 },
+  goal: { pos: [0, YZ + 4, -990], height: 9 },
   marks: {
     start: [0, Y1, 6], r1: [0, Y1, -36], r2: [0, 2, -72], r3: [0, YS, -118], simsA: [0, YA, -138], simsB: [0, YB, -164],
     simsC: [0, YC, -192], gipfel: [0, YG, -204], takt: [0, YP, -221], r4: [0, YT, -261], r5: [0, YK, -303], arena: [0, YR, -352],

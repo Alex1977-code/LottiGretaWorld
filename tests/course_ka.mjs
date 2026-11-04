@@ -263,7 +263,7 @@ const ROUTES = {
       { name: 'Pendelstachel über dem schmalen Steg verletzt, wer stehen bleibt', from: [0, 10.5, -508.5], heroes: ['lotti'], invuln: false, allowFail: true, expectAlive: false,
         legs: [{ wait: 500 }], mech: (r) => r.mech.hurts >= 1 || (r.rt.deaths ?? 0) > 0, mechText: (r) => `Treffer ${r.mech.hurts}, Stürze ${r.rt.deaths ?? 0}` },
       { name: 'Siegesfeier am goldenen Zielmast: Konfetti und Feuerwerk', from: [0, 28, -987], heroes: ['lotti'],
-        legs: [{ to: [0, -989.6], within: 0.2 }, { tail: 360 }],
+        legs: [{ to: [0, -989.6], within: 0.2 }, { tail: 230 }],
         mech: (r) => r.mech.feier?.fired && r.mech.feier.bursts >= 3 && r.mech.feier.confetti >= 3, mechText: (r) => JSON.stringify(r.mech.feier ?? {}), shot: 'feier' },
     ],
     shots: [
@@ -1084,6 +1084,32 @@ for (const id of LEVELS) {
     check(`${id}: ${R.meta.stars} Sterne, Stempel, ${R.meta.time} s, Thema ${R.meta.theme}, Musik ${R.meta.music}, Archetyp ${R.meta.archetype}, Welt ${R.meta.world}`,
       meta.stars === R.meta.stars && kinds.stamp === 1 && meta.timeLimit === R.meta.time && meta.theme === R.meta.theme && meta.music === R.meta.music && meta.archetype === R.meta.archetype && meta.world === R.meta.world);
     for (const [kind, n] of Object.entries(R.enemies ?? {})) check(`${id}: ${n}× ${kind} (${kinds[kind] ?? 0})`, (kinds[kind] ?? 0) === n);
+    // Abschlussprüfung: kein Kontrollpunkt, keine Power-ups (nur Bitcoins und Extraleben), vier Warp-Boxen, Piep-Takt der Levelmusik
+    const rules = await sc(() => {
+      const L = window.__course.level, d = L.data;
+      const pow = d.blocks.map((b) => b.content).filter((c) => c !== undefined && !/^coins?(:\d+)?$/.test(String(c)) && c !== 'oneup');
+      const items = d.items.filter((i) => i.kind === 'powerup' && i.power !== 'oneup').length + L.entities.filter((e) => e.kind === 'checkpoint' || e.kind === 'powerup').length;
+      return { cp: d.checkpoint ?? null, pow, items, warps: L.entities.filter((e) => e.kind === 'warpbox').length, beep: L.beepClock?.theme, every: [...(L.piep?.groups.values() ?? [])].map((g) => g.every) };
+    });
+    check(`${id}: kein Kontrollpunkt, keine Power-ups, vier Warp-Boxen (${JSON.stringify({ ...rules, every: undefined })})`, rules.cp === null && rules.pow.length === 0 && rules.items === 0 && rules.warps === 4);
+    check(`${id}: Piep-Blöcke im Takt der Levelmusik course_champion, Wechsel alle 4 Zählzeiten (doppeltes Tempo)`, rules.beep === 'course_champion' && rules.every.length > 0 && rules.every.every((e) => e === 4));
+    // wie im Spiel: Musik-Uhr (manuell im Gleichschritt mit der Simulation) – die Taktuhr folgt der Musik, Wechsel auf Taktanfängen
+    const sync = await sc(() => {
+      const c = window.__course, L = c.level, m = window.__audio?.music, clk = L.beepClock;
+      if (!m || !clk) return null;
+      m.setManualClock(true); m.stop(); m.play('course_champion');
+      clk.mode = 'auto';
+      const g = [...L.piep.groups.values()].find((x) => x.color === 'rot');
+      let switches = 0, onBar = 0, prev = g.on;
+      for (let i = 0; i < 1200; i++) {
+        m.advanceClock(1 / 120); c.step(1);
+        if (g.on !== prev) { switches++; prev = g.on; const b = m.beat().beat; if (Math.abs(b - Math.round(b / 4) * 4) < 0.08) onBar++; }
+      }
+      const out = { source: clk.source, bpm: clk.bpm, switches, onBar };
+      m.stop(); m.setManualClock(false); clk.mode = 'level';
+      return out;
+    });
+    check(`${id}: Taktuhr folgt der Musik (10 s: ${JSON.stringify(sync)})`, !!sync && sync.source === 'music' && sync.bpm === 150 && sync.switches >= 5 && sync.onBar === sync.switches);
   }
 
   // ------------------------------------------------ Routen-Bot je Heldin (Start → Zielmast)
@@ -1114,7 +1140,10 @@ for (const id of LEVELS) {
     await load(id);
     let worst = { calls: 0, tris: 0, at: null, atT: null };
     const per = [];
-    for (const pt of sweepTrack) {
+    // der Kurs ist ≈ 1 km lang: Messpunkte mindestens SWEEP_STEP m (Standard 12) auseinander bzw. bei Höhenwechsel
+    const STEP = Number(process.env.SWEEP_STEP ?? 12), pts = [];
+    for (const pt of sweepTrack) { const l = pts[pts.length - 1]; if (!l || Math.hypot(pt[0] - l[0], pt[2] - l[2]) >= STEP || Math.abs(pt[1] - l[1]) > 3) pts.push(pt); }
+    for (const pt of pts) {
       await W('place', pt, { settle: 6 });
       const f0 = await sc(() => { window.__course.snapCamera(); return window.__course.view.frame; });
       await page.waitForFunction((f) => window.__course.view.frame >= f + 6, f0, { timeout: 90000 });
