@@ -65,9 +65,9 @@ export const MK1 = {
   ERHOLUNG: { x0: -4, x1: 4, z0: -450, z1: -460, top: YG4 },
   STERNPLATZ: { x0: -6, x1: 6, z0: -520, z1: -545, top: 10.5 },
   TURMFUSS: { x0: -6, x1: 6, z0: -556, z1: -568, top: YF },
-  P1: { x0: -3, x1: 3, z0: -631, z1: -637, top: 35.5 },
-  P2: { x0: -3, x1: 3, z0: -671, z1: -677, top: 36 },
-  P3: { x0: -5, x1: 5, z0: -708, z1: -720, top: 36 },
+  P1: { x0: -3, x1: 3, z0: -629.5, z1: -637.5, top: 35.5 },
+  P2: { x0: -3, x1: 3, z0: -669.5, z1: -677, top: 36 },
+  P3: { x0: -5, x1: 5, z0: -706.5, z1: -720, top: 36 },
   PLATZ: { x0: -10, x1: 10, z0: -915, z1: -937, top: YPL },
   SIEGER: { x0: -9, x1: 9, z0: -957, z1: -975, top: YZ },
 };
@@ -100,7 +100,10 @@ const arenaFeld = () => {
 };
 
 // ---------------------------------------------------------------- Abschnitt 5: Hörner-Ameisen an der Turmwand (Gesicht z −582)
-const ameisenWand = (x) => ({ path: [[x, YL2, -580.4, 0, 1, 0], [x, YL2, -582, 0, 1, 0], [x, YL2, -582, 0, 0, 1], [x, YL3, -582, 0, 0, 1], [x, YL3, -582, 0, 1, 0], [x, YL3, -583.4, 0, 1, 0]] });
+const ameisenWand = (x) => ({ path: [[x, YL2, -582, 0, 0, 1], [x, YL3, -582, 0, 0, 1], [x, YL3, -582, 0, 1, 0], [x, YL3, -583.4, 0, 1, 0]] });
+// Rankenschnapper-Kette: drei Ranken wachsen nacheinander waagerecht aus der Turmwand (z −590) zur Kamera hin (Köpfe vorn), Stufen
+// im Zickzack hinauf; Wurzel hinten an der Wand = sicherer Stand, der Kopf schnappt erst vorn
+const ranke = (id, x, y, phase) => ({ kind: 'rankenschnapper', id, pos: [x, y, -590], path: [[x, y, -590], [x, y + 0.1, -587.5], [x, y + 0.2, -585]], size: 1.5, grow: [1.0, 4.2, 0.9, 1.4], phase });
 
 // ---------------------------------------------------------------- Abschnitt 6: Feuerringe
 const fring = (id, x, z, top, o = {}) => ({ kind: 'feuerring', id, pos: [x, top, z], radius: o.radius ?? 4, height: 0.7, period: o.period ?? 2.4, wait: o.wait ?? 0.8, phase: o.phase ?? 0, color: o.color ?? 'rot' });
@@ -294,8 +297,8 @@ export const LEVEL = {
     sign(-4, YF, -558, 'Federplattform,\ndann Wandsprung!', { size: [2.6, 0.95], yaw: 0.2 }),
     { type: 'trampoline', id: 'feder', pos: [0, YF, -565.6], strength: 21, size: 1.8 },
     marmor(-6, 6, -568, -574, YL1, YL1 + 8, { under: 0 }),
-    { type: 'wall', pos: [-2.1, YL1, -571.5], size: [1, 9, 5], style: 'stone' },
-    { type: 'wall', pos: [2.1, YL1, -571.5], size: [1, 9, 5], style: 'stone' },
+    { type: 'wall', pos: [-2.1, YL1, -571.5], size: [1, 11, 5], style: 'stone' },
+    { type: 'wall', pos: [2.1, YL1, -571.5], size: [1, 11, 5], style: 'stone' },
     marmor(-6, 6, -574, -582, YL2, YL2 + 8, { under: 0 }),
     { type: 'ameisenweg', id: 'aw_l', path: ameisenWand(-2.2).path, show: true },
     { type: 'ameisenweg', id: 'aw_r', path: ameisenWand(2.2).path, show: true },
@@ -391,9 +394,7 @@ export const LEVEL = {
     // Turm: Hörner-Ameisen als Stufen, Rankenschnapper-Kette
     { kind: 'ameisensoldat_horn', id: 'ameise_l', antpath: 'aw_l', count: 3, spacing: 4, speed: 1.4, mode: 'loop' },
     { kind: 'ameisensoldat_horn', id: 'ameise_r', antpath: 'aw_r', count: 3, spacing: 4, speed: 1.4, mode: 'loop', phase: 0.5 },
-    { kind: 'rankenschnapper', id: 'ranke1', pos: [-2.6, YL3 + 1.3, -590], path: [[-2.6, YL3 + 1.3, -590], [-2.6, YL3 + 1.7, -588.2], [-2.6, YL3 + 1.8, -586.6]], grow: [1.0, 3.4, 0.9, 1.6], phase: 0 },
-    { kind: 'rankenschnapper', id: 'ranke2', pos: [0.4, YL3 + 3.5, -590], path: [[0.4, YL3 + 3.5, -590], [0.4, YL3 + 3.9, -588.2], [0.4, YL3 + 4.0, -586.6]], grow: [1.0, 3.4, 0.9, 1.6], phase: 0.12 },
-    { kind: 'rankenschnapper', id: 'ranke3', pos: [3.2, YL3 + 5.7, -590], path: [[3.2, YL3 + 5.7, -590], [3.2, YL3 + 6.1, -588.2], [3.2, YL3 + 6.2, -586.6]], grow: [1.0, 3.4, 0.9, 1.6], phase: 0.24 },
+    ranke('ranke1', -2.4, YL3 + 1.55, 0.3), ranke('ranke2', 0, YL3 + 3.55, 0.18), ranke('ranke3', 2.4, YL3 + 5.55, 0.06),
     // Boost-Finale: Feuerring-Schockwellen
     fring('fr1', 0, -758, YBO), fring('fr2', 0, -776, YBO, { phase: 0.5 }),
     fring('fr3', 0, -812, YBO), fring('fr4', 0, -838, YBO, { phase: 0.4 }),
@@ -430,7 +431,7 @@ export const LEVEL = {
     line([0, 11.3, -506], [0, 11.3, -516], 5),
     column(0, -565.6, YF + 2, YL1 + 1, 4),
     column(0, -571.5, YL1 + 1.5, YL2 + 1, 5),
-    ...[0, 1, 2].map((i) => ({ kind: 'coin', pos: [-2.6 + i * 2.9, YL3 + 2.8 + i * 2.2, -587.6] })),
+    ...[0, 1, 2].map((i) => ({ kind: 'coin', pos: [-2.4 + i * 2.4, YL3 + 2.8 + i * 2, -588.4] })),
     line([0, YW - 1.5, -602], [0, YW - 1.5, -626], 6),
     line([0, M.P1.top - 3.5, -642], [0, M.P1.top - 3.5, -666], 6),
     line([0, M.P2.top - 1.5, -681], [0, M.P2.top - 1.5, -703], 5),

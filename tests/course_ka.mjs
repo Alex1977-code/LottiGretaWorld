@@ -144,6 +144,36 @@ const ROUTES = {
       { to: [1.5, -537], within: 0.5 },
       { name: 'Warp-Box 3', warp: [0, -541.4] },
       { expect: '=at(-6, 6, 3.5, -555, -569)' },
+      // ---------------------------------------------- 5 Wandsprung-Turm und Wasserwürfel
+      { sec: 's5', from: [0, 4, -560] },
+      { to: [0, -562.2], within: 0.3, run: false },
+      { name: 'Federplattform', spring: [0, -565.6], to: [0, -571.4], steerY: 12, top: 11 },
+      { name: 'Wandsprung-Schacht', wallclimb: { dir: 1, until: 20.8, z: -571.6, then: [0, -577.5], top: 20 } },
+      { to: [0, -577.5], within: 0.4, run: false },
+      { name: 'Hörner-Ameise an der Turmwand', ant: 'ameisensoldat_horn', stand: [-2.2, -580.5], fy: [20.05, 21.2], top: 28 },
+      { to: [-1.1, -589.1], within: 0.3, run: false },
+      { name: 'Rankenschnapper 1', vine: 'ranke1', to: [-2.4, -589.1] },
+      { name: 'Rankenschnapper 2', vine: 'ranke2', to: [0, -589.1], need: 0.8 },
+      { name: 'Rankenschnapper 3', vine: 'ranke3', to: [2.4, -589.1], need: 0.8 },
+      { name: 'Turmspitze', to: [2, -592.5], jump: 30, within: 0.6, run: false, y: 35 },
+      { to: [0, -596.4], within: 0.3, run: false },
+      { name: 'Kopfsprung in Wasserwürfel 1', to: [0, -601.5], jump: 16, within: 0.8, land: false, run: false },
+      { name: 'blauer Balken 1', bar: 'sb1', at: [0, -603.6], past: [0, -608.6], ys: [28, 32.6], gapHi: 33.4, gapLo: 29.2 },
+      { name: 'blauer Balken 2', bar: 'sb2', at: [0, -611.6], past: [0, -616.6], ys: [28, 32.6], gapHi: 33.4, gapLo: 29.2 },
+      { name: 'blauer Balken 3', bar: 'sb3', at: [0, -619.6], past: [0, -624.6], ys: [28, 32.6], gapHi: 33.4, gapLo: 29.2 },
+      { swimTo: [[0, 34.4, -627.4]] },
+      { name: 'Aussprung auf Sims 1', to: [0, -631.5], within: 0.6, y: 35.4 },
+      { to: [0, -636.4], within: 0.3, run: false },
+      { name: 'Wasserwürfel 2 (rote Stachelblöcke)', to: [0, -641.5], jump: 16, within: 0.8, land: false, run: false },
+      { swimTo: [[0, 31.6, -645], [0, 31.6, -663], [0, 34.9, -667.4]] },
+      { name: 'Aussprung auf Sims 2', to: [0, -671.5], within: 0.6, y: 35.9 },
+      { to: [0, -676.4], within: 0.3, run: false },
+      { name: 'Wasserwürfel 3', to: [0, -681.5], jump: 16, within: 0.8, land: false, run: false },
+      { name: 'blauer Balken 6', bar: 'sb6', at: [0, -683.6], past: [0, -688.6], ys: [29, 33.6], gapHi: 34.4, gapLo: 30.2 },
+      { swimTo: [[0, 34.4, -694], [0, 35.4, -704.4]] },
+      { name: 'Aussprung auf die Röhren-Insel', to: [0, -709], within: 0.6, y: 35.9 },
+      { name: 'Glasröhre zum Boost-Finale', pipe: [0, -716.6] },
+      { expect: '=at(-3.2, 3.2, 11.5, -735, -745)' },
     ],
     targets: [],
     extra: [],
@@ -506,8 +536,9 @@ function install() {
           for (; n < (w.max ?? 1500) && !P().dead; n++) {
             const q = P();
             if (phase === 'in') {
-              tick({ ...this.stick(dir, zfix(), 1), jump: n < 24, run: false });
-              last = n < 24;
+              const j = q.mode === 'ground' ? (n % 36) < 20 : q.vel.y > 0;
+              tick({ ...this.stick(dir, zfix(), 1), jump: j, run: false });
+              last = j;
               if (P().mode === 'wall') phase = 'chain';
             } else if (q.mode === 'wall' && !top) {
               if (last) { tick({ x: 0, y: 0, jump: false }); last = false; }
@@ -531,7 +562,7 @@ function install() {
         // ------------------------------------------------ Hörner-Ameise an der Wand besteigen (steigend, Fuß in fy), mitfahren bis top, dann absteigen zu off
         if (Lg.ant) {
           const ants = () => L.entities.filter((e) => e.kind === Lg.ant && e.alive && !e.removed && !e.defeated && e.boxId !== null);
-          const [wx, wz] = Lg.wait;
+          const [wx, wz] = Lg.stand;
           goTo(wx, wz, 0.2, 0.6);
           let on = null, k = 0, tries = 0;
           for (; k < (Lg.max ?? 6000) && !on && !P().dead; k++) {
@@ -554,10 +585,13 @@ function install() {
           }
           if (!on) { log.push(['FEHLER: Ameise nicht bestiegen']); break; }
           let r = 0;
+          const onAnt = () => String(P().ground?.tag ?? '').startsWith('ameisensoldat');
           for (; r < 3000 && !P().dead; r++) {
-            if (on.normal.y > 0.9 && P().pos.y > Lg.top - 0.3) break;
-            if (!on.riding(P()) && P().mode === 'ground') { log.push(['FEHLER: von der Ameise gefallen', r]); break; }
-            tick({});
+            if (P().pos.y > Lg.top - 0.3 && P().mode === 'ground') break;
+            if (!onAnt() && P().mode === 'ground') { log.push(['FEHLER: von der Ameise gefallen', r, P().ground?.tag ?? '-']); break; }
+            const g = P().ground, q = P();
+            const cx = g?.min ? (g.min[0] + g.max[0]) / 2 : q.pos.x, cz = g?.min ? (g.min[2] + g.max[2]) / 2 : q.pos.z, d = Math.hypot(cx - q.pos.x, cz - q.pos.z);
+            tick(d > 0.06 && onAnt() ? { ...this.stick(cx - q.pos.x, cz - q.pos.z, Math.min(0.5, d * 2)), run: false } : {});
           }
           mech.antRides = (mech.antRides ?? 0) + 1;
           log.push(['ameise oben', r, ...pos()]);
@@ -576,13 +610,41 @@ function install() {
             const q = P();
             if (air && q.mode === 'ground') break;
             if (q.mode !== 'ground') air = true;
-            const rising = q.vel.y > (Lg.steerAt ?? 4);
+            const rising = q.vel.y > (Lg.steerAt ?? 99);
             tick({ ...(q.mode === 'air' ? (rising ? { x: 0, y: 0 } : this.airSteer(tx, tz, 0, 0, 4, 6)) : this.stick(tx - q.pos.x, tz - q.pos.z, 0.4)), jump: n < (Lg.jump ?? 30), run: false });
           }
           for (let i = 0; i < 6; i++) tick({});
           const ok = P().mode === 'ground' && P().ground?.tag === 'ranke';
           log.push(['ranke', Lg.vine, ok, k, ...pos()]);
           if (!ok && !Lg.soft) log.push(['FEHLER: nicht auf der Ranke', Lg.vine, P().ground?.tag ?? '-']);
+          continue;
+        }
+        // ------------------------------------------------ blauer Stachelbalken (Id) im Wasserwürfel: vor ihm schweben (at), warten, bis er an einem
+        //   Ende hält, dann durch die freie Lücke (oben bzw. unten) hindurch nach past schwimmen
+        if (Lg.bar) {
+          const h = ent(Lg.bar), mb = h.mb;
+          const [ax, az] = Lg.at, [bx, bz] = Lg.past, [lo, hi] = Lg.ys;   // ys: [y unten, y oben] des Balkens an den Enden
+          const swimTo = (tx, ty, tz, n0 = 600) => {
+            let n = 0;
+            for (; n < n0 && !P().dead; n++) {
+              const q = P(); const dx = tx - q.pos.x, dz = tz - q.pos.z, d = Math.hypot(dx, dz), dy = ty - q.pos.y;
+              if (d < 0.45 && Math.abs(dy) < 0.4) break;
+              tick({ ...(d > 0.12 ? this.stick(dx, dz, Math.min(1, Math.max(0.3, d / 1.2))) : {}), crouch: q.mode === 'swim' && dy < -0.25, jump: q.mode === 'swim' && dy > 0.35 && (n % 16) < 6 });
+            }
+            return n;
+          };
+          let k = swimTo(ax, Lg.wy ?? (lo + hi) / 2 + 1, az);
+          let gapY = null;
+          for (let n = 0; n < 2400 && !P().dead; n++, k++) {
+            const st = h.state, y = mb.pos.y;
+            if (st === 'wartet' && Math.abs(y - lo) < 0.1) { gapY = Lg.gapHi; break; }
+            if (st === 'wartet' && Math.abs(y - hi) < 0.1) { gapY = Lg.gapLo; break; }
+            const q = P(); const dy = (Lg.wy ?? (lo + hi) / 2 + 1) - q.pos.y;
+            tick({ crouch: dy < -0.25, jump: dy > 0.35 && (n % 16) < 6 });
+          }
+          k += swimTo(ax, gapY, az, 300);
+          k += swimTo(bx, gapY, bz, 600);
+          log.push(['balken', Lg.bar, gapY, k, P().mode, ...pos()]);
           continue;
         }
         // ------------------------------------------------ Schwimmen im Wasserwürfel: Punkte [x, y, z] (y null = egal); am Ende optional Aussprung
