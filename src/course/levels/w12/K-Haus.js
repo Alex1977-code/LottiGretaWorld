@@ -70,7 +70,7 @@ const R22 = { steg: [4, 34], kanonen: [10, 17, 22, 27, 32], takt: [0, 0.03, 0.53
 const R23 = { ranken: [[-1, 5.2, 1.6], [1, 7.6, 2.8], [-1, 10, 4.0], [1, 12.4, 5.2], [-1, 14.8, 6.4]], ledge: [16.6, 20, Y + 6.6] };
 const R24 = { buehne: Y + 0.8, ziele: [[-3.6, 11, Y + 1.0], [0, 11.6, Y + 1.0], [3.6, 11, Y + 1.0]], kraft: 8.4, baelle: [[-1.6, 3.4], [-0.5, 3.6], [0.6, 3.6], [1.7, 3.4]] };
 const R26 = { c: 10, r: 5.2, top: Y + 0.25, sockel: Y + 1.6 };
-const R27 = { leisten: [[-6.6, -0.5, 9, 12, Y + 2.2], [0.5, 6.6, 11, 14, Y + 4.4], [-6.6, -0.5, 13, 16, Y + 6.6], [0.5, 6.6, 15, 18, Y + 8.8]] };
+const R27 = { leisten: [[-6.6, -0.5, 9, 12, Y + 2.2], [0.5, 6.6, 11, 14, Y + 4.4], [-6.6, -0.5, 13, 17, Y + 6.6]] };
 const R28 = { bruecke: [6, 24], mitte: [12, 18], ende: 24 };
 const R30 = { len: 30 };
 
@@ -183,7 +183,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: 20, style: 'parkett' }], cam: { pitch: 54, dist: 17, c: R26.c },
     pictures: [{ wall: 'l', u: 3, motif: 'trampolin' }, { wall: 'r', u: 3, motif: 'stern' }], clocks: [{ wall: 'l', u: 17, y: 3.6, r: 0.42 }],
     props: [{ kind: 'pferd', x: 5.6, u: 1.6, yaw: -0.5 }] },
-  { name: 'Scheinwerferschacht', title: 'Scheinwerferschacht: Schnell hinauf, bevor das Licht dich sieht!', len: 18, h: 13, paper: 'galerie', wood: 0x2a1a3a, star: [3.6, 16.6, R27.leisten[3][4] + 0.25],
+  { name: 'Scheinwerferschacht', title: 'Scheinwerferschacht: Schnell hinauf, bevor das Licht dich sieht!', len: 18, h: 11, paper: 'galerie', wood: 0x2a1a3a, star: [-3.8, 15.4, R27.leisten[2][4] + 0.25],
     floors: [{ u0: -1, u1: 18, style: 'stein' }], cam: { pitch: 38, dist: 17.5, c: 11 },
     pictures: [{ wall: 'l', u: 3, motif: 'burg' }, { wall: 'r', u: 3, motif: 'baron' }], clocks: [{ wall: 'r', u: 8, y: 3.6, r: 0.42 }],
     props: [{ kind: 'buste', x: -6, u: 1.6 }] },
@@ -347,9 +347,9 @@ R24.ziele.forEach(([x, u, y]) => SEG.push(isl(x - 0.25, x + 0.25, zu(23, u + 0.1
 [0, 1, 2, 3].forEach((k) => { const a = (k / 4) * 2 * PI + PI / 4; EN.push({ kind: 'schnappblume', id: `k26_blume${k + 1}`, roomId: room(25), pos: P(25, Math.cos(a) * 3.2, R26.c + Math.sin(a) * 3.2, R26.top), base: 'pot', range: 2.6, pause: 0.6, wake: 40 }); });
 
 // --- 27 Scheinwerferschacht: Simse im Zickzack, Suchscheinwerfer, Alarm ruft Suchköpfe
-R27.leisten.forEach(([x0, x1, u0, u1, top], k) => SEG.push(floor(26, x0, x1, u0, u1, top, top - Y, [0x4a3a5a, 0x5a4a6a, 0x6a5a7a, 0x7a6a8a][k])));
-SEG.push({ type: 'suchscheinwerfer', id: 'k27_licht', path: [P(26, -3.6, 10.5, Y + 2.2), P(26, 3.6, 12.5, Y + 4.4), P(26, -3.6, 14.5, Y + 6.6), P(26, 3.6, 16.5, Y + 8.8)], speed: 3.2, radius: 1.8,
-  mode: 'pingpong', wait: 0.4, lamp: P(26, 0, 4, Y + 11), post: false, cooldown: 2.5, alarmTime: 1.5, banner: 'Entdeckt!',
+R27.leisten.forEach(([x0, x1, u0, u1, top], k) => SEG.push(floor(26, x0, x1, u0, u1, top, top - Y, [0x4a3a5a, 0x5a4a6a, 0x6a5a7a][k])));
+SEG.push({ type: 'suchscheinwerfer', id: 'k27_licht', path: [P(26, -5.4, 6.2, Y), P(26, -3.6, 10.5, Y + 2.2), P(26, 3.6, 12.5, Y + 4.4), P(26, 5.4, 6.2, Y)], speed: 4.2, radius: 1.8,
+  mode: 'loop', wait: 0.2, lamp: P(26, 0, 4, Y + 11), post: false, cooldown: 2.5, alarmTime: 1.5, banner: 'Entdeckt!',
   onDetect: { spawn: { kind: 'suchkopf', pos: P(26, 6.4, 6, Y + 6), dir: [-1, 0], speed: 5.5, seek: 2.2, turn: 2.0, life: 6 } } });
 
 // --- 28 Donutbrücke: Donut-Blöcke (zwei breit), zwei Walzenwerfer am Ende

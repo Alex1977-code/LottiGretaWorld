@@ -611,16 +611,25 @@ function installHaus() {
     for (const u of [...H.R15.bloecke, H.R15.ende + 1.2]) jumpOnto(i, () => ({ x: 0, z: zu(i, u) }), { reach: 3.4, hold: 24, run: true });
     toStar(i, { run: true });
   };
-  // 16 Ringwand: warten, bis die Lücke vorn steht, durch die Lücke zum Stern
+  // 16 Ringwand: Wuschel-Bahn abpassen, auf die Drehscheibe, innen an der Mauer entlang zur Lücke (sie dreht mit), zum Stern
   R[15] = (i) => {
-    const d = L.named.get('k16_ring');
-    walkTo(i, 0, 4.4, { within: 0.3 });
-    for (let k = 0; k < 900 && live(i); k++) {
-      const a = ((d.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-      if (!d.turning && Math.min(a, 2 * Math.PI - a) < 0.05 && !danger(['wuschel'], { r: 1.6, horizon: 1.2 })) break;
-      st({});
+    const d = L.named.get('k16_ring'), cz = zu(i, H.R16.c), h = H.R16.half;
+    walkTo(i, 0, 2.6, { within: 0.3 });
+    const wu = () => L.entities.filter((e) => e.kind === 'wuschel' && alive(e) && e.spec?.roomId === 'r16');
+    const frei = () => wu().every((e) => { const q = vel(e); for (let t = 0; t <= 1.1; t += 0.1) if (Math.hypot(e.pos.x + q.vx * t, e.pos.z + q.vz * t - (cz + 5.2)) < 1.8) return false; return true; });
+    for (let k = 0; k < 900 && live(i) && !frei(); k++) st({});
+    walkTo(i, 0, H.R16.c - 4.0, { within: 0.4, run: true });
+    const ang = (x, z) => Math.atan2(-(z - cz), x);
+    const R0 = 4.0;
+    for (let n = 0; n < 900 && live(i); n++) {
+      const e = rot(d, 0, cz, 0, h + 0.9), p = P();
+      if (Math.hypot(e.x - p.pos.x, e.z - p.pos.z) < 0.5) break;
+      const da = wrap(ang(e.x, e.z) - ang(p.pos.x, p.pos.z));
+      const a2 = ang(p.pos.x, p.pos.z) + Math.sign(da) * Math.min(Math.abs(da), 0.5);
+      const tx = Math.cos(a2) * R0, tz = cz - Math.sin(a2) * R0;
+      st({ ...B.stick(tx - p.pos.x, tz - p.pos.z, 1) });
     }
-    walkTo(i, 0, H.R16.c, { within: 0.3, run: true });
+    for (let n = 0; n < 300 && live(i); n++) { const p = P(), dx = -p.pos.x, dz = cz - p.pos.z; if (Math.hypot(dx, dz) < 0.3) break; st({ ...B.stick(dx, dz, 1) }); }
   };
   // 17 Hasenjagd: beide Hasen rennend einholen
   R[16] = (i) => {
@@ -716,7 +725,7 @@ function installHaus() {
     for (let k = 0; k < 60 && live(i); k++) st({});
   };
   // 22 Himmelssteg: über den Steg, Suchköpfen ausweichen (Sprung)
-  R[21] = (i) => { walkTo(i, 0, 37.4, { within: 0.4, run: true, dodge: ['suchkopf'], tJump: 0.4, r: 1.2, hold: 10, max: 1100 }); };
+  R[21] = (i) => { walkTo(i, 0, 37.4, { within: 0.4, run: false, dodge: ['suchkopf'], tJump: 0.32, r: 1.2, hold: 6, max: 1100 }); };
   // 23 Rankentreppe: von Ranke zu Ranke hinauf
   R[22] = (i) => {
     walkTo(i, 0, 3.4, { within: 0.25 });
@@ -733,7 +742,8 @@ function installHaus() {
         const free = L.entities.filter((e) => e.kind === 'wurfball' && !e.removed && !e.carrier && e.state !== 'flying').sort((a, b) => Math.hypot(a.pos.x - P().pos.x, a.pos.z - P().pos.z) - Math.hypot(b.pos.x - P().pos.x, b.pos.z - P().pos.z))[0];
         if (!free) break;
         grab(i, free.spec.id);
-        walkTo(i, ziele[k][0] * 0.4, 5.6, { within: 0.3 });
+        walkTo(i, ziele[k][0] * 0.4, 5.4, { within: 0.3, mag: 0.7 });
+        for (let q = 0; q < 60 && live(i) && Math.hypot(P().vel.x, P().vel.z) > 0.2; q++) st({});
         throwToward(i, ziele[k][0], zu(i, ziele[k][1]), 4, 0.12);
         for (let q = 0; q < 60 && !z.done && live(i); q++) st({});
       }
@@ -775,9 +785,18 @@ function installHaus() {
   R[26] = (i) => {
     const Ls = H.R27.leisten;
     walkTo(i, -1.6, 7.0, { within: 0.3 });
+    // warten, bis der Lichtfleck nach oben wandert und den ersten Sims verlassen hat – dann hinter ihm her hinauf
+    { const sl = L.named.get('k27_licht'); let y0 = sl.spot.y;
+      let x0 = sl.spot.x;
+      for (let q = 0; q < 1100 && live(i); q++) { st({}); const down = sl.spot.y < y0 - 1e-4, left = sl.spot.x < x0 - 1e-4; y0 = sl.spot.y; x0 = sl.spot.x; if (!sl.alarm && ((down && sl.spot.x > 3.6 && sl.spot.y < Y + 3.4) || (left && sl.spot.y < Y + 0.3 && sl.spot.x > 1.0))) break; }
+      log.push(['licht startet', +(L.time).toFixed(2), +sl.spot.y.toFixed(2)]); }
     for (const [k, [x0, x1, u0, u1]] of Ls.entries()) {
       const left = x1 < 0;
       if (k > 0) { const [, , pu0, pu1] = Ls[k - 1]; walkTo(i, left ? 1.5 : -1.5, Math.max(pu0 + 0.5, u0 - 0.3), { within: 0.25, max: 200 }); }
+      // Lichtfleck abwarten: nicht auf dem nächsten Sims und nicht auf dem Weg dorthin
+      const sl = L.named.get('k27_licht'), tx = left ? -1.8 : 1.8, tz = zu(i, (u0 + u1) / 2);
+      for (let q = 0; q < 150 && live(i) && sl?.spot && (Math.hypot(sl.spot.x - tx, sl.spot.z - tz) < 2.2 || Math.hypot(sl.spot.x - P().pos.x, sl.spot.z - P().pos.z) < 2.0); q++) st({});
+      log.push(['licht', k + 1, sl?.spot ? [+sl.spot.x.toFixed(1), +sl.spot.y.toFixed(1), +(H.Z0[i] - sl.spot.z).toFixed(1)] : null, sl?.alarms ?? null]);
       jumpOnto(i, () => ({ x: left ? -1.8 : 1.8, z: zu(i, (u0 + u1) / 2) }), { reach: 3.6, hold: 30, stop: true, vmax: 3.5 });
       for (let q = 0; q < 60 && live(i) && P().mode !== 'ground'; q++) st({});
       log.push(['sims', k + 1, here(i), P().mode, P().ground?.tag ?? null]);
@@ -794,14 +813,14 @@ function installHaus() {
       if (window.__trace && k % 30 === 0) log.push(['boss', k, b.state, +b.stateT.toFixed(2), b.hp, here(i), [+b.pos.x.toFixed(1), +(H.Z0[i] - b.pos.z).toFixed(1)]]);
       const p = P(), d = Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z);
       if (b.state === 'stunned') { const h0 = S.hits; jumpOnto(i, () => ({ x: b.pos.x, z: b.pos.z }), { reach: 2.2, hold: 14, run: false, k: 5, pre: 14 }); for (let q = 0; q < 40 && P().mode === 'air'; q++) st({}); log.push(['sprung auf ihn', b.state, b.hp, S.hits - h0, here(i), [+b.pos.x.toFixed(1), +(H.Z0[i] - b.pos.z).toFixed(1)]]); continue; }
-      const want = b.state === 'spin' && b.stateT > 1.5 ? 2.1 : b.state === 'intro' ? 4.5 : 3.6;
+      const want = b.state === 'spin' ? (b.stateT > 1.5 ? 2.1 : 3.2) : b.state === 'run' ? 4.8 : b.state === 'intro' ? 4.5 : 3.6;
       const ax = p.pos.x - b.pos.x, az = p.pos.z - b.pos.z, al = Math.hypot(ax, az) || 1;
       // Zielpunkt im Abstand want auf der Seite der Figur, etwas seitlich versetzt (im Kreis laufen), in der Halle
       const side = b.state === 'spin' && b.stateT > 1.5 ? 0 : 1.2;
       let tx = b.pos.x + (ax / al) * want - (az / al) * side, tz = b.pos.z + (az / al) * want + (ax / al) * side;
       tx = Math.max(-5.8, Math.min(5.8, tx)); tz = Math.max(zu(i, 18.6), Math.min(zu(i, 1.4), tz));
       const e = Math.hypot(tx - p.pos.x, tz - p.pos.z);
-      st(e < 0.3 ? {} : { ...B.stick(tx - p.pos.x, tz - p.pos.z, Math.min(1, e)), run: d < 3 });
+      st(e < 0.3 ? {} : { ...B.stick(tx - p.pos.x, tz - p.pos.z, Math.min(1, e)), run: d < 4.5 });
     }
     for (let k = 0; k < 20 && live(i); k++) st({});
     toStar(i, { run: true });
