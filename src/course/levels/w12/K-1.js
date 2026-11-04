@@ -33,7 +33,7 @@
 
 import {
   PI, line, ring, arc, column, sign, marmor, block, kronenHimmel, goldkanten, sternchen, geruest, sockel, fahnen, ballons,
-  zauberkreis, piepTakt, goldenerZielmast, siegesfeier, fernAus, Bld, GOLD, gradY,
+  zauberkreis, piepTakt, goldenerZielmast, siegesfeier, fernAus, randsteine, turmZier, kronenTor, Bld, GOLD, gradY,
 } from './_helpers_a.js';
 
 // ---------------------------------------------------------------- Höhen
@@ -146,6 +146,17 @@ function build(level) {
     [0, 5.2, -2.5, 0.5], [-3, 3.2, -36, 0.35], [3.2, 5, -74, 0.35], [-2, 34, -206, 0.4], [2.5, 22, -262, 0.35],
     [0, YR + 6, A.z, 0.7, 0xffd0ff], [-4, 14, -455, 0.35], [0, 40, -593, 0.5], [0, 22, -925, 0.45], [0, 34, -966, 0.6],
   ]);
+  randsteine(level, [[-3, 3, -737, -790, YBO], [-3, 3, -797, -850, YBO], [-2.5, 2.5, -857, -905, YBO]]);
+  kronenTor(level, [[0, Y1, -2.6, 9.4, 4.6], [0, YBO, -752, 7.4, 3.6], [0, YBO, -820, 7.4, 3.6], [0, YBO, -884, 6.4, 3.6], [0, YPL, -916.4, 8.4, 4.2], [0, YZ, -959, 7, 4.2]]);
+  turmZier(level, {
+    faces: [
+      { z: -568, x0: -6, x1: 6, y0: YF, y1: YL1, windows: 0, banners: [-4.2, 4.2] },
+      { z: -574, x0: -6, x1: -2.6, y0: YL1, y1: YL2, windows: 1 }, { z: -574, x0: 2.6, x1: 6, y0: YL1, y1: YL2, windows: 1 },
+      { z: -582, x0: -6, x1: -3.6, y0: YL2, y1: YL3, windows: 1 }, { z: -582, x0: 3.6, x1: 6, y0: YL2, y1: YL3, windows: 1 },
+      { z: -590, x0: 3.8, x1: 6, y0: YL3, y1: YL4, banners: [5] }, { z: -590, x0: -6, x1: -3.8, y0: YL3, y1: YL4, banners: [-5] },
+    ],
+    holes: [[-2.2, YL2, -582, 1], [2.2, YL2, -582, 1], [-2.2, YL3, -584.6, 0], [2.2, YL3, -584.6, 0]],
+  });
   // Sockelzier der Siegertreppe: rote Teppichbahn
   if (level.view) {
     const b = new Bld();
@@ -189,38 +200,37 @@ export const LEVEL = {
   build,
   setup,
   camera: [
-    { from: 14, to: -128, pitch: 44, dist: 13, fov: 40, ahead: 2.2 },
+    { from: 14, to: -128, pitch: 40, dist: 13, fov: 40, ahead: 2.4 },
     { from: -128, to: -214, pitch: 36, dist: 14, fov: 42, height: 1.4, ahead: 2.2 },
-    { from: -214, to: -314, pitch: 46, dist: 13, fov: 40, ahead: 2.4 },
+    { from: -214, to: -314, pitch: 42, dist: 13, fov: 40, ahead: 2.6 },
     { from: -314, to: -347, pitch: 44, dist: 15, fov: 42, ahead: 3 },
-    { from: -347, to: -380, pitch: 54, dist: 17, fov: 42, x: 0, xLock: 0.5, ahead: 1.5 },
-    { from: -380, to: -548, pitch: 44, dist: 13, fov: 40, ahead: 2.4 },
+    { from: -347, to: -380, pitch: 50, dist: 17, fov: 42, x: 0, xLock: 0.5, ahead: 1.5 },
+    { from: -380, to: -548, pitch: 40, dist: 13, fov: 40, ahead: 2.6 },
     { from: -548, to: -598, pitch: 28, dist: 15, fov: 44, height: 2, ahead: 1.2, x: 0, xLock: 0.4 },
-    { from: -598, to: -724, pitch: 40, dist: 13.5, fov: 40, ahead: 2.4 },
-    { from: -724, to: -950, pitch: 38, dist: 14, fov: 42, ahead: 3.6, lead: 0.7 },
+    { from: -598, to: -724, pitch: 38, dist: 13.5, fov: 40, ahead: 2.6 },
+    { from: -724, to: -950, pitch: 34, dist: 14, fov: 44, ahead: 3.8, lead: 0.7 },
     { from: -950, to: -1000, pitch: 34, dist: 15, fov: 42, height: 1.6, ahead: 2 },
   ],
   segments: [
     // =================================================================================== 1 Schiebeblock-Auftakt
     marmor(M.START.x0, M.START.x1, M.START.z0, M.START.z1, Y1, 3),
-    { type: 'start_bogen', id: 'startbogen', pos: [0, Y1, -2.6], yaw: PI / 2, width: 9, mode: 'pass' },
     sign(-4.8, Y1, 5.6, 'Siegerstraße über\ndem Wolkenmeer', { size: [3.4, 1.15], yaw: 0.25 }),
     sign(4.4, Y1, -3.4, 'Kein Kontrollpunkt –\ndu schaffst das!', { size: [3, 1], yaw: -0.25 }),
     block(-1.5, 1.5, -8, -11, Y1, 'red'),
     slider('s1', SLIDERS.s1.z, 0, SLIDERS.s1.sx, 'yellow'),
     block(-1.5, 1.5, -20, -23, Y1, 'blue'),
     slider('s2', SLIDERS.s2.z, 0, SLIDERS.s2.sx, 'green', { phase: 0.5 }),
-    marmor(M.R1.x0, M.R1.x1, M.R1.z0, M.R1.z1, Y1, 3),
+    marmor(M.R1.x0, M.R1.x1, M.R1.z0, M.R1.z1, Y1, 3, { top: 'grass' }),
     block(-1.5, 1.5, -45, -48, 1, 'orange'),
     slider('s3', SLIDERS.s3.z, 1, SLIDERS.s3.sx, 'pink'),
     slider('s4', SLIDERS.s4.z, 1, SLIDERS.s4.sx, 'cyan'),
     block(-1.5, 1.5, -63, -66, 2, 'purple'),
-    marmor(M.R2.x0, M.R2.x1, M.R2.z0, M.R2.z1, 2, 3),
+    marmor(M.R2.x0, M.R2.x1, M.R2.z0, M.R2.z1, 2, 3, { top: 'grass' }),
     block(-1.5, 1.5, -83, -86, 2, 'red'),
     { type: 'mover', id: 's5', path: [[0, 1, -90.5], [0, 1, -98.5]], size: [3, 1, 3], speed: 2.5, wait: 1.1, color: 'yellow' },
     block(-1.5, 1.5, -103, -106, YS, 'blue'),
     slider('s6', SLIDERS.s6.z, YS, SLIDERS.s6.sx, 'green', { phase: 0.3 }),
-    marmor(M.R3.x0, M.R3.x1, M.R3.z0, M.R3.z1, YS, 3),
+    marmor(M.R3.x0, M.R3.x1, M.R3.z0, M.R3.z1, YS, 3, { top: 'grass' }),
     sign(-3.4, YS, -117, 'Ab in die Röhre –\nhinauf zum Aufzug!', { size: [2.8, 0.95], yaw: 0.2 }),
 
     // =================================================================================== 2 Aufzugsschacht
@@ -236,7 +246,7 @@ export const LEVEL = {
     marmor(M.GIPFEL.x0, M.GIPFEL.x1, M.GIPFEL.z0, M.GIPFEL.z1, YG, 3),
 
     // =================================================================================== 3 Piep-Block-Strecke
-    marmor(M.TAKT.x0, M.TAKT.x1, M.TAKT.z0, M.TAKT.z1, YP, 3),
+    marmor(M.TAKT.x0, M.TAKT.x1, M.TAKT.z0, M.TAKT.z1, YP, 3, { top: 'grass' }),
     sign(-3, YP, -219.4, 'Piep-Blöcke: jeder\nTakt ein Wechsel!', { size: [2.8, 0.95], yaw: 0.2 }),
     piep('p1', 'rot', [0, YP - 1, -230], [3, 1, 6]),
     marmor(-1.5, 1.5, -233, -235, YP, 1, { under: 0 }),
@@ -244,19 +254,19 @@ export const LEVEL = {
     piep('p3', 'rot', [0, YP - 1, -244], [3, 1, 6]),
     marmor(-1.5, 1.5, -247, -249, YP, 1, { under: 0 }),
     { type: 'piep_treppe', id: 'ptreppe', from: [0, YP, -249.75], dir: [0, -1], steps: 4, rise: 1, run: 1.5, width: 3, colors: ['rot', 'rot', 'blau', 'blau'], ...BEEP },
-    marmor(M.R4.x0, M.R4.x1, M.R4.z0, M.R4.z1, YT, 3),
+    marmor(M.R4.x0, M.R4.x1, M.R4.z0, M.R4.z1, YT, 3, { top: 'grass' }),
     // Zickzack-Feld (Zellen 2 m): rote Spur links, blaue Spur rechts, zweimal hinüber
     { type: 'piep_block', id: 'pfeld', pos: [0, YT - 2, -275], cell: 2, map: ['rr..', 'rr..', 'rrbb', '..bb', '..bb', 'rrbb', 'rr..', 'rr..'], ...BEEP },
     marmor(-2, 2, -283, -285, YT, 1, { under: 0 }),
     piep('t1', 'blau', [0, YT - 1.5, -288], [3, 1, 3]),
     piep('t2', 'rot', [0, YT - 2.2, -292.5], [3, 1, 3]),
     piep('t3', 'blau', [0, YT - 2.9, -297], [3, 1, 3]),
-    marmor(M.R5.x0, M.R5.x1, M.R5.z0, M.R5.z1, YK, 3),
+    marmor(M.R5.x0, M.R5.x1, M.R5.z0, M.R5.z1, YK, 3, { top: 'grass' }),
     sign(3.6, YK, -302, 'Kanone zur\nZauberarena', { size: [2.4, 0.9], yaw: -0.2 }),
     // hinter der Kanonen-Insel: drei Piep-Blöcke zum Sternsockel (Stern 0)
     piep('ps1', 'rot', [-3.8, YK - 1, -314.6], [2, 1, 2]),
     piep('ps2', 'blau', [-6.6, YK - 1, -317.2], [2, 1, 2]),
-    marmor(-11.4, -8.6, -319.6, -322.4, YK, 2, { under: 0 }),
+    marmor(-11.4, -8.6, -319.6, -322.4, YK, 2, { under: 0, top: 'grass' }),
     { type: 'glasspipe', id: 'kanone_arena', path: [[0, YK + 1, -305.4], [0, YK + 1, -309.6], [0, YK + 2.4, -311.6]], radius: 1, speed: 12, oneWay: true, cannon: { target: [0, YR, -351.6], arc: 6 } },
 
     // =================================================================================== 3b Zauberarena
@@ -269,7 +279,7 @@ export const LEVEL = {
     ...FEUERSTAB_ORTE.map(([x, z], i) => ({ type: 'feuerstab', id: `stab${i + 1}`, pos: [x, YR, z], block: 'stein', length: 7, arms: 2, speed: i % 2 ? -1.5 : 1.5, angle: i * PI / 4 })),
 
     // =================================================================================== 4 Graue Plattformen
-    marmor(M.G0.x0, M.G0.x1, M.G0.z0, M.G0.z1, YG4, 3),
+    marmor(M.G0.x0, M.G0.x1, M.G0.z0, M.G0.z1, YG4, 3, { top: 'grass' }),
     sign(-3.4, YG4, -387, 'Topf-Schnappblume:\nsie frisst Wuschel!', { size: [2.8, 0.95], yaw: 0.2 }),
     block(-2, 2, -398, -402, YG4, 'gray'),
     { type: 'pendelstachel', id: 'pendel1', pos: [0, YG4 + 6.6, -400], length: 5.4, swing: 55, period: 2.8, plane: 'x' },
@@ -281,7 +291,7 @@ export const LEVEL = {
     { type: 'stachelwalze_rot', id: 'walze1', pos: [0, YG4 + 1.1, -435.5], axis: 'x', length: 5, radius: 1.0, speed: 1.6 },
     { type: 'stachelwalze_rot', id: 'walze2', pos: [0, YG4 + 1.1, -440.5], axis: 'x', length: 5, radius: 1.0, speed: -1.6 },
     { type: 'mover', id: 'g6', path: [[-3.6, YG4 - 1, -447], [3.6, YG4 - 1, -447]], size: [3, 1, 4], speed: 2.2, wait: 0.6, color: 'gray', phase: 0.5 },
-    marmor(M.ERHOLUNG.x0, M.ERHOLUNG.x1, M.ERHOLUNG.z0, M.ERHOLUNG.z1, YG4, 3),
+    marmor(M.ERHOLUNG.x0, M.ERHOLUNG.x1, M.ERHOLUNG.z0, M.ERHOLUNG.z1, YG4, 3, { top: 'grass' }),
     sign(-3, YG4, -452, 'Erholungsinsel', { size: [2.2, 0.8], yaw: 0.2 }),
     block(-1.5, 1.5, -463, -466, YG4 + 0.5, 'gray'),
     { type: 'pendelstachel', id: 'pendel3', pos: [0, YG4 + 7.1, -464.5], length: 5.4, swing: 60, period: 2.6, plane: 'x' },
@@ -294,11 +304,11 @@ export const LEVEL = {
     marmor(-0.75, 0.75, -505, -517, 10.5, 1, { under: 0 }),
     { type: 'pendelstachel', id: 'pendel6', pos: [0, 10.5 + 6.6, -508.5], length: 5.4, swing: 55, period: 3, plane: 'x' },
     { type: 'pendelstachel', id: 'pendel7', pos: [0, 10.5 + 6.6, -513.5], length: 5.4, swing: 55, period: 3, phase: 0.5, plane: 'x' },
-    marmor(M.STERNPLATZ.x0, M.STERNPLATZ.x1, M.STERNPLATZ.z0, M.STERNPLATZ.z1, 10.5, 3),
+    marmor(M.STERNPLATZ.x0, M.STERNPLATZ.x1, M.STERNPLATZ.z0, M.STERNPLATZ.z1, 10.5, 3, { top: 'grass' }),
     sign(3.2, 10.5, -522, 'Sternplatz', { size: [2, 0.8], yaw: -0.2 }),
 
     // =================================================================================== 5 Wandsprung-Turm
-    marmor(M.TURMFUSS.x0, M.TURMFUSS.x1, M.TURMFUSS.z0, M.TURMFUSS.z1, YF, 3),
+    marmor(M.TURMFUSS.x0, M.TURMFUSS.x1, M.TURMFUSS.z0, M.TURMFUSS.z1, YF, 3, { top: 'grass' }),
     sign(-4, YF, -558, 'Federplattform,\ndann Wandsprung!', { size: [2.6, 0.95], yaw: 0.2 }),
     { type: 'trampoline', id: 'feder', pos: [0, YF, -565.6], strength: 21, size: 1.8 },
     marmor(-6, 6, -568, -574, YL1, YL1 + 8, { under: 0 }),
@@ -323,7 +333,7 @@ export const LEVEL = {
     { type: 'wasserkoerper', id: 'wuerfel3', pos: [0, M.P2.top - 7, -692], size: [8, 7, 28] },
     { type: 'stachelblock', id: 'sb6', pos: [0, M.P2.top - 7, -686], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.1, speed: 3.2, look: 'eigen' },
     { type: 'stachelblock', id: 'sb7', pos: [-2.4, M.P2.top - 4.8, -697], size: [2.4, 2.4, 2.4], color: 'rot', move: [4.8, 0, 0], speed: 2.6 },
-    marmor(M.P3.x0, M.P3.x1, M.P3.z0, M.P3.z1, M.P3.top, 3),
+    marmor(M.P3.x0, M.P3.x1, M.P3.z0, M.P3.z1, M.P3.top, 3, { top: 'grass' }),
     sign(-3.6, M.P3.top, -710, 'Röhre zum\nBoost-Finale', { size: [2.4, 0.9], yaw: 0.2 }),
     { type: 'glasspipe', id: 'roehre_finale', path: [[0, M.P3.top + 1, -716.6], [0, M.P3.top + 1, -721.5], [0, 33, -724.5], [0, 22, -727.5], [0, YBO + 2, -731.5], [0, YBO + 1, -735], [0, YBO + 1, -739.5]], radius: 1, speed: 14, oneWay: true, coins: 5 },
 
@@ -352,6 +362,20 @@ export const LEVEL = {
     { type: 'deco_star', shadow: false, items: [
       { kind: 'modell', name: 'krone_podest', pos: [-4.4, YZ + 4, -993.5], scale: 0.7 },
       { kind: 'modell', name: 'pokal_gross', pos: [4.4, YZ + 4, -993.5], opts: { size: 2.6 } },
+    ] },
+    { type: 'deco', items: [
+      { kind: 'flowers', pos: [-3, Y1, -38.5], size: [2, 2.5], n: 8 }, { kind: 'bush', pos: [3.4, Y1, -34], size: 0.7 }, { kind: 'lantern', pos: [-3.8, Y1, -32.8] },
+      { kind: 'flowers', pos: [3, 2, -78], size: [2.2, 2], n: 8 }, { kind: 'bush', pos: [-3.6, 2, -70.2], size: 0.7 }, { kind: 'lantern', pos: [3.8, 2, -69.8] },
+      { kind: 'flowers', pos: [-3.4, YS, -124.5], size: [2.4, 3], n: 9 }, { kind: 'bush', pos: [3.8, YS, -125.8], size: 0.8 }, { kind: 'tree', pos: [4, YS, -116.4], size: 3.4 },
+      { kind: 'flowers', pos: [2.4, YP, -225], size: [1.8, 2.4], n: 7 }, { kind: 'lantern', pos: [-3, YP, -226.4] },
+      { kind: 'flowers', pos: [2.6, YT, -263], size: [1.4, 3], n: 7 }, { kind: 'bush', pos: [-3, YT, -256], size: 0.6 },
+      { kind: 'flowers', pos: [3.8, YK, -310.4], size: [2, 2], n: 7 }, { kind: 'tree', pos: [-4.2, YK, -301.4], size: 3.6 }, { kind: 'bush', pos: [4.2, YK, -305], size: 0.7 },
+      { kind: 'flowers', pos: [-3.4, YG4, -393.4], size: [2, 2.4], n: 8 }, { kind: 'lantern', pos: [3.9, YG4, -394.2] },
+      { kind: 'flowers', pos: [-3, YG4, -458.4], size: [1.8, 2.4], n: 7 }, { kind: 'tree', pos: [3.4, YG4, -451.2], size: 3.2 },
+      { kind: 'flowers', pos: [4, 10.5, -541], size: [2.6, 3], n: 9 }, { kind: 'flowers', pos: [-4.4, 10.5, -540], size: [2, 3], n: 8 }, { kind: 'tree', pos: [-5, 10.5, -523], size: 3.6 },
+      { kind: 'flowers', pos: [-4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'flowers', pos: [4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.8, YF, -558], size: 0.8 },
+      { kind: 'flowers', pos: [-3.6, 36, -716], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.2, 36, -718.6], size: 0.7 },
+      { kind: 'flowers', pos: [-9, YS - 0.01, -320.5], size: [1.2, 1.2], n: 4 },
     ] },
     { type: 'deco_w8', items: [
       { kind: 'wimpel', from: [-8.6, YZ + 5.2, -958], to: [8.6, YZ + 5.2, -958], sag: 0.9 },

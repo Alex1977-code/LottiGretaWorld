@@ -112,9 +112,9 @@ export function kronenHimmel(level, o = {}) {
   const th = {
     ...base,
     label: 'Kronen-Gipfel',
-    sky: [[1, 0x1a56d6], [0.5, 0x3888f0], [0.2, 0x88c4ff], [0.07, 0xffe6b4], [0, 0xffd090], [-0.1, 0xfbe4d2], [-1, 0xe2e8f6]],
-    background: 0xf6e2c6,
-    fog: { color: 0xf6e6d6, near: 110, far: 380 },
+    sky: [[1, 0x1458d8], [0.5, 0x3490f4], [0.2, 0x86caff], [0.06, 0xffe6b0], [0, 0xffd49a], [-0.1, 0xf0f4fc], [-1, 0xd8e6f8]],
+    background: 0xd2e8ff,
+    fog: { color: 0xdeedfc, near: 110, far: 380 },
     hemi: { sky: 0xeef4ff, ground: 0xd8b88a, intensity: 1.4 },
     sun: { color: 0xfff0d0, intensity: 2.75, dir: [-0.45, 1, 0.5] },
     sunDisc: true,
@@ -128,7 +128,7 @@ export function kronenHimmel(level, o = {}) {
     water: 0x4ac4ff, waterDeep: 0x1a7ad8,
     buildBackdrop(sky, bounds, rnd, yBase) {
       const y = Math.min(bounds.min.y, yBase) - (o.below ?? 22);
-      cloudFloor(sky, bounds, rnd, y, { n: 90, top: 0xffffff, shade: 0xf4e4dc, deep: 0xdcc8d8 });
+      cloudFloor(sky, bounds, rnd, y, { n: 90, top: 0xffffff, shade: 0xe4eefc, deep: 0xbcd2f0 });
       kronenKulisse(sky, bounds, rnd, y, o);
     },
   };
@@ -267,15 +267,104 @@ export function geruest(level, o) {
     g.sphere(0.24, x, y1 + 0.75, z, 0xfff4c0, { ws: 10, hs: 8 });
   }
   // Querstreben (je 6 m) zwischen den Pfostenpaaren und entlang der Seiten
-  for (let y = y0 + 4; y < y1; y += 6) {
-    for (let z = z0; z >= z1 - 0.01; z -= o.every ?? 11) b.box(x1 - x0, 0.22, 0.22, (x0 + x1) / 2, y, z, GOLD_DUNKEL, { r: 0.05 });
-    for (const x of [x0, x1]) b.box(0.22, 0.22, z0 - z1, x, y + 3, (z0 + z1) / 2, GOLD_DUNKEL, { r: 0.05 });
+  for (let y = y0 + 4; y < y1; y += 6) for (const x of [x0, x1]) b.box(0.22, 0.22, z0 - z1, x, y + 3, (z0 + z1) / 2, GOLD_DUNKEL, { r: 0.05 });
+  // Diagonalstreben an den Seiten (Fachwerk)
+  for (const x of [x0, x1]) for (let z = z0; z - (o.every ?? 11) >= z1 - 0.01; z -= o.every ?? 11) for (let y = y0 + 7; y < y1 - 6; y += 12) {
+    const L = Math.hypot(o.every ?? 11, 6), a = Math.atan2(6, o.every ?? 11);
+    b.add(new THREE.BoxGeometry(0.16, 0.16, L), GOLD_DUNKEL, { p: [x, y + 3, z - (o.every ?? 11) / 2], r: [a, 0, 0] });
   }
   // Glühbirnen entlang der oberen Längsträger
   for (const x of [x0, x1]) for (let z = z0; z > z1; z -= 1.6) g.sphere(0.1, x, y1 + 0.55, z, (Math.round(z) & 1) ? 0xffe880 : 0xff8aa0, { ws: 6, hs: 4 });
   for (const x of [x0, x1]) b.box(0.3, 0.3, z0 - z1, x, y1 + 0.2, (z0 + z1) / 2, GOLD, { r: 0.06 });
   // Führungsschienen der Aufzüge
   for (const [x, z, ya, yb] of o.rails ?? []) for (const dx of [-1.45, 1.45]) b.box(0.16, yb - ya + 0.6, 0.16, x + dx, ya - 0.3, z, 0xfff4e0, { r: 0.04 });
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Rennbahn-Randsteine (rot-weiß im Wechsel) und goldene Leuchtnieten entlang gerader Bahnstücke (Boost-Finale):
+ * list [[x0, x1, z0, z1, top] …] (z0 > z1).
+ */
+export function randsteine(level, list) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const [x0, x1, z0, z1, top] of list) {
+    for (let z = z0 - 0.5, i = 0; z > z1 + 0.4; z -= 1, i++) {
+      for (const x of [x0 + 0.3, x1 - 0.3]) b.box(0.55, 0.07, 0.98, x, top, z, i % 2 ? 0xffffff : 0xe8283a, { r: 0.02 });
+    }
+    for (let z = z0 - 2; z > z1 + 1; z -= 4) for (const x of [x0 + 0.75, x1 - 0.75]) g.sphere(0.09, x, top + 0.06, z, 0xfff0a0, { ws: 6, hs: 4 });
+    // Mittelstreifen (gestrichelt, gold)
+    for (let z = z0 - 1.5; z > z1 + 1; z -= 3) b.box(0.18, 0.04, 1.4, (x0 + x1) / 2, top, z, GOLD, { r: 0.01 });
+  }
+  b.flush(level, { castShadow: false });
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Zier des Wandsprung-Turms: Bogenfenster (dunkelblaues Glas, Goldrahmen) und rote Kronenbanner an den Stirnwänden, Ameisenlöcher am
+ * Fuß und oben auf der Ameisenwand. o = { faces: [{ z, x0, x1, y0, y1, windows: n, banners: [x …] }], holes: [[x, y, z, n] …] }
+ * (n = Normale z-Richtung: 1 = Loch in der Wand zur Kamera, 0 = Loch im Boden)
+ */
+export function turmZier(level, o) {
+  if (!level.view) return;
+  const b = new Bld(), g = new Bld();
+  for (const f of o.faces ?? []) {
+    const n = f.windows ?? 0, w = (f.x1 - f.x0) / Math.max(1, n);
+    for (let i = 0; i < n; i++) {
+      const cx = f.x0 + w * (i + 0.5), wy = f.y0 + (f.y1 - f.y0) * 0.25, wh = (f.y1 - f.y0) * 0.5;
+      b.box(1.15, wh + 0.2, 0.12, cx, wy - 0.1, f.z + 0.04, GOLD, { r: 0.04 });
+      b.box(0.9, wh, 0.1, cx, wy, f.z + 0.08, 0x2a4aa8, { r: 0.02 });
+      b.cyl(0.5, 0.5, 0.12, cx, wy + wh - 0.12, f.z + 0.06, GOLD, 16, { rx: PI / 2 });
+      b.cyl(0.42, 0.42, 0.1, cx, wy + wh - 0.1, f.z + 0.1, 0x2a4aa8, 16, { rx: PI / 2 });
+      g.box(0.1, wh * 0.8, 0.04, cx - 0.2, wy + 0.1, f.z + 0.14, 0x9ad8ff, { r: 0 });
+    }
+    for (const x of f.banners ?? []) {
+      const top = f.y1 - 0.3, h = Math.min(3.2, (f.y1 - f.y0) * 0.6);
+      b.box(1.3, 0.12, 0.2, x, top, f.z + 0.12, GOLD, { r: 0.04 });
+      b.box(1.1, h, 0.06, x, top - h, f.z + 0.16, ROT, { r: 0.02 });
+      b.cone(0.55, 0.5, x, top - h - 0.45, f.z + 0.16, ROT, 3, { rx: PI });
+      b.sphere(0.22, x, top - h * 0.45, f.z + 0.22, GOLD_HELL, { ws: 8, hs: 6, s: [1, 1, 0.35] });
+    }
+  }
+  for (const [x, y, z, n] of o.holes ?? []) {
+    if (n) { b.cyl(0.55, 0.55, 0.08, x, y + 0.45, z + 0.03, 0x2a1a10, 14, { rx: PI / 2 }); b.torus(0.58, 0.1, x, y + 0.45, z + 0.06, 0x8a5a3a, { ts: 14 }); }
+    else { b.cyl(0.55, 0.55, 0.04, x, y + 0.005, z, 0x2a1a10, 14); b.torus(0.58, 0.12, x, y + 0.04, z, 0x8a5a3a, { rx: PI / 2, ts: 14 }); }
+  }
+  b.flush(level);
+  g.flush(level, { material: 'glow', castShadow: false });
+}
+
+/**
+ * Kronentor (statisch; Pfeiler mit Kollision): zwei Marmorpfeiler mit Goldkapitellen, ein goldener Bogen mit Glühbirnen und oben
+ * eine Krone mit Edelsteinen. list [[x, y, z, Breite, Höhe] …] (Bogen quer zur Laufrichtung −Z).
+ */
+export function kronenTor(level, list) {
+  const b = new Bld(), g = new Bld();
+  for (const [x, y, z, W, H] of list) {
+    for (const s of [-1, 1]) {
+      const px = x + s * W / 2;
+      level.world.add({ type: 'box', min: [px - 0.45, y, z - 0.45], max: [px + 0.45, y + H, z + 0.45], tag: 'kronentor' });
+      b.box(1.1, 0.4, 1.1, px, y, z, GOLD_DUNKEL, { r: 0.08 });
+      b.cyl(0.4, 0.45, H - 0.9, px, y + 0.4, z, gradY(0xe8dccc, MARMOR, y, y + H), 14);
+      b.box(1.0, 0.5, 1.0, px, y + H - 0.5, z, GOLD, { r: 0.1 });
+      g.sphere(0.2, px, y + H + 0.25, z, GOLD_HELL, { ws: 10, hs: 8 });
+    }
+    // Bogen: Halbkreis aus Goldstücken mit Glühbirnen
+    const R = W / 2, n = 18;
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * PI, a1 = ((i + 1) / n) * PI, am = (a0 + a1) / 2;
+      const cx = x - Math.cos(am) * R, cy = y + H + Math.sin(am) * R * 0.55;
+      const L = Math.hypot(Math.cos(a1) - Math.cos(a0), (Math.sin(a1) - Math.sin(a0)) * 0.55) * R + 0.06;
+      b.box(L, 0.36, 0.5, cx, cy - 0.18, z, GOLD, { rz: Math.atan2(Math.cos(am) * 0.55, Math.sin(am)), r: 0.06 });
+      if (i % 2 === 0) g.sphere(0.13, cx, cy + 0.12, z + 0.28, i % 4 ? 0xff8aa0 : 0xfff0a0, { ws: 8, hs: 6 });
+    }
+    // Krone oben
+    const parts = [];
+    kroneGeo(0.6, 0.7, parts, [x, y + H + R * 0.55 + 0.1, z]);
+    const kg = merge(parts);
+    if (kg && level.view) addStatic(level, kg, { material: 'world' });
+  }
   b.flush(level);
   g.flush(level, { material: 'glow', castShadow: false });
 }
@@ -645,7 +734,16 @@ export function fernAus(level, pattern, dist = 60) {
   // benannte Bausteine nach Muster; dazu namenlose Objekte mit eigener Lage (Fahrblöcke, Wasserwürfel …), nicht die Zier in
   // Weltkoordinaten (Lage im Ursprung)
   const pick = (o) => pattern.test(o.name ?? '') || (!o.name && (o.isGroup || o.isMesh) && !o.isInstancedMesh && o.position.lengthSq() > 1);
-  for (const o of v.three.children) if (pick(o)) list.push({ o, p: new THREE.Vector3() });
+  // Lage je Objekt: Mitte seines Hüllquaders beim Aufbau, danach mit der Verschiebung der Wurzel (bewegte Bausteine setzen
+  // root.position, feste haben ihre Teile in Weltkoordinaten unter einer Wurzel im Ursprung)
+  const box = new THREE.Box3();
+  for (const o of v.three.children) {
+    if (!pick(o)) continue;
+    box.setFromObject(o);
+    if (box.isEmpty()) continue;
+    const c = box.getCenter(new THREE.Vector3());
+    list.push({ o, p: new THREE.Vector3(), c, r0: o.position.clone() });
+  }
   const st = { n: list.length, hidden: 0, names: [...new Set(list.map((it) => it.o.name))] };
   level.named.set('fernaus', st);
   v.onFrame(() => {
@@ -653,7 +751,7 @@ export function fernAus(level, pattern, dist = 60) {
     if (!pl) return;
     let h = 0;
     for (const it of list) {
-      it.o.getWorldPosition(it.p);
+      it.p.copy(it.c).add(it.o.position).sub(it.r0);
       const vis = Math.hypot(it.p.x - pl.pos.x, it.p.z - pl.pos.z) < dist;
       if (it.o.visible !== vis) it.o.visible = vis;
       if (!vis) h++;
