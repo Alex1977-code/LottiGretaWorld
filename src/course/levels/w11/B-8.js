@@ -17,6 +17,7 @@
 
 import { remixOf } from '../../level/remix.js';
 import { line } from './_helpers_bb.js';
+import { neonSign } from '../w4/_helpers_b.js';
 
 const Y = 1, YC = 31, YU = 24, YR = 11, YZ = 26;
 const PI = Math.PI;
@@ -24,6 +25,13 @@ const PI = Math.PI;
 /** fester Neon-Absatz in einer Piep-Reihe (Oberkante y 1, Mitte x/z, Breite w, Tiefe d). */
 const neon = (x, z, w, d) => ({ type: 'platform', style: 'block', color: 0x8a7cff, pos: [x, Y - 1, z], size: [w, 1, d] });
 const stachelboden = (x, y, z, w, d) => ({ type: 'stachelboden', pos: [x, y, z], size: [w, 0.3, d] });
+
+// neue Texte für Schilder der Basis: [x, z, Größe, Farbe, Text]
+const SCHILDER = [
+  [4.2, -38.5, [3.8, 1.3], '#5af0ff', 'Gleitblatt:\nüber die Reihe segeln!'],
+  [-4.6, -90.8, [3.4, 1.2], '#ffe04a', 'Ein Feld\nöffnet den Zaun!'],
+  [5.6, -191.4, [3.6, 1.3], '#ff8a4a', 'Viererlift:\nheute Pause!'],
+];
 
 export const LEVEL = remixOf('4-3', {
   id: 'B-8',
@@ -89,6 +97,22 @@ export const LEVEL = remixOf('4-3', {
         coins: Array.from({ length: 8 }, (_, i) => [3.5 + 4.2 * Math.cos(i * PI / 4), YC + (i % 2 ? 1.9 : 0.6), -186 - 4.2 * Math.sin(i * PI / 4)]) },
       line([0, 18.4, -243], [0, 15, -251], 3),
     ],
+  },
+  // Leuchtschilder der Basis, die von Klonen erzählen, bekommen neue Texte (gleiche Stelle, Größe, Farbe)
+  setup(level) {
+    if (!level.view) return;
+    const schilder = level.view.frameFns.map((f) => f.obj).filter((o) => o?.name === 'zier:leuchtschrift');
+    for (const [x, z, size, color, text] of SCHILDER) {
+      const alt = schilder.find((o) => Math.abs(o.position.x - x) < 0.05 && Math.abs(o.position.z - z) < 0.05);
+      if (!alt) continue;
+      const neu = neonSign(level, { pos: [x, 0, z], size, color, text, post: 0 });
+      if (!neu) continue;
+      alt.material.map?.dispose();
+      alt.material.map = neu.material.map;
+      alt.material.needsUpdate = true;
+      level.view.remove(neu);
+      neu.geometry.dispose();
+    }
   },
   // Spiegelfrucht-Automaten der Basis geben jetzt Gleitblätter
   prebuild(level) {
