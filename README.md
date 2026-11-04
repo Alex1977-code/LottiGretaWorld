@@ -284,6 +284,24 @@ in einer Klang-Variante; kein Stempel:
 | P-6 | Riesenwracks im Morgenwind | 6-2 | Riesen-Wracks über 5 Warp-Boxen, 8 Schubser ins Meer stoßen |
 | P-7 | Sinkschollen über dem Blauglutsee | 7-4 | Nacht, sinkende Schollen über blauer Lava, Gleitblatt |
 
+**Welt Blume „Blumen-Remix“** – dritte Bonuswelt (frei nach P-6 über die Röhre „WB“). Wieder Remixe bekannter Level,
+schwerer als im Pilz-Remix, dazu zum Schluss ein Boss-Marathon; kein Stempel:
+
+| Id | Titel | Basis | Art |
+| --- | --- | --- | --- |
+| B-1 | Funkentanz in der Kippfeld-Manege | 1-5 | Zirkusnacht, Funkenflämmchen, Kanone im Gitterkäfig |
+| B-2 | Wasserwürfel im Glitzerschacht | 6-7 | Schwebende Wasserwürfel statt Wippen, zweite Wuschel-Horde |
+| B-3 | Fackelnacht am Lila Nebelmoor | 4-2 | Nacht, 23 Fackeln mit Feuerbällen anzünden, schnellere Schiebeplattformen |
+| B-4 | Uhrenhatz durch die Werferburg | 7-1 | Start mit 30 s, Zeit-Uhren als Ideallinie, schnelle Musik |
+| B-5 | Hasenhatz im Morgenrot | 5-4 | Morgenwiese mit Riesenhase und 10 Hasen, Wolkenlift zum Ziel |
+| B-6 | Grauspuk in der Mondscheinvilla | 3-3 | Schwarz-Weiß, falsche Zielmasten rufen Großspuke |
+| B-7 | Kanonenhelm-Tauchgang im Leuchtturmriff | 3-5 | Kanonen-Helme unter Wasser, Felswände sprengen, Tintlinge |
+| B-8 | Turbo-Piep über dem Neonsteg | 4-3 | Farbblöcke 4× schneller ohne Warnung, Gleitblätter, viele Stacheln |
+| B-9 | Feuertürme im Abendrot | 5-1 | 100 s, vier Pilzlingstürme mit Feuer-Werfern, Zeit-Uhren |
+| B-10 | Honigwaben am Taghimmel | S-6 | Taghimmel, mehr Lava-Waben, schnellere Walzen, Wurfsichel-Sterne |
+| B-11 | Stachelstege im Suchlicht | 8-1 | Suchscheinwerfer lassen Stachelfallen ausfahren, schnelle Stachelplattformen |
+| B-12 | Fünf Schlüssel im Sternenzelt | – | Boss-Marathon: sechs Warp-Boxen zu den großen Bossen, fünf Schlüssel öffnen die Würfelblase |
+
 **Halloween · Kürbisinsel** (Sonderwelt, sofort offen über die geschmückte Röhre „HW“ auf der Welt-1-Karte; Lotti,
 Greta, Pflaume und Krümel tragen dort Verkleidung):
 
