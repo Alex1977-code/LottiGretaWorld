@@ -150,7 +150,7 @@ const ROUTES = {
       { name: 'Federplattform', spring: [0, -565.6], to: [0, -571.4], steerY: 12, top: 11 },
       { name: 'Wandsprung-Schacht', wallclimb: { dir: 1, until: 20.8, z: -571.6, then: [0, -577.5], top: 20 } },
       { to: [0, -577.5], within: 0.4, run: false },
-      { name: 'Hörner-Ameise an der Turmwand', ant: 'ameisensoldat_horn', stand: [-2.2, -580.5], fy: [20.05, 21.2], top: 28 },
+      { name: 'Hörner-Ameise an der Turmwand', ant: 'ameisensoldat_horn', stand: [-2.2, -580.1], fy: [20.2, 21.0], top: 28 },
       { to: [-1.1, -589.1], within: 0.3, run: false },
       { name: 'Rankenschnapper 1', vine: 'ranke1', to: [-2.4, -589.1] },
       { name: 'Rankenschnapper 2', vine: 'ranke2', to: [0, -589.1], need: 0.8 },
@@ -208,8 +208,64 @@ const ROUTES = {
       { to: [0, -986], jump: 20, within: 0.5, run: false },
       { name: 'goldener Zielmast', to: [0, -989.6], within: 0.2 },
     ],
-    targets: [],
-    extra: [],
+    targets: [
+      { name: 'Stern 0: hinter der Piep-Block-Strecke über zwei Piep-Blöcke (rot, im Wechsel blau) zum Sternsockel', star: 0, from: [-2.6, 16, -308],
+        legs: [{ to: [-2.9, -311.6], within: 0.25, run: false }, { beep: 'rot', need: 1.1, to: [-3.8, -314.6], jump: 22, within: 0.5, run: false },
+          { beep: 'blau', lead: 0.3, to: [-6.6, -317.2], jump: 22, within: 0.5, run: false }, { to: [-10, -321], jump: 26, within: 0.6, run: false }, { star: 0 }], shot: 'stern0' },
+      { name: 'Stern 0 nicht ohne die Piep-Blöcke (vom Inselrand zum Sockel zu weit)', star: 0, expectNot: true, allowFail: true, from: [-4.4, 16, -311.4], heroes: ['lotti'],
+        legs: [{ to: [-10, -321], jump: 40, within: 0.6, run: true, max: 300 }] },
+      { name: 'Stern 1: Topf-Schnappblume von der Erholungsinsel zum Sternplatz tragen, sie frisst den Wuschel-Ring', star: 1, from: [1.4, 9, -457.4],
+        legs: [{ pickUp: 'topf2' }, { to: [0, -459.6], within: 0.3, run: false },
+          { to: [0, -464.5], jump: 24, within: 0.6, run: false }, { to: [0, -465.6], within: 0.3, run: false },
+          { to: [0, -470.5], jump: 26, within: 0.6, run: false }, { to: [0, -471.6], within: 0.3, run: false },
+          { to: [0, -476.5], jump: 26, within: 0.6, run: false }, { to: [0, -477.6], within: 0.3, run: false },
+          { board: 'g9', at: [0, -482.5] }, { ride: 'g9', stop: [0, -494.5], edge: [0, -1.1] },
+          { to: [0, -500], jump: 24, within: 0.6, run: false }, { to: [0, -501.6], within: 0.3, run: false },
+          { to: [0, -506], jump: 22, within: 0.5, run: false }, { to: [0, -516.5], within: 0.4, run: false },
+          { to: [0, -522], jump: 22, within: 0.6, run: false },
+          { name: 'zum Wuschel-Ring', to: [-0.6, -531], within: 0.3, run: false, slow: 0.5 },
+          { feed: 'w_stern', face: [-3.4, -531], max: 2400 },
+          { star: 1 }], mech: (r) => r.mech.eaten >= 8, mechText: (r) => `gefressen ${r.mech.eaten ?? 0}`, shot: 'stern1' },
+      { name: 'Wuschel-Ring ohne Topf-Schnappblume: Hineinlaufen verletzt', star: 1, secret: true, from: [-0.6, 10.5, -526], heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ to: [-3.4, -531], within: 0.3, run: false, max: 400 }, { wait: 30 }],
+        mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Stern 2: hinter dem Platz über den Goldsteg zwischen den Schockwellen zum Sockel', star: 2, from: [0, 16, -934.8],
+        legs: [{ to: [0, -936.6], within: 0.3, run: false }, { ring: 'fr9', to: [0, -946.6] }, { star: 2 }], shot: 'stern2' },
+      { name: 'Stempel: auf der zweiten Stufe der Goldtreppe rechts hochspringen', stamp: true, from: [3.3, 24, -973],
+        legs: [{ to: [3.3, -974.4], within: 0.3, run: false }, { to: [3.3, -976.5], jump: 20, within: 0.4, run: false }, { to: [3.3, -979.5], jump: 20, within: 0.4, run: false }, { hop: 30 }], shot: 'stempel' },
+      { name: 'Stempel nicht im Vorbeigehen auf der Treppenmitte', stamp: true, expectNot: true, from: [0, 24, -973], heroes: ['lotti'],
+        legs: [{ to: [0, -974.4], within: 0.3, run: false }, { to: [0, -976.6], jump: 20, within: 0.5, run: false }, { to: [0, -979.6], jump: 20, within: 0.5, run: false }, { to: [0, -982.6], jump: 20, within: 0.5, run: false }] },
+    ],
+    extra: [
+      { name: 'Extraleben: unsichtbarer Block auf Rastinsel 2', from: [-2.5, 2, -75.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-2.5, -77], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: unsichtbarer Block auf dem Aufzugs-Gipfel', from: [-3, 29, -209.4], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [-3, -211], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Extraleben: unsichtbarer Block auf der Erholungsinsel', from: [2.5, 9, -455.9], heroes: ['lotti'], expectLives: 1,
+        legs: [{ to: [2.5, -457.5], within: 0.2, run: false }, { hop: 30 }, { wait: 30 }, { chaseKind: 'powerup', max: 1200 }] },
+      { name: 'Hörner-Ameise trägt die Figur verwundbar ohne Treffer die Turmwand hinauf', from: [0, 20, -577.5], heroes: ['lotti', 'greta'], invuln: false,
+        legs: [{ ant: 'ameisensoldat_horn', stand: [-2.2, -580.1], fy: [20.2, 21.0], top: 28 }],
+        mech: (r) => r.mech.hurts === 0 && r.pos[1] > 27.5, mechText: (r) => `Treffer ${r.mech.hurts}, y ${r.pos[1].toFixed(1)}` },
+      { name: 'Hörner-Ameise am Boden: wer ihr von oben auf das Horn springt, wird getroffen', from: [0, 28, -586], heroes: ['lotti'], invuln: false, allowFail: true,
+        legs: [{ until: '=L.entities.some((e) => e.kind === \'ameisensoldat_horn\' && e.normal.y > 0.9 && e.foot.x < 0 && e.foot.z < -583)', max: 1200 }, { stompAll: 'zz_keiner' }, { chaseKind: 'ameisensoldat_horn', max: 300 }],
+        mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Piep-Blöcke: wer auf Rot stehen bleibt, fällt beim Wechsel', from: [0, 14, -230], heroes: ['lotti'], invuln: false, expectAlive: false, allowFail: true,
+        legs: [{ beep: 'rot', need: 1.2, to: [0, -230], within: 0.3, run: false }, { wait: 520 }],
+        mech: (r) => r.dead || (r.rt.deaths ?? 0) > 0, mechText: (r) => (r.dead || (r.rt.deaths ?? 0) > 0 ? 'gefallen' : 'steht noch') },
+      { name: 'Warp-Box 2 bleibt verborgen, solange eine Zauberkröte übrig ist', from: [0, 14, -351.6], heroes: ['lotti'],
+        legs: [{ toads: ['zk1', 'zk2'], center: [0, -362] }, { wait: 60 }, { expect: '=ent(\'warp2\').hidden' }] },
+      { name: 'Warp-Box 4 bleibt mit vier Schlüsselmünzen verborgen', from: [0, 16, -919], heroes: ['lotti'],
+        legs: [{ to: [0, -931], within: 0.4 }, { wait: 60 }, { expect: '=ent(\'warp4\').hidden && (L.keys?.krone?.n ?? 0) === 0' }, { to: [-6, -931], within: 0.4 }, { wait: 30 }, { expect: '=(L.keys?.krone?.n ?? 0) === 1 && ent(\'warp4\').hidden' }] },
+      { name: 'kein Kontrollpunkt: ein Sturz in den grauen Plattformen führt zurück an den Start', from: [0, 9, -420], heroes: ['lotti'], invuln: false,
+        legs: [{ die: 'fall' }, { expect: '=Math.hypot(P().pos.x, P().pos.z - 6) < 1.5 && P().pos.y < 1' }] },
+      { name: 'Feuerstab in der Zauberarena streift die Ecken des Mittelsockels', from: [-1.25, 14, -363.25], heroes: ['lotti'], invuln: false, allowFail: true, expectAlive: false,
+        legs: [{ wait: 600 }], mech: (r) => r.mech.hurts >= 1, mechText: (r) => `Treffer ${r.mech.hurts}` },
+      { name: 'Pendelstachel über dem schmalen Steg verletzt, wer stehen bleibt', from: [0, 10.5, -508.5], heroes: ['lotti'], invuln: false, allowFail: true, expectAlive: false,
+        legs: [{ wait: 500 }], mech: (r) => r.mech.hurts >= 1 || (r.rt.deaths ?? 0) > 0, mechText: (r) => `Treffer ${r.mech.hurts}, Stürze ${r.rt.deaths ?? 0}` },
+      { name: 'Siegesfeier am goldenen Zielmast: Konfetti und Feuerwerk', from: [0, 28, -987], heroes: ['lotti'],
+        legs: [{ to: [0, -989.6], within: 0.2 }, { tail: 360 }],
+        mech: (r) => r.mech.feier?.fired && r.mech.feier.bursts >= 3 && r.mech.feier.confetti >= 3, mechText: (r) => JSON.stringify(r.mech.feier ?? {}) },
+    ],
     shots: [
       ['start', [0, 0, 6]],
     ],
@@ -308,7 +364,10 @@ function install() {
         const q = P();
         if (hold) for (const f of L.players ?? [q]) f.invuln = Math.max(f.invuln, 5);
         c.setInput(inp); c.step(1); steps++;
-        if ((q.hurtTries ?? 0) > lastHurts) { lastHurts = q.hurtTries; mech.hurtList.push(`${q.lastHurt}@${q.pos.x.toFixed(0)},${q.pos.y.toFixed(0)},${q.pos.z.toFixed(0)}`); }
+        if ((q.hurtTries ?? 0) > lastHurts) {
+          lastHurts = q.hurtTries; mech.hurtList.push(`${q.lastHurt}@${q.pos.x.toFixed(0)},${q.pos.y.toFixed(0)},${q.pos.z.toFixed(0)}`);
+          if (!hold) log.push(['TREFFER', q.lastHurt, +q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2), +q.vel.y.toFixed(2), q.mode, ...(L.entities.filter((e) => e.kind === q.lastHurt && e.alive).map((e) => [+e.pos.x.toFixed(2), +e.pos.y.toFixed(2), +e.pos.z.toFixed(2), +(e.half?.y ?? 0).toFixed(2)]).sort((a, b) => Math.hypot(a[0] - q.pos.x, a[2] - q.pos.z) - Math.hypot(b[0] - q.pos.x, b[2] - q.pos.z)).slice(0, 2))]);
+        }
         if (q.mode === 'ground' && !q.dead) {
           const t = track[track.length - 1];
           if (!t || Math.hypot(q.pos.x - t[0], q.pos.z - t[2]) > 7 || Math.abs(q.pos.y - t[1]) > 2) track.push([+q.pos.x.toFixed(2), +q.pos.y.toFixed(2), +q.pos.z.toFixed(2)]);
@@ -355,6 +414,8 @@ function install() {
           log.push(['neustart', k, +P().pos.x.toFixed(2), +P().pos.y.toFixed(2), +P().pos.z.toFixed(2)]);
           continue;
         }
+        // Nachlauf nach dem Ziel (Feier): Schritte auch außerhalb des Spielzustands
+        if (Lg.tail) { for (let i = 0; i < Lg.tail; i++) { c.setInput({}); c.step(1); steps++; } continue; }
         if (p.dead || L.runtime.status !== 'play') break;
         if (Lg.wait && !Lg.to) { for (let i = 0; i < Lg.wait; i++) tick({}); continue; }
         if (Lg.place) { this.place(Lg.place, { hero: p.hero, settle: 10, power: p.power !== 'none' ? p.power : undefined }); log.push(['gesetzt', ...Lg.place]); continue; }
@@ -494,6 +555,28 @@ function install() {
           log.push(['takt', Lg.beep, k, +tNext().toFixed(2), ...pos()]);
           curMover = null;
         }
+        // ------------------------------------------------ Feuerring (Id, Puls): warten, bis die Flammen erloschen sind, dann wie ein Wegpunkt-Bein weiter
+        if (Lg.ring) {
+          const f = L.entities.find((e) => e.spec?.id === Lg.ring);
+          let k = 0;
+          for (; k < 1200 && f && (f.flameH ?? 0) > 0.05 && !P().dead; k++) tick({});
+          for (; k < 1200 && f && (f.flameH ?? 0) <= 0.05 && (f.ring ?? 0) > 1 && !P().dead; k++) tick({});
+          log.push(['feuerring', Lg.ring, k, +(f?.ring ?? 0).toFixed(2), ...pos()]);
+        }
+        // ------------------------------------------------ Topf-Schnappblume tragen und zum Wuschel-Ring (Id-Anfang) blicken, bis er aufgefressen ist
+        if (Lg.feed) {
+          const [fx, fz] = Lg.face;
+          const ring0 = L.entities.filter((e) => e.kind === 'wuschel' && String(e.spec?.id ?? '').startsWith(Lg.feed));
+          const left = () => ring0.filter((e) => e.alive && !e.removed && e.state !== 'gone').length;
+          let k = 0;
+          for (; k < (Lg.max ?? 2400) && left() > 0 && !P().dead; k++) {
+            const q = P(), fv = q.facingVec(), dx = fx - q.pos.x, dz = fz - q.pos.z, l = Math.hypot(dx, dz) || 1;
+            tick((fv.x * dx + fv.z * dz) / l < 0.99 ? { ...this.stick(dx, dz, 0.12), run: false } : {});
+          }
+          mech.eaten = ring0.length - left();
+          log.push(['gefressen', Lg.feed, mech.eaten, ring0.length, k, !!P().holding]);
+          continue;
+        }
         // ------------------------------------------------ Zauberkröten (Ids) besiegen: nächsten Auftrittspunkt vorhersehen, hinstellen, draufspringen
         if (Lg.toads) {
           const toads = Lg.toads.map((id) => L.entities.find((e) => e.spec?.id === id)).filter(Boolean);
@@ -596,7 +679,8 @@ function install() {
         if (Lg.ant) {
           const ants = () => L.entities.filter((e) => e.kind === Lg.ant && e.alive && !e.removed && !e.defeated && e.boxId !== null);
           const [wx, wz] = Lg.stand;
-          goTo(wx, wz, 0.2, 0.6);
+          const settleAt = () => { goTo(wx, wz, 0.12, 0.5); for (let i = 0; i < 90 && P().hSpeed() > 0.05; i++) tick({}); };
+          settleAt();
           let on = null, k = 0, tries = 0;
           for (; k < (Lg.max ?? 6000) && !on && !P().dead; k++) {
             const q = P();
@@ -606,15 +690,16 @@ function install() {
             let j = 0, left = false;
             for (; j < 220; j++, k++) {
               const cx = (a.box.min.x + a.box.max.x) / 2, cz = (a.box.min.z + a.box.max.z) / 2;
-              const rising = P().vel.y > (Lg.steerAt ?? 5);
-              const st = P().mode === 'air' && !rising ? this.airSteer(cx, cz, a.mover?.vx ?? 0, a.mover?.vz ?? 0) : { x: 0, y: 0 };
-              tick({ ...st, jump: j < 30, run: false });
+              // erst über den Rücken lenken, wenn die Füße über dem Reit-Quader sind (sonst streift man das Horn)
+              const above = P().pos.y > a.box.max.y + (Lg.clear ?? 0.3);
+              const st = P().mode === 'air' ? (above ? this.airSteer(cx, cz, a.mover?.vx ?? 0, a.mover?.vz ?? 0, 4, 6) : this.airSteer(wx, wz, 0, 0, 4, 2)) : { x: 0, y: 0 };
+              tick({ ...st, jump: j < (Lg.hold ?? 30), run: false });
               if (P().mode === 'air') left = true;
               if (a.riding(P())) { on = a; break; }
               if (left && P().mode === 'ground') break;
             }
             log.push(['ameise', a.spec?.id ?? '?', !!on, j, +a.foot.y.toFixed(2), ...pos()]);
-            if (!on) { if (tries > 8) break; goTo(wx, wz, 0.2, 0.6); }
+            if (!on) { if (tries > 8) break; settleAt(); }
           }
           if (!on) { log.push(['FEHLER: Ameise nicht bestiegen']); break; }
           let r = 0;
@@ -837,6 +922,7 @@ function install() {
       c.setInput({});
       const q = P();
       mech.hurts = (L.players ?? [q]).reduce((a, f) => a + (f.hurtTries ?? 0), 0);
+      { const fe = L.named.get('siegesfeier'); if (fe) mech.feier = { fired: fe.fired, bursts: fe.bursts, confetti: fe.confetti }; }
       // Trefferversuche je Quelle (Art@gerundeter Ort), zusammengefasst
       mech.hurtBy = {};
       for (const h of mech.hurtList) { const k = h.replace(/,(-?\d+),(-?\d+)$/, (m, y, z) => `,${Math.round(+z / 10) * 10}`); mech.hurtBy[k] = (mech.hurtBy[k] ?? 0) + 1; }

@@ -263,7 +263,7 @@ export const LEVEL = {
     marmor(A.inner, A.half, A.z + A.inner, A.z - A.inner, YR, 3, { under: 0 }),
     marmor(-1.5, 1.5, A.z + 1.5, A.z - 1.5, YR, 1.4, { under: 0, gold: false }),   // Mittelsockel (Warp-Box 2)
     { type: 'broeckelblock', id: 'arenafeld', blocks: arenaFeld(), delay: 0.45, respawn: 3.5 },
-    ...FEUERSTAB_ORTE.map(([x, z], i) => ({ type: 'feuerstab', id: `stab${i + 1}`, pos: [x, YR, z], block: 'stein', length: 6, arms: 2, speed: i % 2 ? -1.5 : 1.5, angle: i * PI / 4 })),
+    ...FEUERSTAB_ORTE.map(([x, z], i) => ({ type: 'feuerstab', id: `stab${i + 1}`, pos: [x, YR, z], block: 'stein', length: 7, arms: 2, speed: i % 2 ? -1.5 : 1.5, angle: i * PI / 4 })),
 
     // =================================================================================== 4 Graue Plattformen
     marmor(M.G0.x0, M.G0.x1, M.G0.z0, M.G0.z1, YG4, 3),
@@ -394,8 +394,8 @@ export const LEVEL = {
     { kind: 'wuschel', id: 'w_stern', center: [-3.4, 10.7, -531], radius: 1.7, count: 8, spacing: 1.33, speed: 1.4 },
     { kind: 'wuschel', id: 'w_platz', path: [[3.4, 10.7, -526], [3.4, 10.7, -538]], count: 3, spacing: 2.5, speed: 1.8 },
     // Turm: Hörner-Ameisen als Stufen, Rankenschnapper-Kette
-    { kind: 'ameisensoldat_horn', id: 'strom_l', antpath: 'aw_l', speed: 1.4, spawner: { every: 2.6, max: 5 } },
-    { kind: 'ameisensoldat_horn', id: 'strom_r', antpath: 'aw_r', speed: 1.4, spawner: { every: 2.6, max: 5, first: 1.3 } },
+    { kind: 'ameisensoldat_horn', id: 'strom_l', antpath: 'aw_l', speed: 1.4, spawner: { every: 4.2, max: 4 } },
+    { kind: 'ameisensoldat_horn', id: 'strom_r', antpath: 'aw_r', speed: 1.4, spawner: { every: 4.2, max: 4, first: 2.1 } },
     ranke('ranke1', -2.4, YL3 + 1.55, 0.3), ranke('ranke2', 0, YL3 + 3.55, 0.18), ranke('ranke3', 2.4, YL3 + 5.55, 0.06),
     // Boost-Finale: Feuerring-Schockwellen
     fring('fr1', 0, -758, YBO), fring('fr2', 0, -776, YBO, { phase: 0.5 }),
@@ -461,7 +461,7 @@ export const LEVEL = {
     { pos: [-3.4, 11.3, -531], id: 'stern_wuschel' },                        // 1 im Wuschel-Ring am Sternplatz
     { pos: [0, YPL + 0.9, -947], id: 'stern_schockwelle' },                  // 2 hinter dem Platz am Ende der Boost-Strecke
   ],
-  stamp: [3.2, YZ + 2.7, -979.5],
+  stamp: [3.3, YZ + 3.2, -979.5],
   goal: { pos: [0, YZ + 4, -990], height: 10 },
   marks: {
     start: [0, Y1, 6], r1: [0, Y1, -36], r2: [0, 2, -72], r3: [0, YS, -118], simsA: [0, YA, -138], simsB: [0, YB, -164],
