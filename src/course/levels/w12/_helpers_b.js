@@ -166,3 +166,213 @@ export function bildUhr(level) {
   if (level.view) level.view.onFrame((dt) => { st.t += visDt(level, h, dt); });
   return () => st.t;
 }
+
+// =====================================================================================================================
+// 3) K-Haus
+// =====================================================================================================================
+
+/** Eigene Tapeten der Marathon-Räume (128-px-Kachel = 1 m): Krone, Eis, Glut, Garten, Wolken. */
+const TAPETEN_K = {
+  krone(g, S) {      // Siegerflur: Weinrot mit goldenen Kronen und Sternchen
+    g.fillStyle = '#7a1428'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#8a1e32'; for (let i = 0; i < 4; i++) g.fillRect(i * 32, 0, 14, S);
+    const crown = (x, y, s) => {
+      g.fillStyle = '#ffc83a';
+      g.beginPath(); g.moveTo(x - s, y + s * 0.6); g.lineTo(x - s, y - s * 0.3); g.lineTo(x - s * 0.5, y + s * 0.1); g.lineTo(x, y - s * 0.6);
+      g.lineTo(x + s * 0.5, y + s * 0.1); g.lineTo(x + s, y - s * 0.3); g.lineTo(x + s, y + s * 0.6); g.closePath(); g.fill();
+      g.fillStyle = '#ff4a6a'; g.beginPath(); g.arc(x, y + s * 0.25, s * 0.16, 0, TAU); g.fill();
+    };
+    crown(32, 36, 14); crown(96, 98, 14);
+    g.fillStyle = '#ffe9a0';
+    for (const [x, y] of [[96, 30], [30, 96]]) { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 3 : 7; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.fill(); }
+  },
+  eis(g, S) {        // Eisrutsche: Hellblau mit Schneeflocken
+    g.fillStyle = '#d8f0ff'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#c4e4fa'; for (let i = 0; i < 8; i++) g.fillRect(0, i * 16 + 6, S, 3);
+    g.strokeStyle = '#7ab8e8'; g.lineWidth = 3;
+    for (const [x, y, r] of [[32, 34, 16], [96, 96, 16], [96, 30, 8], [30, 98, 8]]) for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI; g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke();
+    }
+  },
+  glut(g, S) {       // Glutzimmer: dunkles Rotbraun mit glühenden Rissen
+    g.fillStyle = '#3a1612'; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#4a1e16'; for (let i = 0; i < 4; i++) g.fillRect(i * 32 + 2, 0, 28, S);
+    g.strokeStyle = '#ff7a2a'; g.lineWidth = 3; g.beginPath(); g.moveTo(10, 0); g.lineTo(26, 40); g.lineTo(14, 78); g.lineTo(34, 128); g.stroke();
+    g.beginPath(); g.moveTo(86, 0); g.lineTo(100, 52); g.lineTo(84, 90); g.lineTo(104, 128); g.stroke();
+    g.strokeStyle = '#ffd04a'; g.lineWidth = 1; g.beginPath(); g.moveTo(26, 40); g.lineTo(48, 52); g.stroke(); g.beginPath(); g.moveTo(84, 90); g.lineTo(64, 100); g.stroke();
+  },
+  garten(g, S) {     // Topfgarten: Mintgrün mit Blättern und Blüten
+    g.fillStyle = '#c8f0c8'; g.fillRect(0, 0, S, S);
+    for (const [x, y, c] of [[30, 30, '#ff6a8a'], [94, 94, '#ffd23d'], [94, 30, '#7ab8ff'], [30, 94, '#c87aff']]) {
+      g.fillStyle = '#5ab85a'; g.beginPath(); g.ellipse(x - 9, y + 10, 8, 4, 0.6, 0, TAU); g.fill(); g.beginPath(); g.ellipse(x + 9, y + 10, 8, 4, -0.6, 0, TAU); g.fill();
+      g.fillStyle = c; for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; g.beginPath(); g.arc(x + Math.cos(a) * 6, y + Math.sin(a) * 6, 5, 0, TAU); g.fill(); }
+      g.fillStyle = '#fff4a0'; g.beginPath(); g.arc(x, y, 4, 0, TAU); g.fill();
+    }
+  },
+  wolken(g, S) {     // Himmelssteg: Himmelblau mit Wolken
+    const gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, '#7ec8ff'); gr.addColorStop(1, '#bfe6ff'); g.fillStyle = gr; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#ffffff';
+    for (const [x, y] of [[32, 40], [96, 100]]) for (const [dx, dy, r] of [[-12, 4, 10], [0, -4, 13], [13, 3, 10], [4, 8, 9]]) { g.beginPath(); g.arc(x + dx, y + dy, r, 0, TAU); g.fill(); }
+  },
+};
+
+function uvQuadK(acc, x, y, z, w, h, face, uv) {
+  let c;
+  if (face === '+z') c = [[x - w / 2, y, z], [x + w / 2, y, z], [x + w / 2, y + h, z], [x - w / 2, y + h, z]];
+  else if (face === '+x') c = [[x, y, z + w / 2], [x, y, z - w / 2], [x, y + h, z - w / 2], [x, y + h, z + w / 2]];
+  else c = [[x, y, z - w / 2], [x, y, z + w / 2], [x, y + h, z + w / 2], [x, y + h, z - w / 2]];
+  const [u0, v0, u1, v1] = uv;
+  const t = [[u0, v0], [u1, v0], [u1, v1], [u0, v1]];
+  for (const k of [0, 1, 2, 0, 2, 3]) { acc.pos.push(...c[k]); acc.uv.push(...t[k]); }
+}
+
+/** Eigene Tapete eines Raums (wie tapete der Welt 6): r = { id, z0, len, h, y: 1, w: 14 }, style ∈ TAPETEN_K. */
+export function tapeteK(level, r, style) {
+  if (!level.view || !TAPETEN_K[style] || typeof document === 'undefined') return;
+  const W = r.w ?? 14, H = r.h ?? 5, y = r.y ?? 1, x0 = -W / 2, x1 = W / 2, zEnd = r.z0 - r.len;
+  const zMid = (r.z0 + 1 + zEnd) / 2, zLen = r.len + 1, hh = H - 1.08 - 0.14;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  TAPETEN_K[style](c.getContext('2d'), 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.anisotropy = 4;
+  const acc = { pos: [], uv: [] };
+  uvQuadK(acc, 0, y + 1.08, zEnd + 0.012, W, hh, '+z', [0, 0, W / 2, hh / 2]);
+  uvQuadK(acc, x0 + 0.012, y + 1.08, zMid, zLen, hh, '+x', [0, 0, zLen / 2, hh / 2]);
+  uvQuadK(acc, x1 - 0.012, y + 1.08, zMid, zLen, hh, '-x', [0, 0, zLen / 2, hh / 2]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(acc.pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(acc.uv, 2));
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+  m.receiveShadow = true;
+  m.name = `tapete:${r.id}`;
+  addObject(level, m);
+}
+export const TAPETEN_K_NAMEN = Object.keys(TAPETEN_K);
+
+/**
+ * Raum-Sterne, die erst nach einer Bedingung erscheinen (Fackeln an, Schalter gedrückt, Kiste zerbrochen, Wirbelbrocken
+ * besiegt …): list [{ index, cond: (level) => bool, pos?: [x, y, z] }]. Beim Einblenden des Raums (auch nach einem
+ * Neustart) wird der Stern versteckt; sobald cond() gilt, erscheint er (Funken, Klang, Ring) an pos bzw. seinem Platz.
+ * Liefert { shown: Set(index), reveals }.
+ */
+export function versteckteSterne(level, list) {
+  const st = { shown: new Set(), reveals: 0, last: '' };
+  const find = (i) => level.entities.find((e) => e.kind === 'star' && e.index === i && !e.removed);
+  const hide = (i) => { const s = find(i); if (!s || level.runtime.stars[i]) return; s.hidden = true; s.touch = false; if (s.model) s.model.root.visible = false; st.shown.delete(i); };
+  for (const r of list) hide(r.index);
+  level.onStep(() => {
+    const h = level.house;
+    if (!h) return;
+    const r = list.find((q) => q.index === h.room);
+    const key = `${h.room}|${h.phase}`;
+    if (key !== st.last) {
+      if (r && h.phase === 'fadein') hide(r.index);
+      st.last = key;
+    }
+    if (!r || h.phase !== 'play' || st.shown.has(r.index) || level.runtime.stars[r.index]) return;
+    if (!r.cond(level)) return;
+    const s = find(r.index);
+    if (!s) return;
+    s.reveal(r.pos);
+    level.effects?.ring({ x: s.pos.x, y: s.pos.y - 0.3, z: s.pos.z }, 1.8);
+    st.shown.add(r.index); st.reveals++;
+  });
+  return st;
+}
+
+/**
+ * Drehteller (K-Haus Raum 26): flache runde Scheibe (Zylinder r, Oberseite top) dreht sich stetig um ihre Mitte und nimmt
+ * Figuren mit (mover.dyaw); Entitäten in riders (Ids, z. B. Schnappblumen) werden mitgedreht (Lage und Blick).
+ * o = { id, pos: [x, z], r, top, speed: 0.6 (rad/s), riders: [Id …] }. Darstellung: Holzscheibe mit Goldrand und Speichen.
+ */
+export function drehteller(level, o) {
+  const [cx, cz] = o.pos, r = o.r, top = o.top, w = o.speed ?? 0.6;
+  const mover = { dx: 0, dy: 0, dz: 0, vx: 0, vy: 0, vz: 0, dyaw: 0, cx, cz };
+  const shape = { type: 'cyl', x: cx, z: cz, r, y0: top - 0.4, y1: top, mover, tag: 'drehteller' };
+  level.world.add(shape);
+  const st = { angle: 0, mover, riders: null };
+  if (o.id) level.named.set(o.id, st);
+  level.onStep((dt) => {
+    const da = w * dt;
+    st.angle += da;
+    mover.dyaw = da;
+    if (!st.riders) st.riders = (o.riders ?? []).map((id) => level.entities.find((e) => e.spec?.id === id)).filter(Boolean);
+    const ca = Math.cos(da), sa = Math.sin(da);
+    for (let k = 0; k < st.riders.length; k++) {
+      let e = st.riders[k];
+      if (e.removed) { e = level.entities.find((q) => q.spec?.id === e.spec?.id && !q.removed); if (!e) continue; st.riders[k] = e; }
+      const dx = e.pos.x - cx, dz = e.pos.z - cz;
+      e.pos.x = cx + dx * ca + dz * sa; e.pos.z = cz - dx * sa + dz * ca;
+      e.yaw = (e.yaw ?? 0) + da;
+    }
+  });
+  if (level.view) {
+    const b = new Bld();
+    b.cyl(r, r, 0.4, 0, -0.4, 0, litTop(0xc8904a, 0.8), 36);
+    b.cyl(r + 0.08, r + 0.08, 0.12, 0, -0.1, 0, 0xffc83a, 36);
+    for (let k = 0; k < 8; k++) b.box(r * 1.9, 0.03, 0.18, 0, -0.005, 0, k % 2 ? 0x9a6a36 : 0xb07a3e, { yaw: (k / 8) * Math.PI, r: 0 });
+    b.cyl(r * 0.55, r * 0.55, 0.04, 0, 0, 0, 0xe8b070, 30);
+    const g = b.geometry();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }));
+    m.receiveShadow = true; m.castShadow = true; m.name = 'drehteller';
+    m.position.set(cx, top, cz);
+    addObject(level, m, () => { m.rotation.y = st.angle; });
+  }
+  return st;
+}
+
+/**
+ * Nur der laufende Raum (Prüfungs-Haus mit vielen Räumen hintereinander): die Kamera zeichnet je Bild nur so weit, wie der
+ * laufende Raum reicht (Fernebene knapp hinter seiner hintersten unteren Ecke) – die folgenden Räume liegen dahinter und
+ * fallen samt Gegnern, Sternen und Instanzen aus der Sicht- und Schattenprüfung (sichtbar war von ihnen hinter Rückwand und
+ * Vorhang ohnehin nichts). boxes[i] = [x0, y0, z0, x1, y1, z1] je Raum. Liefert { far }.
+ */
+export function nurRaumSicht(level, boxes, o = {}) {
+  const st = { far: 0 };
+  if (!level.view) return st;
+  const cam = level.view.camera, base = cam.far;
+  const d = new THREE.Vector3(), q = new THREE.Vector3();
+  level.view.onFrame(() => {
+    const h = level.house, b = h ? boxes[h.room] : null;
+    if (!b) { if (cam.far !== base) { cam.far = base; cam.updateProjectionMatrix(); } return; }
+    cam.getWorldDirection(d);
+    let far = 0;
+    for (const x of [b[0], b[3]]) for (const y of [b[1], b[4]]) for (const z of [b[2], b[5]]) far = Math.max(far, q.set(x, y, z).sub(cam.position).dot(d));
+    far = Math.max(20, far + (o.margin ?? 3));
+    if (Math.abs(far - cam.far) > 0.05) { cam.far = far; cam.updateProjectionMatrix(); }
+    st.far = far;
+  });
+  // Objekte ohne Sichtprüfung (frustumCulled false, z. B. Instanz-Gruppen der Donut-Blöcke), die ganz in einem Raum liegen,
+  // zeichnen nur in diesem Raum
+  const own = [];
+  const bb = new THREE.Box3(), mb = new THREE.Box3(), M = new THREE.Matrix4();
+  for (const m of level.view.three.children) {
+    if (!m.isMesh || m.frustumCulled !== false || !m.geometry) continue;
+    m.updateMatrixWorld(true);
+    m.geometry.computeBoundingBox();
+    bb.makeEmpty();
+    if (m.isInstancedMesh) for (let k = 0; k < m.count; k++) { m.getMatrixAt(k, M); mb.copy(m.geometry.boundingBox).applyMatrix4(M).applyMatrix4(m.matrixWorld); bb.union(mb); }
+    else bb.copy(m.geometry.boundingBox).applyMatrix4(m.matrixWorld);
+    if (bb.isEmpty()) continue;
+    const ri = boxes.findIndex((b) => bb.min.z >= b[2] - 2 && bb.max.z <= b[5] + 2);
+    if (ri >= 0) own.push([m, ri]);
+  }
+  st.own = own.length;
+  level.view.onFrame(() => { const r = level.house?.room; for (const [m, ri] of own) m.visible = r === undefined || r === ri; });
+  return st;
+}
+
+/** Walzenwerfer eines Raums beginnen frisch (alte Walzen in zBox [zA, zB] zerfallen, erster Wurf nach takt[k] s). */
+export function frischeWalzen(level, ids, takt, zBox) {
+  for (const e of level.entities) if (e.kind === 'stachelwalze' && !e.removed && e.pos.z < zBox[0] && e.pos.z > zBox[1]) e.kill();
+  ids.forEach((id, k) => {
+    const w = level.named.get(id) ?? level.entities.find((e) => e.spec?.id === id && !e.removed);
+    if (!w || w.removed || w.defeated) return;
+    w.walzen = [];
+    const r = takt?.[k];
+    if (r !== undefined && r < 1.5 && w.setState) { w.setState('spit'); w.stateT = 1.5 - r; w.cool = w.interval; }
+    else { w.cool = r !== undefined ? r - 1.5 : (w.spec.first ?? 0.8); w.setState?.('idle'); }
+  });
+}
