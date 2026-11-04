@@ -33,7 +33,7 @@
 
 import {
   PI, line, ring, arc, column, sign, marmor, block, kronenHimmel, goldkanten, sternchen, geruest, sockel, fahnen, ballons,
-  zauberkreis, piepTakt, goldenerZielmast, siegesfeier, Bld, GOLD, gradY,
+  zauberkreis, piepTakt, goldenerZielmast, siegesfeier, fernAus, Bld, GOLD, gradY,
 } from './_helpers_a.js';
 
 // ---------------------------------------------------------------- Höhen
@@ -88,12 +88,14 @@ const piep = (id, color, pos, size, o = {}) => ({ type: 'piep_block', id, color,
 // ---------------------------------------------------------------- Abschnitt 3: Zauberarena (Bröckelblöcke im Innenfeld)
 const A = M.ARENA;
 export const FEUERSTAB_ORTE = [[-3.5, -358.5], [3.5, -358.5], [-3.5, -365.5], [3.5, -365.5]];
+// Bröckelbrücken: ein Kreuz aus drei Block breiten Stegen vom Marmorring zum Mittelsockel; dazwischen geht es in die Tiefe, die
+// Feuerstäbe kreisen über den Stegen
 const arenaFeld = () => {
   const out = [];
   for (let ix = 0; ix < 14; ix++) for (let iz = 0; iz < 14; iz++) {
     const x = -6.5 + ix, z = A.z + 6.5 - iz;
     if (Math.abs(x) < 1.6 && Math.abs(z - A.z) < 1.6) continue;                                   // Mittelsockel
-    if (FEUERSTAB_ORTE.some(([fx, fz]) => Math.abs(x - fx) < 0.6 && Math.abs(z - fz) < 0.6)) continue;   // unter den Feuerstäben
+    if (Math.abs(x) > 1.6 && Math.abs(z - A.z) > 1.6) continue;                                   // nur das Kreuz
     out.push([x, YR - 1, z]);
   }
   return out;
@@ -108,7 +110,7 @@ const ameisenWand = (x) => ({ path: [[x, YL2, -582, 0, 0, 1], [x, YL3, -582, 0, 
 const ranke = (id, x, y, phase) => ({ kind: 'rankenschnapper', id, pos: [x, y, -590], path: [[x, y, -590], [x, y + 0.1, -587.5], [x, y + 0.2, -585]], size: 1.5, grow: [1.0, 4.2, 0.9, 1.4], phase });
 
 // ---------------------------------------------------------------- Abschnitt 6: Feuerringe
-const fring = (id, x, z, top, o = {}) => ({ kind: 'feuerring', id, pos: [x, top, z], radius: o.radius ?? 4, height: 0.7, period: o.period ?? 2.4, wait: o.wait ?? 0.8, phase: o.phase ?? 0, color: o.color ?? 'rot' });
+const fring = (id, x, z, top, o = {}) => ({ kind: 'feuerring', id, pos: [x, top, z], radius: o.radius ?? 4, height: 0.7, period: o.period ?? 2.4, wait: o.wait ?? 0.8, phase: o.phase ?? 0, color: o.color ?? 'rot', farHide: 52 });
 
 /** Aufbau nach den Bausteinen: Goldkanten, Gerüst, Sockel, Fahnen, Ballons, Zauberkreis, Sternchen. */
 function build(level) {
@@ -166,6 +168,7 @@ function setup(level) {
     ],
   });
   piepTakt(level, [[-14, -215, 14, -330]]);
+  fernAus(level, /^(feuerstab|pendelstachel|stachelwalze_rot|stachelblock|modell:boost_arrow|modell:trampoline)$/, 62);
 }
 
 export const LEVEL = {
@@ -309,16 +312,16 @@ export const LEVEL = {
 
     // =================================================================================== 5b Wasserwürfel
     { type: 'wasserkoerper', id: 'wuerfel1', pos: [0, YW - 7, -614], size: [8, 7, 30] },
-    { type: 'stachelblock', id: 'sb1', pos: [0, YW - 7, -606], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.3, speed: 3 },
-    { type: 'stachelblock', id: 'sb2', pos: [0, YW - 7 + 4.6, -614], size: [8, 2.4, 1.2], color: 'blau', move: [0, -4.6, 0], wait: 1.3, speed: 3 },
-    { type: 'stachelblock', id: 'sb3', pos: [0, YW - 7, -622], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.3, speed: 3, phase: 1.5 },
+    { type: 'stachelblock', id: 'sb1', pos: [0, YW - 7, -606], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.3, speed: 3, look: 'eigen' },
+    { type: 'stachelblock', id: 'sb2', pos: [0, YW - 7 + 4.6, -614], size: [8, 2.4, 1.2], color: 'blau', move: [0, -4.6, 0], wait: 1.3, speed: 3, look: 'eigen' },
+    { type: 'stachelblock', id: 'sb3', pos: [0, YW - 7, -622], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.3, speed: 3, phase: 1.5, look: 'eigen' },
     marmor(M.P1.x0, M.P1.x1, M.P1.z0, M.P1.z1, M.P1.top, 2, { under: 0 }),
     { type: 'wasserkoerper', id: 'wuerfel2', pos: [0, M.P1.top - 7, -654], size: [8, 7, 30] },
     { type: 'stachelblock', id: 'sb4', pos: [-2.4, M.P1.top - 6.6, -647], size: [2.4, 2.4, 2.4], color: 'rot', path: [[-2.4, M.P1.top - 6.6, -647], [2.4, M.P1.top - 6.6, -647], [2.4, M.P1.top - 2.8, -647], [-2.4, M.P1.top - 2.8, -647]], mode: 'loop', speed: 2.4 },
     { type: 'stachelblock', id: 'sb5', pos: [2.4, M.P1.top - 2.8, -661], size: [2.4, 2.4, 2.4], color: 'rot', path: [[2.4, M.P1.top - 2.8, -661], [-2.4, M.P1.top - 2.8, -661], [-2.4, M.P1.top - 6.6, -661], [2.4, M.P1.top - 6.6, -661]], mode: 'loop', speed: 2.4 },
     marmor(M.P2.x0, M.P2.x1, M.P2.z0, M.P2.z1, M.P2.top, 2, { under: 0 }),
     { type: 'wasserkoerper', id: 'wuerfel3', pos: [0, M.P2.top - 7, -692], size: [8, 7, 28] },
-    { type: 'stachelblock', id: 'sb6', pos: [0, M.P2.top - 7, -686], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.1, speed: 3.2 },
+    { type: 'stachelblock', id: 'sb6', pos: [0, M.P2.top - 7, -686], size: [8, 2.4, 1.2], color: 'blau', move: [0, 4.6, 0], wait: 1.1, speed: 3.2, look: 'eigen' },
     { type: 'stachelblock', id: 'sb7', pos: [-2.4, M.P2.top - 4.8, -697], size: [2.4, 2.4, 2.4], color: 'rot', move: [4.8, 0, 0], speed: 2.6 },
     marmor(M.P3.x0, M.P3.x1, M.P3.z0, M.P3.z1, M.P3.top, 3),
     sign(-3.6, M.P3.top, -710, 'Röhre zum\nBoost-Finale', { size: [2.4, 0.9], yaw: 0.2 }),

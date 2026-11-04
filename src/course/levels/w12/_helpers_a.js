@@ -438,6 +438,7 @@ export function goldenerZielmast(level) {
   if (!goal) return null;
   const H = goal.H ?? 9;
   const root = new THREE.Group();
+  root.name = 'k1:zielmast';
   const b = new Build();
   // Sockel: Goldblock mit Marmorplatte und Rubin-Nieten
   b.box(1.06, 0.9, 1.06, { v: (x, y, z, nx, ny) => new THREE.Color(ny > 0.5 ? 0xffe28a : 0xf2b028) }, { p: [0, 0.45, 0] }, 0.08, 2);
@@ -629,5 +630,35 @@ export function siegesfeier(level, o) {
       }
     });
   }
+  return st;
+}
+
+/**
+ * Fern-Ausblendung für bewegte Bausteine ohne eigene farHide-Regel (LEVEL.setup): Objekte der Szene, deren Name auf das Muster
+ * passt (Stachelblöcke, Wasserwürfel, Boost-Pfeile …), werden weiter als dist m (waagerecht) von der Figur nicht gezeichnet –
+ * nur Darstellung, die Mechanik läuft weiter. Der lange Kurs sieht sonst vom Turm aus Hunderte Meter Bausteine.
+ */
+export function fernAus(level, pattern, dist = 60) {
+  const v = level.view;
+  if (!v) return null;
+  const list = [];
+  // benannte Bausteine nach Muster; dazu namenlose Objekte mit eigener Lage (Fahrblöcke, Wasserwürfel …), nicht die Zier in
+  // Weltkoordinaten (Lage im Ursprung)
+  const pick = (o) => pattern.test(o.name ?? '') || (!o.name && (o.isGroup || o.isMesh) && !o.isInstancedMesh && o.position.lengthSq() > 1);
+  for (const o of v.three.children) if (pick(o)) list.push({ o, p: new THREE.Vector3() });
+  const st = { n: list.length, hidden: 0, names: [...new Set(list.map((it) => it.o.name))] };
+  level.named.set('fernaus', st);
+  v.onFrame(() => {
+    const pl = level.player;
+    if (!pl) return;
+    let h = 0;
+    for (const it of list) {
+      it.o.getWorldPosition(it.p);
+      const vis = Math.hypot(it.p.x - pl.pos.x, it.p.z - pl.pos.z) < dist;
+      if (it.o.visible !== vis) it.o.visible = vis;
+      if (!vis) h++;
+    }
+    st.hidden = h;
+  });
   return st;
 }
