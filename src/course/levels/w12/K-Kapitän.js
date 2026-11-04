@@ -23,7 +23,7 @@
 // Stempel: auf der Lochwolke. Schatzstellen: Kraterrand, Turmdach, Glutsäule. Keine Gegner (Bauplan).
 
 import {
-  Quads, brickBox, gelaender, flushQ, funken, carpet, Bld, glimmer, sign, line, ring, glutFloss, lochWolke, randsteine, glutInsel, kronenZier,
+  Quads, brickBox, gelaender, flushQ, funken, carpet, Bld, glimmer, sign, line, ring, glutFloss, lochWolke, randsteine, glutInsel, kronenZier, gittertor,
 } from './_helpers_b.js';
 
 const PI = Math.PI;
@@ -127,6 +127,8 @@ function scene(level) {
 
 function setup(level) {
   glutFloss(level, { id: 'glutfloss', lava: 'glut', pos: MKK.FLOSS.pos, size: MKK.FLOSS.size, offset: MKK.FLOSS.offset });
+  // Tür der Turmstube: Gittertor öffnet sich nur von innen (hinaus auf die ruhende Propellerplattform, nicht herein)
+  gittertor(level, { id: 'stubentor', pos: [10.5, STUBE, -4.25], size: [1.8, 2.4, 0.2], inside: [8.6, STUBE - 0.2, -10.5, 12.2, 15.4, -4.45] });
   funken(level, [[-15, 15, LO, 10, -15, 14.5]], { n: 80, rise: 0.5, size: 0.22, seed: 12 });
   glimmer(level, [[7.5, 13, WOLKE + 0.5, WOLKE + 4, -13, -9], [-15, -11, TOP + 0.4, TOP + 2.5, -11, -7]], { n: 30, color: 0xfff2a0, size: 0.2, drift: 0.4 });
 }

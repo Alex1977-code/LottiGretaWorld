@@ -233,7 +233,76 @@ async function kapitaen() {
       r.stars.every(Boolean) && r.stamp && r.deaths === 0);
     check(`${id}: der fünfte Stern beendet das Level (Schatz-Ergebnis, gespeichert)`, r.status !== 'play');
   }
+  if (PARTS.has('targets') || PARTS.has('extra')) await kapitaenProben();
   if (PARTS.has('shots')) await kapitaenShots();
+}
+
+/** Gegenproben und Extras im Lavaturm-Diorama (echte Mechanik, Krümel springt nicht). */
+async function kapitaenProben() {
+  const id = 'K-Kapitän';
+  if (!(await load(id, { fresh: true }))) return;
+  const g = await sc(() => {
+    const B = window.__kb, L = B.L, p = B.P(), M = L.data.marks, out = {};
+    const lava = L.named.get('glut'), floss = L.named.get('glutfloss');
+    const toLava = (pred, max = 4000) => B.until(pred, max);
+    // Glutfloß schwimmt: Oberseite = Spiegel + 1 m (unten und oben)
+    toLava(() => lava.state === 'unten');
+    out.flossUnten = +(floss.top() - lava.top).toFixed(3);
+    toLava(() => lava.state === 'oben');
+    out.flossOben = +(floss.top() - lava.top).toFixed(3); out.lavaOben = +lava.top.toFixed(2);
+    // 1) Glutbalkon nicht vom Hängesteg aus (0,6 m Stufe)
+    B.place(M.steg, { yaw: Math.PI });
+    B.walk(M.balkon[0], M.balkon[2], { within: 0.3, max: 400 });
+    out.balkon = { y: B.pos()[1], stern: L.runtime.stars[0] };
+    // 2) bei Flut ist der Glutsteg tödlich
+    toLava(() => lava.state === 'steigt' && lava.top > 0.3);
+    B.place(M.rampeUnten, { settle: 2 });
+    B.until(() => p.dead, 400);
+    out.flutTod = { dead: p.dead, cause: p.deathCause };
+    B.until(() => !p.dead && L.runtime.status === 'play', 900);
+    // 3) Turmstube nicht vom Turmdach aus (Geländer um die Luke)
+    B.place([10.5, 16, -5.2]);
+    B.walk(M.stube[0], M.stube[2], { within: 0.2, max: 300 });
+    out.dachLuke = { y: B.pos()[1], stern: L.runtime.stars[4] };
+    // 4) Turmstube nicht von der ruhenden Propellerplattform aus (0,6 m Stufe zur Tür)
+    B.until(() => L.named.get('propeller2').offset < 0.02, 900);
+    B.place([10.5, 12.1, -1.6]);
+    for (let k = 0; k < 6; k++) B.tick({});
+    const p2 = L.named.get('propeller2');
+    let drin = false;
+    for (let k = 0; k < 500; k++) { B.tick({ ...B.stick(M.tuer[0] - p.pos.x, M.tuer[2] - 1.5 - p.pos.z, 1) }); if (p.pos.z < -4.5 && p.pos.y > 12.4 && p.pos.y < 15.4) drin = true; }
+    out.p2Tuer = { y: B.pos()[1], z: B.pos()[2], drin, stern: L.runtime.stars[4] };
+    void p2;
+    // 4b) aus der Turmstube hinaus: das Tor öffnet von innen, Krümel tritt auf die ruhende Propellerplattform
+    B.until(() => L.named.get('propeller2').offset < 0.02, 900);
+    B.place([10.5, 12.65, -8.2]);
+    B.walk(10.5, -2.4, { within: 0.4, max: 500 });
+    out.hinaus = { pos: B.pos(), tor: +L.named.get('stubentor').open.toFixed(2) };
+    // 5) Krümel springt nicht
+    B.place(M.start);
+    const y0 = p.pos.y; let ymax = y0;
+    for (let k = 0; k < 60; k++) { B.tick({ jump: true }); ymax = Math.max(ymax, p.pos.y); }
+    out.sprung = +(ymax - y0).toFixed(3);
+    // 6) Donut-Block fällt, wenn man stehen bleibt
+    B.until(() => L.named.get('donuts').blocks.every((b) => b.state === 'idle'), 900);
+    B.place([-6.5, 16, -9.5]);
+    B.until(() => p.pos.y < 14 || p.dead, 400);
+    out.donut = { y: B.pos()[1], fallen: L.named.get('donuts').blocks.filter((b) => b.state !== 'idle').length };
+    // 7) Stern 3 schwebt hoch über der ruhenden Propellerplattform
+    const s3 = L.entities.find((e) => e.kind === 'star' && e.index === 2);
+    out.stern3 = s3 ? +(s3.pos.y - 12).toFixed(2) : null;
+    return out;
+  });
+  console.log('       ', JSON.stringify(g));
+  check(`${id}: Glutfloß schwimmt 1 m über der Lava (unten ${g.flossUnten}, oben ${g.flossOben}, Spiegel oben ${g.lavaOben})`, Math.abs(g.flossUnten - 1) < 0.05 && Math.abs(g.flossOben - 1) < 0.05 && g.lavaOben > 7.5);
+  check(`${id}: Glutbalkon nicht vom Hängesteg aus (0,6 m Stufe – Krümel bleibt auf y ${g.balkon.y})`, g.balkon.y < 8.3 && !g.balkon.stern);
+  check(`${id}: bei steigender Lava ist der Glutsteg tödlich (${g.flutTod.cause})`, g.flutTod.dead && g.flutTod.cause === 'lava');
+  check(`${id}: Turmstube nicht vom Turmdach aus – Geländer um die Luke (y ${g.dachLuke.y})`, g.dachLuke.y > 15.9 && !g.dachLuke.stern);
+  check(`${id}: Turmstube nicht von der Propellerplattform aus – das Gittertor öffnet nur von innen (bei ${g.p2Tuer.y}/${g.p2Tuer.z})`, !g.p2Tuer.drin && !g.p2Tuer.stern);
+  check(`${id}: aus der Turmstube hinaus geht es (Tor öffnet von innen) – auf die Propellerplattform (${JSON.stringify(g.hinaus.pos)})`, g.hinaus.pos[2] > -3.9 && g.hinaus.pos[1] > 11.9);
+  check(`${id}: Krümel springt nicht (Höhe ${g.sprung} m)`, g.sprung < 0.05);
+  check(`${id}: Donut-Blöcke fallen, wenn man stehen bleibt (y ${g.donut.y}, ${g.donut.fallen} gefallen)`, g.donut.y < 14 && g.donut.fallen > 0);
+  check(`${id}: Stern 3 schwebt ${g.stern3} m über der ruhenden oberen Propellerplattform (nur durch Anheben)`, g.stern3 > 4);
 }
 
 /** Bilder: Überblick (zwei Zoomstufen, Lava unten/oben), Krümel an den Stern-Stellen (Orbit-Kamera wie im Spiel). */

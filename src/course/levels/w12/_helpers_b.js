@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { addObject, Rnd } from '../../blocks/kit.js';
 import { visDt } from '../../entities/gimmick.js';
-import { MovingBox } from '../../blocks/w2kit.js';
+import { MovingBox, figures } from '../../blocks/w2kit.js';
 import { Quads, brickBox, gelaender, flushQ, funken, carpet } from '../w7/_helpers_c.js';
 import { Bld, litTop, gradY, onRespawn, glimmer, sign, line, ring, arc } from '../w6/_helpers_b.js';
 
@@ -62,6 +62,36 @@ export function glutFloss(level, o) {
     addObject(level, grp, () => { grp.position.set(bx.pos.x, bx.pos.y, bx.pos.z); });
   }
   return h;
+}
+
+/**
+ * Gittertor, das sich nur von innen öffnet (K-Kapitän: Tür der Turmstube): Quader (Mitte unten pos, size) mit goldenen
+ * Gitterstäben; steht eine Figur im Innenraum `inside` [x0, y0, z0, x1, y1, z1], fährt das Tor hoch (offen), sonst ist es zu.
+ * So kommt man aus der Kammer hinaus, von draußen aber nicht hinein. Liefert { open (0..1), box }.
+ */
+export function gittertor(level, o) {
+  const [x, y, z] = o.pos, [w, h, d] = o.size, lift = o.lift ?? h + 0.1;
+  const bx = new MovingBox(level, x, y, z, w, h, d, { tag: 'gittertor', camIgnore: true });
+  const st = { open: 0, box: bx };
+  const [ix0, iy0, iz0, ix1, iy1, iz1] = o.inside;
+  const inside = () => figures(level).some((p) => !p.dead && p.pos.x > ix0 && p.pos.x < ix1 && p.pos.y > iy0 && p.pos.y < iy1 && p.pos.z > iz0 && p.pos.z < iz1);
+  level.onStep((dt) => {
+    const want = inside() ? 1 : 0;
+    st.open = want ? Math.min(1, st.open + dt * 2.5) : Math.max(0, st.open - dt * 2.5);
+    bx.moveTo(x, y + st.open * lift, z, dt);
+  });
+  if (level.view) {
+    const b = new Bld();
+    const n = Math.max(2, Math.round(w / 0.3));
+    for (let k = 0; k <= n; k++) b.cyl(0.05, 0.05, h, -w / 2 + (k * w) / n, 0, 0, 0xffc83a, 6);
+    for (const yy of [0.1, h * 0.5, h - 0.12]) b.box(w + 0.1, 0.1, 0.12, 0, yy, 0, 0xd8a028, { r: 0.02 });
+    b.sphere(0.12, 0, h * 0.5 + 0.05, 0.08, 0xff3a4a, { ws: 8, hs: 6 });
+    const m = new THREE.Mesh(b.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0.3 }));
+    m.castShadow = true; m.name = 'gittertor';
+    addObject(level, m, () => m.position.set(bx.pos.x, bx.pos.y, bx.pos.z));
+  }
+  if (o.id) level.named.set(o.id, st);
+  return st;
 }
 
 /**
