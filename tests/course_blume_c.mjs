@@ -1442,7 +1442,7 @@ function install() {
     },
     chase(kind, o = {}) {
       const p = P();
-      let n = 0;
+      let n = 0, bestD = Infinity, still = 0, side = 0;
       const max = o.max ?? 3600;
       const match = (x) => x.kind === kind && x.alive && !x.removed && !x.defeated && !x.hidden && (!o.filter || o.filter(x));
       for (; n < max; n++) {
@@ -1459,6 +1459,9 @@ function install() {
         if (dy > 1.6 && p.mode === 'ground' && dist < 1.25) { c.setInput({ ...this.stick(dist > 0.05 ? -dx : 1, dist > 0.05 ? -dz : 0, 0.6) }); c.step(1); continue; }
         if (dy > 1.6 && p.mode === 'air') { c.setInput({ ...this.airSteer(e.pos.x, e.pos.z, 0, 0, 3, 4), jump: p.vel.y > 0 }); c.step(1); continue; }
         const jump = (o.jump !== false && (n % 48) < 20 && dist < 1.6) || (dy > 0.8 && (n % 48) < 30);
+        // festgefahren (z. B. an einer Warp-Box): ein Stück seitlich ausweichen
+        if (dist < bestD - 0.05) { bestD = dist; still = 0; } else if (p.mode === 'ground') still++;
+        if (still > 40) { side = side ? -side : 1; for (let q = 0; q < 50; q++) { c.setInput({ ...this.stick(-dz * side, dx * side, 1), run: false }); c.step(1); } still = 0; bestD = Infinity; continue; }
         c.setInput({ ...this.stick(dx, dz, Math.min(1, 0.3 + dist)), run: !o.walk && (dist > 1.5 || o.run), jump });
         c.step(1);
         if (p.mode === 'script') { let k = 0; while (p.mode === 'script' && k++ < 1200 && L.runtime.status === 'play' && p.script?.type !== 'house') { c.setInput({}); c.step(1); } }
