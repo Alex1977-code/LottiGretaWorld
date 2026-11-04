@@ -65,7 +65,7 @@ const R17 = { boosts: [6, 15] };
 const R18 = { ball: [-1.6, 3.6], sprung: 6.5, turm: 13.5, top: Y + 5.05 };
 const R19 = { c: 10.5 };
 const R20 = { insel: [-5, 5, 5.5, 15], lava: Y - 0.6 };
-const R21 = { t1: [-3.6, 5.6], s1: [-2.2, 3.2, 6, 10.5, Y + 4], t2: [1.0, 8.3], s2: [3.2, 7, 6, 13, Y + 8], t3: [5.1, 10.6] };
+const R21 = { t1: [-3.6, 5.6], s1: [-2.2, 3.2, 6, 10.5, Y + 4.6], t2: [1.0, 8.3], s2: [3.2, 7, 6, 13, Y + 9.2], t3: [5.1, 10.6], t3n: 3 };
 const R22 = { steg: [4, 34], kanonen: [10, 17, 22, 27, 32], takt: [0, 0.03, 0.53, 1.03, 1.53] };
 const R23 = { ranken: [[-1, 5.2, 1.6], [1, 7.6, 2.8], [-1, 10, 4.0], [1, 12.4, 5.2], [-1, 14.8, 6.4]], ledge: [16.6, 20, Y + 6.6] };
 const R24 = { buehne: Y + 0.8, ziele: [[-3.6, 11, Y + 1.0], [0, 11.6, Y + 1.0], [3.6, 11, Y + 1.0]], kraft: 8.4, baelle: [[-1.6, 3.4], [-0.5, 3.6], [0.6, 3.6], [1.7, 3.4]] };
@@ -159,7 +159,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: R20.insel[2], style: 'terrakotta' }, { u0: R20.insel[2], u1: R20.insel[3], x0: R20.insel[0], x1: R20.insel[1], style: 'stein' }], cam: { pitch: 54, dist: 16, c: 9.5 },
     pictures: [{ wall: 'l', u: 3, motif: 'burg' }, { wall: 'r', u: 3, motif: 'baron' }], clocks: [{ wall: 'l', u: 15, y: 3.6, r: 0.42 }],
     props: [{ kind: 'eimer', x: 6, u: 1.6, color: 0x5ab8ff }] },
-  { name: 'Riesen-?-Türme', title: 'Riesen-?-Türme: Stampf drauf – sie fahren dich hinauf!', len: 18, h: 16, paper: 'kanone', wood: 0xd8a83a, star: [R21.t3[0], R21.t3[1], Y + 12.25],
+  { name: 'Riesen-?-Türme', title: 'Riesen-?-Türme: Stampf drauf – sie fahren dich hinauf!', len: 18, h: 21, paper: 'kanone', wood: 0xd8a83a, star: [R21.t3[0], R21.t3[1], R21.s2[4] + 2 + 2 * R21.t3n + 0.25],
     floors: [{ u0: -1, u1: 18, style: 'puzzle' }], cam: { pitch: 36, dist: 18, c: 9 },
     pictures: [{ wall: 'l', u: 3, motif: 'stern' }, { wall: 'r', u: 3, motif: 'zielfahne' }], clocks: [{ wall: 'l', u: 14, y: 9, r: 0.5 }],
     props: [{ kind: 'kiste', x: 6, u: 2, size: 0.9, color: 0xffd23d }] },
@@ -317,7 +317,7 @@ SEG.push(floor(19, -7, 7, -1, R20.insel[2], Y, 4), floor(19, R20.insel[0], R20.i
 SEG.push(floor(20, R21.s1[0], R21.s1[1], R21.s1[2], R21.s1[3], R21.s1[4], R21.s1[4] - Y, 0x8a6a2a), floor(20, R21.s2[0], R21.s2[1], R21.s2[2], R21.s2[3], R21.s2[4], R21.s2[4] - Y, 0x9a7a3a));
 IT.push({ kind: 'riesen_frageturm', id: 'k21_turm1', roomId: room(20), pos: P(20, R21.t1[0], R21.t1[1], Y), size: 2, blocks: 1, delay: 0.18, coins: 1, content: 'coins:2' });
 IT.push({ kind: 'riesen_frageturm', id: 'k21_turm2', roomId: room(20), pos: P(20, R21.t2[0], R21.t2[1], R21.s1[4]), size: 2, blocks: 1, delay: 0.18, coins: 1, content: 'coins:2' });
-IT.push({ kind: 'riesen_frageturm', id: 'k21_turm3', roomId: room(20), pos: P(20, R21.t3[0], R21.t3[1], R21.s2[4]), size: 2, blocks: 1, delay: 0.18, coins: 1, content: 'coins:3', color: 'orange' });
+IT.push({ kind: 'riesen_frageturm', id: 'k21_turm3', roomId: room(20), pos: P(20, R21.t3[0], R21.t3[1], R21.s2[4]), size: 2, blocks: R21.t3n, delay: 0.18, coins: 1, content: 'coins:3', color: 'orange' });
 
 // --- 22 Himmelssteg: Startpodest, Steg 1,4 m, Kanonen auf Simsen links/rechts, Zielpodest
 SEG.push(cliff(21, -7, 7, -1, R22.steg[0], Y, 0x5a7ab8), cliff(21, -7, 7, R22.steg[1], 40, Y, 0x5a7ab8));

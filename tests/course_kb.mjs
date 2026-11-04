@@ -785,6 +785,7 @@ function installHaus() {
     const vor = [null, [H.R21.t2[0] - 1.9, H.R21.t2[1]], [H.R21.t2[0] + 0.7, H.R21.t3[1] - 1.6]];
     for (const [k, t] of towers.entries()) {
       if (!live(i) || !t) break;
+      if (k === 1) jumpOnto(i, () => ({ x: vor[1][0], z: zu(i, vor[1][1]) }), { reach: 2.6, hold: 20 });
       if (vor[k]) walkTo(i, vor[k][0], vor[k][1], { within: 0.3, max: 240 });
       jumpOnto(i, () => ({ x: t.pos.x, z: t.pos.z }), { reach: k === 2 ? 4.4 : 2.0, hold: 30, pound: true, run: k === 2 });
       for (let q = 0; q < 160 && live(i) && t.state !== 'turm'; q++) st({});
@@ -956,12 +957,94 @@ async function haus() {
   }
 }
 
+/** Gegenproben im Marathon-Haus (echte Mechanik): Zeitablauf, versteckte Sterne, Werkzeuge, Kraftfeld, Stacheln, Simse, Boss. */
+async function hausExtra() {
+  const id = 'K-Haus';
+  console.log(`\n${id}: Gegenproben`);
+  if (!(await load(id, { fresh: true }))) { check(`${id} lädt`, false); return; }
+  await sc(installHaus);
+  const run = (k, body) => sc(([kk, src]) => {
+    const c = window.__course, L = c.level, Hh = window.__haus, B = window.__kb, p = L.player, D = L.data._haus;
+    for (let q = 0; q < 900 && (p.dead || L.runtime.status !== 'play' || c.arch.info().phase === 'fadeout'); q++) { c.setInput({}); c.step(1); }
+    L.runtime.status = 'play';
+    if (c.arch.info().room !== kk) c.arch.enterRoom(kk);
+    Hh.waitPlay(kk);
+    const zu = (u) => D.Z0[kk] - u;
+    return new Function('L', 'p', 'B', 'H', 'D', 'zu', 'c', src)(L, p, B, Hh, D, zu, c);
+  }, [k, body]);
+  const g = {};
+  // Raum 3: zwei von drei Druckfeldern → kein Stern
+  g.felder = await run(2, `B.walk(D.R3.felder[0][0], zu(D.R3.felder[0][1]), { within: 0.4 }); B.walk(D.R3.felder[1][0], zu(D.R3.felder[1][1]), { within: 0.4 }); B.wait(60);
+    const s = L.entities.find((e) => e.kind === 'star' && e.index === 2); return { hidden: !!s?.hidden, got: L.runtime.stars[2] };`);
+  // Raum 4: ohne Funkenblüte zündet keine Fackel (Kapsel aus; anspringen, Tatze nicht)
+  g.fackel = await run(3, `L.named.get('kapseln').off = true; p.setPower('none'); const f = L.named.get('k4_fackeln'); const t = f.torches[0];
+    B.walk(t.x + 0.9, t.z, { within: 0.25 }); B.hop(30); B.tick({ action: true }); B.wait(40); L.named.get('kapseln').off = false; return { lit: f.info().lit };`);
+  // Raum 6: ohne Krallen-Anzug zerbricht die Sternkiste nicht (Aktion ohne Wirkung, Kopfstoß wackelt nur)
+  g.kiste = await run(5, `L.named.get('kapseln').off = true; p.setPower('none'); B.walk(D.R6.groups[3][0] - 2.55, zu(D.R6.groups[3][1]), { within: 0.2 }); for (let k = 0; k < 3; k++) { B.tick({ action: true }); B.wait(20); }
+    L.named.get('kapseln').off = false; return { kiste: !!L.entities.find((e) => e.spec?.id === 'k6_sternkiste' && !e.removed), hidden: !!L.entities.find((e) => e.kind === 'star' && e.index === 5)?.hidden };`);
+  // Raum 8: das Kraftfeld hält die Figur auf dem Balkon
+  g.kraft = await run(7, `B.walk(0, zu(12), { within: 0.3, max: 300 }); return { u: +(D.Z0[7] - p.pos.z).toFixed(2), y: +p.pos.y.toFixed(2) };`);
+  // Raum 10: unsichtbare Stege sind vorher unsichtbar
+  g.stege = await run(9, `const w = L.entities.filter((e) => e.kind === 'unsichtbare_wolke'); return w.map((e) => e.info?.() ?? null);`);
+  // Raum 11: ohne Schlittschuh verletzen die Stacheln
+  g.stachel = await run(10, `for (let k = 0; k < 3 && p.skate; k++) { const s = p.skate; p.skate = null; s.release?.(p, 'gone'); s.kill?.(); } for (const e of L.entities) if (e.kind === 'schlittschuh' && !e.removed) e.kill?.(); c.step(2); const h0 = p.hurtTries; B.place([0, D.Y + 0.3, zu(D.R11.stachel[0])]); B.wait(30); return { hurt: p.hurtTries - h0, dead: p.dead, skate: !!p.skate };`);
+  // Raum 12: Stern versteckt, bis das Druckfeld oben rechts gedrückt ist
+  g.schalter = await run(11, `B.wait(30); return { hidden: !!L.entities.find((e) => e.kind === 'star' && e.index === 11)?.hidden };`);
+  // Raum 21: vom Boden kommt man nicht auf den ersten Sims (Turm 1 nötig)
+  g.sims = await run(20, `B.walk(D.R21.s1[0] + 2.5, zu(D.R21.s1[2] - 1.0), { within: 0.25 }); let top = p.pos.y; for (let k = 0; k < 90; k++) { B.tick({ ...B.stick(0, -1, 1), jump: k < 40, run: true }); top = Math.max(top, p.pos.y); } B.wait(30);
+    return { top: +top.toFixed(2), y: +p.pos.y.toFixed(2), sims: D.R21.s1[4] };`);
+  // Raum 29: Draufspringen, solange er rennt, zählt nicht (nur im Taumeln)
+  g.boss = await run(28, `const b = L.entities.find((e) => e.kind === 'wirbelbrocken' && !e.removed); B.until(() => b.state === 'run', 900); p.invuln = 5;
+    for (let k = 0; k < 120 && b.state === 'run'; k++) { const t = { x: b.pos.x, z: b.pos.z }; B.tick({ ...(p.mode === 'air' ? B.airSteer(t.x, t.z, 0, 0, 5, 9) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1)), jump: k % 40 < 12, run: true }); }
+    return { hp: b.hp, state: b.state };`);
+  for (const [k, v] of Object.entries(g)) console.log(`       ${k}: ${JSON.stringify(v)}`);
+  check(`${id}: Raum 3 – zwei von drei Druckfeldern reichen nicht (Stern versteckt)`, g.felder.hidden && !g.felder.got);
+  check(`${id}: Raum 4 – ohne Funkenblüte bleiben die Fackeln aus (${g.fackel.lit} an)`, g.fackel.lit === 0);
+  check(`${id}: Raum 6 – ohne Krallen-Anzug bleibt die Sternkiste heil, der Stern versteckt`, g.kiste.kiste && g.kiste.hidden);
+  check(`${id}: Raum 8 – das Kraftfeld hält die Figur auf dem Balkon (u ${g.kraft.u})`, g.kraft.u < 6.4 && g.kraft.y > 3.5);
+  check(`${id}: Raum 10 – die Stege sind unsichtbar, bis man sie betritt`, g.stege.length === 2 && g.stege.every((w) => w && !w.shown));
+  check(`${id}: Raum 11 – ohne Schlittschuh verletzen die Stachelstreifen (${g.stachel.hurt} Treffer)`, g.stachel.hurt > 0 || g.stachel.dead);
+  check(`${id}: Raum 12 – der Stern erscheint erst nach dem Druckfeld`, g.schalter.hidden);
+  check(`${id}: Raum 21 – vom Boden aus nicht auf den ersten Sims (höchstens y ${g.sims.top}, Sims ${g.sims.sims})`, g.sims.y < g.sims.sims - 0.5);
+  check(`${id}: Raum 29 – Draufspringen, solange der Wirbelbrocken rennt, zählt nicht (hp ${g.boss.hp})`, g.boss.hp === 1);
+
+  // Zeitablauf: zwei Räume lösen, im dritten nichts tun → Haus verlassen, Ergebnis 2 von 30 gespeichert
+  if (!(await load(id, { fresh: true }))) return;
+  await sc(installHaus);
+  const z = await sc(() => {
+    const c = window.__course, H = window.__haus;
+    const r = [H.solve(0), H.solve(1)].map((o) => [o.t, o.got]);
+    H.waitPlay(2);
+    let n = 0;
+    for (; n < 2400 && !c.finished; n++) { c.setInput({}); c.step(1); }
+    const save = JSON.parse(localStorage.getItem('lotti-greta-course-v1') ?? '{}').levels?.['K-Haus'] ?? null;
+    return { r, n, a: c.arch.info(), res: c.lastResult ?? null, save, finished: c.finished };
+  });
+  console.log('      ', JSON.stringify({ r: z.r, n: z.n, exited: z.a.exited, timeouts: z.a.timeouts, stars: (z.res?.stars ?? []).filter(Boolean).length, save: z.save?.stars?.filter(Boolean).length }));
+  check(`${id}: Zeitablauf in Raum 3 → Haus verlassen, Ergebnis 2 von 30 Sternen gespeichert`, z.finished && z.a.exited && z.a.timeouts === 1 && z.res?.stars?.filter(Boolean).length === 2 && z.save?.stars?.filter(Boolean).length === 2);
+}
+
+/** Bilder je Raum (nach der Überblendung, Figur am Start) und Kennzahlen je Raum. */
+async function hausShots() {
+  const id = 'K-Haus';
+  if (!(await load(id, { fresh: true }))) return;
+  await sc(installHaus);
+  const RAUM = process.env.RAUM ? process.env.RAUM.split('-').map((v) => Number(v) - 1) : null;
+  const from = RAUM ? RAUM[0] : 0, to = RAUM ? (RAUM[1] ?? RAUM[0]) : 29;
+  for (let i = from; i <= to; i++) {
+    const name = `raum${String(i + 1).padStart(2, '0')}`;
+    if (!wantShot(name)) continue;
+    await sc((k) => { const c = window.__course; if (c.arch.info().room !== k) c.arch.enterRoom(k); window.__haus.waitPlay(k); for (let q = 0; q < 40; q++) window.__haus.step({}); c.player.invuln = 0; }, i);
+    await shot(`kh_${name}`, 300);
+  }
+}
+
 // ====================================================================================================================
 // Ablauf
 // ====================================================================================================================
 try {
   if (!ONLY_LEVEL || ONLY_LEVEL === 'K-Kapitän') await kapitaen();
-  if (!ONLY_LEVEL || ONLY_LEVEL === 'K-Haus') await haus();
+  if (!ONLY_LEVEL || ONLY_LEVEL === 'K-Haus') { await haus(); if (PARTS.has('haus-extra')) await hausExtra(); if (PARTS.has('haus-shots')) await hausShots(); }
 } catch (e) {
   console.log('Abbruch:', e);
   check('Testlauf ohne Ausnahme', false);
