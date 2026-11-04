@@ -30,7 +30,7 @@ const ROUTES = {
   'K-1': {
     start: [0, 0, 6],
     meta: { stars: 3, time: 500, theme: 'skyway', music: 'course_champion', archetype: 'parcours', world: 12, maxTime: 480 },
-    enemies: { krakenpilz: 6, pilzling: 4, feuer_werfer: 3, zauberkroete: 3, ameisensoldat_horn: 6, rankenschnapper: 3, feuerring: 9, topfpflanze: 2 },
+    enemies: { krakenpilz: 6, pilzling: 4, feuer_werfer: 3, zauberkroete: 3, ameisensoldat_horn_strom: 2, rankenschnapper: 3, feuerring: 9, topfpflanze: 2 },
     main: [
       // ---------------------------------------------- 1 Schiebeblock-Auftakt
       { sec: 's1', from: [0, 0, 6] },
@@ -90,7 +90,7 @@ const ROUTES = {
       { sec: 's3', from: [0, 14, -221.4] },
       { to: [0, -226.5], within: 0.3, run: false },
       { name: 'Piep rot 1', beep: 'rot', need: 1.0, to: [0, -234], within: 0.5 },
-      { name: 'Piep blau 2', beep: 'blau', need: 1.1, to: [0, -240.3], within: 0.4 },
+      { name: 'Piep blau 2', beep: 'blau', need: 1.3, to: [0, -240.2], within: 0.4, run: false },
       { name: 'Piep rot 3 (Sprung im Wechsel)', beep: 'rot', lead: 0.3, to: [0, -243.5], jump: 18, within: 0.6, run: false },
       { to: [0, -248], within: 0.4 },
       { name: 'Piep-Treppe rot', beep: 'rot', need: 1.1, to: [0, -251.3], jump: 30, within: 0.4, run: false },
@@ -125,7 +125,7 @@ const ROUTES = {
       { name: 'Grau 5', to: [0, -433.2], jump: 24, within: 0.6, run: false },
       { name: 'über Stachelwalze 1', to: [0, -438], jump: 34, jumpAt: 3.6, within: 0.6 },
       { name: 'über Stachelwalze 2', to: [0, -443.2], jump: 34, jumpAt: 3.6, within: 0.6, run: false },
-      { name: 'Querfahrer', board: 'g6', at: [0, -447], pause: -1, tol: 0.35 },
+      { name: 'Querfahrer', board: 'g6', at: [0, -447], pause: -1, tol: 0.35, after: [0, -1.4], settle: 36 },
       { name: 'Erholungsinsel', to: [0, -451.6], jump: 22, within: 0.6, run: false },
       { to: [0, -459.6], within: 0.3, run: false },
       { name: 'Pendelstufe 1', to: [0, -464.5], jump: 24, within: 0.6, run: false },
@@ -174,6 +174,39 @@ const ROUTES = {
       { name: 'Aussprung auf die Röhren-Insel', to: [0, -709], within: 0.6, y: 35.9 },
       { name: 'Glasröhre zum Boost-Finale', pipe: [0, -716.6] },
       { expect: '=at(-3.2, 3.2, 11.5, -735, -745)' },
+      // ---------------------------------------------- 6 Boost-Finale: Feuerring-Schockwellen, fünf Schlüsselmünzen, Warp-Box 4
+      { sec: 's6', from: [0, 12, -742] },
+      { name: 'Boost-Bahn', to: [2.5, -766.6], within: 0.5 },
+      { to: [2.5, -767], within: 0.3, run: false },
+      { name: 'Schlüssel 1: Seitensims links', to: [-10, -767], jump: 30, jumpAt: 7.4, within: 0.8 },
+      { expect: '=L.keys?.krone?.n === 1' },
+      { to: [-11.6, -767], within: 0.3, run: false },
+      { name: 'zurück auf die Bahn', to: [-1, -769], jump: 30, jumpAt: 6.6, within: 0.8 },
+      { name: 'Boost vor der Lücke', to: [0, -804], jump: 26, jumpAt: 14, within: 1.2 },
+      { name: 'Schlüssel 2: über der Schockwelle', to: [0, -816], jump: 26, jumpAt: 4.5, within: 0.8 },
+      { expect: '=L.keys?.krone?.n === 2' },
+      { to: [-2.5, -829], within: 0.3, run: false },
+      { name: 'Schlüssel 3: Seitensims rechts', to: [10, -829], jump: 30, jumpAt: 7.6, within: 0.8 },
+      { to: [11.6, -829], within: 0.3, run: false },
+      { expect: '=L.keys?.krone?.n === 3' },
+      { name: 'zurück auf die Bahn', to: [1, -831], jump: 30, jumpAt: 6.6, within: 0.8 },
+      { name: 'Boost über die zweite Lücke', to: [0, -864], jump: 26, jumpAt: 14, within: 1.2 },
+      { to: [0, -876.5], within: 0.3, run: false },
+      { name: 'Schlüssel 4: auf dem Goldblock', to: [0, -880], jump: 34, within: 0.5, y: 14.4, run: false },
+      { expect: '=L.keys?.krone?.n === 4' },
+      { name: 'hinab und weiter', to: [0, -888], jump: 20, within: 0.8 },
+      { name: 'Rampe zum Platz', to: [0, -918], within: 0.6 },
+      { name: 'Schlüssel 5 auf dem Platz', to: [-6, -931], within: 0.4 },
+      { expect: '=L.keys?.krone?.n === 5' },
+      { until: '=ent(\'warp4\') && !ent(\'warp4\').hidden', max: 240 },
+      { name: 'Warp-Box 4 zum Siegerplatz', warp: [0, -933.6] },
+      { expect: '=at(-9, 9, 23.5, -957, -975)' },
+      { to: [0, -974.4], within: 0.3, run: false },
+      { name: 'Goldtreppe', to: [0, -976.6], jump: 20, within: 0.5, run: false },
+      { to: [0, -979.6], jump: 20, within: 0.5, run: false },
+      { to: [0, -982.6], jump: 20, within: 0.5, run: false },
+      { to: [0, -986], jump: 20, within: 0.5, run: false },
+      { name: 'goldener Zielmast', to: [0, -989.6], within: 0.2 },
     ],
     targets: [],
     extra: [],
@@ -804,6 +837,9 @@ function install() {
       c.setInput({});
       const q = P();
       mech.hurts = (L.players ?? [q]).reduce((a, f) => a + (f.hurtTries ?? 0), 0);
+      // Trefferversuche je Quelle (Art@gerundeter Ort), zusammengefasst
+      mech.hurtBy = {};
+      for (const h of mech.hurtList) { const k = h.replace(/,(-?\d+),(-?\d+)$/, (m, y, z) => `,${Math.round(+z / 10) * 10}`); mech.hurtBy[k] = (mech.hurtBy[k] ?? 0) + 1; }
       mech.lives = L.runtime.save?.lives;
       mech.keys = L.keys?.tor?.n ?? 0;
       mech.tintlinge = tint0 - aliveOf('tintling');

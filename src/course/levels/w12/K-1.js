@@ -100,7 +100,9 @@ const arenaFeld = () => {
 };
 
 // ---------------------------------------------------------------- Abschnitt 5: Hörner-Ameisen an der Turmwand (Gesicht z −582)
-const ameisenWand = (x) => ({ path: [[x, YL2, -582, 0, 0, 1], [x, YL3, -582, 0, 0, 1], [x, YL3, -582, 0, 1, 0], [x, YL3, -583.4, 0, 1, 0]] });
+// Hörner-Ameisen-Strom: kommt aus einem Loch am Fuß der Turmwand, klettert hinauf und verschwindet oben in einem Loch (nur aufwärts –
+// niemand kommt entgegen)
+const ameisenWand = (x) => ({ path: [[x, YL2, -582, 0, 0, 1], [x, YL3, -582, 0, 0, 1], [x, YL3, -582, 0, 1, 0], [x, YL3, -584.6, 0, 1, 0]] });
 // Rankenschnapper-Kette: drei Ranken wachsen nacheinander waagerecht aus der Turmwand (z −590) zur Kamera hin (Köpfe vorn), Stufen
 // im Zickzack hinauf; Wurzel hinten an der Wand = sicherer Stand, der Kopf schnappt erst vorn
 const ranke = (id, x, y, phase) => ({ kind: 'rankenschnapper', id, pos: [x, y, -590], path: [[x, y, -590], [x, y + 0.1, -587.5], [x, y + 0.2, -585]], size: 1.5, grow: [1.0, 4.2, 0.9, 1.4], phase });
@@ -275,7 +277,7 @@ export const LEVEL = {
     block(-2.5, 2.5, -432, -444, YG4, 'gray'),
     { type: 'stachelwalze_rot', id: 'walze1', pos: [0, YG4 + 1.1, -435.5], axis: 'x', length: 5, radius: 1.0, speed: 1.6 },
     { type: 'stachelwalze_rot', id: 'walze2', pos: [0, YG4 + 1.1, -440.5], axis: 'x', length: 5, radius: 1.0, speed: -1.6 },
-    { type: 'mover', id: 'g6', path: [[-4, YG4 - 1, -447], [4, YG4 - 1, -447]], size: [3, 1, 3], speed: 2.4, wait: 0.6, color: 'gray', phase: 0.5 },
+    { type: 'mover', id: 'g6', path: [[-3.6, YG4 - 1, -447], [3.6, YG4 - 1, -447]], size: [3, 1, 4], speed: 2.2, wait: 0.6, color: 'gray', phase: 0.5 },
     marmor(M.ERHOLUNG.x0, M.ERHOLUNG.x1, M.ERHOLUNG.z0, M.ERHOLUNG.z1, YG4, 3),
     sign(-3, YG4, -452, 'Erholungsinsel', { size: [2.2, 0.8], yaw: 0.2 }),
     block(-1.5, 1.5, -463, -466, YG4 + 0.5, 'gray'),
@@ -392,8 +394,8 @@ export const LEVEL = {
     { kind: 'wuschel', id: 'w_stern', center: [-3.4, 10.7, -531], radius: 1.7, count: 8, spacing: 1.33, speed: 1.4 },
     { kind: 'wuschel', id: 'w_platz', path: [[3.4, 10.7, -526], [3.4, 10.7, -538]], count: 3, spacing: 2.5, speed: 1.8 },
     // Turm: Hörner-Ameisen als Stufen, Rankenschnapper-Kette
-    { kind: 'ameisensoldat_horn', id: 'ameise_l', antpath: 'aw_l', count: 3, spacing: 4, speed: 1.4, mode: 'loop' },
-    { kind: 'ameisensoldat_horn', id: 'ameise_r', antpath: 'aw_r', count: 3, spacing: 4, speed: 1.4, mode: 'loop', phase: 0.5 },
+    { kind: 'ameisensoldat_horn', id: 'strom_l', antpath: 'aw_l', speed: 1.4, spawner: { every: 2.6, max: 5 } },
+    { kind: 'ameisensoldat_horn', id: 'strom_r', antpath: 'aw_r', speed: 1.4, spawner: { every: 2.6, max: 5, first: 1.3 } },
     ranke('ranke1', -2.4, YL3 + 1.55, 0.3), ranke('ranke2', 0, YL3 + 3.55, 0.18), ranke('ranke3', 2.4, YL3 + 5.55, 0.06),
     // Boost-Finale: Feuerring-Schockwellen
     fring('fr1', 0, -758, YBO), fring('fr2', 0, -776, YBO, { phase: 0.5 }),
