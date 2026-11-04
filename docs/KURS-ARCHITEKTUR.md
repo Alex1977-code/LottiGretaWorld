@@ -9978,3 +9978,92 @@ einer Kröte übrig bzw. Warp-Box 4 mit vier Schlüsseln verborgen, Sturz → St
 läuft die Taktuhr auf der Simulationszeit (`beepClock.mode = 'level'`). Routen (Bot, Spielzeit): Lotti ≈ 270 s, Greta ≈ 255–267 s.
 Kennzahlen (Zeichenaufrufe inkl. Schattenpass / Dreiecke): Messgang (58 Punkte) höchstens 103 / 256 k (Rankenschnapper-Kette mit
 Blick über die Wasserwürfel), Bilder (41 Abschnitte) ≤ 86 / 232 k. Grenzen < 120 / < 300 k.
+
+## Präzisierung (Level K-Kapitän und K-Haus)
+
+Additiv zur Tabelle „Welt Krone (12) – Abschlussprüfung“: Titel und Besonderheiten der beiden frei zugänglichen Krone-Level.
+Dateien `src/course/levels/w12/K-Kapitän.js`, `K-Haus.js`, eigene Hilfen `src/course/levels/w12/_helpers_b.js` (kein `LEVEL`, nur
+für diese beiden Level; `_helpers_a.js` gehört K-1), Test `tests/course_kb.mjs`. **Kein Motor-Code geändert**; alles Level-Lokale
+hängt an `LEVEL.build`/`LEVEL.setup`, `level.onStep` und `view.onFrame`. Beide `world: 12`, Meta nach der Tabelle.
+
+### K-Kapitän „Krümels Glutturm-Finale“ (diorama · volcano · course_diorama · 400 s, 5 Sterne + Stempel)
+
+- Schwebender **Glutkessel** 32 × 31 m (x −16 … 16, z −16 … 15,5) mit Lava (`lavaspiegel` `zyklus`: 13 s unten – die letzten
+  2,5 s brodelt sie –, 4,5 s Steigen, 4 s oben, 4,5 s Sinken; Spiegel y 0 … 7,6), darin der **Glutturm** (Dach y 16), die
+  **Lochwolke** (y 20) und die goldene Gipfelkrone mit Fahne (bis ≈ 25 m). Figur **Krümel** (springt nicht, Stufen ≤ 0,28 m);
+  Kamera Gier 24°, Neigung 40°, Abstand 60/18 m. Ebenen: Glutsteg y 1 (nur bei Ebbe trocken) · Kraterrand (Start) y 8 ·
+  Glutbalkon y 8,6 · Felsklippe y 9 · Turmstube y 12,6 · Turmdach/Glutsäule y 16 · Wolke y 20. Gelb-goldene Geländer an allen
+  Lavakanten, Bordsteine an der Rampe.
+- **Glutfloß** (`glutFloss`): rote Steinplatte, deren Oberseite immer 1 m über dem Lavaspiegel liegt – sie trägt Krümel vom
+  Glutsteg (Ebbe) zum Glutbalkon (Flut). Vom Glutbalkon führt ein **Hängesteg 0,6 m tiefer** zum Kraterrand (nur hinab).
+  **Propellerplattformen** (`propellerplattform` `rise`, je 4 m): Kraterrand → y 12 → Turmdach y 16. **Donut-Brücke** (6 × 2
+  `donutblock`, `delay` 0,6, `respawn` 2,6) zur Glutsäule. **Lochwolke** aus vier Wolken-Bausteinen (`lochWolke`) über der
+  Dachluke; ein Geländerring um die Luke lässt vom Dach niemanden hinein. Die Tür der Turmstube ist ein **Gittertor**
+  (`gittertor`), das nur von innen aufgeht (hinaus auf die ruhende obere Propellerplattform, 0,6 m tiefer).
+- Sterne (Bauplan): **1** auf dem Glutfloß warten, bis die Lava steigt → Glutbalkon · **2** bei sinkender Lava die Rampe hinab
+  in die **Nische** im Westfels · **3** beide **Propellerplattformen anheben** (der Stern schwebt 4,35 m über der ruhenden
+  oberen) · **4** über die **Donut-Brücke** zur Glutsäule · **5** auf der Lochwolke ins **Loch** fallen → Turmstube. **Stempel**
+  auf der Lochwolke. Der fünfte Stern beendet das Level (Schatz-Ergebnis). Geheimnisse: Schatzstellen (Kraterrand, Turmdach,
+  Glutsäule), Bitcoin-Häufchen in der Turmstube, **Extraleben** auf der Felsklippe – dorthin fällt, wer auf der Donut-Brücke
+  stehen bleibt. Keine Gegner (Bauplan).
+- Zier: Basaltmauern mit Gesimsen, Fenster, Kronen-Banner, Feuerschalen, Standfackeln, Lavafälle, Basaltsäulen, Glutfunken,
+  Glitzer über Wolke und Säule, Felsunterbau mit Glutadern (`glutInsel`), Krone und Gipfelfahne (`kronenZier`), Schilder.
+
+### K-Haus „Haus Marathon“ (house · house · course_house · 30 Räume à 10 s, 30 Sterne + Stempel im Raum 30, `fail: 'exit'`)
+
+- Dreißig Stuben hintereinander (Raster 56 m nach −Z, Boden y 1, Breite 14 m, Länge 16 … 40 m), Raumhüllen aus den Welt-4-Hilfen
+  (`hausRaum`/`hausFertig`, nur importiert), Tapeten Welt 4, Welt 6 (`tapete`) und fünf eigene (`tapeteK`: krone, eis, glut,
+  garten, wolken), Bilder, Uhren, Möbel, Wimpelketten. Die **Kraftkapsel** (`kraftKapsel` aus `w10/_helpers_pb.js`) gibt in
+  Raum 4 die Funkenblüte und in Raum 6 und 12 den Krallen-Anzug; in Raum 11 steigt die Figur in einen Schlittschuh. Sterne, die
+  erst nach einer Bedingung erscheinen, verwaltet `versteckteSterne` (Raum 3, 4, 6, 12, 18, 24, 29).
+- Räume (Ziel `reach`, sonst angegeben): **1** Panzerparade – 3 Panzerkröten (`defeatAll`) · **2** Schaukelsaal – 3 Schaukeln
+  über dem Schacht, am Ziel rollt ein Walzenwerfer Stachelwalzen quer · **3** Glutfelder – 3 Druckfelder (`pfeld`), 2
+  Lavabrocken auf Runden · **4** Fackelstube – 4 Fackeln (`moorfackeln`) nur mit Feuerbällen · **5** Kreiselzimmer –
+  Drehscheibe (`drehdiorama`, Vierteldrehung alle 2,6 s) mit Kommode und Schrank, zwei gegenläufige Kreisgeist-Ringe, Stern auf
+  dem Schrank · **6** Kistenlager – 20 Kisten in vier Gruppen, der Stern steckt unten links in der Gruppe hinten rechts
+  (Tatzenhieb) · **7** Pilzlingsschar – Pilzling + 6 Mini-Pilzlinge, POW-Block (`defeatAll`) · **8** Kullerhang – Balkon,
+  Kraftfeld, Bälle den Hang hinab, der Stern unter kreisenden Flatterkäfern · **9** Hackbeil-Hof – 4 Hackbeil-Pilze, rechts der
+  Federklotz (`springklotz`) unter dem hohen Stern (Leuchtpfeil) · **10** Stampfsteinfahrt – Stampfstein locken, mitfahren, zwei
+  unsichtbare Stege (`unsichtbareWolke`) · **11** Eisrutsche – Eishang mit Schlittschuh, zwei Stachelstreifen · **12**
+  Krallenschalter – Druckfeld oben auf dem rechten Kletterblock, Stern auf dem linken · **13** Kanonenturm – drei Stufen, auf
+  jeder feuert eine Kanone Projektilköpfe quer · **14** Piep-Treppe – 7 Stufen paarweise rot/blau (`every` 3, `warn` 1) ·
+  **15** Großblock-Fall – 4 große Fallblöcke (`fallblock_bruecke` `einzeln`) · **16** Ringwand – drehende Mauer mit einer Lücke
+  (`drehdiorama`), zwei Wuschel kreisen außen · **17** Hasenjagd – Boost-Pfeile, 2 Hasen fangen (`collect`) · **18**
+  Sprungfeld-Wurf – Ball vom Sprungfeld auf den hohen Druckschalter (wie 6-Haus Raum 3) · **19** Holzlabyrinth – drehendes
+  Labyrinth, Eingang vorn links, Stern in der Mitte · **20** Schubser-Kessel – 2 Schubser in die Lava stoßen (`defeatAll`) ·
+  **21** Riesen-?-Türme – 3 Riesen-?-Türme (Stampfen) auf Simsen 4,6 m übereinander, jeder nötig · **22** Himmelssteg –
+  1,6 m breiter Steg, 5 Kanonen mit Suchköpfen (Takt wie 4-Haus Raum 9, beim Raumstart frisch) · **23** Rankentreppe – 5
+  Rankenschnapper (`static`) aus dem Giftgraben als Stufen · **24** Schalterfelder – Wurfbühne, Kraftfeld, 3 Scheiben
+  (`zielscheibe`) · **25** Topfgarten – 2 Topf-Schnappblumen fressen 3 Wuschel (`defeatAll`) · **26** Schnappkarussell –
+  Drehteller (`drehteller`) mit 4 Schnappblumen, Stern auf dem Sockel in der Mitte · **27** Scheinwerferschacht – drei Simse im
+  Zickzack, der Suchscheinwerfer kreist über Boden und unteren Simsen, entdeckt → Suchkopf · **28** Donutbrücke – zwei
+  Donut-Stücke mit Inselchen, 2 Walzenwerfer · **29** Wirbelbrocken – `hp: 1`, verwundbar nur im Taumeln, wach ab Raumstart ·
+  **30** Siegerflur – roter Läufer mit Münzweg, **Stempel** auf dem Weg, Stern am Ende; Geheimnis: unsichtbarer Block mit
+  Extraleben über dem Läufer, Münzblock daneben.
+- Leistung: `nurRaumSicht` legt je Bild die Fernebene der Kamera knapp hinter die hinterste Ecke des laufenden Raums (die
+  folgenden Räume fallen samt Gegnern aus Sicht- und Schattenprüfung) und zeichnet Instanz-Gruppen ohne Sichtprüfung (z. B.
+  Donut-Blöcke) nur in ihrem Raum; `teileInstanzen`, `heroShadowDiet`, `farHide` wie in den anderen Häusern.
+- Hinweis für die Hauptsitzung: Der Bauplan legt in Raum 30 einen Stempel fest; die Kartenregel `{ id: 'K-Haus', stars: 30 }`
+  in `map/worlds/w12.js` trägt (noch) kein `stamp: true` – der Stempel zählt im Level und im Speicherstand, die Karte zeigt ihn
+  erst mit dieser Ergänzung.
+
+### Hilfen `_helpers_b.js`
+
+Weitergereicht `Quads`, `brickBox`, `gelaender`, `flushQ`, `funken`, `carpet` (Welt 7), `Bld`, `litTop`, `gradY`, `glimmer`,
+`sign`, `line`, `ring`, `arc`, `onRespawn` (Welt 5/6) · K-Kapitän: `glutFloss`, `gittertor`, `lochWolke`, `randsteine`,
+`glutInsel`, `kronenZier`, `bildUhr` · K-Haus: `tapeteK`, `versteckteSterne`, `drehteller`, `nurRaumSicht`, `frischeWalzen`.
+
+### Test `tests/course_kb.mjs`
+
+Port 5055 (+ `PORT_BASE`), Aufruf `node tests/course_kb.mjs [K-Kapitän|K-Haus]`, `PARTS=load,route,targets,shots,haus,haus-extra,
+haus-shots` (alles zusammen < 6 min), `HEROES=lotti,greta`, `RAUM=a-b`, `SHOTS`, `VERBOSE`, `TRACE`; Bilder `tests/out/kb_*.png`.
+Bot mit echter Eingabe (Stick relativ zur Kamera-Gier). K-Kapitän: Krümel holt in einem Lauf alle fünf Sterne und den Stempel
+(Ebbe abwarten, Nische, Glutfloß, Glutbalkon, Hängesteg, beide Propeller, Donut-Brücke, Treppe, Lochwolke, Loch) in ≈ 51 s ohne
+Tod; Gegenproben: Floß 1 m über der Lava (unten und oben), Glutbalkon nicht vom Hängesteg, Flut tötet auf dem Glutsteg, Luke vom
+Dach versperrt, Gittertor von außen zu und von innen offen, Krümel springt nicht, Donut fällt beim Stehenbleiben, Stern 3 nur
+angehoben, Extraleben auf der Felsklippe. K-Haus: alle 30 Räume **am Stück** mit Lotti und Greta (Figur verwundbar; Ergebnis
+30/30 + Stempel gespeichert; Raumzeiten Lotti ≈ 1–8,4 s, Greta ≈ 1,5–8,2 s), Gegenproben: zwei von drei Druckfeldern, Fackeln ohne
+Feuer, Sternkiste ohne Krallen, Kraftfeld, unsichtbare Stege, Stacheln ohne Schlittschuh, Stern erst nach dem Druckfeld, erster
+Sims nicht vom Boden, Wirbelbrocken im Rennen unverwundbar, Extraleben im Siegerflur, Zeitablauf in Raum 3 → Haus verlassen mit
+2/30. Kennzahlen (scale 2, inkl. Schattenpass / Dreiecke): K-Kapitän Bilder 56–98 / ≤ 260 k (Überblick), K-Haus je Raum 33–64
+/ ≤ 228 k. Grenzen < 120 / < 300 k. Noch nicht in `npm test` (package.json nicht geändert).
