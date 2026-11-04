@@ -388,13 +388,17 @@ function installHaus() {
       if (d <= (o.reach ?? 2.2) && p.mode === 'ground') break;
       st({ ...B.stick(t.x - p.pos.x, t.z - p.pos.z, 1), run: o.run ?? false });
     }
+    if (o.stop) for (let k = 0; k < 60 && live(i) && Math.hypot(p.vel.x, p.vel.z) > 0.3; k++) st({});
+    for (let k = 0; k < (o.pre ?? 0) && live(i); k++) { const t = target(); if (!t) break; st({ ...B.stick(t.x - p.pos.x, t.z - p.pos.z, 1), run: o.run ?? false }); }
     S.jumps++;
     let bounced = false;
     for (let k = 0; k < 220 && live(i); k++) {
       if (o.safe && k > 8 && p.vel.y > 6) bounced = true;
       const t = bounced ? { x: o.safe[0], z: o.safe[1] } : target(); if (!t) break;
-      const inp = p.mode === 'air' ? B.airSteer(t.x + (t.vx ?? 0) * 0.15, t.z + (t.vz ?? 0) * 0.15, t.vx ?? 0, t.vz ?? 0, o.k ?? 4, o.vmax ?? 8) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1);
+      const up = o.upFirst && p.vel.y > (o.upFirst === true ? 2.5 : o.upFirst);
+      const inp = up || (o.upFirst && p.mode !== 'air') ? {} : p.mode === 'air' ? B.airSteer(t.x + (t.vx ?? 0) * 0.15, t.z + (t.vz ?? 0) * 0.15, t.vx ?? 0, t.vz ?? 0, o.k ?? 4, o.vmax ?? 8) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1);
       st({ ...inp, jump: k < (o.hold ?? 14), crouch: !!(o.pound && p.mode === 'air' && k > 6 && p.vel.y < 1.5 && Math.hypot(t.x - p.pos.x, t.z - p.pos.z) < 0.6) });
+      if (window.__trace && k % 6 === 0) log.push(['spr', k, here(i), +p.vel.x.toFixed(2), +p.vel.y.toFixed(2), +p.vel.z.toFixed(2), p.mode]);
       if (k > 6 && p.mode !== 'air') break;
     }
     return true;
@@ -700,19 +704,19 @@ function installHaus() {
   // 21 Riesen-?-Türme: drauf, stampfen, mitfahren – dreimal
   R[20] = (i) => {
     const towers = ['k21_turm1', 'k21_turm2', 'k21_turm3'].map(ent);
+    const vor = [null, [H.R21.t2[0] - 1.9, H.R21.t2[1]], [H.R21.t2[0] + 0.7, H.R21.t3[1] - 1.6]];
     for (const [k, t] of towers.entries()) {
       if (!live(i) || !t) break;
-      jumpOnto(i, () => ({ x: t.pos.x, z: t.pos.z }), { reach: 2.2, hold: 30, pound: true });
+      if (vor[k]) walkTo(i, vor[k][0], vor[k][1], { within: 0.3, max: 240 });
+      jumpOnto(i, () => ({ x: t.pos.x, z: t.pos.z }), { reach: k === 2 ? 4.4 : 2.0, hold: 30, pound: true, run: k === 2 });
       for (let q = 0; q < 160 && live(i) && t.state !== 'turm'; q++) st({});
-      for (let q = 0; q < 20; q++) st({});
+      for (let q = 0; q < 6; q++) st({});
       log.push(['turm', k + 1, t.state, here(i)]);
-      if (k === 0) walkTo(i, -1.6, 8.3, { within: 0.4 });
-      if (k === 1) walkTo(i, 4.0, 8.3, { within: 0.4 });
     }
     for (let k = 0; k < 60 && live(i); k++) st({});
   };
   // 22 Himmelssteg: über den Steg, Suchköpfen ausweichen (Sprung)
-  R[21] = (i) => { walkTo(i, 0, 4.2, { within: 0.3 }); walkTo(i, 0, 37.4, { within: 0.4, run: true, dodge: ['suchkopf'], tJump: 0.42, r: 1.2, max: 1100 }); };
+  R[21] = (i) => { walkTo(i, 0, 37.4, { within: 0.4, run: true, dodge: ['suchkopf'], tJump: 0.4, r: 1.2, hold: 10, max: 1100 }); };
   // 23 Rankentreppe: von Ranke zu Ranke hinauf
   R[22] = (i) => {
     walkTo(i, 0, 3.4, { within: 0.25 });
@@ -724,13 +728,13 @@ function installHaus() {
   R[23] = (i) => {
     const ziele = H.R24.ziele;
     for (let k = 0; k < 3 && live(i); k++) {
-      const z = L.entities.find((e) => e.kind === 'zielscheibe' && e.spec?.id === `k24_ziel${k + 1}`);
+      const z = L.entities.filter((e) => e.kind === 'zielscheibe' && Math.abs(H.Z0[i] - e.pos.z - 12.5) < 3).sort((a, b) => a.pos.x - b.pos.x)[k];
       for (let tries = 0; tries < 2 && z && !z.done && live(i); tries++) {
         const free = L.entities.filter((e) => e.kind === 'wurfball' && !e.removed && !e.carrier && e.state !== 'flying').sort((a, b) => Math.hypot(a.pos.x - P().pos.x, a.pos.z - P().pos.z) - Math.hypot(b.pos.x - P().pos.x, b.pos.z - P().pos.z))[0];
         if (!free) break;
         grab(i, free.spec.id);
-        walkTo(i, ziele[k][0] * 0.4, 6.4, { within: 0.3 });
-        throwToward(i, ziele[k][0], zu(i, ziele[k][1]), 6, 0.25);
+        walkTo(i, ziele[k][0] * 0.4, 5.6, { within: 0.3 });
+        throwToward(i, ziele[k][0], zu(i, ziele[k][1]), 4, 0.12);
         for (let q = 0; q < 60 && !z.done && live(i); q++) st({});
       }
       log.push(['scheibe', k + 1, z?.done, here(i)]);
@@ -757,36 +761,49 @@ function installHaus() {
     const blumen = () => L.entities.filter((e) => e.kind === 'schnappblume' && alive(e));
     for (let k = 0; k < 900 && live(i); k++) {
       // Weg (x 0, von vorn zur Mitte) frei: keine Blume näher als 1,9 m an der Linie für die nächsten 0,9 s
-      const ok = blumen().every((e) => { const dx = e.pos.x, du = cz - e.pos.z; const a = Math.atan2(du, dx) - 0.55 * 0.9; const r = Math.hypot(dx, du); return Math.abs(r * Math.cos(Math.atan2(du, dx))) > 1.9 && Math.abs(r * Math.cos(a)) > 1.9; });
+      const ok = blumen().every((e) => { const dx = e.pos.x, dz = e.pos.z - cz; if (dz < -0.6) return true; const r = Math.hypot(dx, dz), a0 = Math.atan2(dz, dx); return [0, 0.25, 0.5].every((tt) => Math.abs(r * Math.cos(a0 - 0.55 * tt)) > 1.3); });
       if (ok) break;
       st({});
     }
-    jumpOnto(i, () => ({ x: 0, z: cz }), { reach: 2.0, hold: 26, run: true });
+    log.push(['start', here(i), L.named.get('k26_teller')?.angle]);
+    walkTo(i, 0, H.R26.c - 2.2, { within: 0.3, max: 240 });
+    jumpOnto(i, () => ({ x: 0, z: cz }), { reach: 3.0, hold: 26, vmax: 3.5, k: 5 });
+    log.push(['sockel', here(i), P().ground?.tag]);
     for (let k = 0; k < 40 && live(i); k++) st({});
   };
-  // 27 Scheinwerferschacht: im Zickzack die Simse hinauf
+  // 27 Scheinwerferschacht: im Zickzack die Simse hinauf (jeder Sims liegt etwas weiter hinten)
   R[26] = (i) => {
     const Ls = H.R27.leisten;
-    walkTo(i, -3, 10.6, { within: 0.3, run: true });
-    for (const [x0, x1] of Ls) jumpOnto(i, () => ({ x: (x0 + x1) / 2, z: zu(i, 14) }), { reach: 4.2, hold: 30, run: true });
+    walkTo(i, -1.6, 7.0, { within: 0.3 });
+    for (const [k, [x0, x1, u0, u1]] of Ls.entries()) {
+      const left = x1 < 0;
+      if (k > 0) { const [, , pu0, pu1] = Ls[k - 1]; walkTo(i, left ? 1.5 : -1.5, Math.max(pu0 + 0.5, u0 - 0.3), { within: 0.25, max: 200 }); }
+      jumpOnto(i, () => ({ x: left ? -1.8 : 1.8, z: zu(i, (u0 + u1) / 2) }), { reach: 3.6, hold: 30, stop: true, vmax: 3.5 });
+      for (let q = 0; q < 60 && live(i) && P().mode !== 'ground'; q++) st({});
+      log.push(['sims', k + 1, here(i), P().mode, P().ground?.tag ?? null]);
+    }
     toStar(i);
   };
   // 28 Donutbrücke: nicht stehen bleiben, über Walzen springen
   R[27] = (i) => { walkTo(i, 0, 5.4, { within: 0.3 }); walkTo(i, 0, 27, { within: 0.4, run: true, dodge: ['stachelwalze'], tJump: 0.36, r: 1.2, max: 1100 }); };
-  // 29 Wirbelbrocken: Abstand halten, solange er rennt und wirbelt; taumelt er, draufspringen
+  // 29 Wirbelbrocken: Abstand halten, solange er rennt und wirbelt; zum Ende des Wirbels heran, taumelt er, draufspringen
   R[28] = (i) => {
     const b = ent('k29_wirbel'), cz = zu(i, 10);
     walkTo(i, 0, 5.2, { within: 0.4 });
-    for (let k = 0; k < 1200 && live(i) && b.hp > 0; k++) {
-      if (b.state === 'stunned' && b.stateT < 1.0) { jumpOnto(i, () => ({ x: b.pos.x, z: b.pos.z }), { reach: 3.0, hold: 12, run: true }); continue; }
-      // fliehen: Punkt auf dem Kreis gegenüber
-      const p = P(), ax = p.pos.x - b.pos.x, az = p.pos.z - b.pos.z, al = Math.hypot(ax, az) || 1;
-      let tx = 0 + (ax / al) * 5, tz = cz + (az / al) * 5;
-      tx = Math.max(-5.6, Math.min(5.6, tx)); tz = Math.max(zu(i, 18.4), Math.min(zu(i, 1.6), tz));
-      const far = Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z) > 4.5;
-      st(far && b.state !== 'stunned' ? {} : { ...B.stick(tx - p.pos.x + (az / al) * 2, tz - p.pos.z - (ax / al) * 2, 1), run: true });
+    for (let k = 0; k < 1200 && live(i) && b.hp > 0 && !['defeated', 'flee', 'gone'].includes(b.state); k++) {
+      if (window.__trace && k % 30 === 0) log.push(['boss', k, b.state, +b.stateT.toFixed(2), b.hp, here(i), [+b.pos.x.toFixed(1), +(H.Z0[i] - b.pos.z).toFixed(1)]]);
+      const p = P(), d = Math.hypot(b.pos.x - p.pos.x, b.pos.z - p.pos.z);
+      if (b.state === 'stunned') { const h0 = S.hits; jumpOnto(i, () => ({ x: b.pos.x, z: b.pos.z }), { reach: 2.2, hold: 14, run: false, k: 5, pre: 14 }); for (let q = 0; q < 40 && P().mode === 'air'; q++) st({}); log.push(['sprung auf ihn', b.state, b.hp, S.hits - h0, here(i), [+b.pos.x.toFixed(1), +(H.Z0[i] - b.pos.z).toFixed(1)]]); continue; }
+      const want = b.state === 'spin' && b.stateT > 1.5 ? 2.1 : b.state === 'intro' ? 4.5 : 3.6;
+      const ax = p.pos.x - b.pos.x, az = p.pos.z - b.pos.z, al = Math.hypot(ax, az) || 1;
+      // Zielpunkt im Abstand want auf der Seite der Figur, etwas seitlich versetzt (im Kreis laufen), in der Halle
+      const side = b.state === 'spin' && b.stateT > 1.5 ? 0 : 1.2;
+      let tx = b.pos.x + (ax / al) * want - (az / al) * side, tz = b.pos.z + (az / al) * want + (ax / al) * side;
+      tx = Math.max(-5.8, Math.min(5.8, tx)); tz = Math.max(zu(i, 18.6), Math.min(zu(i, 1.4), tz));
+      const e = Math.hypot(tx - p.pos.x, tz - p.pos.z);
+      st(e < 0.3 ? {} : { ...B.stick(tx - p.pos.x, tz - p.pos.z, Math.min(1, e)), run: d < 3 });
     }
-    for (let k = 0; k < 40 && live(i); k++) st({});
+    for (let k = 0; k < 20 && live(i); k++) st({});
     toStar(i, { run: true });
   };
   // 30 Siegerflur: geradeaus über den Münzweg (Stempel) zum Stern

@@ -65,12 +65,12 @@ const R17 = { boosts: [6, 15] };
 const R18 = { ball: [-1.6, 3.6], sprung: 6.5, turm: 13.5, top: Y + 5.05 };
 const R19 = { c: 10.5 };
 const R20 = { insel: [-5, 5, 5.5, 15], lava: Y - 0.6 };
-const R21 = { t1: [-4.5, 7.5], s1: [-2.8, 3.2, 6, 10.5, Y + 4], t2: [1.2, 8.3], s2: [3.2, 7, 6, 13, Y + 8], t3: [5.1, 10.6] };
-const R22 = { steg: [4, 34], kanonen: [8, 12.5, 17, 21.5, 26, 30.5] };
+const R21 = { t1: [-3.6, 5.6], s1: [-2.2, 3.2, 6, 10.5, Y + 4], t2: [1.0, 8.3], s2: [3.2, 7, 6, 13, Y + 8], t3: [5.1, 10.6] };
+const R22 = { steg: [4, 34], kanonen: [10, 17, 22, 27, 32], takt: [0, 0.03, 0.53, 1.03, 1.53] };
 const R23 = { ranken: [[-1, 5.2, 1.6], [1, 7.6, 2.8], [-1, 10, 4.0], [1, 12.4, 5.2], [-1, 14.8, 6.4]], ledge: [16.6, 20, Y + 6.6] };
-const R24 = { ziele: [[-4, 13, Y + 2.2], [0, 14.2, Y + 3.4], [4, 13, Y + 2.2]], kraft: 7.5, baelle: [[-1.6, 3.4], [-0.5, 3.6], [0.6, 3.6], [1.7, 3.4]] };
-const R26 = { c: 10, r: 5.2, top: Y + 0.45, sockel: Y + 1.6 };
-const R27 = { leisten: [[-6.6, -2.2, Y + 2.2], [2.2, 6.6, Y + 4.4], [-6.6, -2.2, Y + 6.6], [2.2, 6.6, Y + 8.8]], u: [12, 16] };
+const R24 = { buehne: Y + 0.8, ziele: [[-3.6, 11, Y + 1.0], [0, 11.6, Y + 1.0], [3.6, 11, Y + 1.0]], kraft: 8.4, baelle: [[-1.6, 3.4], [-0.5, 3.6], [0.6, 3.6], [1.7, 3.4]] };
+const R26 = { c: 10, r: 5.2, top: Y + 0.25, sockel: Y + 1.6 };
+const R27 = { leisten: [[-6.6, -0.5, 9, 12, Y + 2.2], [0.5, 6.6, 11, 14, Y + 4.4], [-6.6, -0.5, 13, 16, Y + 6.6], [0.5, 6.6, 15, 18, Y + 8.8]] };
 const R28 = { bruecke: [6, 24], mitte: [12, 18], ende: 24 };
 const R30 = { len: 30 };
 
@@ -171,7 +171,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: 4, style: 'holz' }, { u0: R23.ledge[0], u1: 20, y: R23.ledge[2], style: 'holz' }], cam: { pitch: 40, dist: 17, c: 11 },
     pictures: [{ wall: 'l', u: 2.4, y: 2.3, motif: 'kaktus' }, { wall: 'r', u: 2.4, y: 2.3, motif: 'pilz' }], clocks: [{ wall: 'r', u: 18, y: 8.6, r: 0.42 }],
     props: [{ kind: 'pflanze', x: -5.6, u: 1.8, size: 1.2 }] },
-  { name: 'Schalterfelder', title: 'Schalterfelder: Triff alle drei Scheiben mit Bällen!', len: 18, h: 7, paper: 'kirmes6', wood: 0xa8283a, star: [0, 4.6, Y + 0.25],
+  { name: 'Schalterfelder', title: 'Schalterfelder: Triff alle drei Scheiben mit Bällen!', len: 18, h: 7, paper: 'kirmes6', wood: 0xa8283a, star: [0, 4.6, R24.buehne + 0.25],
     floors: [{ u0: -1, u1: 18, style: 'kacheln' }], cam: { pitch: 40, dist: 16, c: 8.5 },
     pictures: [{ wall: 'l', u: 3, y: 2.6, motif: 'zielfahne' }, { wall: 'r', u: 3, y: 2.6, motif: 'stern' }], clocks: [{ wall: 'l', u: 15, y: 4, r: 0.42 }],
     props: [{ kind: 'trommel', x: -5.6, u: 1.6 }, { kind: 'trommel', x: 5.6, u: 1.6 }] },
@@ -183,7 +183,7 @@ const RAEUME = [
     floors: [{ u0: -1, u1: 20, style: 'parkett' }], cam: { pitch: 54, dist: 17, c: R26.c },
     pictures: [{ wall: 'l', u: 3, motif: 'trampolin' }, { wall: 'r', u: 3, motif: 'stern' }], clocks: [{ wall: 'l', u: 17, y: 3.6, r: 0.42 }],
     props: [{ kind: 'pferd', x: 5.6, u: 1.6, yaw: -0.5 }] },
-  { name: 'Scheinwerferschacht', title: 'Scheinwerferschacht: Schnell hinauf, bevor das Licht dich sieht!', len: 18, h: 13, paper: 'galerie', wood: 0x2a1a3a, star: [4.4, 14, R27.leisten[3][2] + 0.25],
+  { name: 'Scheinwerferschacht', title: 'Scheinwerferschacht: Schnell hinauf, bevor das Licht dich sieht!', len: 18, h: 13, paper: 'galerie', wood: 0x2a1a3a, star: [3.6, 16.6, R27.leisten[3][4] + 0.25],
     floors: [{ u0: -1, u1: 18, style: 'stein' }], cam: { pitch: 38, dist: 17.5, c: 11 },
     pictures: [{ wall: 'l', u: 3, motif: 'burg' }, { wall: 'r', u: 3, motif: 'baron' }], clocks: [{ wall: 'r', u: 8, y: 3.6, r: 0.42 }],
     props: [{ kind: 'buste', x: -6, u: 1.6 }] },
@@ -321,10 +321,10 @@ IT.push({ kind: 'riesen_frageturm', id: 'k21_turm3', roomId: room(20), pos: P(20
 
 // --- 22 Himmelssteg: Startpodest, Steg 1,4 m, Kanonen auf Simsen links/rechts, Zielpodest
 SEG.push(cliff(21, -7, 7, -1, R22.steg[0], Y, 0x5a7ab8), cliff(21, -7, 7, R22.steg[1], 40, Y, 0x5a7ab8));
-SEG.push(isl(-0.7, 0.7, zu(21, R22.steg[0]), zu(21, R22.steg[1]), Y, 0.6, { top: 'none', under: 0, color: 0xe8e0d0 }));
+SEG.push(isl(-0.8, 0.8, zu(21, R22.steg[0]), zu(21, R22.steg[1]), Y, 0.6, { top: 'none', under: 0, color: 0xe8e0d0 }));
 SEG.push(cliff(21, 4.8, 7, R22.steg[0] + 2, R22.steg[1], Y + 1.2, 0x3a5a9a), cliff(21, -7, -4.8, R22.steg[0] + 2, R22.steg[1], Y + 1.2, 0x3a5a9a));
 R22.kanonen.forEach((u, k) => EN.push({ kind: 'kanone_turm', id: `k22_kanone${k + 1}`, roomId: room(21), pos: P(21, (k % 2 ? 1 : -1) * 5.9, u, Y + 1.2), dir: [k % 2 ? -1 : 1, 0], height: 1.6, shot: 'suchkopf',
-  interval: 2.4, first: 0.3 + k * 0.45, range: 24, max: 1, speed: 6.5, seek: 2.0, turn: 1.8 }));
+  interval: 2.6, first: 0.4 + k * 0.6, range: 24, max: 1, speed: 6, seek: 1.0, turn: 1.0 }));
 
 // --- 23 Rankentreppe: Rankenschnapper wachsen aus dem Giftgraben als Stufen hinauf zum Sims
 SEG.push(cliff(22, -7, 7, -1, 4, Y, 0x4a6a2a), cliff(22, -7, 7, R23.ledge[0], 20, R23.ledge[2], 0x4a6a2a));
@@ -334,7 +334,8 @@ R23.ranken.forEach(([x, u, h], k) => EN.push({ kind: 'rankenschnapper', id: `k23
   mode: 'static', reach: 1.2, sight: 4, size: 1.1 }));
 
 // --- 24 Schalterfelder: Kraftfeld, drei Scheiben auf Pfosten, vier Bälle
-R24.baelle.forEach(([x, u], k) => IT.push({ kind: 'wurfball', id: `k24_ball${k + 1}`, roomId: room(23), pos: P(23, x, u), life: 1.6, respawn: 1, color: ['weiss', 'rot', 'gelb', 'weiss'][k] }));
+SEG.push(cliff(23, -7, 7, -1, 6.6, R24.buehne, 0xa8283a));
+R24.baelle.forEach(([x, u], k) => IT.push({ kind: 'wurfball', id: `k24_ball${k + 1}`, roomId: room(23), pos: P(23, x, u, R24.buehne), life: 1.6, respawn: 1, color: ['weiss', 'rot', 'gelb', 'weiss'][k] }));
 SEG.push({ type: 'zielscheibe', group: 'k24', size: 1.3, stand: 0, targets: R24.ziele.map(([x, u, y], k) => ({ id: `k24_ziel${k + 1}`, pos: P(23, x, u, y), yaw: Math.atan2(-(zu(23, 3.6) - zu(23, u)), 0 - x) })) });
 R24.ziele.forEach(([x, u, y]) => SEG.push(isl(x - 0.25, x + 0.25, zu(23, u + 0.1), zu(23, u + 0.6), y - 0.75, y - 0.75 - Y, { top: 'none', under: 0, color: 0xd8a83a })));
 
@@ -346,8 +347,8 @@ R24.ziele.forEach(([x, u, y]) => SEG.push(isl(x - 0.25, x + 0.25, zu(23, u + 0.1
 [0, 1, 2, 3].forEach((k) => { const a = (k / 4) * 2 * PI + PI / 4; EN.push({ kind: 'schnappblume', id: `k26_blume${k + 1}`, roomId: room(25), pos: P(25, Math.cos(a) * 3.2, R26.c + Math.sin(a) * 3.2, R26.top), base: 'pot', range: 2.6, pause: 0.6, wake: 40 }); });
 
 // --- 27 Scheinwerferschacht: Simse im Zickzack, Suchscheinwerfer, Alarm ruft Suchköpfe
-R27.leisten.forEach(([x0, x1, top], k) => SEG.push(floor(26, x0, x1, R27.u[0], R27.u[1], top, top - Y, [0x4a3a5a, 0x5a4a6a, 0x6a5a7a, 0x7a6a8a][k])));
-SEG.push({ type: 'suchscheinwerfer', id: 'k27_licht', path: [P(26, -4.4, 13.5, Y + 2.2), P(26, 4.4, 13.5, Y + 4.4), P(26, -4.4, 13.5, Y + 6.6), P(26, 4.4, 13.5, Y + 8.8)], speed: 3.2, radius: 1.8,
+R27.leisten.forEach(([x0, x1, u0, u1, top], k) => SEG.push(floor(26, x0, x1, u0, u1, top, top - Y, [0x4a3a5a, 0x5a4a6a, 0x6a5a7a, 0x7a6a8a][k])));
+SEG.push({ type: 'suchscheinwerfer', id: 'k27_licht', path: [P(26, -3.6, 10.5, Y + 2.2), P(26, 3.6, 12.5, Y + 4.4), P(26, -3.6, 14.5, Y + 6.6), P(26, 3.6, 16.5, Y + 8.8)], speed: 3.2, radius: 1.8,
   mode: 'pingpong', wait: 0.4, lamp: P(26, 0, 4, Y + 11), post: false, cooldown: 2.5, alarmTime: 1.5, banner: 'Entdeckt!',
   onDetect: { spawn: { kind: 'suchkopf', pos: P(26, 6.4, 6, Y + 6), dir: [-1, 0], speed: 5.5, seek: 2.2, turn: 2.0, life: 6 } } });
 
@@ -359,7 +360,7 @@ SEG.push(cliff(27, -1.6, 1.6, R28.mitte[0], R28.mitte[1], Y, 0xd86aa8));
 [-1.2, 1.2].forEach((x, k) => EN.push({ kind: 'walzenwerfer', id: `k28_werfer${k + 1}`, roomId: room(27), pos: P(27, x * 3.4, 28.8), pillar: 0.6, dir: [0, 1], aim: 'dir', interval: 2.6, first: 1.0 + k * 1.3, speed: 4.0, walze: 0.75, max: 2, life: 7, wake: 40 }));
 
 // --- 29 Wirbelbrocken: ein Treffer genügt
-EN.push({ kind: 'wirbelbrocken', id: 'k29_wirbel', roomId: room(28), pos: P(28, 0, 11.5), arena: { center: P(28, 0, 10), r: 6 }, hp: 1, wakeR: 9 });
+EN.push({ kind: 'wirbelbrocken', id: 'k29_wirbel', roomId: room(28), pos: P(28, 0, 11.5), arena: { center: P(28, 0, 10), r: 6 }, hp: 1, wakeR: 14 });
 
 // --- 30 Siegerflur: Münzweg, Stempel, Stern
 IT.push(line(P(29, 0, 4, Y + 0.6), P(29, 0, 25, Y + 0.6), 15));
@@ -425,6 +426,11 @@ function setup(level) {
       if (i === 1) frischeWalzen(level, ['k2_werfer'], [0.6], [Z0(1), zu(1, 40)]);
       if (i === 10 && p && !p.skate) p.collectPowerup('schlittschuh');
       if (i === 27) frischeWalzen(level, ['k28_werfer1', 'k28_werfer2'], [1.0, 2.3], [Z0(27), zu(27, 32)]);
+      if (i === 21) {
+        // Himmelssteg: alte Suchköpfe weg, die Kanonen laden gestaffelt (die Köpfe kreuzen den Steg, wenn man vorbeikommt)
+        for (const e of level.entities) if (e.kind === 'suchkopf' && !e.removed && e.pos.z < Z0(21) + 2 && e.pos.z > zu(21, 42)) e.kill();
+        R22.kanonen.forEach((u, k) => { const kn = level.entities.find((e) => e.spec?.id === `k22_kanone${k + 1}` && !e.removed); if (kn) { kn.heads = []; kn.setState?.('idle'); kn.cool = R22.takt[k]; } });
+      }
       // Drehdioramen beginnen in Grundstellung
       for (const id of ['k5_dreh', 'k16_ring', 'k19_lab']) { const d = level.named.get(id); if (d) d.t0 = level.time; }
     },
@@ -454,7 +460,7 @@ const cam = (i) => {
   if (c.follow) return { pitch: c.pitch ?? 41, dist: c.dist ?? 13.5, yaw: 0, fov: 44, x: 0, xLock: 0.6, ahead: 3.2, height: 1.0 };
   return { pitch: c.pitch ?? 50, dist: c.dist ?? 17, yaw: 0, fov: 44, x: 0, xLock: 0.6, ahead: 0, height: 1, center: P(i, 0, c.c ?? RAEUME[i].len / 2, Y), pull: c.pull ?? 0.55 };
 };
-const STARTS = RAEUME.map((r, i) => ({ pos: P(i, 0, 2.4, r.startY ?? (i === 7 ? R8.balkon : i === 10 ? R11.oben : Y)), yaw: PI / 2 }));
+const STARTS = RAEUME.map((r, i) => ({ pos: P(i, 0, 2.4, r.startY ?? (i === 7 ? R8.balkon : i === 10 ? R11.oben : i === 23 ? R24.buehne : Y)), yaw: PI / 2 }));
 
 export const LEVEL = {
   id: 'K-Haus',
