@@ -531,9 +531,14 @@ export function goldenerZielmast(level) {
   const body = new THREE.Mesh(b.geometry(), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.35, emissive: 0x2a1800 }));
   body.castShadow = true; body.receiveShadow = true;
   root.add(body);
-  // Krone oben
+  // Krone oben: groß genug, um aus der Spielkamera (etwa 10 m dahinter) erkennbar zu sein, auf einem goldenen Knauf
   const parts = [];
-  kroneGeo(0.32, 0.4, parts, [0, H + 1.0, 0]);
+  const knauf = new THREE.SphereGeometry(0.2, 12, 8);
+  knauf.translate(0, H + 1.0, 0);
+  parts.push(colorize(ni(knauf), fill(lin(0xffd040))));
+  kroneGeo(0.72, 0.9, parts, [0, H + 1.12, 0]);
+  // Kronenkragen auf dem Sockel: die Spielkamera zeigt die Mastspitze nicht, den Fuß des Masts aber immer
+  kroneGeo(0.6, 0.85, parts, [0, 1.02, 0]);
   const crown = new THREE.Mesh(merge(parts), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.45, emissive: 0x3a2400 }));
   crown.castShadow = true;
   root.add(crown);
@@ -545,7 +550,7 @@ export function goldenerZielmast(level) {
     const t = new THREE.CanvasTexture(c); return t;
   })();
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-  glow.position.set(0, H + 1.2, 0); glow.scale.setScalar(2.2);
+  glow.position.set(0, H + 1.6, 0); glow.scale.setScalar(3.6);
   root.add(glow);
   // Kronenfahne (wehend)
   const fg = new THREE.PlaneGeometry(1.5, 0.95, 8, 2);
@@ -566,7 +571,7 @@ export function goldenerZielmast(level) {
       for (let i = 0; i < F.count; i++) { const u = -FX[i]; F.setZ(i, Math.sin(t * 5 + u * 3.4) * 0.12 * u); }
       F.needsUpdate = true;
       crown.rotation.y = t * 0.8;
-      glow.scale.setScalar(2.2 + Math.sin(t * 3) * 0.25);
+      glow.scale.setScalar(3.6 + Math.sin(t * 3) * 0.35);
     },
     dispose() { body.geometry.dispose(); crown.geometry.dispose(); fg.dispose(); fmat.map?.dispose(); fmat.dispose(); glowTex.dispose(); },
   };
