@@ -395,7 +395,8 @@ function install() {
       const track = [];
       let lastJump = false;
       const tick = (inp) => {
-        if (hold) p.invuln = Math.max(p.invuln, 5);
+        // auch Spiegelfrucht-Klone: ein zufällig hüpfender Gelee-Brocken nahm Greta sonst den Klon vor dem Zwei-Figuren-Feld
+        if (hold) for (const q of L.players ?? [p]) q.invuln = Math.max(q.invuln ?? 0, 5);
         lastJump = !!inp?.jump;
         c.setInput(inp); c.step(1); steps++;
         mech.maxY = Math.max(mech.maxY, p.pos.y);
@@ -828,7 +829,7 @@ function installKonvoi() {
     mech.hurtBy = hurtBy;
     let hurt0 = p.hurtTries ?? 0;
     const tick = (inp) => {
-      if (hold) p.invuln = Math.max(p.invuln, 5);
+      if (hold) for (const q of L.players ?? [p]) q.invuln = Math.max(q.invuln ?? 0, 5);
       lastJump = !!inp?.jump;
       c.setInput(inp); c.step(1); steps++;
       if ((p.hurtTries ?? 0) > hurt0) { hurtBy[p.lastHurt] = (hurtBy[p.lastHurt] ?? 0) + (p.hurtTries - hurt0); hurt0 = p.hurtTries; }
