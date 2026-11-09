@@ -21,7 +21,8 @@
 //
 // Daten: { kind: 'wirbelbrocken', id: 'wirbel', pos: [x, y, z] (Startpunkt, Arenamitte als Standard),
 //          arena?: { center: [x, y, z], r: 10 } (runde Kampffläche: Grenze für Lauf und Kugel), hp?: 3,
-//          wakeR?: 9 (nur ohne Boss-Archetyp), drop?,
+//          wakeR?: 9 (nur ohne Boss-Archetyp), drop?, intro?: 2.4 (Auftritt in s; ≥ 1,4 – der Sprung muss landen),
+//          tempo?: { runT, spinT, stun, … } (überschreibt die Werte aller Phasen, z. B. K-Haus: kürzerer erster Anlauf),
 //          decoys?: true | [0, 1, 2] (Präzisierung Gegner Welt 6, 6-Panzer: Attrappen je Phase), ring?: 0.55 (· r), seed? }
 // Modell 'wirbelbrocken' (state { anim: idle|run|spin|hide|hit|stunned|defeated, speed, hp, progress }).
 //
@@ -75,6 +76,8 @@ class Wirbelbrocken extends EnemyW2 {
     this.hides = 0;
     this.visible = true;
     this.wakeR = spec.wakeR ?? 9;
+    this.introT = Math.max(1.4, spec.intro ?? INTRO);
+    this.phaseTab = spec.tempo ? PHASES.map((q) => q && { ...q, ...spec.tempo }) : PHASES;
     this.state = 'wait';
     this.stateT = 0;
     this.clock = 0;
@@ -92,7 +95,7 @@ class Wirbelbrocken extends EnemyW2 {
   }
 
   get phase() { return clamp(this.maxHp - this.hp + 1, 1, 3); }
-  get P() { return PHASES[this.phase]; }
+  get P() { return this.phaseTab[this.phase]; }
   /** Steuert ein Boss-Archetyp diesen Endgegner? */
   get managed() { return bossManaged(this.level, this.spec.id); }
 
@@ -145,7 +148,7 @@ class Wirbelbrocken extends EnemyW2 {
         this.moveWithGravity(dt);
         this.facePlayer(dt, 6);
         if (this.stateT > 0.9 && this.grounded && !this.landed) { this.landed = true; this.level.shake(0.4); this.level.effects?.dust(this.pos, 10, 1.8); this.level.sfx('slam'); }
-        if (this.stateT >= INTRO) { this.landed = false; this.startRun(); }
+        if (this.stateT >= this.introT) { this.landed = false; this.startRun(); }
         return;
       case 'run':
         this.chaseStep(dt, this.P.run);

@@ -9821,7 +9821,7 @@ Level-Lokale hängt an den Remix-Haken `prebuild`/`build`/`setup` (nach denen de
 | B-5 | Hasenhatz im Morgenrot | 5-4 | `morgen` / savanna@morgen | course_savanna + `morgen` | 500 s |
 | B-6 | Grauspuk in der Mondscheinvilla | 3-3 | Filter `schwarzweiss` / ghost@grund+sw | course_ghost + `schwarzweiss` | 400 s |
 | B-7 | Kanonenhelm-Tauchgang im Leuchtturmriff | 3-5 | Basis / water | course_water (Basis, ohne Variante) | 400 s |
-| B-8 | Turbo-Piep über dem Neonsteg | 4-3 | Basis / beep | course_beep (Basis, Taktuhr der Piep-Blöcke) | 400 s |
+| B-8 | Turbo-Piep über dem Neonsteg | 4-3 | Basis / beep | course_beep_turbo (Basis-Musik im Turbo-Takt, Taktuhr der Piep-Blöcke) | 400 s |
 
 ### B-5 „Hasenhatz im Morgenrot“ (remixOf('5-4'))
 
@@ -9867,7 +9867,8 @@ Level-Lokale hängt an den Remix-Haken `prebuild`/`build`/`setup` (nach denen de
 ### B-8 „Turbo-Piep über dem Neonsteg“ (remixOf('4-3'))
 
 - Regeln: `beepSpeed: 4`, `beepWarn: false` – alle Piep-Blöcke wechseln alle 2 Zählzeiten (128 BPM ≈ 0,94 s je Farbe), ohne
-  Blinken (die Musik bleibt die Taktuhr; ihre Glockenspur der Basis klingt weiter im Achtertakt). **Gleitblätter statt
+  Blinken. Musik `course_beep_turbo` (Basis-Musik im Turbo-Takt: Umschalt-Piep G6 auf jeder zweiten Zählzeit, keine
+  Warn-Pieps, Crash nur je Abschnitt; `beepTheme` – sie bleibt die Taktuhr der Piep-Blöcke). **Gleitblätter statt
   Spiegelfrüchte**: Inseln, ?-Blöcke und die Klon-Automaten (Hülle um `level.spawn` im `prebuild`), dazu Gleitblatt-?-Blöcke am
   Start und auf der Warp-Insel; ohne Klone öffnet **ein** Druckfeld den Laserzaun, die Druckfelder am Rutschenfuß entfallen.
   Fairness bei 4×: **feste Neon-Absätze** (`platform`, Stil `block`) – Reihe 1 rot ×3 | Absatz | blau ×3, Reihe 2 rot 5 m |
@@ -10130,7 +10131,7 @@ hängt an `LEVEL.build`/`LEVEL.setup`, `level.onStep` und `view.onFrame`. Beide 
   Raum 4 die Funkenblüte und in Raum 6 und 12 den Krallen-Anzug; in Raum 11 steigt die Figur in einen Schlittschuh. Sterne, die
   erst nach einer Bedingung erscheinen, verwaltet `versteckteSterne` (Raum 3, 4, 6, 12, 18, 24, 29).
 - Räume (Ziel `reach`, sonst angegeben): **1** Panzerparade – 3 Panzerkröten (`defeatAll`) · **2** Schaukelsaal – 3 Schaukeln
-  über dem Schacht, am Ziel rollt ein Walzenwerfer Stachelwalzen quer · **3** Glutfelder – 3 Druckfelder (`pfeld`), 2
+  über dem Schacht (Schwingdauer 2,2 s), am Ziel rollt ein Walzenwerfer Stachelwalzen quer · **3** Glutfelder – 3 Druckfelder (`pfeld`), 2
   Lavabrocken auf Runden · **4** Fackelstube – 4 Fackeln (`moorfackeln`) nur mit Feuerbällen · **5** Kreiselzimmer –
   Drehscheibe (`drehdiorama`, Vierteldrehung alle 2,6 s) mit Kommode und Schrank, zwei gegenläufige Kreisgeist-Ringe, Stern auf
   dem Schrank · **6** Kistenlager – 20 Kisten in vier Gruppen, der Stern steckt unten links in der Gruppe hinten rechts
@@ -10150,7 +10151,8 @@ hängt an `LEVEL.build`/`LEVEL.setup`, `level.onStep` und `view.onFrame`. Beide 
   (`zielscheibe`) · **25** Topfgarten – 2 Topf-Schnappblumen fressen 3 Wuschel (`defeatAll`) · **26** Schnappkarussell –
   Drehteller (`drehteller`) mit 4 Schnappblumen, Stern auf dem Sockel in der Mitte · **27** Scheinwerferschacht – drei Simse im
   Zickzack, der Suchscheinwerfer kreist über Boden und unteren Simsen, entdeckt → Suchkopf · **28** Donutbrücke – zwei
-  Donut-Stücke mit Inselchen, 2 Walzenwerfer · **29** Wirbelbrocken – `hp: 1`, verwundbar nur im Taumeln, wach ab Raumstart ·
+  Donut-Stücke mit Inselchen, 2 Walzenwerfer · **29** Wirbelbrocken – `hp: 1`, verwundbar nur im Taumeln, wach ab Raumstart, kurzer Auftritt und Anlauf (`intro: 1.4`,
+  `tempo: { runT: 0.8 }` – er taumelt nach ≈ 4,4 s statt 6,2 s) ·
   **30** Siegerflur – roter Läufer mit Münzweg, **Stempel** auf dem Weg, Stern am Ende; Geheimnis: unsichtbarer Block mit
   Extraleben über dem Läufer, Münzblock daneben.
 - Leistung: `nurRaumSicht` legt je Bild die Fernebene der Kamera knapp hinter die hinterste Ecke des laufenden Raums (die

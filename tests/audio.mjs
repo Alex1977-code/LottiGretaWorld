@@ -1238,6 +1238,14 @@ if (want('live')) {
   check(`course_beep: Spiel-Takt ${JSON.stringify(beepInfo?.sync)} (Umschalten alle 8 Zählzeiten, 3 Warn-Pieps)`, beepInfo?.sync?.switchEvery === 8 && beepInfo?.sync?.warnBeats === 3);
   check(`course_beep: ${beeps.length} Pieps genau auf dem Spiel-Takt (Umschalt-Piep G6 auf jeder 8. Zählzeit, Warn-Piep C6 auf den 3 davor), Crash auf jedem Umschalten`, beeps.length === beepPlan.length
     && beeps.every((x, i) => x.beat === beepPlan[i].beat && x.note === beepPlan[i].note) && crashBars.length === beepInfo.bars / 2 && crashBars.every((b) => b % 2 === 0));
+  // Turbo-Piep (B-8): dieselbe Musik, Umschalten alle 2 Zählzeiten ohne Warnung – G6 auf jeder zweiten Zählzeit, kein C6
+  const TB = THEMES.course_beep_turbo;
+  const tBeeps = noteList(TB.bell).map(([p, n]) => ({ beat: p / 4, note: +n }));
+  const tBars = TB.bell.length;
+  const tSame = ['bpm', 'lead', 'piano', 'bass', 'arp', 'pad', 'stabs'].every((k) => JSON.stringify(TB[k]) === JSON.stringify(THEMES.course_beep[k]));
+  check(`course_beep_turbo: Spiel-Takt ${JSON.stringify(TB.sync)} (Umschalten alle 2 Zählzeiten, keine Warn-Pieps), ${tBeeps.length} Pieps G6 genau auf jeder zweiten Zählzeit, sonst wie course_beep`,
+    TB.sync?.switchEvery === 2 && TB.sync?.warnBeats === 0 && tBars === 24 && TB.drums.length === 24 && tSame
+    && tBeeps.length === tBars * 2 && tBeeps.every((x, i) => x.beat === i * 2 && x.note === midi('G6')));
 
   // Der Validator selbst: krumme Takte, ungleich lange Spuren, falsche Drum-Länge und Tippfehler werden gemeldet
   const bad = await sc(() => window.__audio.music.validateThemes({

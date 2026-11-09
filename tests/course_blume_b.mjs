@@ -341,7 +341,7 @@ ROUTES['B-8'] = {
   base: '4-3',
   beep: true,
   start: [0, 1, 5],
-  meta: { stars: 3, time: 400, theme: 'beep', music: 'course_beep', variant: null, archetype: 'parcours' },
+  meta: { stars: 3, time: 400, theme: 'beep', music: 'course_beep_turbo', variant: null, archetype: 'parcours' },
   enemies: { feuer_werfer: 7, pfeld: 1, starring: 1, stamp: 0 },
   main: [
     { name: 'Start', to: [0, -6.4] },

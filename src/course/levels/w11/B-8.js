@@ -1,7 +1,8 @@
 // B-8 „Turbo-Piep über dem Neonsteg“ – Remix von 4-3 „Neonsteg im Takt“ (Bauplan Welt Blume, Detail B-8: Piep-Blöcke 4×
 // schneller, ohne Warn-Pieptöne; Gleitblätter statt Spiegelfrüchte; viele Stacheln; Sterne: Ende Bereich 1 über einem ?-Block,
 // Sternring am Checkpoint, mitten auf der Piep-Block-Rutsche; 400 s). Basis als Daten (remixOf, levels/w4/4-3.js bleibt
-// unverändert). Musik der Basis (course_beep, Takt-Kopplung: die Musik bleibt die Uhr der Piep-Blöcke), Thema beep, kein Stempel.
+// unverändert). Musik course_beep_turbo (die Basis-Musik mit dem Turbo-Takt: Umschalt-Piep auf jeder zweiten Zählzeit, keine
+// Warn-Pieps; Takt-Kopplung: die Musik bleibt die Uhr der Piep-Blöcke, beepTheme), Thema beep, kein Stempel.
 //
 // Remix-Regel beepSpeed 4 / beepWarn false: alle Piep-Blöcke wechseln alle 2 statt 8 Zählzeiten (128 BPM ≈ 0,94 s je Farbe) und
 //   blinken vorher nicht mehr. Damit das fair bleibt, liegen zwischen den langen Reihen feste Neon-Absätze (je Abschnitt höchstens
@@ -41,6 +42,9 @@ export const LEVEL = remixOf('4-3', {
   stamp: false,
   beepSpeed: 4,
   beepWarn: false,
+  // Musik im Turbo-Takt (Pieps genau auf jedem Umschalten) – und sie ist die Uhr der Piep-Blöcke
+  music: { theme: 'course_beep_turbo' },
+  beepTheme: 'course_beep_turbo',
   remove: [
     { id: ['pf_b', 'pf_s1', 'pf_s2'] },          // Klon-Druckfelder (ohne Spiegelfrüchte)
   ],

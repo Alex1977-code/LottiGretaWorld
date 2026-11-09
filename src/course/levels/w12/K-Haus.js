@@ -360,7 +360,8 @@ SEG.push(cliff(27, -1.6, 1.6, R28.mitte[0], R28.mitte[1], Y, 0xd86aa8));
 [-1.2, 1.2].forEach((x, k) => EN.push({ kind: 'walzenwerfer', id: `k28_werfer${k + 1}`, roomId: room(27), pos: P(27, x * 3.4, 28.8), pillar: 0.6, dir: [0, 1], aim: 'dir', interval: 2.6, first: 1.0 + k * 1.3, speed: 4.0, walze: 0.75, max: 2, life: 7, wake: 40 }));
 
 // --- 29 Wirbelbrocken: ein Treffer genügt
-EN.push({ kind: 'wirbelbrocken', id: 'k29_wirbel', roomId: room(28), pos: P(28, 0, 11.5), arena: { center: P(28, 0, 10), r: 6 }, hp: 1, wakeR: 14 });
+// kurzer Auftritt und Anlauf (sonst taumelt er erst nach gut 6 s – zu knapp für 10 s Raumzeit)
+EN.push({ kind: 'wirbelbrocken', id: 'k29_wirbel', roomId: room(28), pos: P(28, 0, 11.5), arena: { center: P(28, 0, 10), r: 6 }, hp: 1, wakeR: 14, intro: 1.4, tempo: { runT: 0.8 } });
 
 // --- 30 Siegerflur: Münzweg, Stempel, Stern; Geheimnis: unsichtbarer Block mit Extraleben über dem Läufer, Münzblock daneben
 IT.push(line(P(29, 0, 4, Y + 0.6), P(29, 0, 25, Y + 0.6), 15));
@@ -382,7 +383,7 @@ function setup(level) {
   const deco = [];
 
   // 2 Schaukelsaal
-  schaukeln(level, R2.swings.map((u, k) => ({ id: `k2_schaukel${k + 1}`, pos: [0, Y + 5.7, zu(1, u)], rope: 5.2, w: 2.6, d: 1.8, amp: 0.4, period: 2.5, phase: k % 2 ? 0.5 : 0 })));
+  schaukeln(level, R2.swings.map((u, k) => ({ id: `k2_schaukel${k + 1}`, pos: [0, Y + 5.7, zu(1, u)], rope: 5.2, w: 2.6, d: 1.8, amp: 0.4, period: 2.2, phase: k % 2 ? 0.5 : 0 })));   // 2,2 s: Anschluss an die nächste Schaukel öfter (10 s Raumzeit)
   for (const u of R2.swings) deco.push(blk(W, 0.4, 0.4, 0, Y + 5.7, zu(1, u), 0x6a3a1a));
   // 4 Fackelstube
   moorfackeln(level, { k4: { list: R4.fackeln.map(([x, u]) => P(3, x, u)), onAll: null } }, { id: 'k4_fackeln', lights: 2 });

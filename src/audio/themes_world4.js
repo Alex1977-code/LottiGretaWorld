@@ -331,3 +331,16 @@ export const WORLD4_THEMES = {
       [KH, CL, H8O, CR], [KH, CL, H8O], [KH, CL, H8O], [KH, CL, dr('h.h. h.h. h.h. hhhh')], [KH, CL, H8O], [KH, CL, H8O], [KH, CL, H8O], [KH, CL, dr('h.h. h.h. hhhh hhhh')]],
   },
 };
+
+// Turbo-Piep (B-8 „Turbo-Piep über dem Neonsteg“, Remix von 4-3): course_beep mit dem Piep-Takt des Remix – die Piep-Blöcke
+// wechseln alle 2 statt 8 Zählzeiten und blinken vorher nicht. Die bell-Spur piept deshalb G6 auf jeder zweiten Zählzeit
+// (1 und 3 jedes Takts, genau auf jedem Umschalten) und hat keine Warn-Pieps mehr; G klingt über c, Es und G als Akkordton,
+// über As und f als große Septime bzw. None. Crash nur noch zu Beginn von Intro, Strophe, Refrain und Überleitung (auf jedem
+// Umschalten wäre er Dauerrauschen). Melodie, Akkorde, Bass und Tempo (128 BPM) wie course_beep.
+const BEEP_TURBO = mel('G6 G6', 'x... .... x... ....');
+WORLD4_THEMES.course_beep_turbo = {
+  ...WORLD4_THEMES.course_beep,
+  sync: { switchEvery: 2, warnBeats: 0 },
+  bell: rep(24, [BEEP_TURBO]).flat(),
+  drums: Array.from({ length: 24 }, (_, i) => ([0, 4, 12, 20].includes(i) ? BEEP_A : BEEP_B)),
+};
