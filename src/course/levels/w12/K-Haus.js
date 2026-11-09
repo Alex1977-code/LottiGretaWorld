@@ -383,7 +383,7 @@ function setup(level) {
   const deco = [];
 
   // 2 Schaukelsaal
-  schaukeln(level, R2.swings.map((u, k) => ({ id: `k2_schaukel${k + 1}`, pos: [0, Y + 5.7, zu(1, u)], rope: 5.2, w: 2.6, d: 1.8, amp: 0.4, period: 2.2, phase: k % 2 ? 0.5 : 0 })));   // 2,2 s: Anschluss an die nächste Schaukel öfter (10 s Raumzeit)
+  schaukeln(level, R2.swings.map((u, k) => ({ id: `k2_schaukel${k + 1}`, pos: [0, Y + 5.7, zu(1, u)], rope: 5.2, w: 2.6, d: 1.8, amp: 0.4, period: 2.5, phase: k % 2 ? 0.5 : 0 })));
   for (const u of R2.swings) deco.push(blk(W, 0.4, 0.4, 0, Y + 5.7, zu(1, u), 0x6a3a1a));
   // 4 Fackelstube
   moorfackeln(level, { k4: { list: R4.fackeln.map(([x, u]) => P(3, x, u)), onAll: null } }, { id: 'k4_fackeln', lights: 2 });

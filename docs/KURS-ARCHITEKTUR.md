@@ -10131,7 +10131,7 @@ hängt an `LEVEL.build`/`LEVEL.setup`, `level.onStep` und `view.onFrame`. Beide 
   Raum 4 die Funkenblüte und in Raum 6 und 12 den Krallen-Anzug; in Raum 11 steigt die Figur in einen Schlittschuh. Sterne, die
   erst nach einer Bedingung erscheinen, verwaltet `versteckteSterne` (Raum 3, 4, 6, 12, 18, 24, 29).
 - Räume (Ziel `reach`, sonst angegeben): **1** Panzerparade – 3 Panzerkröten (`defeatAll`) · **2** Schaukelsaal – 3 Schaukeln
-  über dem Schacht (Schwingdauer 2,2 s), am Ziel rollt ein Walzenwerfer Stachelwalzen quer · **3** Glutfelder – 3 Druckfelder (`pfeld`), 2
+  über dem Schacht, am Ziel rollt ein Walzenwerfer Stachelwalzen quer · **3** Glutfelder – 3 Druckfelder (`pfeld`), 2
   Lavabrocken auf Runden · **4** Fackelstube – 4 Fackeln (`moorfackeln`) nur mit Feuerbällen · **5** Kreiselzimmer –
   Drehscheibe (`drehdiorama`, Vierteldrehung alle 2,6 s) mit Kommode und Schrank, zwei gegenläufige Kreisgeist-Ringe, Stern auf
   dem Schrank · **6** Kistenlager – 20 Kisten in vier Gruppen, der Stern steckt unten links in der Gruppe hinten rechts
