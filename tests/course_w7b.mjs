@@ -446,13 +446,17 @@ function install() {
       const track = [];
       let lastHurts = p.hurtTries ?? 0, lastBoost = 0;
       let stickInScript = null;
-      let reflex = 0;
+      let reflex = 0, reflexAt = null;
       const tick = (inp) => {
         if (hold) p.invuln = Math.max(p.invuln, 5);
         // Reflex wie ein Kind: stößt ein Knochenflieger herab, hochspringen – er saust unter der Figur durch, im Fallen
         // landet sie auf ihm (Draufspringen besiegt ihn)
+        // Während des Reflexsprungs über dem Absprungpunkt bleiben (bis zur Landung): die Route zieht sonst schon zum
+        // nächsten Wegpunkt – Greta springt höher und läuft schneller und trüge über einen Inselrand (7-4 hinter dem
+        // Kontrollpunkt)
+        if (reflexAt && reflex <= 0 && p.mode === 'ground') reflexAt = null;
         if (o.reflex !== false) {
-          if (reflex > 0) { reflex--; inp = { ...(inp ?? {}), jump: true }; }
+          if (reflex > 0 || reflexAt) { if (reflex > 0) reflex--; inp = { ...this.airSteer(reflexAt[0], reflexAt[1], 0, 0, 2, 3), jump: reflex > 0 }; }
           else if (p.mode === 'ground') {
             for (const e of L.entities) {
               if (e.kind !== 'knochenflieger' || !e.alive || e.defeated || e.state !== 'dive') continue;
@@ -460,7 +464,7 @@ function install() {
               const low = e.diveLow, tLow = e.diveT / 2 - e.stateT;
               const near = Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) < 2.6 && e.pos.y - p.pos.y < 2.2 && e.pos.y - p.pos.y > -0.3;
               if (!near && (!low || tLow > 0.42 || tLow < 0.05 || Math.hypot(low[0] - p.pos.x, low[2] - p.pos.z) > 1.6)) continue;
-              reflex = 26; mech.reflex = (mech.reflex ?? 0) + 1; inp = { ...(inp ?? {}), jump: true }; break;
+              reflex = 26; reflexAt = [p.pos.x, p.pos.z]; mech.reflex = (mech.reflex ?? 0) + 1; inp = { ...(inp ?? {}), jump: true }; break;
             }
           }
         }
