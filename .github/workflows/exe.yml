@@ -1,0 +1,47 @@
+# Baut LOTTI & GRETA als Windows-Programm (eine Datei LottiGreta.exe, Electron-Hülle aus desktop/) und stellt sie als
+# Release „windows-exe“ bereit: https://github.com/<user>/<repo>/releases/latest/download/LottiGreta.exe
+name: Windows-EXE
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-exe
+  cancel-in-progress: true
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: EXE bauen
+        working-directory: desktop
+        run: |
+          npm ci
+          npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LottiGreta-Windows
+          path: desktop/out/LottiGreta.exe
+          if-no-files-found: error
+      - name: Release aktualisieren
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete windows-exe --cleanup-tag --yes || true
+          gh release create windows-exe desktop/out/LottiGreta.exe \
+            --target "$GITHUB_SHA" --latest \
+            --title "LOTTI & GRETA für Windows" \
+            --notes "LottiGreta.exe herunterladen und starten (keine Installation). F11 schaltet Vollbild. Windows zeigt beim ersten Start eine Warnung, weil die Datei nicht signiert ist: „Weitere Informationen“ → „Trotzdem ausführen“."

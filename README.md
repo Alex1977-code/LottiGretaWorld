@@ -357,6 +357,18 @@ Einmalig im Repository aktivieren: **Settings → Pages → Build and deployment
 Danach ist das Spiel unter `https://<user>.github.io/<repo>/` erreichbar und als PWA installierbar
 (Vite-Build mit relativem Base-Pfad, Service Worker mit Cache pro Build).
 
+## Windows-Programm (EXE)
+
+`desktop/` enthält eine Electron-Hülle um den Web-Build: ein Fenster, das `dist/` über das eigene Schema `app://spiel/`
+direkt von der Platte lädt (kein Netz nötig, der Spielstand bleibt erhalten). F11 schaltet Vollbild.
+
+- **Download:** der Workflow `.github/workflows/exe.yml` baut bei jedem Push auf `master` die Datei `LottiGreta.exe`
+  (eine Datei, keine Installation) und legt sie als Release „windows-exe“ ab:
+  `https://github.com/<user>/<repo>/releases/latest/download/LottiGreta.exe`. Die Datei ist nicht signiert – Windows
+  fragt beim ersten Start nach („Weitere Informationen“ → „Trotzdem ausführen“).
+- **Selbst bauen:** `npm run build`, dann in `desktop/`: `npm ci` und `npm run dist` → `desktop/out/LottiGreta.exe`.
+  `npm start` (in `desktop/`) startet das Programm ohne Paket.
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js` (Service Worker, offline-fähig, Cache pro Build). Beim Bauen trägt

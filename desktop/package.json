@@ -1,0 +1,25 @@
+{
+  "name": "lotti-und-greta-desktop",
+  "version": "0.1.0",
+  "description": "LOTTI & GRETA als Windows-Programm (Electron-Hülle um den Web-Build)",
+  "private": true,
+  "author": "LOTTI & GRETA",
+  "main": "main.cjs",
+  "scripts": {
+    "app": "node prepare.mjs",
+    "start": "npm run app && electron .",
+    "dist": "npm run app && electron-builder --win portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "de.lottigreta.world",
+    "productName": "Lotti und Greta",
+    "files": ["main.cjs", "app/**"],
+    "directories": { "output": "out" },
+    "win": { "target": "portable", "icon": "app/icons/icon-512.png" },
+    "portable": { "artifactName": "LottiGreta.exe" }
+  }
+}
