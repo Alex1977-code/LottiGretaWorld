@@ -483,7 +483,8 @@ export class Level {
       if (!(fh > 0) || !root) continue;
       const far = !!p && !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > fh;
       if (far) { if (root.visible) { root.visible = false; e._farHidden = true; } }
-      else if (e._farHidden) { root.visible = true; e._farHidden = false; }
+      // wieder nah: einblenden und die eigene Sichtbarkeit der Entität gleich neu setzen (z. B. abgetaucht wartender Glotzfisch)
+      else if (e._farHidden) { root.visible = true; e._farHidden = false; e.syncModel?.(); }
     }
   }
 

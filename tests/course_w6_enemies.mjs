@@ -353,11 +353,13 @@ const gf = await sc(() => {
     if (f.state === 'peek') peek = true;
     if (f.state === 'wait' && f.touch) hiddenTouch = false;
     if (f.state === 'jump') apex = Math.max(apex, f.pos.y - 2.0);
+    // step zeichnet nicht: die Sichtbarkeit setzt syncModel (sonst je Bild über render) – hier nach jedem Schritt
+    f.syncModel();
     if (f.state === 'wait' && f.model?.root?.visible) visWait = true;
     if (f.state === 'jump' && f.jumps !== f._seen) { f._seen = f.jumps; seq.push(f.next); }
   }
   delete p.hurt;
-  out.cycle = { holes: seq.join('>'), peek, hiddenSafe: hiddenTouch && !visWait, apex: t.r2(apex), jumps: f.jumps };
+  out.cycle = { holes: seq.join(">"), peek, hiddenSafe: hiddenTouch && !visWait, hiddenTouch, visWait, apex: t.r2(apex), jumps: f.jumps };
   // Berührung im Sprung verletzt, verborgen nicht
   t.until(() => f.state === 'wait', 600, fig);
   const hidden = t.touch(f, 10);
@@ -925,7 +927,8 @@ await sc(BOSS_HELPERS);
 const rs = await sc(() => {
   const c = window.__course, t = window.__t, p = c.player, L = c.level;
   const out = {};
-  const die = () => { p.die('hit'); for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1); c.step(10); };
+  // genug Leben: die Teile davor kosten Leben (Spielstand bleibt), sonst endet ein Tod hier mit „Game Over“ statt Neustart
+  const die = () => { L.runtime.save.lives = 99; p.die('hit'); for (let i = 0; i < 2400 && (p.dead || L.runtime.status !== 'play'); i++) c.step(1); c.step(10); };
   // Prinz: in der Röhre steckend sterben
   const b = t.ent('prinz');
   t.enter([0, 2, 14], 'prinz');

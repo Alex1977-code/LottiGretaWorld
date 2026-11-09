@@ -2115,6 +2115,9 @@ export class HeroAvatar extends Avatar3D {
     F.wasJump = jumpy;
     F.next -= dt;
     const sp = Math.max(0, c.speed ?? 0), moving = (state === 'walk' || state === 'run' || state === 'skate') && sp > 0.3;
+    const runGap = SPARKLE.runGap * clamp(7 / Math.max(sp, 1e-3), 1, 4);
+    // beim Loslaufen nicht die lange Stand-Pause abwarten: gleich im Lauftakt funkeln
+    if (moving && F.next > runGap) F.next = runGap;
     if (sparkle && (F.next <= 0 || burst > 0)) {
       do {
         const g = F.glints.reduce((a, b) => (b.t > a.t ? b : a));   // freiester (ältester) Glitzer
@@ -2123,7 +2126,7 @@ export class HeroAvatar extends Avatar3D {
         g.t = 0; g.dur = SPARKLE.life * (0.8 + 0.4 * Math.random()); g.size = SPARKLE.size * (0.75 + 0.5 * Math.random()); g.spin = Math.random() * TAU;
         g.mesh.rotation.set(0.4 * Math.random(), g.spin, 0.3 * Math.random());
       } while (--burst > 0);
-      F.next = moving ? SPARKLE.runGap * clamp(7 / sp, 1, 4) : jumpy ? 0.22 : lerp(SPARKLE.idleGap[0], SPARKLE.idleGap[1], Math.random());
+      F.next = moving ? runGap : jumpy ? 0.22 : lerp(SPARKLE.idleGap[0], SPARKLE.idleGap[1], Math.random());
     }
     for (const g of F.glints) {
       if (g.t >= g.dur) { g.mesh.visible = false; continue; }
