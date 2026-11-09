@@ -38,7 +38,10 @@ export async function launchBrowser(contextOpts = {}) {
   page.setDefaultNavigationTimeout(120000);
   page.setDefaultTimeout(90000);
   const errors = [];
-  page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
+  // Chromium warnt, wenn eine vorgeladene Build-Datei (modulepreload) bei langsamem Laden erst nach ein paar Sekunden oder
+  // über den Service Worker benutzt wird – das hängt an der Rechnerlast, nicht am Spiel
+  const noise = /was preloaded using link preload but not used|is not used because it is a cross-world service worker resource mismatch/;
+  page.on('console', (m) => { if ((m.type() === 'error' || m.type() === 'warning') && !noise.test(m.text())) errors.push(`[${m.type()}] ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
   return { browser, page, errors };
 }

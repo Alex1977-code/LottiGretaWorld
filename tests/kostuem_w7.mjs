@@ -211,6 +211,9 @@ async function mechPart(hero) {
   // Item einsammeln (wie tests/course_w7_blocks.mjs): Kostüm an
   r.item = await S(() => {
     const H = window.__kw, c = window.__course, p = c.player;
+    // die zweite Heldin läuft im selben Level: das Item der ersten ist eingesammelt, also ein neues an dieselbe Stelle
+    const L = c.level;
+    if (!L.entities.some((e) => e.kind === 'powerup' && !e.removed && e.power === 'sichel')) L.spawn('powerup', { pos: [3, 0, -2], power: 'sichel' });
     H.place([3, 0, -0.5], { settle: 2 });
     const before = H.parts();
     c.setInput({ y: 1 });

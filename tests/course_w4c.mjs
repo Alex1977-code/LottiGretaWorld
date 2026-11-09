@@ -538,8 +538,16 @@ if (P45.length) {
         const c = window.__course, L = c.level, t = window.__w4;
         const ss = L.named.get('ss1'), m = L.named.get('ms1');
         const z0 = ss.pos.z, mz0 = m.pm.pos.z;
-        for (let i = 0; i < 400; i++) c.step(1);
-        const moved = { ss: +(ss.pos.z - z0).toFixed(2), m: +(m.pm.pos.z - mz0).toFixed(2) };
+        // je Schritt: Abstand der Stange zur Plattform bleibt gleich; größter Fahrweg (die Plattform pendelt, der Weg am
+        // Ende des Fensters hängt von ihrer Phase ab)
+        let far = 0, ssFar = 0, dev = 0;
+        for (let i = 0; i < 400; i++) {
+          c.step(1);
+          const dm = m.pm.pos.z - mz0, ds = ss.pos.z - z0;
+          dev = Math.max(dev, Math.abs(ds - dm));
+          if (Math.abs(dm) > Math.abs(far)) { far = dm; ssFar = ds; }
+        }
+        const moved = { ss: +ssFar.toFixed(2), m: +far.toFixed(2), dev: +dev.toFixed(3) };
         // stehende Figur im Kreis der Kugeln auf der Insel 3 (große Stachelstange)
         const s2 = L.named.get('ss2');
         t.place([s2.pos.x + 2.0, 12, s2.pos.z], { settle: 4 });
@@ -548,7 +556,7 @@ if (P45.length) {
         for (let i = 0; i < 900 && !hit; i++) { c.setInput({}); c.step(1); if (p.invuln > 0.5 || !p.big) hit = true; }
         return { moved, hit, hits: s2.hits };
       });
-      check(`4-5: Stachelstange fährt mit der Plattform (${r.moved.ss} m = ${r.moved.m} m) und trifft eine stehende Figur (${r.hits})`, Math.abs(r.moved.ss - r.moved.m) < 0.05 && Math.abs(r.moved.m) > 1 && r.hit);
+      check(`4-5: Stachelstange fährt mit der Plattform (bis ${r.moved.ss} m = ${r.moved.m} m, Abweichung ${r.moved.dev} m) und trifft eine stehende Figur (${r.hits})`, r.moved.dev < 0.05 && Math.abs(r.moved.m) > 1 && r.hit);
       // Stachelplattform verwundbar: aufspringen, wenn der Arm weg ist, in der Plattformecke mitfahren (dort reichen die
       // Kugeln nicht hin), geradeaus auf Insel 3 – ohne Treffer
       r = await sc(() => {
