@@ -4,6 +4,7 @@
 // je Abschnitt zu einem einzigen Zeichenaufruf zusammenfassen.
 
 import * as THREE from 'three';
+import { applySurfaceDetail } from '../lib/surfaceDetail.js';
 
 export const PAL = {
   // Gras und Wiese
@@ -39,5 +40,8 @@ export function makeMaterials() {
   const world = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0 });
   const stone = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0 });
   const glow = new THREE.MeshBasicMaterial({ vertexColors: true });
+  // Oberflächen-Detail wie in den Kurs-Leveln (three/lib/surfaceDetail.js)
+  applySurfaceDetail(world);
+  applySurfaceDetail(stone, { grain: 0.09, blotch: 0.07, bump: 1.2 });
   return { world, stone, glow, all: [world, stone, glow] };
 }

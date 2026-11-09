@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { RENDER3D } from '../render3d.js';
+import { setSurfaceDetailActive } from './lib/surfaceDetail.js';
 
 let shared = null;
 
@@ -21,6 +22,9 @@ export function adaptQuality(delta) {
   if (!RENDER3D.adaptive) return false;
   if (delta > 1000 / 45) { quality.slow++; quality.fast = 0; } else { quality.fast++; if (quality.fast > 20) quality.slow = 0; }
   // 90 langsame Frames in Folge (ca. 2 s bei 45 fps) → eine Stufe runter
+  // langsames Gerät: zuerst das Oberflächen-Detail der Welt-Materialien abschalten (Auflösung bleibt), erst danach
+  // die Zeichenfläche verkleinern
+  if (quality.slow >= 90 && setSurfaceDetailActive(false)) { quality.slow = 0; return false; }
   if (quality.slow >= 90 && quality.scale > QUALITY_MIN) {
     quality.scale = Math.max(QUALITY_MIN, quality.scale - QUALITY_STEP);
     quality.slow = 0;

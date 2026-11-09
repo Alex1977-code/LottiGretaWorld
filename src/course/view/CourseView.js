@@ -45,6 +45,7 @@ import { GAME } from '../../config.js';
 import { RENDER3D } from '../../render3d.js';
 import { getRenderer, mountCanvas, layoutCanvas, hideCanvas, adaptQuality, setToneMapping } from '../../three/renderer.js';
 import { TOY_ENABLED, setToyLookEnv } from '../../three/lib/toyLook.js';
+import { applySurfaceDetail, hasSurfaceDetail } from '../../three/lib/surfaceDetail.js';
 import { getTheme } from './themes.js';
 import { Sky } from './Sky.js';
 import { StaticBatcher } from './StaticBatcher.js';
@@ -130,6 +131,9 @@ export class CourseView {
       stone: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.5, metalness: 0 }),
       glow: new THREE.MeshBasicMaterial({ vertexColors: true }),
     };
+    // Oberflächen-Detail (three/lib/surfaceDetail.js): Körnung, Flecken und feines Relief auf Gelände und Stein
+    applySurfaceDetail(this.mats.world);
+    applySurfaceDetail(this.mats.stone, { grain: 0.09, blotch: 0.07, bump: 1.2 });
     this.buildLights();
     this.sky = new Sky(this, this.theme);
     this.static = new StaticBatcher(this);
@@ -335,7 +339,7 @@ export class CourseView {
 
   stats() {
     const i = this.renderer.info;
-    return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, staticMeshes: this.static.stats.meshes, staticParts: this.static.stats.parts };
+    return { calls: i.render.calls, triangles: i.render.triangles, geometries: i.memory.geometries, textures: i.memory.textures, staticMeshes: this.static.stats.meshes, staticParts: this.static.stats.parts, programs: i.programs?.length ?? 0, detail: hasSurfaceDetail(this.mats.world) && hasSurfaceDetail(this.mats.stone) };
   }
 
   dispose() {

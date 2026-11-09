@@ -10182,3 +10182,27 @@ Feuer, Sternkiste ohne Krallen, Kraftfeld, unsichtbare Stege, Stacheln ohne Schl
 Sims nicht vom Boden, Wirbelbrocken im Rennen unverwundbar, Extraleben im Siegerflur, Zeitablauf in Raum 3 → Haus verlassen mit
 2/30. Kennzahlen (scale 2, inkl. Schattenpass / Dreiecke): K-Kapitän Bilder 56–98 / ≤ 260 k (Überblick), K-Haus je Raum 33–64
 / ≤ 228 k. Grenzen < 120 / < 300 k. Noch nicht in `npm test` (package.json nicht geändert).
+
+## Präzisierung (Darstellung): Oberflächen-Detail der Welt-Materialien
+
+Wunsch „mehr Details in der 3D-Grafik“. `src/three/lib/surfaceDetail.js` erweitert die gemeinsamen Vertexfarben-Materialien
+`view.mats.world` und `view.mats.stone` (Kurs-Level, Weltkarte, Abspann; ebenso `three/world/materials.js`) per
+`onBeforeCompile` – **ohne zusätzliche Dreiecke, Zeichenaufrufe oder Texturdateien**:
+
+- **Textur:** eine kachelbare 256²-Rauschtextur, im Speicher erzeugt (R feine Körnung, G mittlere Flecken, B Höhe fürs
+  Relief, A Grashalme), über die Objekt-Koordinaten gelegt, je Fläche entlang ihrer Hauptachse (statische Level-Geometrie
+  liegt in Weltkoordinaten: nahtlos über Bausteine hinweg; bewegte Objekte tragen ihr Muster mit). Kachel 4 m.
+- **Farbe:** die Grundfarbe wird um wenige Prozent heller/dunkler (Körnung ± 11 %, Flecken ± 9 %; im Mittel 1 – das Level
+  bleibt gleich hell), dazu große weiche Flecken (dieselbe Textur 6× größer).
+- **Gras:** Oberseiten grüner Flächen (Grün deutlich über Rot und Blau, Normale nach oben) bekommen Halme statt Körnung.
+- **Relief:** feine Normalen-Störung aus dem Höhenkanal (Ableitung im Bildraum wie three.js-Bumpmaps).
+- **Ruhe:** blendet zwischen 45 % und 100 % der Sichtweite (46 m) aus (kein Flimmern in der Ferne); fast weiße Flächen
+  (Wolken, Schnee) bekommen nur 30 %.
+- **Kosten:** drei Texturzugriffe je Bildpunkt. Auf langsamen Geräten schaltet die adaptive Qualität
+  (`three/renderer.js adaptQuality`) zuerst das Detail ab (`setSurfaceDetailActive(false)`, die Materialien übersetzen
+  einmal neu) und senkt erst danach die Auflösung.
+- **Schalter:** `?detail=0` (aus), `?detailk=grain:1.5,blotch:0.5,bump:2,far:40` (abstimmen). `view.stats().detail` meldet,
+  ob das Detail aktiv ist; `applySurfaceDetail(material, { grain, blotch, bump, tile })` für weitere Materialien.
+- **Test:** `tests/surface_detail.mjs` (in `npm test`): je Level mit und ohne Detail – Zeichenaufrufe und Dreiecke gleich,
+  Bild im Mittel gleich hell (± 2 %), Struktur sichtbar, höchstens zwei Shader-Programme mehr, Bildzeit im Software-WebGL
+  höchstens +50 %, keine Konsolenfehler. Bilder `tests/out/detail_<level>_an.png` / `_aus.png`.
