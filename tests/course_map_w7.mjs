@@ -468,7 +468,8 @@ if (part(7)) {
 
 // ------------------------------------------------------------------ 8) Lava-Fontänen im Takt der Kartenmusik, lebendige Kulisse
 if (part(8)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 7))) {
+  // Teil 7 endet mit dem Start von 7-C: die Karte blendet aus und geht – dann neu laden
+  if (!(await sc(() => window.__courseMap?.map.world === 7 && !window.__courseMap.leaving))) {
     const done = W7IDS.filter((id) => !['7-A', '7-B', '7-C'].includes(id));
     await loadWith({ levels: with7(w1to6(true), done), mapOpened: [...OPENED_1_6, ...opened7([...done, '7-A', '7-B', '7-C'])], world: 7, worlds: WORLDS7, mapPos: null });
     await waitMap(7);
@@ -644,7 +645,8 @@ if (part(11)) {
 
 // ------------------------------------------------------------------ 12) Aktuelle Welt bleibt nach Neuladen
 if (part(12)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 7))) { await loadWith({ levels: w1to6(true), mapOpened: [...OPENED_1_6], world: 7, worlds: WORLDS7, mapPos: null }); await waitMap(7); }
+  // Teil 7 endet mit dem Start von 7-C: die Karte blendet aus und geht – dann neu laden
+  if (!(await sc(() => window.__courseMap?.map.world === 7 && !window.__courseMap.leaving))) { await loadWith({ levels: w1to6(true), mapOpened: [...OPENED_1_6], world: 7, worlds: WORLDS7, mapPos: null }); await waitMap(7); }
   await sc(() => { const m = window.__courseMap; m.teleport(4, 1.8, 40, Math.PI / 2); m.step(30); m.rememberPos(); });
   await page.reload({ waitUntil: 'load' });
   await waitMap();
@@ -654,7 +656,8 @@ if (part(12)) {
 
 // ------------------------------------------------------------------ 13) Rückweg nach Welt 6
 if (part(13)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 7))) { await loadWith({ levels: w1to6(true), mapOpened: [...OPENED_1_6], world: 7, worlds: WORLDS7, mapPos: null }); await waitMap(7); }
+  // Teil 7 endet mit dem Start von 7-C: die Karte blendet aus und geht – dann neu laden
+  if (!(await sc(() => window.__courseMap?.map.world === 7 && !window.__courseMap.leaving))) { await loadWith({ levels: w1to6(true), mapOpened: [...OPENED_1_6], world: 7, worlds: WORLDS7, mapPos: null }); await waitMap(7); }
   const W6E = W7.entrances.find((e) => e.id === 'W6').pos;
   await tp(W6E[0], 1.8, W6E[2] + 3, Math.PI / 2, 20);
   r = await walkTo(W6E[0], W6E[2], (s) => s.onPad === 'W6', 400);

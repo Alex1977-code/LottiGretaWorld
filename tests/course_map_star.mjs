@@ -521,7 +521,7 @@ if (part(7)) {
 
 // ------------------------------------------------------------------ 8) Funkelnde Sterne im Takt der Kartenmusik, lebendige Kulisse
 if (part(8)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 9))) {
+  if (!(await sc(() => window.__courseMap?.map.world === 9 && !window.__courseMap.leaving))) {
     await loadWith({ levels: all9(), mapOpened: [...OPENED_1_8, ...opened9([...SIDS])], world: 9, worlds: WORLDS9, mapPos: null });
     await waitMap(9);
   }
@@ -604,7 +604,7 @@ if (part(8)) {
 
 // ------------------------------------------------------------------ 9) Rückweg nach Welt 8
 if (part(9)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 9))) { await loadWith({ levels: w1to8(true), mapOpened: [...OPENED_1_8], world: 9, worlds: WORLDS9, mapPos: null }); await waitMap(9); }
+  if (!(await sc(() => window.__courseMap?.map.world === 9 && !window.__courseMap.leaving))) { await loadWith({ levels: w1to8(true), mapOpened: [...OPENED_1_8], world: 9, worlds: WORLDS9, mapPos: null }); await waitMap(9); }
   const W8E = ePos('W8');
   await tp(W8E[0], 10.3, W8E[2] + 3, Math.PI / 2, 20);
   r = await walkTo(W8E[0], W8E[2], (s) => s.onPad === 'W8', 400);

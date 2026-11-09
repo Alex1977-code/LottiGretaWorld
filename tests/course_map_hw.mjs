@@ -226,7 +226,7 @@ if (part(2)) {
 
 // ------------------------------------------------------------------ 3) Rückweg nach Welt 1, Neuladen
 if (part(3)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 31))) { await loadWith({ world: 31, worlds: [1, 31], mapPos: null }); await waitMap(31); }
+  if (!(await sc(() => window.__courseMap?.map.world === 31 && !window.__courseMap.leaving))) { await loadWith({ world: 31, worlds: [1, 31], mapPos: null }); await waitMap(31); }
   await tp(-16, 1.3, 39.5, Math.PI / 2, 20);
   r = await walkTo(-16, 36, (s) => s.onPad === 'W1', 400);
   await sc(() => { const m = window.__courseMap; m.setInput({ jump: true }); m.step(1); m.setInput({}); });
@@ -313,8 +313,8 @@ if (part(5)) {
   check('mapAlias: H-1 zeigt den Titel des Ersatz-Levels und ist startbar', st.entrances['H-1'].title !== 'Bald' && st.entrances['H-1'].enterable);
   await tp(18, 1.3, 36, Math.PI / 2, 20);
   r = await walkTo(18, 33, (s) => s.onPad === 'H-1', 400);
-  await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); });
-  st = await sc(() => window.__courseMap.state());
+  // Zustand im selben Aufruf lesen: nach dem Ausblenden ist die Karte weg
+  st = await sc(() => { const m = window.__courseMap; m.enter(); m.step(1); return m.state(); });
   check('Enter auf dem Podest H-1 startet das (Ersatz-)Level', st.leaving && st.lastStart?.entrance === 'H-1' && st.lastStart?.id === '0-0');
   await waitCourse();
   await sc(() => { const rt = window.__course.level.runtime; rt.collectStar(0); rt.collectStar(1); rt.collectStamp(); rt.reachGoal(0.6); rt.finish(); });
@@ -368,7 +368,7 @@ if (part(6)) {
 
 // ------------------------------------------------------------------ 7) Laternen im Takt, lebendige Kulisse
 if (part(7)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 31))) { await loadWith({ world: 31, worlds: [1, 31], mapPos: null }); await waitMap(31); }
+  if (!(await sc(() => window.__courseMap?.map.world === 31 && !window.__courseMap.leaving))) { await loadWith({ world: 31, worlds: [1, 31], mapPos: null }); await waitMap(31); }
   await tp(-2, 1.3, 38, -Math.PI / 2, 20);
   r = await sc(() => {
     const mu = window.__audio.music, m = window.__courseMap;

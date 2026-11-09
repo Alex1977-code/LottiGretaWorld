@@ -459,7 +459,7 @@ if (part(7)) {
 
 // ------------------------------------------------------------------ 8) Windräder im Takt der Kartenmusik, Gong, lebendige Kulisse
 if (part(8)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 6))) {
+  if (!(await sc(() => window.__courseMap?.map.world === 6 && !window.__courseMap.leaving))) {
     const done = W6IDS.filter((id) => !['6-B', '6-A'].includes(id));
     await loadWith({ levels: with6(w12345(true), done), mapOpened: [...OPENED_12345, ...opened6([...done, '6-A', '6-B'])], world: 6, worlds: WORLDS6, mapPos: null });
     await waitMap(6);
@@ -631,7 +631,7 @@ if (part(11)) {
 
 // ------------------------------------------------------------------ 12) Aktuelle Welt bleibt nach Neuladen
 if (part(12)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 6))) { await loadWith({ levels: w12345(true), mapOpened: [...OPENED_12345], world: 6, worlds: WORLDS6, mapPos: null }); await waitMap(6); }
+  if (!(await sc(() => window.__courseMap?.map.world === 6 && !window.__courseMap.leaving))) { await loadWith({ levels: w12345(true), mapOpened: [...OPENED_12345], world: 6, worlds: WORLDS6, mapPos: null }); await waitMap(6); }
   await sc(() => { const m = window.__courseMap; m.teleport(4, 10.3, 40, Math.PI / 2); m.step(30); m.rememberPos(); });
   await page.reload({ waitUntil: 'load' });
   await waitMap();
@@ -641,7 +641,7 @@ if (part(12)) {
 
 // ------------------------------------------------------------------ 13) Rückweg nach Welt 5
 if (part(13)) {
-  if (!(await sc(() => window.__courseMap?.map.world === 6))) { await loadWith({ levels: w12345(true), mapOpened: [...OPENED_12345], world: 6, worlds: WORLDS6, mapPos: null }); await waitMap(6); }
+  if (!(await sc(() => window.__courseMap?.map.world === 6 && !window.__courseMap.leaving))) { await loadWith({ levels: w12345(true), mapOpened: [...OPENED_12345], world: 6, worlds: WORLDS6, mapPos: null }); await waitMap(6); }
   const W5E = W6.entrances.find((e) => e.id === 'W5').pos;
   await tp(W5E[0], 10.3, W5E[2] + 3, Math.PI / 2, 20);
   r = await walkTo(W5E[0], W5E[2], (s) => s.onPad === 'W5', 400);
