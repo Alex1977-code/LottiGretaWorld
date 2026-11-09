@@ -384,7 +384,8 @@ const statueGeo = () => memo('w8:statue:baron', () => {
   for (let i = 0; i < P.count; i++) { const k = 0.9 + noise3(P.getX(i) * 9, P.getY(i) * 9, P.getZ(i) * 9) * 0.2; C.setXYZ(i, C.getX(i) * k, C.getY(i) * k, C.getZ(i) * k); }
   lit.computeBoundingBox();
   // Detailstufe für ferne Exemplare (view/lod.js, „lowGeo“): gröber gebündelt, deutlich weniger Dreiecke
-  // (nicht aufzählbar: toJSON/Kopien tragen die Funktion nicht mit)
+  // (nicht aufzählbar: toJSON trägt sie nicht mit; clone()/copy() teilen userData aber – verschobene Kopien, z. B. gebackene
+  // Kulissen, dürfen lowGeo nicht für eine Detailstufe nutzen: lod.js fragt nur Modelle von Entitäten)
   let low = null;
   Object.defineProperty(lit.userData, 'lowGeo', { value: () => (low ??= clusterSimplify(lit, 0.14)) });
   return lit;

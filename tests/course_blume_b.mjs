@@ -1025,7 +1025,7 @@ RULES['B-8'] = async () => {
     const segs = (t) => L.data.segments.filter((x) => x.type === t);
     return {
       stub: CL.isRemix(raw) && raw.remix.base === '4-3' && !raw.segments, title: L.data.title, theme: L.data.theme, music: L.data.music, variant: L.data.musicVariant,
-      call: calls.filter((x) => x[0] === 'course_beep').slice(-1)[0] ?? null, limit: L.runtime.timeLimit, stamp: ents('stamp').length,
+      call: calls.filter((x) => x[0] === 'course_beep_turbo').slice(-1)[0] ?? null, limit: L.runtime.timeLimit, stamp: ents('stamp').length,
       beepSpeed: L.data.beepSpeed, beepWarn: L.data.beepWarn, groups, clock: L.beepClock?.info() ?? null,
       spiegel: ents('powerup').filter((e) => e.power === 'spiegel').length + L.data.blocks.filter((b) => b.content === 'spiegel').length,
       gleit: ents('powerup').filter((e) => e.power === 'gleitblatt').length + L.data.blocks.filter((b) => b.content === 'gleitblatt').length,
@@ -1038,7 +1038,7 @@ RULES['B-8'] = async () => {
     };
   });
   console.log(`  Remix: ${JSON.stringify({ call: r.call, groups: r.groups, clock: r.clock, gleit: r.gleit, stachel: r.stachel })}`);
-  check('B-8: Remix-Platzhalter (Basis 4-3), eigener Titel; Musik course_beep_turbo ohne Variante (Basis-Musik im Turbo-Takt, die Taktuhr der Piep-Blöcke)', r.stub && r.title === 'Turbo-Piep über dem Neonsteg' && r.theme === 'beep' && r.music === 'course_beep_turbo' && r.variant === null && r.clock?.theme === 'course_beep_turbo');
+  check('B-8: Remix-Platzhalter (Basis 4-3), eigener Titel; Musik course_beep_turbo ohne Variante (Basis-Musik im Turbo-Takt, die Taktuhr der Piep-Blöcke) → music.play(\'course_beep_turbo\')', r.stub && r.title === 'Turbo-Piep über dem Neonsteg' && r.theme === 'beep' && r.music === 'course_beep_turbo' && r.variant === null && r.clock?.theme === 'course_beep_turbo' && r.call !== null && !r.call[1]?.variant);
   check(`B-8: Piep-Blöcke 4× schneller ohne Warnung (beepSpeed ${r.beepSpeed}, beepWarn ${r.beepWarn}; Gruppen ${JSON.stringify(r.groups)})`, r.beepSpeed === 4 && r.beepWarn === false && r.groups.length >= 2 && r.groups.every((g) => g[1] === 2 && g[2] === 0));
   check(`B-8: Gleitblätter (${r.gleit}) statt Spiegelfrüchte (${r.spiegel}); ${r.stachel} Stachel-Hindernisse; ein Druckfeld; Treppen (${r.wechsel}) und Rutsche (${r.rutsche}) im Farbwechsel; ${r.neon} feste Neon-Absätze; 400 s, kein Stempel`,
     r.spiegel === 0 && r.gleit >= 5 && r.stachel >= 15 && r.pfeld === 1 && r.wechsel === 6 && r.rutsche === 'wechsel' && r.neon === 4 && r.limit === 400 && r.stamp === 0);

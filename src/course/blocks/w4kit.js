@@ -7,7 +7,7 @@
 //                             LEVEL.beepClock = 'level' – eine eigene Uhr auf der Simulationszeit (Tempo des Sync-Themas),
 //                             die stetig an die letzte Zählzeit anschließt (Funkelstern-Thema, Musik aus, Tests).
 //                             Felder: beat (Kommazahl), whole (ganze Zählzeit), source ('music'|'level'), bpm, every
-//                             (switchEvery), warn (warnBeats), mode ('auto'|'music'|'level'), onBeat(fn) → abmelden,
+//                             (switchEvery bzw. LEVEL.beepSync.every), warn (warnBeats bzw. beepSync.warn), mode ('auto'|'music'|'level'), onBeat(fn) → abmelden,
 //                             info(). Pieps (sfx 'beep' auf den Warn-Zählzeiten, 'beep_switch' beim Umschalten) spielt die
 //                             Uhr nur, wenn sie nicht der Musik folgt (course_beep hat die Pieps schon in der Bell-Spur)
 //                             und ein Baustein sie mit wantSounds() angefordert hat.
@@ -35,7 +35,9 @@ function themeSync(theme) {
 export function beatClock(level) {
   if (level.beepClock) return level.beepClock;
   const theme = level.data?.beepTheme ?? BEEP_THEME;
-  const s = themeSync(theme);
+  // LEVEL.beepSync { every, warn }: Takt der Blöcke, wenn er nicht der Sync-Angabe des Themas folgt (z. B. K-1: course_champion
+  // hat keine, die Blöcke wechseln alle 4 Zählzeiten) – für die eigenen Pieps der Uhr und piepTakt
+  const s = { ...themeSync(theme), ...(level.data?.beepSync ?? {}) };
   const clock = {
     theme, bpm: s.bpm, every: s.every, warn: s.warn,
     mode: level.data?.beepClock ?? 'auto',   // 'auto' | 'music' | 'level'

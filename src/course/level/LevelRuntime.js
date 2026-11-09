@@ -126,7 +126,8 @@ export class LevelRuntime {
     this.status = 'done';
     const d = this.level.data;
     const nStars = Math.max(3, this.starCount);   // Dioramen haben 5 Sterne, Arenen 1
-    const entry = this.save.completeLevel(d.id, { stars: this.stars.slice(0, nStars), stamp: this.stamp, time: this.elapsed, pole: this.pole ?? 0 });
+    // noBestTime: abgebrochener Lauf (Haus bei Zeitablauf verlassen) – Sterne zählen, die Zeit ist keine Bestzeit
+    const entry = this.save.completeLevel(d.id, { stars: this.stars.slice(0, nStars), stamp: this.stamp, time: this.noBestTime ? null : this.elapsed, pole: this.pole ?? 0 });
     this.result = {
       id: d.id, title: d.title, world: d.world, pole: this.pole ?? 0, points: this.points, top: !!this.top,
       coins: this.coins, stars: this.stars.slice(0, nStars), starsSaved: this.starsSaved, stamp: this.stamp, stampSaved: this.stampSaved,

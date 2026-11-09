@@ -121,6 +121,7 @@ class Wirbelbrocken extends EnemyW2 {
     this.visible = true;
     this.touch = true;
     this.fellOut = false;
+    this.landed = false;
     this.pos.copy(this.home);
     this.vel.set(0, 0, 0);
     this.half.y = 1.05;
@@ -363,7 +364,7 @@ class Wirbelbrocken extends EnemyW2 {
     this.level.sfx('boss_spin');
     for (let i = 0; i < k; i++) {
       if (i === me) continue;
-      const d = this.level.spawn('wirbelbrocken_attrappe', { pos: [spots[i][0], A.y + 3, spots[i][1]], owner: this, arena: { center: [A.x, A.y, A.z], r: A.r }, hp: this.maxHp });
+      const d = this.level.spawn('wirbelbrocken_attrappe', { pos: [spots[i][0], A.y + 3, spots[i][1]], owner: this, arena: { center: [A.x, A.y, A.z], r: A.r }, hp: this.maxHp, tempo: this.spec.tempo });   // gleiches Tempo wie das Original
       if (!d) continue;
       d.hp = this.hp;
       this.decoyList.push(d);

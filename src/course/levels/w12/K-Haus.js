@@ -357,7 +357,8 @@ SEG.push(cliff(27, -7, 7, -1, R28.bruecke[0], Y, 0xd86aa8), cliff(27, -7, 7, R28
 SEG.push({ type: 'donutblock', id: 'k28_donuts', from: P(27, 0, R28.bruecke[0] + 0.5, Y - 1), to: P(27, 0, R28.mitte[0] - 0.5, Y - 1), delay: 0.5, respawn: 2.5, color: 'gelb' });
 SEG.push({ type: 'donutblock', id: 'k28_donuts2', from: P(27, 0, R28.mitte[1] + 0.5, Y - 1), to: P(27, 0, R28.bruecke[1] - 0.5, Y - 1), delay: 0.5, respawn: 2.5, color: 'rosa' });
 SEG.push(cliff(27, -1.6, 1.6, R28.mitte[0], R28.mitte[1], Y, 0xd86aa8));
-[-1.2, 1.2].forEach((x, k) => EN.push({ kind: 'walzenwerfer', id: `k28_werfer${k + 1}`, roomId: room(27), pos: P(27, x * 3.4, 28.8), pillar: 0.6, dir: [0, 1], aim: 'dir', interval: 2.6, first: 1.0 + k * 1.3, speed: 4.0, walze: 0.75, max: 2, life: 7, wake: 40 }));
+// schräg zur Mitte: die Walzen kreuzen den Weg zwischen Brückenende (u 24) und Stern (u 27) bei u ≈ 25,4
+[-1.2, 1.2].forEach((x, k) => EN.push({ kind: 'walzenwerfer', id: `k28_werfer${k + 1}`, roomId: room(27), pos: P(27, x * 3.4, 28.8), pillar: 0.6, dir: [-Math.sign(x) * 1.2, 1], aim: 'dir', interval: 2.6, first: 1.0 + k * 1.3, speed: 4.0, walze: 0.75, max: 2, life: 7, wake: 40 }));
 
 // --- 29 Wirbelbrocken: ein Treffer genügt
 // kurzer Auftritt und Anlauf (sonst taumelt er erst nach gut 6 s – zu knapp für 10 s Raumzeit)
@@ -435,13 +436,15 @@ function setup(level) {
       if (i === 1) frischeWalzen(level, ['k2_werfer'], [0.6], [Z0(1), zu(1, 40)]);
       if (i === 10 && p && !p.skate) p.collectPowerup('schlittschuh');
       if (i === 27) frischeWalzen(level, ['k28_werfer1', 'k28_werfer2'], [1.0, 2.3], [Z0(27), zu(27, 32)]);
+      // Scheinwerferschacht: Suchköpfe eines früheren Alarms weg (sonst jagen sie nach einem Tod weiter)
+      if (i === 26) for (const e of level.entities) if (e.kind === 'suchkopf' && !e.removed && e.pos.z < Z0(26) + 2 && e.pos.z > zu(26, 20)) e.kill();
       if (i === 21) {
         // Himmelssteg: alte Suchköpfe weg, die Kanonen laden gestaffelt (die Köpfe kreuzen den Steg, wenn man vorbeikommt)
         for (const e of level.entities) if (e.kind === 'suchkopf' && !e.removed && e.pos.z < Z0(21) + 2 && e.pos.z > zu(21, 42)) e.kill();
         R22.kanonen.forEach((u, k) => { const kn = level.entities.find((e) => e.spec?.id === `k22_kanone${k + 1}` && !e.removed); if (kn) { kn.heads = []; kn.setState?.('idle'); kn.cool = R22.takt[k]; } });
       }
       // Drehdioramen beginnen in Grundstellung
-      for (const id of ['k5_dreh', 'k16_ring', 'k19_lab']) { const d = level.named.get(id); if (d) d.t0 = level.time; }
+      for (const id of ['k5_dreh', 'k16_ring', 'k19_lab']) { const d = level.named.get(id); if (d) { d.reset?.(); d.t0 = level.time; } }
     },
   });
   // Drehdioramen drehen sich im Takt (Vierteldrehung je takt s, nur im laufenden Raum)

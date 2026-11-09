@@ -326,13 +326,15 @@ export function turmZier(level, o) {
 
 /**
  * Kronentor (statisch; Pfeiler mit Kollision): zwei Marmorpfeiler mit Goldkapitellen, ein goldener Bogen mit Glühbirnen und oben
- * eine Krone mit Edelsteinen (krone false: ohne). list [[x, y, z, Breite, Höhe, krone] …] (Bogen quer zur Laufrichtung −Z).
+ * eine Krone mit Edelsteinen (krone false: ohne). list [[x, y, z, Breite, Höhe, krone, foot] …] (Bogen quer zur Laufrichtung −Z; foot > 0: Stützsäule so tief unter den Pfeilern).
  */
 export function kronenTor(level, list) {
   const b = new Bld(), g = new Bld();
-  for (const [x, y, z, W, H, krone = true] of list) {
+  for (const [x, y, z, W, H, krone = true, foot = 0] of list) {
     for (const s of [-1, 1]) {
       const px = x + s * W / 2;
+      // Stützsäule nach unten (Pfeiler neben einer schmalen Bahn stünden sonst frei über dem Abgrund)
+      if (foot > 0) b.cyl(0.42, 0.3, foot, px, y - foot, z, gradY(0x8a7e70, 0xe8dccc, y - foot, y), 12);
       level.world.add({ type: 'box', min: [px - 0.45, y, z - 0.45], max: [px + 0.45, y + H, z + 0.45], tag: 'kronentor' });
       b.box(1.1, 0.4, 1.1, px, y, z, GOLD_DUNKEL, { r: 0.08 });
       b.cyl(0.4, 0.45, H - 0.9, px, y + 0.4, z, gradY(0xe8dccc, MARMOR, y, y + H), 14);
@@ -573,7 +575,10 @@ export function goldenerZielmast(level) {
       crown.rotation.y = t * 0.8;
       glow.scale.setScalar(3.6 + Math.sin(t * 3) * 0.35);
     },
-    dispose() { body.geometry.dispose(); crown.geometry.dispose(); fg.dispose(); fmat.map?.dispose(); fmat.dispose(); glowTex.dispose(); },
+    dispose() {
+      body.geometry.dispose(); body.material.dispose(); crown.geometry.dispose(); crown.material.dispose();
+      fg.dispose(); fmat.map?.dispose(); fmat.dispose(); glow.material.dispose(); glowTex.dispose();
+    },
   };
   goal.setModel(model);
   return goal;

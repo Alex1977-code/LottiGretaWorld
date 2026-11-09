@@ -92,7 +92,9 @@ class House {
       const rid = e.spec?.roomId;
       if (e.enemy) {
         const room = this.rooms.find((r) => (rid !== undefined ? r.id === rid : inArea(e.pos, r.area)));
-        if (room) { room.enemies.push(e); room.specs.push(e.spec); }
+        // Glieder, die ein anderes Objekt selbst anlegt (z. B. Kreisgeister eines Rings, ohne kind): nur mit abräumen, der
+        // Besitzer erzeugt sie beim Neustart neu
+        if (room) { room.enemies.push(e); if (e.spec?.kind) room.specs.push(e.spec); }
       } else if (rid !== undefined && e.kind !== 'star') {
         const room = this.rooms.find((r) => r.id === rid);
         if (room) { room.items.push(e); room.itemSpecs.push({ kind: e.kind, spec: e.spec }); }
@@ -322,7 +324,10 @@ class House {
       this.freezeOne(p, 'victory');
       if (p === this.level.player) this.level.sfx('victory');
     }
-    if (this.phaseT >= this.cheer && !this.flying) {
+    // stirbt die Figur noch während des Jubels (z. B. Lava nach dem letzten Treffer), erst die Todesanimation abwarten:
+    // rt.respawn bringt sie dann in den nächsten Raum (ein Raumwechsel mitten im Sterben ließe den Status auf 'dying')
+    const dying = this.level.player.dead || this.level.runtime.status === 'dying';
+    if (this.phaseT >= this.cheer && !this.flying && !dying) {
       if (this.i + 1 < this.rooms.length) { this.next = this.i + 1; this.setPhase('fadeout'); }
       else { this.setPhase('final'); music.play('course_clear'); }
     }
@@ -342,6 +347,7 @@ class House {
     this.done = true;
     this.phase = 'exit';
     const rt = this.level.runtime;
+    rt.noBestTime = true;
     if (rt.status === 'play') rt.finish();
   }
 
@@ -352,7 +358,13 @@ class House {
     for (const e of r.enemies) if (!e.removed) e.kill();
     r.enemies = [];
     r.down.clear();
-    for (const spec of r.specs) { const e = level.spawn(spec.kind, spec); if (e) r.enemies.push(e); }
+    // Reihen (count > 1) legen ihre Geschwister `${id}_1 …` selbst an – die stehen aber schon einzeln in specs: Kopf allein
+    const ids = new Set(r.specs.map((s) => s.id).filter(Boolean));
+    for (const spec of r.specs) {
+      const one = spec.count > 1 && spec.id && ids.has(`${spec.id}_1`) ? { ...spec, count: 1 } : spec;
+      const e = level.spawn(spec.kind, one);
+      if (e) r.enemies.push(e);
+    }
     for (const e of r.items) if (!e.removed) e.kill();
     r.items = [];
     for (const it of r.itemSpecs) { const e = level.spawn(it.kind, it.spec); if (e) r.items.push(e); }

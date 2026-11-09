@@ -295,6 +295,7 @@ export function schlafturm(level, id, o = {}) {
     }
     geo.attributes.position.needsUpdate = true;
   });
+  pts.userData.owned = true;   // addObject markiert nur Meshes: Geometrie und Material beim Abbau des Levels freigeben
   return st;
 }
 
@@ -461,6 +462,8 @@ export function orangeBloecke(level, ids, hue = 0.06, glow = 0.12) {
   if (!level.view) return st;
   const blocks = ids.map((id) => level.named.get(id)).filter((h) => h?.mb);
   const tone = (c) => { c.getHSL(_hsl); if (_hsl.s > 0.18) c.setHSL(hue, Math.min(1, _hsl.s * 1.1), Math.min(0.66, _hsl.l * 1.35 + 0.06)); };
+  // Original → Kopie: die Bild-Funktion des Blocks setzt die Leuchtkraft (Warnblinken, Takt-Glühen) weiter am Original
+  const pairs = [];
   const tint = (root) => {
     root.traverse((o) => {
       if (!o.isMesh) return;
@@ -476,7 +479,7 @@ export function orangeBloecke(level, ids, hue = 0.06, glow = 0.12) {
         const n = m.clone();
         if (n.color) tone(n.color);
         // nachts gut sichtbar: leichtes oranges Eigenleuchten
-        if (n.emissive) { n.emissive.setHSL(hue, 1, 0.5); n.emissiveIntensity = Math.max(n.emissiveIntensity ?? 0, glow); }
+        if (n.emissive) { n.emissive.setHSL(hue, 1, 0.5); n.emissiveIntensity = Math.max(n.emissiveIntensity ?? 0, glow); pairs.push([m, n, n.emissive.clone()]); }
         return n;
       });
       o.material = Array.isArray(o.material) ? out : out[0];
@@ -492,6 +495,13 @@ export function orangeBloecke(level, ids, hue = 0.06, glow = 0.12) {
       if (r && !r.userData.orange) { r.userData.orange = true; tint(r); st.tinted++; }
     }
     setTimeout(() => off?.(), 0);
+  });
+  // Warnblinken des Originals übernehmen (in seiner Warnfarbe), sonst das leichte orange Eigenleuchten
+  level.view.onFrame(() => {
+    for (const [m, n, orange] of pairs) {
+      const k = m.emissiveIntensity ?? 0;
+      if (k > glow) { n.emissive.copy(m.emissive); n.emissiveIntensity = k; } else { n.emissive.copy(orange); n.emissiveIntensity = glow; }
+    }
   });
   return st;
 }

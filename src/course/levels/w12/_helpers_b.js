@@ -66,7 +66,8 @@ export function glutFloss(level, o) {
 
 /**
  * Gittertor, das sich nur von innen öffnet (K-Kapitän: Tür der Turmstube): Quader (Mitte unten pos, size) mit goldenen
- * Gitterstäben; steht eine Figur im Innenraum `inside` [x0, y0, z0, x1, y1, z1], fährt das Tor hoch (offen), sonst ist es zu.
+ * Gitterstäben; steht eine Figur im Innenraum `inside` [x0, y0, z0, x1, y1, z1], fährt das Tor um `lift` (Standard h + 0,1 nach
+ * oben; negativ = in den Boden) und ist offen, sonst ist es zu.
  * So kommt man aus der Kammer hinaus, von draußen aber nicht hinein. Liefert { open (0..1), box }.
  */
 export function gittertor(level, o) {

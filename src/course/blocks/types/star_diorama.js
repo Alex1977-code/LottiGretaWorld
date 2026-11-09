@@ -14,7 +14,7 @@
 //     yaw: [a, b] (Grad) | turn: [Stellungen] }], onTurn: Aktion, disc: { radius, height, color } (feste Drehscheibe unter
 //     den Teilen; begehbar, dreht mit; Optik: Registry-Modell 'diorama_drehscheibe' mit Zahnkranz und Antriebsritzel, sonst
 //     eigene Scheibe), gear: true (eigene Scheibe: Zahnkranz am Rand), look: 'eigen' }
-//   level.named.get(id) = { turn (0..3), turning, turns, angle, toggle() (= start(), eine Vierteldrehung), visible(star),
+//   level.named.get(id) = { turn (0..3), turning, turns, angle, toggle() (= start(), eine Vierteldrehung), reset() (Grundstellung), visible(star),
 //     info() }; Formen tag 'drehdiorama' (owner = Griff, mover mit dyaw); star(level).dioramas.
 //   Beispiel: { type: 'drehdiorama', id: 'dreh', pos: [0, 0, -20], disc: { radius: 6 },
 //               parts: [{ pos: [3, 0, 0], size: [2, 3, 6] }], schalter: { pos: [8, 0, -14] },
@@ -116,6 +116,15 @@ export function buildDrehdiorama(level, spec) {
   defineHandle(handle, {
     get turn() { return st.turn; }, get turning() { return st.turning; }, get turns() { return st.turns; }, get angle() { return st.angle; },
     toggle: turnOnce, start: turnOnce,
+    /** Grundstellung (Startstellung turn), ohne Drehung und ohne Mitnahme der Figur – z. B. Raum-Neustart im Haus. */
+    reset: () => {
+      st.turning = false; st.t = 0;
+      st.turn = ((spec.turn ?? 0) % 4 + 4) % 4;
+      st.angle = st.turn * dirS * Math.PI / 2;
+      mover.dyaw = 0;
+      place(st.angle);
+      placeItems(st.angle);
+    },
     visible: (ref) => { const s = sicht.find((q) => q.star === ref); return s ? s.vis : true; },
     info: () => ({ turn: st.turn, turning: st.turning, turns: st.turns, angle: +(st.angle * 180 / Math.PI).toFixed(1), sicht: sicht.map((s) => s.vis) }),
   });

@@ -40,7 +40,8 @@ const KL = MKK.KLIPPE;
 
 function scene(level) {
   const Q = new Quads();
-  const box = (x0, x1, z0, z1, top, o = {}) => brickBox(level, Q, { x0, x1, z0, z1, top, y0: o.y0 ?? -4, hot: o.hot ?? LO + 0.8, stone: o.stone ?? 'basalt', bw: o.bw ?? 1.6, bh: o.bh ?? 0.8, cell: o.cell ?? 1.0, faces: o.faces ?? '+z+x-x-z', ...o });
+  // hot LO + 0,5: die Mauerseiten beginnen bei hot − 0,6 = −0,1, also unter dem Ebbe-Spiegel (kein Spalt über der Lava)
+  const box = (x0, x1, z0, z1, top, o = {}) => brickBox(level, Q, { x0, x1, z0, z1, top, y0: o.y0 ?? -4, hot: o.hot ?? LO + 0.5, stone: o.stone ?? 'basalt', bw: o.bw ?? 1.6, bh: o.bh ?? 0.8, cell: o.cell ?? 1.0, faces: o.faces ?? '+z+x-x-z', ...o });
   // ---------------- Kessel (Wände 8,5 hoch, halten die Lava)
   box(-16, 16, 14.5, 15.5, 8.5, { tag: 'kessel', faces: '+z-z+x-x', bands: [3.5] });
   box(-16, 16, -16, -15, 8.5, { tag: 'kessel', faces: '-z+z+x-x', bands: [3.5] });
@@ -66,8 +67,10 @@ function scene(level) {
   box(-1.5, 2, 3.0, 4.4, T0, { y0: T0 - 0.8, bottom: T0 - 0.8, tag: 'haengesteg', stone: 'sand', faces: '+z-z', cell: 0.5 });
   // ---------------- Glutturm (Dach y 16) mit Ostflügel und verschlossener Turmstube (Boden 12,6)
   const win = [['+z', 1.5, 9.2, 0.8, 1.6], ['+z', 5, 9.2, 0.8, 1.6], ['+z', 8.5, 9.2, 0.8, 1.6], ['+z', 12, 9.2, 0.8, 1.6], ['-x', 3, 11, 0.8, 1.6], ['-x', 7.5, 11, 0.8, 1.6]];
-  box(-5, 8.6, -15, -4, TOP, { tag: 'turm', stone: 'rot', bands: [8.8, 12.4], windows: win, faces: '+z-x' });
-  box(8.6, 13, -15, -10.5, TOP, { tag: 'turm', stone: 'rot', bands: [8.8, 12.4], faces: '+x' });
+  // Rückseite (−z) über der Kesselmauer sichtbar (frei drehbare Kamera); +x des Turms und +z des Flügels sind die West- und
+  // Nordwand der Turmstube innen
+  box(-5, 8.6, -15, -4, TOP, { tag: 'turm', stone: 'rot', bands: [8.8, 12.4], windows: win, faces: '+z-x+x-z' });
+  box(8.6, 13, -15, -10.5, TOP, { tag: 'turm', stone: 'rot', bands: [8.8, 12.4], faces: '+x+z-z' });
   box(8.6, 13, -10.5, -4, STUBE, { tag: 'stube', stone: 'rot', bands: [8.8], faces: '+z+x', pattern: carpet([[10.5, -9], [10.5, -4.5]], 0.6), patternColor: 0xc8283a });
   box(12.2, 13, -10.5, -4.5, 15.4, { y0: STUBE, bottom: STUBE, tag: 'stube', stone: 'rot', faces: '+x-x', skipTop: true, hot: undefined });
   box(8.6, 9.6, -4.5, -4, 15.4, { y0: STUBE, bottom: STUBE, tag: 'stube', stone: 'rot', faces: '+z', skipTop: true, hot: undefined });
@@ -128,7 +131,8 @@ function scene(level) {
 function setup(level) {
   glutFloss(level, { id: 'glutfloss', lava: 'glut', pos: MKK.FLOSS.pos, size: MKK.FLOSS.size, offset: MKK.FLOSS.offset });
   // Tür der Turmstube: Gittertor öffnet sich nur von innen (hinaus auf die ruhende Propellerplattform, nicht herein)
-  gittertor(level, { id: 'stubentor', pos: [10.5, STUBE, -4.25], size: [1.8, 2.4, 0.2], inside: [8.6, STUBE - 0.2, -10.5, 12.2, 15.4, -4.45] });
+  // öffnet nach unten in den Sockel der Stube (nach oben ragte es durchs Turmdach)
+  gittertor(level, { id: 'stubentor', pos: [10.5, STUBE, -4.25], size: [1.8, 2.4, 0.2], lift: -2.5, inside: [8.6, STUBE - 0.2, -10.5, 12.2, 15.4, -4.45] });
   funken(level, [[-15, 15, LO, 10, -15, 14.5]], { n: 80, rise: 0.5, size: 0.22, seed: 12 });
   glimmer(level, [[7.5, 13, WOLKE + 0.5, WOLKE + 4, -13, -9], [-15, -11, TOP + 0.4, TOP + 2.5, -11, -7]], { n: 30, color: 0xfff2a0, size: 0.2, drift: 0.4 });
 }

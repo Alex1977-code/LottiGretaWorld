@@ -356,7 +356,11 @@ export class CourseView {
     setToneMapping(this.renderer, 'none');
     // Übrige Geometrien/Materialien der Bausteine freigeben (geteilte Avatar-Caches nicht anfassen)
     this.three.traverse((o) => {
-      if (o.userData?.owned) { o.geometry?.dispose?.(); if (o.material && !Array.isArray(o.material)) o.material.dispose?.(); }
+      if (o.userData?.owned) {
+        o.geometry?.dispose?.();
+        if (o.material && !Array.isArray(o.material)) o.material.dispose?.();
+        if (o.isInstancedMesh) o.dispose();       // Instanz-Puffer (Matrizen, Farben)
+      }
     });
     this.three.clear();
     hideCanvas(this.renderer, this.canvas);

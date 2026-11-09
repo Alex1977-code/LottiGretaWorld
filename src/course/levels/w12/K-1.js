@@ -23,7 +23,7 @@
 //     Überspringen, fünf Schlüsselmünzen öffnen Warp-Box 4 auf dem Platz (20 × 22 m) → Siegerplatz mit Goldtreppe und dem
 //     **goldenen Zielmast** (Krone, Kronenfahne), Feier mit Konfetti, Feuerwerk und jubelnden Freunden.
 //
-// Sterne: 0 hinter der Piep-Block-Strecke (hinter der Kanonen-Insel über drei Piep-Blöcke zum Sternsockel) · 1 Sternplatz am
+// Sterne: 0 hinter der Piep-Block-Strecke (hinter der Kanonen-Insel über zwei Piep-Blöcke zum Sternsockel) · 1 Sternplatz am
 //         Ende der grauen Plattformen, umkreist von einem dichten Wuschel-Ring – die Topf-Schnappblume frisst ihn auf · 2 am
 //         Ende der Boost-Strecke: hinter dem Platz über den schmalen Goldsteg an einer Feuerring-Schockwelle vorbei zum Sockel.
 // Stempel: zweite Stufe der Goldtreppe vor der Zielfahne (rechts). Extraleben: unsichtbare Blöcke auf Rastinsel 2, auf dem
@@ -144,7 +144,7 @@ function build(level) {
     [-13, 30, -965, 6], [13, 31, -980, 6],
   ]);
   randsteine(level, [[-3, 3, -737, -790, YBO], [-3, 3, -797, -850, YBO], [-2.5, 2.5, -857, -905, YBO]]);
-  kronenTor(level, [[0, Y1, -2.6, 9.4, 4.6], [0, YBO, -752, 7.4, 3.6, false], [0, YBO, -820, 7.4, 3.6, false], [0, YBO, -884, 6.4, 3.6, false], [0, YZ, -959, 7, 4.2]]);
+  kronenTor(level, [[0, Y1, -2.6, 9.4, 4.6], [0, YBO, -752, 7.4, 3.6, false, 8], [0, YBO, -820, 7.4, 3.6, false, 8], [0, YBO, -884, 6.4, 3.6, false, 8], [0, YZ, -959, 7, 4.2]]);
   turmZier(level, {
     faces: [
       { z: -568, x0: -6, x1: 6, y0: YF, y1: YL1, windows: 0, banners: [-4.2, 4.2] },
@@ -187,6 +187,7 @@ export const LEVEL = {
   theme: 'skyway',
   music: 'course_champion',
   beepTheme: 'course_champion',
+  beepSync: BEEP,          // Warn- und Umschalt-Pieps im Takt der Blöcke (alle 4 Zählzeiten, 2 Warn-Pieps)
   timeLimit: 500,
   start: { pos: [0, Y1, 6], yaw: PI / 2 },
   killY: -14,
@@ -260,7 +261,7 @@ export const LEVEL = {
     piep('t3', 'blau', [0, YT - 2.9, -297], [3, 1, 3]),
     marmor(M.R5.x0, M.R5.x1, M.R5.z0, M.R5.z1, YK, 3, { top: 'grass' }),
     sign(3.6, YK, -302, 'Kanone zur\nZauberarena', { size: [2.4, 0.9], yaw: -0.2 }),
-    // hinter der Kanonen-Insel: drei Piep-Blöcke zum Sternsockel (Stern 0)
+    // hinter der Kanonen-Insel: zwei Piep-Blöcke zum Sternsockel (Stern 0)
     piep('ps1', 'rot', [-3.8, YK - 1, -314.6], [2, 1, 2]),
     piep('ps2', 'blau', [-6.6, YK - 1, -317.2], [2, 1, 2]),
     marmor(-11.4, -8.6, -319.6, -322.4, YK, 2, { under: 0, top: 'grass' }),
@@ -372,7 +373,7 @@ export const LEVEL = {
       { kind: 'flowers', pos: [4, 10.5, -541], size: [2.6, 3], n: 9 }, { kind: 'flowers', pos: [-4.4, 10.5, -540], size: [2, 3], n: 8 }, { kind: 'tree', pos: [-5, 10.5, -543.6], size: 3.6 },
       { kind: 'flowers', pos: [-4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'flowers', pos: [4.4, YF, -563.5], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.8, YF, -558], size: 0.8 },
       { kind: 'flowers', pos: [-3.6, 36, -716], size: [2, 3], n: 8 }, { kind: 'bush', pos: [4.2, 36, -718.6], size: 0.7 },
-      { kind: 'flowers', pos: [-9, YS - 0.01, -320.5], size: [1.2, 1.2], n: 4 },
+      { kind: 'flowers', pos: [-9, YK - 0.01, -320.5], size: [1.2, 1.2], n: 4 },   // Sternsockel-Insel (YK)
     ] },
     { type: 'deco_w8', items: [
       { kind: 'wimpel', from: [-8.6, YZ + 5.2, -958], to: [8.6, YZ + 5.2, -958], sag: 0.9 },
@@ -391,7 +392,7 @@ export const LEVEL = {
   ],
   enemies: [
     // Abschnitt 1: Krakenpilze (vier auf Schiebeblöcken, zwei auf Rastinseln)
-    { kind: 'krakenpilz', id: 'kp_s2', pos: [SLIDERS.s2.sx, 0, SLIDERS.s2.z], sight: 8, first: 1.2 },
+    { kind: 'krakenpilz', id: 'kp_s2', pos: [SLIDERS.s2.sx * 0.5, 0, SLIDERS.s2.z], sight: 8, first: 1.2 },   // s2 startet mit phase 0,5 in der Bahnmitte
     { kind: 'krakenpilz', id: 'kp_r1', pos: [3, Y1, -38.5], sight: 8, first: 1.6 },
     { kind: 'krakenpilz', id: 'kp_s4', pos: [SLIDERS.s4.sx, 1, SLIDERS.s4.z], sight: 7, first: 0.9 },
     { kind: 'krakenpilz', id: 'kp_r2', pos: [-3, 2, -77.5], sight: 8, first: 1.4 },

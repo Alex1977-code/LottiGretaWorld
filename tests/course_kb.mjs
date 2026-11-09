@@ -1003,9 +1003,12 @@ async function hausExtra() {
   g.sims = await run(20, `B.walk(D.R21.s1[0] + 2.5, zu(D.R21.s1[2] - 1.0), { within: 0.25 }); let top = p.pos.y; for (let k = 0; k < 90; k++) { B.tick({ ...B.stick(0, -1, 1), jump: k < 40, run: true }); top = Math.max(top, p.pos.y); } B.wait(30);
     return { top: +top.toFixed(2), y: +p.pos.y.toFixed(2), sims: D.R21.s1[4] };`);
   // Raum 29: Draufspringen, solange er rennt, zählt nicht (nur im Taumeln)
-  g.boss = await run(28, `const b = L.entities.find((e) => e.kind === 'wirbelbrocken' && !e.removed); B.until(() => b.state === 'run', 900); p.invuln = 5;
-    for (let k = 0; k < 120 && b.state === 'run'; k++) { const t = { x: b.pos.x, z: b.pos.z }; B.tick({ ...(p.mode === 'air' ? B.airSteer(t.x, t.z, 0, 0, 5, 9) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1)), jump: k % 40 < 12, run: true }); }
-    return { hp: b.hp, state: b.state };`);
+  // Lauf-Fenster für die Gegenprobe verlängert (im Raum nur 0,8 s), Kontakte von oben mitgezählt
+  g.boss = await run(28, `const b = L.entities.find((e) => e.kind === 'wirbelbrocken' && !e.removed); b.phaseTab = b.phaseTab.map((q) => q && { ...q, runT: 3 }); B.until(() => b.state === 'run', 900); p.invuln = 5;
+    let oben = 0;
+    for (let k = 0; k < 360 && b.state === 'run'; k++) { const t = { x: b.pos.x, z: b.pos.z }; B.tick({ ...(p.mode === 'air' ? B.airSteer(t.x, t.z, 0, 0, 5, 9) : B.stick(t.x - p.pos.x, t.z - p.pos.z, 1)), jump: k % 40 < 12, run: true });
+      const dy = p.pos.y - (b.pos.y + b.half.y * 2); if (Math.hypot(p.pos.x - b.pos.x, p.pos.z - b.pos.z) < 1.0 && dy > -0.4 && dy < 0.6) oben++; }
+    return { hp: b.hp, state: b.state, oben };`);
   // Raum 30: unsichtbarer Block mit Extraleben über dem Läufer
   g.leben = await run(29, `const l0 = L.runtime.save.lives; B.walk(0, zu(11), { within: 0.15 }); B.hop(30); B.wait(60);
     for (let k = 0; k < 900; k++) { const o = L.entities.find((e) => e.kind === 'powerup' && !e.removed); if (!o) break; B.tick({ ...B.stick(o.pos.x - p.pos.x, o.pos.z - p.pos.z, 1) }); }
@@ -1020,7 +1023,7 @@ async function hausExtra() {
   check(`${id}: Raum 11 – ohne Schlittschuh verletzen die Stachelstreifen (${g.stachel.hurt} Treffer)`, g.stachel.hurt > 0 || g.stachel.dead);
   check(`${id}: Raum 12 – der Stern erscheint erst nach dem Druckfeld`, g.schalter.hidden);
   check(`${id}: Raum 21 – vom Boden aus nicht auf den ersten Sims (höchstens y ${g.sims.top}, Sims ${g.sims.sims})`, g.sims.y < g.sims.sims - 0.5);
-  check(`${id}: Raum 29 – Draufspringen, solange der Wirbelbrocken rennt, zählt nicht (hp ${g.boss.hp})`, g.boss.hp === 1);
+  check(`${id}: Raum 29 – Draufspringen, solange der Wirbelbrocken rennt, zählt nicht (hp ${g.boss.hp}, ${g.boss.oben} Schritte auf ihm)`, g.boss.hp === 1 && g.boss.oben > 0);
 
   // Zeitablauf: zwei Räume lösen, im dritten nichts tun → Haus verlassen, Ergebnis 2 von 30 gespeichert
   if (!(await load(id, { fresh: true }))) return;

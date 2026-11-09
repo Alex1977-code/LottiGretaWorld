@@ -353,8 +353,8 @@ const gf = await sc(() => {
     if (f.state === 'peek') peek = true;
     if (f.state === 'wait' && f.touch) hiddenTouch = false;
     if (f.state === 'jump') apex = Math.max(apex, f.pos.y - 2.0);
-    // step zeichnet nicht: die Sichtbarkeit setzt syncModel (sonst je Bild über render) – hier nach jedem Schritt
-    f.syncModel();
+    // step zeichnet nicht: die Sichtbarkeit setzt render (je Bild, samt Fern-Ausblendung des Levels) – hier nach jedem Schritt
+    c.level.render(1 / 120, c.level.time ?? 0);
     if (f.state === 'wait' && f.model?.root?.visible) visWait = true;
     if (f.state === 'jump' && f.jumps !== f._seen) { f._seen = f.jumps; seq.push(f.next); }
   }

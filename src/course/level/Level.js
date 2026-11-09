@@ -477,14 +477,15 @@ export class Level {
     const p = this.players[0], fhAll = this.data.farHide, rules = this.view?.instanceRules;
     for (let i = 0; i < this.entities.length; i++) {
       const e = this.entities[i];
-      e.render?.(dt, t);
       const fh = e.farHide ?? rules?.[e.kind]?.farHide ?? (e.enemy ? fhAll : undefined);
-      const root = e.model?.root;
-      if (!(fh > 0) || !root) continue;
-      const far = !!p && !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > fh;
-      if (far) { if (root.visible) { root.visible = false; e._farHidden = true; } }
-      // wieder nah: einblenden und die eigene Sichtbarkeit der Entität gleich neu setzen (z. B. abgetaucht wartender Glotzfisch)
-      else if (e._farHidden) { root.visible = true; e._farHidden = false; e.syncModel?.(); }
+      let root = e.model?.root;
+      const far = fh > 0 && !!root && !!p && !e.removed && Math.hypot(e.pos.x - p.pos.x, e.pos.z - p.pos.z) > fh;
+      // wieder nah: vor render() einblenden – render() setzt dann im selben Bild die eigene Sichtbarkeit der Entität
+      // (z. B. abgetaucht wartender Glotzfisch, versteckter Stern)
+      if (!far && e._farHidden) { if (root) root.visible = true; e._farHidden = false; }
+      e.render?.(dt, t);
+      root = e.model?.root;
+      if (far && root?.visible) { root.visible = false; e._farHidden = true; }
     }
   }
 
