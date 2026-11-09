@@ -1,7 +1,7 @@
 // Detailstufen für ferne Exemplare (Präzisierung „Leistung und Level-Haken 2“). Nur Darstellung, gleiche Materialien
 // wie die Vorlage – nur sparsamere Geometrie.
 //
-// Entitäts-Modelle (EntityInstancer, nach Art; Entität `lod = false` schaltet ab, `lod = { dist, make, anchor, keep }`
+// Entitäts-Modelle (EntityInstancer, nach Art; Entität `lod = false` schaltet ab, `lod = { dist, make, anchor, keep, active }`
 // setzt eine eigene):
 //   flatterkaefer, krabbelkaefer   Registry-Käfer ≈ 4500 Dreiecke → sparsame Nachbildung ≈ 650 (Panzer mit Punkten,
 //                                  Kopf, Augen, Fühler, Beine) ab 22 m Kameraabstand (Entität `lodDist` ändert den
@@ -9,6 +9,8 @@
 //   stachelkugel, stachelkugel_wurf  Registry-Stachelkugel ≈ 5,7 k Dreiecke → die sparsame Kugel derselben Bibliothek
 //                                  (spikeBallGeo lo, ≈ 0,9 k, gleiche Farben/Stacheln) ab 24 m Kameraabstand
 //                                  (Präzisierung „Motor-Feinschliff nach Welt 6“)
+//   baron_sandstatue               Welt-8-Sandstatue: Figur ≈ 6,7 k → gröber gebündelt (geometry.userData.lowGeo) ab 18 m,
+//                                  nur stehend (`active`: zerbröselnd das volle Modell)
 //
 // Schatten-Stellvertreter (shadowStandIn(geometry) → sparsame Geometrie | null): Geometrien, deren Umriss auch sparsam
 // gleich aussieht, zeichnen im Schattenpass (EntityInstancer) immer die Vorlage – Stachelkugel (hi → lo).
@@ -210,7 +212,37 @@ const SPIKE = {
 /** Sparsame Geometrie für den Schattenpass (oder null). */
 export function shadowStandIn(geo) { return STAND_IN.get(geo) ?? null; }
 
-const MODEL_LOD = { flatterkaefer: BUG, krabbelkaefer: BUG, stachelkugel: SPIKE, stachelkugel_wurf: SPIKE };
+// ------------------------------------------------------------------ Modelle mit eigener sparsamer Geometrie
+
+/** Mesh, dessen Geometrie eine sparsame Fassung anbietet (geometry.userData.lowGeo()). */
+function lowMeshOf(root) {
+  let hit = null;
+  root?.traverse((o) => { if (!hit && o.isMesh && !o.isInstancedMesh && o.geometry?.userData?.lowGeo) hit = o; });
+  return hit;
+}
+
+/**
+ * Sandstatue (Welt 8, Baron-Figur ≈ 6,7 k Dreiecke) → gröber gebündelte Figur ab 18 m Kameraabstand; Sockel,
+ * Sandhaufen und Brocken bleiben. Nur die stehende Statue (zerbröselnd zeichnet das volle Modell).
+ */
+const LOW_GEO = {
+  dist: 18,
+  active: (e) => !e.broken,
+  make(e) {
+    const hi = lowMeshOf(e.model?.root);
+    if (!hi) return null;
+    const lo = hi.geometry.userData.lowGeo();
+    const m = new THREE.Mesh(lo, hi.material);
+    m.castShadow = hi.castShadow; m.receiveShadow = hi.receiveShadow;
+    const root = new THREE.Group();
+    root.add(m);
+    return root;
+  },
+  anchor: (root) => lowMeshOf(root) ?? root,   // Lage wie die Figur (Zittern, Zusammensacken, Größe)
+  keep: (m) => !m.geometry?.userData?.lowGeo,
+};
+
+const MODEL_LOD = { flatterkaefer: BUG, krabbelkaefer: BUG, stachelkugel: SPIKE, stachelkugel_wurf: SPIKE, baron_sandstatue: LOW_GEO };
 
 /** Detailstufe für das Modell einer Entität (oder null). */
 export function modelLod(e) {

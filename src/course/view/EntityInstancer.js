@@ -171,7 +171,7 @@ export class EntityInstancer {
       const lod = this.lodOf(e);
       const all = e.instancing === 'all' || !!lod?.all;
       const ld = e.lodDist ?? lod?.dist;
-      if (lod && cam.distanceToSquared(e.pos) > ld * ld) {
+      if (lod && (!lod.active || lod.active(e)) && cam.distanceToSquared(e.pos) > ld * ld) {
         const anchor = lod.anchor(root);
         for (const m of found) {
           if (lod.keep?.(m)) { if (!this.addMesh(m, true, e.kind, noSun, force)) continue; }
@@ -236,7 +236,7 @@ export class EntityInstancer {
         tpl.updateMatrixWorld(true);
         const parts = [];
         tpl.traverse((o) => { if (o.isMesh && !o.isInstancedMesh) parts.push({ geometry: o.geometry, material: o.material, local: o.matrixWorld.clone(), cast: o.castShadow, recv: o.receiveShadow }); });
-        lod = { dist: def.dist, parts, anchor: def.anchor ?? ((root) => root), keep: def.keep ?? null, all: !!def.all };
+        lod = { dist: def.dist, parts, anchor: def.anchor ?? ((root) => root), keep: def.keep ?? null, all: !!def.all, active: def.active ?? null };
       }
     }
     this.lods.set(e, lod);

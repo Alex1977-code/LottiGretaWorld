@@ -383,6 +383,10 @@ const statueGeo = () => memo('w8:statue:baron', () => {
   const P = lit.attributes.position, C = lit.attributes.color;
   for (let i = 0; i < P.count; i++) { const k = 0.9 + noise3(P.getX(i) * 9, P.getY(i) * 9, P.getZ(i) * 9) * 0.2; C.setXYZ(i, C.getX(i) * k, C.getY(i) * k, C.getZ(i) * k); }
   lit.computeBoundingBox();
+  // Detailstufe für ferne Exemplare (view/lod.js, „lowGeo“): gröber gebündelt, deutlich weniger Dreiecke
+  // (nicht aufzählbar: toJSON/Kopien tragen die Funktion nicht mit)
+  let low = null;
+  Object.defineProperty(lit.userData, 'lowGeo', { value: () => (low ??= clusterSimplify(lit, 0.14)) });
   return lit;
 });
 const pedestalGeo = () => cached('w8:statue:pedestal', () => {
