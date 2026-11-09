@@ -10206,3 +10206,24 @@ Wunsch „mehr Details in der 3D-Grafik“. `src/three/lib/surfaceDetail.js` erw
 - **Test:** `tests/surface_detail.mjs` (in `npm test`): je Level mit und ohne Detail – Zeichenaufrufe und Dreiecke gleich,
   Bild im Mittel gleich hell (± 2 %), Struktur sichtbar, höchstens zwei Shader-Programme mehr, Bildzeit im Software-WebGL
   höchstens +50 %, keine Konsolenfehler. Bilder `tests/out/detail_<level>_an.png` / `_aus.png`.
+
+## Präzisierung (Eingabe): Controller
+
+`src/systems/gamepad.js` (`installGamepad(game)` in `main.js`, `window.__pad`) liest je Bild den ersten Controller
+(`navigator.getGamepads()`; Bluetooth/USB, auch über Streaming weitergereicht) und macht das Spiel ohne Tastatur und Touch
+bedienbar:
+
+- **Knöpfe → Tasten:** künstliche `keydown`/`keyup`-Ereignisse auf `window` (mit `keyCode`), je nach oberster Szene
+  (`play` Kurs-Level, `map` Kurs-Weltkarte, `classic`, `classicmap`, `menu`); alle vorhandenen Tastenwege gelten
+  unverändert. Mehrere Knöpfe dürfen dieselbe Taste halten. Beim Wechsel der obersten Szene werden alle Tasten losgelassen,
+  gehaltene Knöpfe zählen erst nach dem Loslassen wieder.
+- **Stick stufenlos:** `CourseInput.sample()` liest `gamepad.stick()` wie den Touch-Stick (Totzone 0,22; ab 85 % rennen).
+  Ohne `CourseInput` (Klassik) wird der Stick zu Pfeiltasten. Rechter Stick: Kamera je Kipp eine Stufe (Q/E).
+- **Menüs:** in Szenen ohne eigene Steuerung (Pause, Ergebnis, Abfragen der Karte über `hud.confirm`) wählen
+  Steuerkreuz/Stick einen interaktiven Knopf der Szene (`scene.input._list`, sichtbar und aktiv; Rahmen), A löst
+  `pointerdown` darauf aus; ohne Knöpfe sendet A Enter. B/Start = Esc.
+- **Weltkarte:** ein beliebiger Knopf überspringt den Anflug (`gamepad.anyButton()`).
+- **Windows-Programm (`desktop/main.cjs`):** `autoplayPolicy: 'no-user-gesture-required'` (Ton ohne Mausklick), Start im
+  Vollbild (F11 schaltet um; `LOTTI_WINDOW=1` startet im Fenster), `backgroundThrottling: false`.
+- **Test:** `tests/gamepad.mjs` (in `npm test`) mit nachgebildetem Standard-Controller: Stick stufenlos, Sprung,
+  Steuerkreuz, Pause-Menü (wählen, drücken, schließen), Karte (Anflug überspringen, laufen, Heldin wechseln).

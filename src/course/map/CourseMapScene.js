@@ -37,6 +37,7 @@ import Phaser from 'phaser';
 import * as THREE from 'three';
 import { CourseView } from '../view/CourseView.js';
 import { CourseInput } from '../input/CourseInput.js';
+import { gamepad } from '../../systems/gamepad.js';
 import { Level } from '../level/Level.js';
 import { Player } from '../player/Player.js';
 import { HeroRig } from '../player/HeroRig.js';
@@ -852,7 +853,7 @@ export class CourseMapScene extends Phaser.Scene {
     it.t += dt;
     const k = Math.min(1, it.t / it.dur);
     const skip = this.cinput.keys && Object.values(this.cinput.keys).some((key) => key.isDown);
-    if (k >= 1 || skip || this.input.activePointer.isDown) { this.endIntro(); return false; }
+    if (k >= 1 || skip || this.input.activePointer.isDown || gamepad.anyButton()) { this.endIntro(); return false; }
     // erst kurz verweilen, dann weich hinfliegen
     const u = Math.max(0, (k - 0.25) / 0.75), e = u * u * (3 - 2 * u);
     it.pos.lerpVectors(it.fromPos, it.toPos, e);

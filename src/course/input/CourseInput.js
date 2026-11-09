@@ -1,4 +1,5 @@
-// Kurs-Eingabe: vereinheitlicht Tastatur, Touch (CourseTouch schreibt in `touch`) und Testeingaben
+// Kurs-Eingabe: vereinheitlicht Tastatur, Touch (CourseTouch schreibt in `touch`), Controller (systems/gamepad.js: Stick
+// stufenlos, Knöpfe als Tasten) und Testeingaben
 // (`setOverride`, von window.__course.setInput genutzt). Die Simulation liest je Schritt `sample()`:
 //
 //   moveX, moveY   Stick -1..1 (moveY > 0 = nach vorn/oben im Bild), mag = Länge 0..1
@@ -12,6 +13,7 @@
 // zwischen zwei Simulationsschritten nicht verloren gehen.
 
 import Phaser from 'phaser';
+import { gamepad } from '../../systems/gamepad.js';
 
 const RUN_STICK = 0.85;
 
@@ -25,6 +27,8 @@ export class CourseInput {
     // Touch-Zustand (CourseTouch): x/y Stick, gehaltene Knöpfe und Flanken
     this.touch = { x: 0, y: 0, active: false, jump: false, crouch: false, run: false, jumpPressed: false, crouchPressed: false, actionPressed: false, camLeft: false, camRight: false, zoom: false };
     this.state = this.blank();
+    // Controller: der linke Stick steuert stufenlos (systems/gamepad.js), Knöpfe kommen als Tasten an
+    gamepad.claimAnalog();
 
     const kb = scene.input.keyboard;
     this.kb = kb;
@@ -84,6 +88,7 @@ export class CourseInput {
         run = k.shift.isDown;
       }
       if (x === 0 && y === 0 && (t.x || t.y)) { x = t.x; y = t.y; analog = true; }
+      if (x === 0 && y === 0) { const s = gamepad.stick(); if (s && s.mag > 0) { x = s.x; y = s.y; analog = true; } }
       jump = jump || t.jump || p.jump;
       crouch = crouch || t.crouch;
       run = run || t.run;
@@ -114,6 +119,7 @@ export class CourseInput {
   keyJumpDown() { const k = this.keys; return !!k && (k.space.isDown || k.j.isDown || this.touch.jump); }
 
   destroy() {
+    if (!this.destroyed) { this.destroyed = true; gamepad.releaseAnalog(); }
     if (this.kb && this.handlers) for (const [ev, fn] of this.handlers) this.kb.off(ev, fn);
   }
 }

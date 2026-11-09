@@ -13,6 +13,7 @@ import { PauseScene } from './scenes/PauseScene.js';
 import { LEVELS } from './levels/index.js';
 import { setupOrientationHint } from './systems/orientation.js';
 import { registerServiceWorker } from './systems/pwa.js';
+import { installGamepad } from './systems/gamepad.js';
 import { installAudioUnlock, engine as audioEngine, music } from './audio/index.js';
 import { CourseBootScene } from './course/CourseBoot.js';
 import { CourseScene } from './course/CourseScene.js';
@@ -76,6 +77,8 @@ const config = {
 
 const game = new Phaser.Game(config);
 window.__game = game; // für Debug/Tests
+// Controller (Bluetooth/USB, auch über Streaming): Knöpfe als Tasten, Stick stufenlos, Menüs mit Auswahlrahmen
+window.__pad = installGamepad(game);
 window.__audio = { engine: audioEngine, music };
 game.registry.set('renderScale', RENDER.scale);
 game.registry.set('render3d', RENDER3D.enabled);

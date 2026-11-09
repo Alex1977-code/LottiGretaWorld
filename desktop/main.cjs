@@ -1,6 +1,7 @@
 // LOTTI & GRETA als Windows-Programm: ein Fenster, das den Web-Build (desktop/app, Kopie von dist/) zeigt.
 // Die Dateien kommen über das eigene Schema app://spiel/ direkt von der Platte (fester Ursprung: der Spielstand in
-// localStorage bleibt erhalten; kein Netz nötig). F11 schaltet Vollbild, Alt+F4 beendet.
+// localStorage bleibt erhalten; kein Netz nötig). Start im Vollbild, F11 schaltet um, Alt+F4 beendet. Controller
+// (Bluetooth/USB/Streaming) bedienen das ganze Spiel (src/systems/gamepad.js).
 const { app, BrowserWindow, protocol, net, Menu, shell } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -20,10 +21,13 @@ function createWindow() {
     backgroundColor: '#1a1a2e', autoHideMenuBar: true, show: false,
     title: 'Lotti und Greta',
     icon: path.join(ROOT, 'icons', 'icon-512.png'),
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
+    // autoplayPolicy: Ton ohne Mausklick (wer nur mit dem Controller spielt, klickt nie); backgroundThrottling aus: das Spiel
+    // läuft weiter, wenn das Fenster beim Streaming nicht im Vordergrund ist
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required' },
   });
   Menu.setApplicationMenu(null);
-  win.once('ready-to-show', () => { win.maximize(); win.show(); });
+  // Start im Vollbild (Spielen am Fernseher / über Streaming ohne Tastatur); F11 schaltet aufs Fenster zurück
+  win.once('ready-to-show', () => { win.maximize(); win.setFullScreen(process.env.LOTTI_WINDOW !== '1'); win.show(); });
   win.webContents.on('before-input-event', (ev, input) => {
     if (input.type === 'keyDown' && input.key === 'F11') { win.setFullScreen(!win.isFullScreen()); ev.preventDefault(); }
   });

@@ -51,6 +51,29 @@ npm test           # Headless-Tests (Chromium): Logik in 2D, 3D-Ansichten mit Sc
 | Esc / P        | Pause                                               |
 | R              | Zurück zum Start                                    |
 
+## Steuerung (Controller)
+
+Bluetooth- und USB-Controller (Xbox-, PlayStation-, Switch-Pro-Belegung über die Gamepad-API des Browsers) bedienen das
+ganze Spiel ohne Tastatur und Touch – am Handy, am PC und im Windows-Programm, auch wenn der Controller über
+Spiele-Streaming (Steam Link/Remote Play, Moonlight …) weitergereicht wird. `src/systems/gamepad.js`, Test
+`tests/gamepad.mjs`.
+
+| Knopf (Xbox-Namen)     | Im Level                          | Auf der Weltkarte        | In Menüs                 |
+| ---------------------- | --------------------------------- | ------------------------ | ------------------------ |
+| Linker Stick           | Laufen (ganz gekippt = rennen)    | Laufen                   | Knopf wählen             |
+| Steuerkreuz            | Laufen                            | Laufen                   | Knopf wählen             |
+| A                      | Springen                          | Level betreten           | gewählten Knopf drücken  |
+| B                      | Ducken / Stampfen                 | Springen                 | zurück / weiter (Esc)    |
+| X, Y, RT               | Rennen + Aktion                   | X Figur wechseln, Y Kostüm, RT rennen | –           |
+| LT                     | Ducken                            | –                        | –                        |
+| LB / RB, rechter Stick | Kamera drehen                     | Kamera drehen            | –                        |
+| R3 (Stick drücken)     | Zoom                              | Zoom                     | –                        |
+| Start                  | Pause                             | Level betreten           | zurück / weiter (Esc)    |
+| Back / Select          | –                                 | Ton an/aus               | Ton an/aus               |
+
+Im Windows-Programm startet der Ton ohne Mausklick, und es läuft im Vollbild (F11 schaltet um). Im Browser verlangt der
+Ton einmal eine Berührung, einen Klick oder Tastendruck.
+
 ## Steuerung (Touch, Querformat)
 
 - **Weltkarte (3D-Insel):** Level-Podest antippen = hinlaufen (auch über mehrere Etappen), großer
@@ -360,7 +383,8 @@ Danach ist das Spiel unter `https://<user>.github.io/<repo>/` erreichbar und als
 ## Windows-Programm (EXE)
 
 `desktop/` enthält eine Electron-Hülle um den Web-Build: ein Fenster, das `dist/` über das eigene Schema `app://spiel/`
-direkt von der Platte lädt (kein Netz nötig, der Spielstand bleibt erhalten). F11 schaltet Vollbild.
+direkt von der Platte lädt (kein Netz nötig, der Spielstand bleibt erhalten). Start im Vollbild, F11 schaltet um;
+Controller siehe „Steuerung (Controller)“.
 
 - **Download:** der Workflow `.github/workflows/exe.yml` baut bei jedem Push auf `master` die Datei `LottiGreta.exe`
   (eine Datei, keine Installation) und legt sie als Release „windows-exe“ ab:
